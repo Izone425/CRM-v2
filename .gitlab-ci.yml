@@ -11,6 +11,6 @@ deploy:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   script:
      # Connect to the server and deploy
-    - ssh crm@192.168.1.250 "cd /var/www/html/timeteccrm && git pull"
+    - ssh crm@192.168.1.250 "cd /var/www/html/timetec-crm && git pull"
   only:
     - master
