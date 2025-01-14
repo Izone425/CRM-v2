@@ -106,7 +106,6 @@ class AutoFollowUp extends Command
                                 // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                             ],
                         ];
-                        info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
                         Mail::mailer('secondary')->to($lead->email)
                             ->send(new FollowUpNotification($emailContent, $viewName));

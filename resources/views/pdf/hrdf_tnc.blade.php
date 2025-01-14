@@ -151,7 +151,7 @@
             <li>TimeTec may amend these Terms with prior notice to Employers. Continued participation in TimeTec's HRD Corp claimable training after amendments signifies acceptance of the new terms.</li>
         </ol>
     </ol>
-    <div class="page-break-before"></div>
+    {{-- <div class="page-break-before"></div> --}}
     <!-- -->
     <div class="row">
         <div class="col-lg-12" style="margin-top: 15px;">

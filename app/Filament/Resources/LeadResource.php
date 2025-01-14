@@ -565,7 +565,7 @@ class LeadResource extends Resource
                                                         ->schema([
                                                             Forms\Components\Placeholder::make('modules')
                                                                 ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
-                                                                ->content(fn ($record) => " ".$record?->systemQuestion?->modules ?? '-')
+                                                                ->content(fn ($record) => $record?->systemQuestion?->modules ?? '-')
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('existing_system')
                                                                 ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
@@ -613,43 +613,43 @@ class LeadResource extends Resource
                                                                 ->modalHeading('Update Data')
                                                                 ->form([
                                                                     Forms\Components\TextInput::make('modules')
-                                                                        ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?'),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->modules),
+                                                                        ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->modules),
                                                                     Forms\Components\TextInput::make('existing_system')
-                                                                        ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?'),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->existing_system),
+                                                                        ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->existing_system),
                                                                     Forms\Components\TextInput::make('usage_duration')
-                                                                        ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?'),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->usage_duration),
+                                                                        ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->usage_duration),
                                                                     Forms\Components\DatePicker::make('expired_date')
-                                                                        ->label('4. WHEN IS THE EXPIRED DATE?'),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->expired_date),
+                                                                        ->label('4. WHEN IS THE EXPIRED DATE?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->expired_date),
                                                                     Forms\Components\Textarea::make('reason_for_change')
                                                                         ->label('5. WHAT MAKES YOU LOOK FOR A NEW SYSTEM?')
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->reason_for_change)
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->reason_for_change)
                                                                         ->rows(3),
                                                                     Forms\Components\TextInput::make('staff_count')
                                                                         ->label('6. HOW MANY STAFF DO YOU HAVE?')
-                                                                        ->numeric(),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->staff_count),
+                                                                        ->numeric()
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->staff_count),
                                                                     Forms\Components\TextInput::make('subsidiaries')
                                                                         ->label('7. HOW MANY SUBSIDIARIES?')
-                                                                        ->numeric(),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->subsidiaries),
+                                                                        ->numeric()
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->subsidiaries),
                                                                     Forms\Components\TextInput::make('branches')
                                                                         ->label('8. HOW MANY BRANCHES?')
-                                                                        ->numeric(),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->branches),
+                                                                        ->numeric()
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->branches),
                                                                     Forms\Components\TextInput::make('industry')
-                                                                        ->label('9. WHAT IS YOUR INDUSTRY?'),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->industry),
+                                                                        ->label('9. WHAT IS YOUR INDUSTRY?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->industry),
                                                                     Forms\Components\Select::make('hrdf_contribution')
                                                                         ->label('10. DO YOU CONTRIBUTE TO HRDF FUND?')
                                                                         ->options([
                                                                             'Yes' => 'Yes',
                                                                             'No' => 'No',
-                                                                        ]),
-                                                                        // ->default(fn ($record) => $record?->systemQuestion?->hrdf_contribution),
+                                                                        ])
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->hrdf_contribution),
                                                                 ])
                                                                 ->action(function (Lead $lead, array $data) {
                                                                     // Retrieve the current lead's systemQuestion
@@ -1278,8 +1278,8 @@ class LeadResource extends Resource
             ]);
     }
 
-    public static function canCreate(): bool
-    {
-       return false;
-    }
+    // public static function canCreate(): bool
+    // {
+    //    return false;
+    // }
 }

@@ -333,6 +333,9 @@ class ActivityLogRelationManager extends RelationManager
 
                                 $followUpCount = max(0, $followUpCount - 1); // Ensure count does not go below 0
 
+                                $viewName = 'emails.email_blasting_1st';
+                                $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
+
                                 // Increment the follow-up count for the new description
                                 $followUpDescription = ($followUpCount) . 'st Salesperson Transfer Follow Up';
                                 if ($followUpCount == 2) {
@@ -365,10 +368,47 @@ class ActivityLogRelationManager extends RelationManager
                                     ->success()
                                     ->send();
 
-                                $message = urlencode("Hello {$lead->name},\nYour follow-up is scheduled for: {$followUpDate}");
-                                $phoneNumber = $lead->phone; // Ensure this includes the country code
-                                // Redirect to WhatsApp Web/App
-                                return $livewire->js("window.open('https://api.whatsapp.com/send?phone={$phoneNumber}&text={$message}', '_blank');");
+                                $leadowner = User::where('name', $lead->lead_owner)->first();
+                                try {
+                                    // Get the currently logged-in user
+                                    $currentUser = Auth::user();
+                                    if (!$currentUser) {
+                                        throw new Exception('User not logged in');
+                                    }
+
+                                    $emailContent = [
+                                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                        'lead' => [
+                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                            'companySize' => $lead->company_size ?? 'N/A', // Company Size
+                                            'phone' => $lead->phone ?? 'N/A', // Lead's Phone
+                                            'email' => $lead->email ?? 'N/A', // Lead's Email
+                                            'country' => $lead->country ?? 'N/A', // Lead's Country
+                                            'products' => $lead->products ?? 'N/A', // Products
+                                            'department' => $leadowner->department ?? 'N/A', // department
+                                            'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
+                                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                            // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
+                                        ],
+                                    ];
+                                    Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
+
+                                    Mail::mailer('secondary')->to($lead->email)
+                                        ->send(new FollowUpNotification($emailContent, $viewName));
+                                } catch (\Exception $e) {
+                                    // Handle email sending failure
+                                    Log::error("Error: {$e->getMessage()}");
+                                }
+
+                                $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+                                $variables = [$lead->name, $lead->lead_owner];
+                                // $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
+
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+
+                                return $response;
                             }else{
                                 // Retrieve the related Lead model from ActivityLog
                                 $lead = $activityLog->lead; // Assuming the 'activityLogs' relation in Lead is named 'lead'
@@ -412,10 +452,10 @@ class ActivityLogRelationManager extends RelationManager
                                     }
 
                                 Notification::make()
-                                    ->title('You had completed a demo')
+                                    ->title('You had follow up a cancelled demo')
                                     ->success()
                                     ->send();
-                                    }
+                            }
                         }),
 
                     Tables\Actions\Action::make('addRFQ')
@@ -1125,13 +1165,9 @@ class ActivityLogRelationManager extends RelationManager
                             return $leadStatus === LeadStatusEnum::RFQ_FOLLOW_UP->value
                                 || $leadStatus === LeadStatusEnum::RFQ_TRANSFER->value;
                         })
-                        ->action(function (ActivityLog $record) {
-                            // Encrypt the lead ID
-                            $encryptedLeadId = Encryptor::encrypt($record->subject_id);
-
-                            // Redirect to the create route with the encrypted lead ID
-                            return redirect()->route('filament.admin.resources.quotations.create', ['lead_id' => $encryptedLeadId]);
-                        }),
+                        ->url(fn (ActivityLog $record) => route('filament.admin.resources.quotations.create', [
+                            'lead_id' => Encryptor::encrypt($record->subject_id),
+                        ]), true),
                     Tables\Actions\Action::make('quotationFollowUp')
                         ->label(__('Add RFQ Follow Up'))
                         ->color('success')
