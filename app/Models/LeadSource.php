@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class LeadSource extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'lead_code',
+        'salesperson',
+        'platform',
+    ];
+
+    public function lead(): HasMany
+    {
+        return $this->hasMany(Lead::class, 'lead_code', 'lead_code');
+    }
+}

@@ -1,0 +1,92 @@
+html {
+    font-size: 0.938rem;
+}
+
+/*
+* Sidebar
+*/
+.fi-sidebar {
+    background-color: #431fa1 !important;
+    color: #ffffff !important;
+}
+
+.fi-sidebar .fi-sidebar-nav .fi-nav-item {
+    color: #ffffff !important;
+}
+
+.fi-sidebar-item:hover
+    .fi-sidebar-item-button:hover
+    .fi-sidebar-item-label:hover,
+.fi-sidebar-item:hover .fi-sidebar-item-button:hover .fi-sidebar-item-icon {
+    color: #431fa1 !important;
+}
+
+.fi-sidebar-item:hover .fi-sidebar-item-button:hover .fi-sidebar-item-label {
+    color: #431fa1 !important;
+}
+
+.fi-sidebar-item-label,
+.fi-sidebar-item-icon {
+    color: #ffffff !important;
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-label,
+.fi-sidebar-item-active .fi-sidebar-item-icon {
+    color: #431fa1 !important;
+}
+
+.fi-sidebar-group-label.text-gray-500 {
+    color: #b2beb5 !important;
+}
+
+/*
+ * set table row height
+ */
+
+.fi-ta-ctn .py-4 {
+    padding-top: 0.313rem !important;
+    padding-bottom: 0.313rem !important;
+}
+
+/*
+* Tabs
+*/
+.fi-tabs-item-active.bg-gray-50 {
+    background: #431fa1;
+}
+
+.fi-tabs-item-active .fi-tabs-item-label.text-primary-600 {
+    color: #ffffff;
+    background-color: #431fa1;
+}
+
+.fi-ta-header-ctn {
+    padding-bottom: 5px;
+}
+
+/*
+* Paginations
+*/
+.fi-pagination-item.fi-active .fi-pagination-item-button {
+    background-color: #431fa1;
+}
+.fi-pagination-item.fi-active
+    .fi-pagination-item-button
+    .fi-pagination-item-label {
+    color: #ffffff;
+}
+
+/*
+ * Set page header heading font size
+ */
+@media (min-width: 640px) {
+    .fi-header-heading.sm\:text-3xl {
+        font-size: 1.625rem !important;
+        line-height: 2.25rem !important;
+    }
+}
+
+.flatpickr-calendar.open {
+    display: inline-block;
+    z-index: auto;
+}
