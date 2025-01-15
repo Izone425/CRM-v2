@@ -98,8 +98,7 @@
                         </form> --}}
                     </div>
                 @else
-                    <!-- Placeholder when no pending leads are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -137,7 +136,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no new leads are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -181,7 +180,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no reminders are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -229,7 +228,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no overdue reminders are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -277,7 +276,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no demos are scheduled -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -383,7 +382,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no prospects are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -446,7 +445,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no overdue prospects are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -489,7 +488,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no follow-ups are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -536,7 +535,7 @@
                     </div>
                 @else
                     <!-- Placeholder when no overdue debtor follow-ups are found -->
-                    <div class="flex flex-col items-center justify-center mt-6">
+                    <div class="flex flex-col items-center justify-center h-full">
                         <i class="mb-4 text-gray-500 fa fa-question-circle fa-3x"></i>
                         <p class="text-center text-gray-500">No data available.</p>
                     </div>
@@ -1352,8 +1351,10 @@
                     </div>
 
                     <div class="p-4 bg-white rounded-lg shadow">
-                        <h3 class="text-lg font-bold">Debtor Follow Up (Today) <span class="text-gray-500" style="padding-left: 70%;">(Count: {{ $this->getOverdueProspects()->count() }})</span></h3>
-
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold">Debtor Follow Up (Today)</h3>
+                            <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getOverdueProspects()->count() }})</span>
+                        </div>
                         @if ($this->getOverdueProspects()->count() > 0)
                             <div class="mt-2 overflow-y-auto" style="max-height: 300px;">
                                 <table class="w-full text-sm border-collapse table-fixed" style="width: 100%;">

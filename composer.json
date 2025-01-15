@@ -21,6 +21,7 @@
         "league/oauth2-client": "*",
         "microsoft/microsoft-graph": "1.42.0",
         "njxqlus/filament-relation-manager-component": "^1.0",
+        "parfaitementweb/filament-country-field": "*",
         "propaganistas/laravel-phone": "^5.3",
         "saade/filament-fullcalendar": "^3.0",
         "savannabits/filament-flatpickr": "^3.1",
