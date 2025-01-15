@@ -71,7 +71,8 @@ class Lead extends Model
 
     protected $casts = [
         'follow_up_date' => 'date:Y-m-d',
-        'rfq_followup_at' => 'datetime'
+        'rfq_followup_at' => 'datetime',
+        'products' => 'array',
     ];
 
     public static function boot()

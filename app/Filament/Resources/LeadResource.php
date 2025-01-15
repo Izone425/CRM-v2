@@ -52,7 +52,6 @@ use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\Tabs;
 
 class LeadResource extends Resource
 {
@@ -1265,7 +1264,7 @@ class LeadResource extends Resource
     {
         return [
             'index' => Pages\ListLeads::route('/'),
-            'create' => Pages\CreateCustomer::route('/create'),
+            'create' => Pages\CreateLead::route('/create'),
             'view' => Pages\ViewLeadRecord::route('/{record}'),
         ];
     }
@@ -1278,8 +1277,8 @@ class LeadResource extends Resource
             ]);
     }
 
-    // public static function canCreate(): bool
-    // {
-    //    return false;
-    // }
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role_id !== 2;
+    }
 }
