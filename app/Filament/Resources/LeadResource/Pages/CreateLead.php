@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Classes\Encryptor;
 use App\Filament\Resources\LeadResource;
+use App\Models\ActivityLog;
 use Filament\Actions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -28,6 +29,27 @@ class CreateLead extends CreateRecord
         ]);
     }
 
+    protected function getCreatedNotificationMessage(): ?string
+    {
+        return 'The lead has been successfully created! 🎉';
+    }
+
+    protected function afterCreate(): void
+    {
+        // Fetch the latest activity log for the created lead
+        $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        // Update the activity log description
+        if ($latestActivityLog) {
+            $latestActivityLog->update([
+                'description' => 'New lead created',
+                'causer_id' => 0, // Assuming 0 means the system created it
+            ]);
+        }
+    }
+
     protected function getFormSchema(): array
     {
         return [
@@ -48,8 +70,24 @@ class CreateLead extends CreateRecord
                 ->readOnly(),
             TextInput::make('company_name')
                 ->label('Company Name')
-                ->required(),
-            TextInput::make('country')
+                ->required()
+                ->dehydrateStateUsing(function ($state, $set, $get) {
+                    $latestLeadId = \App\Models\Lead::max('id') ?? 0; // Get the latest lead ID or default to 0
+
+                    // Step 2: Determine the next Lead ID
+                    $nextLeadId = $latestLeadId + 1;
+                    // Create a new CompanyDetail record and associate it with the Lead
+                    $companyDetail = \App\Models\CompanyDetail::create([
+                        'company_name' => $state, // The company name
+                        'lead_id' => $nextLeadId      // Associate with the current Lead
+                    ]);
+
+                    // Store the new CompanyDetail ID in the `company_name` field of the Lead table
+                    $set('company_name', $companyDetail->id);
+
+                    return $companyDetail->id; // Optionally return the ID
+                }),
+            Country::make('country')
                 ->label('Country')
                 ->required(),
             Select::make('company_size')

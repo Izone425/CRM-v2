@@ -25,12 +25,14 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
@@ -350,6 +352,13 @@ class QuotationRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                Action::make('createQuotation')
+                ->label('Add Quotation')
+                ->url(fn () => route('filament.admin.resources.quotations.create', [
+                    'lead_id' => Encryptor::encrypt($this->getOwnerRecord()->id),
+                ]), true),
+            ])
             ->recordUrl(null)
             ->emptyState(fn () => view('components.empty-state-question'))
             ->modifyQueryUsing(function(Quotation $quotation) {

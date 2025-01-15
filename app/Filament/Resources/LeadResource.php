@@ -80,7 +80,7 @@ class LeadResource extends Resource
                                                         ->schema([
                                                             Forms\Components\Placeholder::make('lead_id')
                                                                 ->label('Lead ID')
-                                                                ->content(fn ($record) => $record->id ?? '-'),
+                                                                ->content(fn ($record) => sprintf('%06d', $record->id) ?? '-'),
                                                             Forms\Components\Placeholder::make('lead_source')
                                                                 ->label('Lead Source')
                                                                 ->content(fn ($record) => $record->leadSource?->platform ?? '-'),
@@ -890,153 +890,153 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-        ->defaultPaginationPageOption(50)
-        ->modifyQueryUsing(function ($query) {
-            $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")
-                    ->orderBy('created_at', 'desc');
-            return $query;
-        })
-                ->filters([
-                    // Filter for Lead Owner
-                    SelectFilter::make('lead_owner')
-                        ->label('')
-                        ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
-                        ->placeholder('Select Lead Owner')
-                        ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo', 'follow_up'])),
+            ->defaultPaginationPageOption(50)
+            ->modifyQueryUsing(function ($query) {
+                $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")
+                        ->orderBy('created_at', 'desc');
+                return $query;
+            })
+            ->filters([
+                // Filter for Lead Owner
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner')
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo', 'follow_up'])),
 
-                    // Filter for Salesperson
-                    SelectFilter::make('salesperson')
-                        ->label('')
-                        ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
-                        ->placeholder('Select Salesperson'),
+                // Filter for Salesperson
+                SelectFilter::make('salesperson')
+                    ->label('')
+                    ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
+                    ->placeholder('Select Salesperson'),
 
-                    //Filter for Created At
-                    Filter::make('created_at')
-                        ->label('')
-                        ->form([
-                            Forms\Components\DatePicker::make('created_at')
-                                ->label('')
-                                ->format('Y-m-d') // Ensures compatibility with the database format
-                                ->placeholder('Select a date'),
-                        ])
-                        ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                            if (!empty($data['created_at'])) {
-                                // Filter using the date portion of the `created_at` datetime
-                                $query->whereDate('created_at', '=', $data['created_at']);
-                            }
-                        })
-                        ->indicateUsing(function (array $data) {
-                            return isset($data['created_at'])
-                                ? 'Created At: ' . Carbon::parse($data['created_at'])->format('j M Y')
-                                : null;
-                        }),
+                //Filter for Created At
+                Filter::make('created_at')
+                    ->label('')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_at')
+                            ->label('')
+                            ->format('Y-m-d') // Ensures compatibility with the database format
+                            ->placeholder('Select a date'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['created_at'])) {
+                            // Filter using the date portion of the `created_at` datetime
+                            $query->whereDate('created_at', '=', $data['created_at']);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['created_at'])
+                            ? 'Created At: ' . Carbon::parse($data['created_at'])->format('j M Y')
+                            : null;
+                    }),
 
-                    // Filter for Categories
-                    SelectFilter::make('categories')
-                        ->label('')
-                        ->options(
-                            collect(LeadCategoriesEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
-                        )
-                        ->placeholder('Select Category')
-                        ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['transfer', 'active', 'demo', 'follow_up', 'inactive'])),
+                // Filter for Categories
+                SelectFilter::make('categories')
+                    ->label('')
+                    ->options(
+                        collect(LeadCategoriesEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
+                    )
+                    ->placeholder('Select Category')
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['transfer', 'active', 'demo', 'follow_up', 'inactive'])),
 
-                    // Filter for Stage
-                    SelectFilter::make('stage')
-                        ->label('')
-                        ->options(
-                            collect(LeadStageEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
-                        )
-                        ->placeholder('Select Stage')
-                        ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'follow_up', 'inactive'])),
+                // Filter for Stage
+                SelectFilter::make('stage')
+                    ->label('')
+                    ->options(
+                        collect(LeadStageEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
+                    )
+                    ->placeholder('Select Stage')
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'follow_up', 'inactive'])),
 
-                    // Filter for Lead Status
-                    SelectFilter::make('lead_status')
-                        ->label('')
-                        ->options(
-                            collect(LeadStatusEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
-                        )
-                        ->placeholder('Select Lead Status')
-                        ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'demo'])),
+                // Filter for Lead Status
+                SelectFilter::make('lead_status')
+                    ->label('')
+                    ->options(
+                        collect(LeadStatusEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
+                    )
+                    ->placeholder('Select Lead Status')
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'demo'])),
 
-                    Filter::make('appointment_date')
-                        ->label('')
-                        ->form([
-                            Forms\Components\DatePicker::make('date')
-                                ->label('')
-                                ->format('Y-m-d') // Ensures compatibility with the database format
-                                ->placeholder('Select a date'),
-                        ])
-                        ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                            if (!empty($data['date'])) {
-                                $query->whereHas('demoAppointment', function ($subQuery) use ($data) {
-                                    $subQuery->whereDate('date', $data['date']);
+                Filter::make('appointment_date')
+                    ->label('')
+                    ->form([
+                        Forms\Components\DatePicker::make('date')
+                            ->label('')
+                            ->format('Y-m-d') // Ensures compatibility with the database format
+                            ->placeholder('Select a date'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['date'])) {
+                            $query->whereHas('demoAppointment', function ($subQuery) use ($data) {
+                                $subQuery->whereDate('date', $data['date']);
+                            });
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['date'])
+                            ? 'Date: ' . Carbon::parse($data['date'])->format('j M Y')
+                            : null;
+                    })
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'inactive', 'follow_up', 'transfer'])),
+
+                Filter::make('company_name')
+                    ->form([
+                        Forms\Components\TextInput::make('company_name')
+                            ->hiddenLabel()
+                            ->placeholder('Enter company name'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['company_name'])) {
+                            $query->whereHas('companyDetail', function ($query) use ($data) {
+                                $query->where('company_name', 'like', '%' . $data['company_name'] . '%');
+                            });
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['company_name'])
+                            ? 'Company Name: ' . $data['company_name']
+                            : null;
+                    }),
+
+                Filter::make('company_size_label')
+                    ->label('')
+                    ->form([
+                        Forms\Components\Select::make('company_size_label')
+                            ->label('')
+                            ->placeholder('Select Company Size')
+                            ->options([
+                                'Small' => 'Small',
+                                'Medium' => 'Medium',
+                                'Large' => 'Large',
+                                'Enterprise' => 'Enterprise',
+                            ]),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['company_size_label'])) {
+                            $sizeMap = [
+                                'Small' => '1-24',
+                                'Medium' => '25-99',
+                                'Large' => '100-500',
+                                'Enterprise' => '501 and Above',
+                            ];
+
+                            $dbValue = $sizeMap[$data['company_size_label']] ?? null;
+
+                            if ($dbValue) {
+                                $query->whereHas('companyDetail', function ($query) use ($dbValue) {
+                                    $query->where('company_size', $dbValue);
                                 });
                             }
-                        })
-                        ->indicateUsing(function (array $data) {
-                            return isset($data['date'])
-                                ? 'Date: ' . Carbon::parse($data['date'])->format('j M Y')
-                                : null;
-                        })
-                        ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'inactive', 'follow_up', 'transfer'])),
-
-                    Filter::make('company_name')
-                        ->form([
-                            Forms\Components\TextInput::make('company_name')
-                                ->hiddenLabel()
-                                ->placeholder('Enter company name'),
-                        ])
-                        ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                            if (!empty($data['company_name'])) {
-                                $query->whereHas('companyDetail', function ($query) use ($data) {
-                                    $query->where('company_name', 'like', '%' . $data['company_name'] . '%');
-                                });
-                            }
-                        })
-                        ->indicateUsing(function (array $data) {
-                            return isset($data['company_name'])
-                                ? 'Company Name: ' . $data['company_name']
-                                : null;
-                        }),
-
-                    Filter::make('company_size_label')
-                        ->label('')
-                        ->form([
-                            Forms\Components\Select::make('company_size_label')
-                                ->label('')
-                                ->placeholder('Select Company Size')
-                                ->options([
-                                    'Small' => 'Small',
-                                    'Medium' => 'Medium',
-                                    'Large' => 'Large',
-                                    'Enterprise' => 'Enterprise',
-                                ]),
-                        ])
-                        ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                            if (!empty($data['company_size_label'])) {
-                                $sizeMap = [
-                                    'Small' => '1-24',
-                                    'Medium' => '25-99',
-                                    'Large' => '100-500',
-                                    'Enterprise' => '501 and Above',
-                                ];
-
-                                $dbValue = $sizeMap[$data['company_size_label']] ?? null;
-
-                                if ($dbValue) {
-                                    $query->whereHas('companyDetail', function ($query) use ($dbValue) {
-                                        $query->where('company_size', $dbValue);
-                                    });
-                                }
-                            }
-                        })
-                        ->indicateUsing(function (array $data) {
-                            return isset($data['company_size_label'])
-                                ? 'Company Size: ' . $data['company_size_label']
-                                : null;
-                        }),
-                ], layout: FiltersLayout::AboveContent)
-                ->filtersFormColumns(6)
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['company_size_label'])
+                            ? 'Company Size: ' . $data['company_size_label']
+                            : null;
+                    }),
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(6)
                 ->columns([
                 TextColumn::make('id')
                     ->label('ID')
