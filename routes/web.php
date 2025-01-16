@@ -26,7 +26,7 @@ use Laravel\Socialite\Facades\Socialite;
 */
 
 Route::get('/', function () {
-    return redirect(route('filament.admin.home'));
+    return view('welcome');
 });
 
 Route::middleware('signed')

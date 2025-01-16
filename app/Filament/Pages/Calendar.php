@@ -15,7 +15,6 @@ class Calendar extends Page
     public $totalDemos = 0;
     public $newDemos = 0;
     public $secondDemos = 0;
-    public $webinarDemos = 0;
     public ?int $selectedSalesperson = null;
     public ?string $selectedDemoType = null; // New property for demo type filter
     public array $salespersonOptions = [];
@@ -27,8 +26,8 @@ class Calendar extends Page
             ->pluck('name', 'id')
             ->toArray();
 
-        $this->demoTypeOptions = Appointment::distinct('appointment_type')
-            ->pluck('appointment_type', 'appointment_type') // Fetch unique demo types from the `type` column
+        $this->demoTypeOptions = Appointment::distinct('type')
+            ->pluck('type', 'type') // Fetch unique demo types from the `type` column
             ->toArray();
 
         $this->updateCounts();
@@ -56,12 +55,11 @@ class Calendar extends Page
         }
 
         if ($this->selectedDemoType) {
-            $query->where('appointment_type', $this->selectedDemoType);
+            $query->where('type', $this->selectedDemoType);
         }
 
         $this->totalDemos = $query->count();
         $this->newDemos = (clone $query)->where('appointment_type', 'Online Demo')->count();
         $this->secondDemos = (clone $query)->where('appointment_type', 'Onsite Demo')->count();
-        $this->webinarDemos = (clone $query)->where('appointment_type', 'Webinar Demo')->count();
     }
 }

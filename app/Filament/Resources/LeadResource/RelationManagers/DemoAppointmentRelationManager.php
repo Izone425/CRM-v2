@@ -52,6 +52,30 @@ class DemoAppointmentRelationManager extends RelationManager
         return $ownerRecord->user_id === auth()->id();
     }
 
+    protected function leadHasDemoWithStatus(array $statuses): bool
+    {
+        $lead = $this->ownerRecord; // Access the lead in the relation manager context
+
+        if (!$lead) {
+            dd('No lead available'); // Debugging: Check if the lead exists
+            return false;
+        }
+
+        // Fetch demo appointments for the lead with the given statuses
+        $appointments = $lead->demoAppointments()
+            ->whereIn('status', $statuses)
+            ->get();
+
+        dd([
+            'lead_id' => $lead->id,
+            'statuses_checked' => $statuses,
+            'appointments_found' => $appointments->toArray(), // Debugging: Display appointments
+        ]);
+
+        // Return true if any appointments exist
+        return $appointments->isNotEmpty();
+    }
+
     public function table(Table $table): Table
     {
         return $table

@@ -45,7 +45,7 @@ class CalendarWidget extends FullCalendarWidget
                 $query->where('salesperson', $this->salesperson); // Apply salesperson filter
             })
             ->when($this->demoType, function ($query) {
-                $query->where('appointment_type', $this->demoType); // Apply demo type filter
+                $query->where('type', $this->demoType); // Apply demo type filter
             })
             ->get()
             ->map(function (Appointment $appointment) {
@@ -58,12 +58,8 @@ class CalendarWidget extends FullCalendarWidget
                     'title' => $appointment->lead->companyDetail->company_name. ' - '. $appointment->type . ' (' . $appointment->status . ')'. ' : ' . $presenter,
                     'start' => \Carbon\Carbon::parse($startDateTime)->toIso8601String(),
                     'end'   => $endDateTime ? \Carbon\Carbon::parse($endDateTime)->toIso8601String() : null,
-                    'color' => match ($appointment->appointment_type) {
-                        'Online Demo' => '#B91C1C',
-                        'Webinar Demo' => '#c6fec3',
-                        'Onsite Demo' => '#D8C603',
-                    },
-                    ];
+                    'color' => $appointment->type === 'New Demo' ? '#B91C1C' : '#D8C603',
+                ];
             })
             ->toArray();
     }
