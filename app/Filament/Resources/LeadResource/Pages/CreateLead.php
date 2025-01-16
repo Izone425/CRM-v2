@@ -5,13 +5,10 @@ namespace App\Filament\Resources\LeadResource\Pages;
 use App\Classes\Encryptor;
 use App\Filament\Resources\LeadResource;
 use App\Models\ActivityLog;
-use Filament\Actions;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\CreateRecord;
-use Parfaitementweb\FilamentCountryField\Forms\Components\Country;
 
 class CreateLead extends CreateRecord
 {
@@ -31,7 +28,7 @@ class CreateLead extends CreateRecord
 
     protected function getCreatedNotificationMessage(): ?string
     {
-        return 'The lead has been successfully created! 🎉';
+        return 'New lead created successfully';
     }
 
     protected function afterCreate(): void
@@ -87,9 +84,41 @@ class CreateLead extends CreateRecord
 
                     return $companyDetail->id; // Optionally return the ID
                 }),
-            Country::make('country')
+            Select::make('country')
                 ->label('Country')
-                ->required(),
+                ->required()
+                ->options(function () {
+                    $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                    if (file_exists($filePath)) {
+                        $countriesContent = file_get_contents($filePath);
+                        $countries = json_decode($countriesContent, true);
+
+                        // Map 3-letter country codes to full country names
+                        return collect($countries)->mapWithKeys(function ($country) {
+                            return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                        })->toArray();
+                    }
+
+                    return [];
+                })
+                ->dehydrateStateUsing(function ($state) {
+                    // Convert the selected code to the full country name
+                    $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                    if (file_exists($filePath)) {
+                        $countriesContent = file_get_contents($filePath);
+                        $countries = json_decode($countriesContent, true);
+
+                        foreach ($countries as $country) {
+                            if ($country['Code'] === $state) {
+                                return ucfirst(strtolower($country['Country'])); // Store the full country name
+                            }
+                        }
+                    }
+
+                    return $state; // Fallback to the original state if mapping fails
+                }),
             Select::make('company_size')
                 ->label('Company Size')
                 ->options([
