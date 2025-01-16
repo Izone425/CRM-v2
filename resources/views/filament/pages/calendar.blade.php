@@ -43,7 +43,18 @@
             border-radius: 9999px;
             font-size: 14px;
             font-weight: 600;">
-            Offline {{ $secondDemos }}
+            Onsite {{ $secondDemos }}
+        </div>
+
+        <!-- Webinar Demo Badge -->
+        <div style="
+            background-color: #c6fec3;
+            color: #67920e;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 600;">
+            Webinar {{ $webinarDemos }}
         </div>
 
         <!-- Salesperson Filter -->
@@ -75,7 +86,31 @@
                 </select>
             </form>
         </div>
+
+        <!-- Salesperson Filter -->
+        {{-- <div>
+            <select
+                id="salespersonDropdown"
+                multiple
+                wire:model.live="selectedSalespersonIds"
+            >
+                @foreach ($salespersonOptions as $id => $name)
+                    <option value="{{ $id }}">{{ $name }}</option>
+                @endforeach
+            </select>
+        </div> --}}
     </div>
 
     @livewire(\App\Filament\Widgets\CalendarWidget::class, ['salesperson' => $selectedSalesperson, 'demoType' => $selectedDemoType], key(str()->random()))
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    {{-- <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            new Choices('#salespersonDropdown', {
+                removeItemButton: true, // Enable removing selected items
+                placeholderValue: 'Select Salesperson',
+                searchPlaceholderValue: 'Search Salesperson',
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script> --}}
 </x-filament-panels::page>
