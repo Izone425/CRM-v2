@@ -4,14 +4,19 @@ namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Classes\Encryptor;
 use App\Filament\Resources\LeadResource;
+use App\Mail\NewLeadNotification;
 use App\Models\ActivityLog;
-use Filament\Actions;
-use Filament\Forms\Components\DatePicker;
+use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\CreateRecord;
-use Parfaitementweb\FilamentCountryField\Forms\Components\Country;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Ysfkaya\FilamentPhoneInput\Infolists\PhoneEntry;
+use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 
 class CreateLead extends CreateRecord
 {
@@ -31,7 +36,7 @@ class CreateLead extends CreateRecord
 
     protected function getCreatedNotificationMessage(): ?string
     {
-        return 'The lead has been successfully created! 🎉';
+        return 'New lead created successfully';
     }
 
     protected function afterCreate(): void
@@ -48,6 +53,39 @@ class CreateLead extends CreateRecord
                 'causer_id' => 0, // Assuming 0 means the system created it
             ]);
         }
+
+        // try {
+        //     $viewName = 'emails.new_lead'; // Replace with a valid default view
+        //     $recipients = User::where('email', 'zilih.ng@timeteccloud.com')->get(['email', 'name']);
+        //     foreach ($recipients as $recipient) {
+        //         $emailContent = [
+        //             'leadOwnerName' => $recipient->name ?? 'Unknown Person', // Lead Owner/Manager Name
+        //             'lead' => [
+        //                 'lead_code' => 'CRM',
+        //                 'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+        //                 'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+        //                 'companySize' => $lead->company_size ?? 'N/A', // Company Size
+        //                 'phone' => $lead->phone ?? 'N/A', // Lead's Phone
+        //                 'email' => $lead->email ?? 'N/A', // Lead's Email
+        //                 'country' => $lead->country ?? 'N/A', // Lead's Country
+        //                 'products' => $lead->products ?? 'N/A', // Products
+        //                 // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
+        //             ],
+        //             'remark' => $data['remark'] ?? 'No remarks provided', // Custom Remark
+        //             'formatted_products' => $this->record->formatted_products, // Add formatted products
+        //         ];
+        //         if (!empty($recipients)) {
+        //             Mail::mailer('smtp')
+        //                 ->to($recipient->email)
+        //                 ->send(new NewLeadNotification($emailContent, $viewName));
+        //         } else {
+        //             info('No recipients with role_id = 2 found.');
+        //         }
+        //     }
+        // } catch (\Exception $e) {
+        //     // Handle email sending failure
+        //     Log::error("Error: {$e->getMessage()}");
+        // }
     }
 
     protected function getFormSchema(): array
@@ -61,9 +99,13 @@ class CreateLead extends CreateRecord
                 ->label('Work Email')
                 ->email()
                 ->required(),
-            TextInput::make('phone')
+            PhoneInput::make('phone')
                 ->label('Phone Number')
-                ->required(),
+                ->required()
+                ->dehydrateStateUsing(function ($state) {
+                    // Remove the "+" symbol from the phone number
+                    return ltrim($state, '+');
+                }),
             TextInput::make('lead_code')
                 ->label('Lead Source')
                 ->default('CRM')
@@ -87,9 +129,43 @@ class CreateLead extends CreateRecord
 
                     return $companyDetail->id; // Optionally return the ID
                 }),
-            Country::make('country')
+            Select::make('country')
                 ->label('Country')
-                ->required(),
+                ->searchable()
+                ->required()
+                ->default('MYS')
+                ->options(function () {
+                    $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                    if (file_exists($filePath)) {
+                        $countriesContent = file_get_contents($filePath);
+                        $countries = json_decode($countriesContent, true);
+
+                        // Map 3-letter country codes to full country names
+                        return collect($countries)->mapWithKeys(function ($country) {
+                            return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                        })->toArray();
+                    }
+
+                    return [];
+                })
+                ->dehydrateStateUsing(function ($state) {
+                    // Convert the selected code to the full country name
+                    $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                    if (file_exists($filePath)) {
+                        $countriesContent = file_get_contents($filePath);
+                        $countries = json_decode($countriesContent, true);
+
+                        foreach ($countries as $country) {
+                            if ($country['Code'] === $state) {
+                                return ucfirst(strtolower($country['Country'])); // Store the full country name
+                            }
+                        }
+                    }
+
+                    return $state; // Fallback to the original state if mapping fails
+                }),
             Select::make('company_size')
                 ->label('Company Size')
                 ->options([
