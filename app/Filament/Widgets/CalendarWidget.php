@@ -2,8 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Classes\Encryptor;
 use App\Models\Appointment;
-use App\Models\Lead;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -12,18 +12,23 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
 class CalendarWidget extends FullCalendarWidget
 {
-    public \Illuminate\Database\Eloquent\Model|string|int|null $record = null;
-    public ?int $salesperson = null;
+    public ?array $salespersons = []; // Array to handle multiple salespersons
+    public ?string $demoAppointmentType = null;
     public ?string $demoType = null;
 
-    public function filterBySalesperson(?int $salesperson): void
+    public function filterBySalespersons(?array $salespersons): void
     {
-        $this->salesperson = $salesperson;
+        $this->salespersons = $salespersons;
     }
 
     public function mount(\Illuminate\Database\Eloquent\Model|string|int|null $record = null): void
     {
         $this->record = $record;
+    }
+
+    public function filterByDemoAppointmentType(?string $demoAppointmentType): void
+    {
+        $this->demoAppointmentType = $demoAppointmentType;
     }
 
     public function filterByDemoType(?string $demoType): void
@@ -32,8 +37,9 @@ class CalendarWidget extends FullCalendarWidget
     }
 
     protected $listeners = [
-        'salespersonUpdated' => 'filterBySalesperson',
+        'salespersonsUpdated' => 'filterBySalespersons', // Updated listener for multiple salespersons
         'demoTypeUpdated' => 'filterByDemoType',
+        'demoAppointmentTypeUpdated' => 'filterByDemoAppointmentType',
     ];
 
     public function fetchEvents(array $fetchInfo): array
@@ -41,21 +47,24 @@ class CalendarWidget extends FullCalendarWidget
         return Appointment::where('date', '>=', $fetchInfo['start'])
             ->where('date', '<=', $fetchInfo['end'])
             ->where('status', '!=', 'Cancelled') // Exclude Cancelled appointments
-            ->when($this->salesperson, function ($query) {
-                $query->where('salesperson', $this->salesperson); // Apply salesperson filter
+            ->when(!empty($this->salespersons) && is_array($this->salespersons), function ($query) {
+                $query->whereIn('salesperson', $this->salespersons); // Apply multiple salesperson filter
+            })
+            ->when($this->demoAppointmentType, function ($query) {
+                $query->where('appointment_type', $this->demoAppointmentType); // Apply demo appointment type filter
             })
             ->when($this->demoType, function ($query) {
-                $query->where('appointment_type', $this->demoType); // Apply demo type filter
+                $query->where('type', $this->demoType); // Apply demo type filter
             })
             ->get()
             ->map(function (Appointment $appointment) {
                 $startDateTime = "{$appointment->date} {$appointment->start_time}";
                 $endDateTime = $appointment->end_time ? "{$appointment->date} {$appointment->end_time}" : null;
-                $presenter = User::findOrFail($appointment->salesperson)->name; // Find the selected user
+                $presenter = User::find($appointment->salesperson)?->name ?? 'Unknown'; // Safely retrieve the salesperson name
 
                 return [
                     'id'    => $appointment->id,
-                    'title' => $appointment->lead->companyDetail->company_name. ' - '. $appointment->type . ' (' . $appointment->status . ')'. ' : ' . $presenter,
+                    'title' => "{$appointment->lead->companyDetail->company_name} - {$appointment->type} ({$appointment->status}): {$presenter}",
                     'start' => \Carbon\Carbon::parse($startDateTime)->toIso8601String(),
                     'end'   => $endDateTime ? \Carbon\Carbon::parse($endDateTime)->toIso8601String() : null,
                     'color' => match ($appointment->appointment_type) {
@@ -63,7 +72,8 @@ class CalendarWidget extends FullCalendarWidget
                         'Webinar Demo' => '#c6fec3',
                         'Onsite Demo' => '#D8C603',
                     },
-                    ];
+                    'url'   => route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]),
+                ];
             })
             ->toArray();
     }
@@ -72,20 +82,13 @@ class CalendarWidget extends FullCalendarWidget
     {
         return [
             'firstDay' => 1,
+            'scrollTime' => '08:00:00', // Default time to start view
+            'height' => 'auto',
             'headerToolbar' => [
                 'right' => 'dayGridWeek,dayGridDay,dayGridMonth',
                 'center' => 'title',
                 'left' => 'prev,next today',
             ],
-            // 'locale' => [
-            //     'buttonText' => [
-            //         'today' => 'Today',
-            //         'month' => 'month',
-            //         'week'  => 'week',
-            //         'day'   => 'day',
-            //         'list'  => 'list',
-            //     ],
-            // ],
         ];
     }
 
