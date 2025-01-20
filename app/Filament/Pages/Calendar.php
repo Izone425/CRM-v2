@@ -16,49 +16,99 @@ class Calendar extends Page
     public $newDemos = 0;
     public $secondDemos = 0;
     public $webinarDemos = 0;
-    public ?int $selectedSalesperson = null;
-    public ?string $selectedDemoType = null; // New property for demo type filter
+    public array $selectedSalespersons = []; // Support multiple salespersons
+    public ?string $selectedDemoAppointmentType = null; // Demo appointment type filter
+    public ?string $selectedDemoType = null; // Demo type filter
     public array $salespersonOptions = [];
-    public array $demoTypeOptions = []; // Options for the demo type dropdown
+    public array $demoAppointmentTypeOptions = [];
+    public array $demoTypeOptions = [];
+    public bool $allSelected = false;
 
     public function mount(): void
     {
+        // Populate salesperson options
         $this->salespersonOptions = User::where('role_id', '2')
             ->pluck('name', 'id')
             ->toArray();
 
-        $this->demoTypeOptions = Appointment::distinct('appointment_type')
-            ->pluck('appointment_type', 'appointment_type') // Fetch unique demo types from the `type` column
+        $this->allSelected = true;
+
+        // Populate demo appointment types
+        $this->demoAppointmentTypeOptions = Appointment::distinct('appointment_type')
+            ->pluck('appointment_type', 'appointment_type')
             ->toArray();
 
+        // Populate demo types
+        $this->demoTypeOptions = Appointment::distinct('type')
+            ->pluck('type', 'type')
+            ->toArray();
+
+        // Custom sort order for demo types
+        $customOrder = [
+            'New Demo',
+            'Second Demo',
+            'System Discussion',
+            'HRDF Discussion',
+        ];
+
+        $this->demoTypeOptions = collect($this->demoTypeOptions)
+            ->sortBy(function ($value, $key) use ($customOrder) {
+                return array_search($key, $customOrder);
+            })
+            ->toArray();
+
+        // Initialize all salespersons selected by default
+        $this->selectedSalespersons = array_keys($this->salespersonOptions);
+
+        // Update initial counts
         $this->updateCounts();
     }
 
-    public function updatedSelectedSalesperson($value): void
+    public function updatedAllSelected($value): void
     {
-        $this->updateCounts();
-        $this->dispatch('salespersonUpdated', $value);
+        $this->selectedSalespersons = $value
+            ? User::where('role_id', '2')->pluck('id')->toArray()
+            : [];
     }
 
-    public function updatedSelectedDemoType($value): void
+    public function updatedSelectedSalespersons(): void
     {
         $this->updateCounts();
-        $this->dispatch('demoTypeUpdated', $value);
+        $this->dispatch('salespersonsUpdated', $this->selectedSalespersons);
+    }
+
+    public function updatedSelectedDemoAppointmentType(): void
+    {
+        $this->updateCounts();
+        $this->dispatch('demoAppointmentTypeUpdated', $this->selectedDemoAppointmentType);
+    }
+
+    public function updatedSelectedDemoType(): void
+    {
+        $this->updateCounts();
+        $this->dispatch('demoTypeUpdated', $this->selectedDemoType);
     }
 
     protected function updateCounts(): void
     {
-        // Base query with Cancelled status excluded
+        // Base query excluding cancelled appointments
         $query = Appointment::where('status', '!=', 'Cancelled');
 
-        if ($this->selectedSalesperson) {
-            $query->where('salesperson', $this->selectedSalesperson);
+        // Apply salesperson filter
+        if (!empty($this->selectedSalespersons)) {
+            $query->whereIn('salesperson', $this->selectedSalespersons);
         }
 
+        // Apply demo appointment type filter
+        if ($this->selectedDemoAppointmentType) {
+            $query->where('appointment_type', $this->selectedDemoAppointmentType);
+        }
+
+        // Apply demo type filter
         if ($this->selectedDemoType) {
-            $query->where('appointment_type', $this->selectedDemoType);
+            $query->where('type', $this->selectedDemoType);
         }
-
+        // Update counts
         $this->totalDemos = $query->count();
         $this->newDemos = (clone $query)->where('appointment_type', 'Online Demo')->count();
         $this->secondDemos = (clone $query)->where('appointment_type', 'Onsite Demo')->count();
