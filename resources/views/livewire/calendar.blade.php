@@ -112,14 +112,15 @@
           }
 
           .spinner {
-               border: 4px solid #f3f3f3;
+               border: 10px solid #f3f3f3;
                /* Light gray background */
-               border-top: 4px solid #3498db;
+               border-top: 10px solid #3498db;
                /* Blue color for the spinner */
                border-radius: 50%;
-               width: 30px;
-               height: 30px;
+               width: 100px;
+               height: 100px;
                animation: spin 1s linear infinite;
+               margin-block: auto;
           }
 
           /* Spinner animation */
@@ -144,10 +145,14 @@
                /* Semi-transparent grey */
                display: flex;
                justify-content: center;
+               /* Center horizontally */
                align-items: center;
+               /* Center vertically */
                color: white;
                z-index: 9999;
                /* Make sure it appears on top */
+               height: 100%;
+               width: 100%;
           }
 
           .demo-avatar {
@@ -196,9 +201,8 @@
      </style>
 
      <!-- Loading overlay (this will show while Livewire is processing) -->
-     <div wire:loading class="overlay">
+     <div class="overlay" wire:loading.flex>
           <div class="spinner"></div>
-          <p>Loading...</p>
      </div>
 
      <table class="scroll">
@@ -315,18 +319,19 @@
                <td class="first-column" style="padding: 0; border: 0;">
                </td>
 
-               @for($i = 0; $i < 7 ; $i++) <td class="other-columns" style="padding: 0;  border: 0;">
-                    @if(!empty($holidays[$i]['day']))
+               @if(!empty($holidays))
+               @foreach($holidays as $row)
+               <td class="other-columns" style="padding: 0;  border: 0;">
                     <div
-                         style="border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; background-color: #C2C2C2; position: absolute; left: calc(15% + (12.143% * {{$holidays[$i]['day']-1}})); top: 0; height: 100%; width: 12.143%;">
+                         style="border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; background-color: #C2C2C2; position: absolute; left: calc(15% + (12.143% * {{$row['day_of_week']-1}})); top: 0; height: 100%; width: 12.143%;">
                          <div>
                               <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-                              <div style="font-size: 0.8rem;">{{$holidays[$i]["Holiday"]}}</div>
+                              <div style="font-size: 0.8rem;">{{$row['name']}}</div>
                          </div>
                     </div>
-                    @endif
-                    </td>
-                    @endfor
+               </td>
+               @endforeach
+               @endif
           </tr>
           @foreach($rows as $key=>$value)
           <tr @if($loop->even) style="background-color: rgba(242,242,242,0.4);" @endif>
@@ -339,10 +344,11 @@
                </td>
                <td class="other-columns" style="height: 100%;">
                     @if(isset($value['leave'][1]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][1]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][1]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -361,10 +367,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][2]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][2]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][2]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -383,10 +390,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][3]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][3]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][3]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -405,10 +413,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][4]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][4]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][4]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -427,10 +436,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][5]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][5]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][5]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -449,10 +459,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][6]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][6]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][6]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -471,10 +482,11 @@
                </td>
                <td class="other-columns">
                     @if(isset($value['leave'][7]))
-                    <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div
+                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][7]['LeaveType']}}</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][7]['leave_type']}}</div>
                          </div>
                     </div>
                     @else

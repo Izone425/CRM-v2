@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\Appointment;
+use App\Models\PublicHoliday;
 use App\Models\User;
+use App\Models\UserLeave;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Date;
@@ -88,7 +90,7 @@ class Calendar extends Component
                 'fridayNewDemo' => 0,
                 'saturdayNewDemo' => 0,
                 'sundayNewDemo' => 0,
-                'leave' => $this->getSalesPersonOnLeave($salesperson['api_user_id']),
+                'leave' => (new UserLeave())->getUserLeavesByDateRange($salesperson['id'],$this->startDate,$this->endDate),
             ];
 
 
@@ -129,52 +131,13 @@ class Calendar extends Component
             ->get();
     }
 
-    private function getSalesPersonOnLeave($userID) {
-        $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
-        $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-        $params = ["CompanyID" => 351, "UserID" => $userID, "CheckTimeFrom" => $this->startDate, "CheckTimeTo" => $this->endDate, "RecordStartFrom" => "0", "LimitRecordShow" => "10"];
-
-        $leave = json_decode($LeaveAPIService->getClient()->getUserLeave($params)->GetUserLeaveResult,true);
-
-        $newArray = [];
-        if(!empty($leave['Result']['UserLeaveObj'])){
-            foreach($leave['Result']['UserLeaveObj'] as $row){
-                $newArray[Carbon::parse($row['Date'])->dayOfWeek] = $row; 
-            }
-            return $newArray;
-        }
-        return [];
-    }
-
-    private function getAllPublicHoliday()
-    {
-        $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
-
-        $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-        // $params = ["CompanyID"=>351,"DivisionID"=>31010,"DateFrom"=>"2025-02-02","DateTo"=>"2025-02-08","RecordStartFrom"=>"0","LimitRecordShow"=>"10"];
-        $params = ["CompanyID" => 351, "DivisionID" => 31010, "DateFrom" => $this->startDate, "DateTo" => $this->endDate, "RecordStartFrom" => "0", "LimitRecordShow" => "10"];
-
-        $holidays = json_decode($LeaveAPIService->getClient()->getOrgStructureHoliday($params)->GetOrgStructureHolidayResult, true);
-
-        if (isset($holidays['Result']['OrgStructureHolidayObj']) && !empty($holidays['Result']['OrgStructureHolidayObj'][0])) {
-            $holidays = $holidays['Result']['OrgStructureHolidayObj'][0]["TimeTec Cloud Sdn. Bhd."];
-            foreach ($holidays as &$row) {
-                $row['day'] = Carbon::parse($row['Date'])->dayOfWeek;
-            }
-        } else {
-            $holidays = [];
-        }
-        return $holidays;
-    }
-
-
     public function render()
     {
 
         $this->weekDays = $this->getWeekDateDays($this->date);
         $this->rows = $this->getWeeklyAppointments($this->date);
         // $this->getSalesPersonNoNewDemo($this->rows);
-        $this->holidays = $this->getAllPublicHoliday();
+        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate,$this->endDate);
         return view('livewire.calendar');
     }
 }
