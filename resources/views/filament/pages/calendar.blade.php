@@ -145,16 +145,6 @@
         </div>
     </div>
 
-    <!-- Calendar Widget -->
-    @livewire(
-        \App\Filament\Widgets\CalendarWidget::class,
-        [
-            'salespersons' => $selectedSalespersons,
-            'demoType' => $selectedDemoType,
-            'demoAppointmentType' => $selectedDemoAppointmentType
-        ],
-        key(str()->random())
-    )
 
     <!-- Weekly -->
     @livewire('calendar')

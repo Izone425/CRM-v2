@@ -342,7 +342,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][1]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][1]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -364,7 +364,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][2]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][2]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -386,7 +386,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][3]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][3]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -408,7 +408,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][4]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][4]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -430,7 +430,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][5]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][5]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -452,7 +452,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][6]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][6]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
@@ -474,7 +474,7 @@
                     <div style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][7]['LeaveType']}} Leave</div>
+                              <div style="font-size: 0.8rem;">{{$value['leave'][7]['LeaveType']}}</div>
                          </div>
                     </div>
                     @else
