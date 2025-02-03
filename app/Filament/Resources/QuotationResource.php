@@ -46,17 +46,6 @@ class QuotationResource extends Resource
     protected static ?string $model = Quotation::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    // protected static bool $shouldRegisterNavigation = false;
-
-    // public static function canViewAny(): bool
-    // {
-    //     // Allow only users with role_id = 3 to view the resource
-    //     return auth()->user()->role_id==3;
-    // }
-    // public static function shouldRegisterNavigation(): bool
-    // {
-    //     return auth()->user()->role_id === 3;
-    // }
 
     public $lead;
 
@@ -374,6 +363,7 @@ class QuotationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('5s')
             ->recordUrl(null)
             // ->modifyQueryUsing(function(Quotation $quotation) {
             //     $currentUser = auth('web')->user();

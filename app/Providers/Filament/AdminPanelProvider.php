@@ -6,6 +6,7 @@ use App\Filament\Pages\Calendar;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Resources\DashboardResource;
+use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
@@ -51,12 +52,14 @@ class AdminPanelProvider extends PanelProvider
                 Css::make('styles', public_path('/css/app/styles.css')),
             ])
             ->darkMode(false)
-            ->sidebarCollapsibleOnDesktop()
+            ->sidebarWidth('15rem')
+            // ->sidebarCollapsibleOnDesktop()
             // ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->resources([  // Manually registering specific resources
                 LeadResource::class,
                 ProductResource::class,
                 QuotationResource::class,
+                DemoResource::class
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

@@ -68,7 +68,7 @@ class DemoRequest extends Component
         $phoneNumber = str_replace(['-', ' ', '+'], '', $this->phoneNumber);
         $this->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email',
+            'email' => 'required|email:rfc,dns',
             // 'phone' => 'required',
             'company_name' => 'required|string|max:255',
             'company_size' => 'required|string',

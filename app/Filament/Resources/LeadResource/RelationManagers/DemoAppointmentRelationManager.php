@@ -21,6 +21,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -55,6 +56,7 @@ class DemoAppointmentRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->poll('5s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([
@@ -129,155 +131,169 @@ class DemoAppointmentRelationManager extends RelationManager
                     //     'style' => 'background-color: #431fa1; border-radius: 50%; padding: 5px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;',
                     // ])
                     ->modalHeading('Edit on Demo Appointment')
-                    ->steps([
-                        Step::make('Appointment Details')
-                        ->schema([
-                            Select::make('type')
-                                ->options(function () {
-                                    // Check if the lead has an appointment with 'new' status
-                                    $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
-                                        ->whereIn('status', ['New', 'Done'])
-                                        ->exists();
+                    ->form([
+                        // Appointment Details
+                        Select::make('type')
+                            ->options(function () {
+                                // Check if the lead has an appointment with 'new' or 'done' status
+                                $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
+                                    ->whereIn('status', ['New', 'Done'])
+                                    ->exists();
 
-                                    // Dynamically set options
+                                // Dynamically set options
+                                $options = [
+                                    'New Private Demo' => 'New Private Demo',
+                                    'New Webinar Demo' => 'New Webinar Demo',
+                                ];
+
+                                if ($leadHasNewAppointment) {
                                     $options = [
-                                        'New Demo' => 'New Demo',
                                         'Second Demo' => 'Second Demo',
                                         'HRDF Discussion' => 'HRDF Discussion',
                                         'System Discussion' => 'System Discussion',
                                     ];
+                                }
 
-                                    if ($leadHasNewAppointment) {
-                                        unset($options['New Demo']); // Remove 'New Demo' if condition is met
-                                    }
+                                return $options;
+                            })
+                            ->required()
+                            ->label('DEMO TYPE'),
 
-                                    return $options;
-                                })
-                                ->required()
-                                ->label('DEMO TYPE'),
+                        Select::make('appointment_type')
+                            ->options([
+                                'Onsite Demo' => 'Onsite Demo',
+                                'Online Demo' => 'Online Demo',
+                            ])
+                            ->required()
+                            ->label('APPOINTMENT TYPE'),
 
-                            Select::make('appointment_type')
-                                ->options([
-                                    'Onsite Demo' => 'Onsite Demo',
-                                    'Online Demo' => 'Online Demo',
-                                ])
-                                ->required()
-                                ->label('APPOINTMENT TYPE'),
-                        ]),
+                        // Schedule
+                        Forms\Components\ToggleButtons::make('mode')
+                            ->label('')
+                            ->options([
+                                'auto' => 'Auto',
+                                'custom' => 'Custom',
+                            ]) // Define custom options
+                            ->reactive() // Make it reactive to trigger changes
+                            ->inline()
+                            ->default('auto')
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if ($state === 'custom') {
+                                    $set('date', null);
+                                    $set('start_time', null);
+                                    $set('end_time', null);
+                                }else{
+                                    $set('date', Carbon::today()->toDateString());
+                                    $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                    $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                                }
+                            }),
 
-                    Step::make('Schedule')
-                        ->schema([
-                            DatePicker::make('date')
-                                ->required()
-                                ->native(false)
-                                ->label('DATE'),
+                        DatePicker::make('date')
+                            ->required()
+                            ->label('DATE')
+                            ->default(Carbon::today()->toDateString()),
 
-                            Grid::make()
-                                ->schema([
-                                    TimePicker::make('start_time')
-                                        ->required()
-                                        ->seconds(false)
-                                        ->label('START TIME')
-                                        ->columnSpan(1), // Each TimePicker will take 1 column
+                        Forms\Components\Grid::make()
+                            ->schema([
+                                Forms\Components\TimePicker::make('start_time')
+                                    ->label('START TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->columnSpan(1)
+                                    ->reactive()
+                                    ->default(function () {
+                                        // Get the current time and round up to the next 30-minute interval
+                                        $now = Carbon::now();
+                                        $roundedTime = $now->addMinutes(30 - ($now->minute % 30))->format('H:i'); // Round up
+                                        return $roundedTime;
+                                    })
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        if ($get('mode') === 'auto' && $state) {
+                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                        }
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        if ($get('mode') === 'auto') {
+                                            $times = [];
+                                            $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                            $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                            while ($startTime->lte($endTime)) {
+                                                $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                                $startTime->addMinutes(30); // Increment by 30 minutes
+                                            }
+                                            return $times;
+                                        }
+                                    }),
 
-                                    TimePicker::make('end_time')
-                                        ->required()
-                                        ->seconds(false)
-                                        ->label('END TIME')
-                                        ->columnSpan(1), // Each TimePicker will take 1 column
-                                ])
-                                ->columns(2)
-                        ]),
+                                Forms\Components\TimePicker::make('end_time')
+                                    ->label('END TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->columnSpan(1)
+                                    ->reactive()
+                                    ->default(function (callable $get) {
+                                        // Default end_time to one hour after start_time
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                        return $startTime->addHour()->format('H:i');
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        if ($get('mode') === 'auto') {
+                                            $times = [];
+                                            $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                            $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                            while ($startTime->lte($endTime)) {
+                                                $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                                $startTime->addMinutes(30); // Increment by 30 minutes
+                                            }
+                                            return $times;
+                                        }
+                                    }),
+                            ])
+                            ->columns(2),
 
-                    Step::make('Salesperson')
-                        ->schema([
-                            Select::make('salesperson')
-                                ->label('SALESPERSON')
-                                ->options(function (ActivityLog $activityLog) {
-                                    $lead = $this->ownerRecord;;
-                                    if ($lead->salesperson) {
-                                        $salesperson = User::where('id', $lead->salesperson)->first();
-                                        return [
-                                            $lead->salesperson => $salesperson->name,
-                                        ];
-                                    }
+                        // Salesperson
+                        Select::make('salesperson')
+                            ->label('SALESPERSON')
+                            ->options(function (ActivityLog $activityLog) {
+                                $lead = $this->ownerRecord;
+                                if ($lead->salesperson) {
+                                    $salesperson = User::where('id', $lead->salesperson)->first();
+                                    return [
+                                        $lead->salesperson => $salesperson->name,
+                                    ];
+                                }
 
-                                    if (auth()->user()->role_id == 3) {
-                                        return \App\Models\User::query()
+                                if (auth()->user()->role_id == 3) {
+                                    return \App\Models\User::query()
                                         ->whereIn('role_id', [2, 3])
                                         ->pluck('name', 'id')
                                         ->toArray();
-                                    }else{
-                                        // Otherwise, fetch all salespeople with role_id = 2
-                                        return \App\Models\User::query()
+                                } else {
+                                    return \App\Models\User::query()
                                         ->where('role_id', 2)
                                         ->pluck('name', 'id')
                                         ->toArray();
-                                    }
-                                })
-                                ->required()
-                                ->placeholder('Select a salesperson'),
+                                }
+                            })
+                            ->required()
+                            ->placeholder('Select a salesperson'),
 
-                            Textarea::make('remarks')
-                                ->label('REMARKS'),
-                        ]),
+                        Textarea::make('remarks')
+                            ->label('REMARKS'),
 
-                    Step::make('Additional Information')
-                        ->schema([
-                            TextInput::make('title')
-                                ->required()
-                                ->label('TITLE'),
+                        // Additional Information
+                        TextInput::make('title')
+                            ->required()
+                            ->label('TITLE'),
 
-
-                            Repeater::make('required_attendees')
-                                ->label('Required Attendees')
-                                ->schema([
-                                    TextInput::make('email')
-                                        ->label('Email Address')
-                                        ->email(),
-                                    TextInput::make('name')
-                                        ->label('Name'),
-                                ])
-                                // ->default([
-                                //     [
-                                //         'email' => 'asdasd@gmail.com',
-                                //         'name' => 'sadsada',
-                                //     ],
-                                // ])
-                                ->minItems(1)
-                                ->default(function (ActivityLog $activityLog) {
-                                    $lead = $this->ownerRecord;
-                                    return [
-                                        [
-                                            'email' => $lead->email, // Default email from the lead
-                                            'name' => $lead->name,   // Default name from the lead
-                                        ]
-                                    ];
-                                }),
-
-
-                            Repeater::make('optional_attendees')
-                                ->label('Optional Attendees')
-                                ->schema([
-                                    TextInput::make('email')
-                                        ->label('Email Address')
-                                        ->email(),
-                                    TextInput::make('name')
-                                        ->label('Name'),
-                                ])
-                                ->minItems(0),
-
-
-                            TextInput::make('location')
-                                ->label('LOCATION')
-                                ->disabled(fn ($get) => $get('appointment_type') === 'Online Demo')
-                                ->placeholder(fn ($get) => $get('appointment_type') === 'Online Demo' ? 'Location is not required for Online Demo' : 'Enter the location')
-                                ->required(fn ($get) => $get('appointment_type') === 'Onsite Demo'),
-
-                            RichEditor::make('details')
-                                ->label('DETAILS')
-                                ->required(),
-                        ])
+                        TextInput::make('required_attendees')
+                            ->label('Required Attendees')
+                            ->required()
+                            ->helperText('Separate each email and name pair with a semicolon (e.g., email1;name1;email2;name2).')
+                            ->rules([
+                                'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
+                            ]),
                     ])
                     ->action(function (array $data, $record) {
                         // Update the appointment record in the database
@@ -291,9 +307,9 @@ class DemoAppointmentRelationManager extends RelationManager
                             'remarks' => $data['remarks'] ?? $record->remarks,
                             'title' => $data['title'] ?? $record->title,
                             'required_attendees' => json_encode($data['required_attendees']) ?? $record->required_attendees,
-                            'optional_attendees' => json_encode($data['optional_attendees']) ?? $record->optional_attendees,
-                            'location' => $data['location'] ?? $record->location,
-                            'details' => $data['details'] ?? $record->details,
+                            // 'optional_attendees' => json_encode($data['optional_attendees']) ?? $record->optional_attendees,
+                            // 'location' => $data['location'] ?? $record->location,
+                            // 'details' => $data['details'] ?? $record->details,
                         ]);
 
                         $record->lead->withoutEvents(function () use ($record, $data) {
@@ -333,13 +349,13 @@ class DemoAppointmentRelationManager extends RelationManager
 
                         $organizerEmail = $salesperson->email; // Get the salesperson's email
 
-                        $requiredAttendees = is_string($data['required_attendees'])
-                            ? json_decode($data['required_attendees'], true)
-                            : $data['required_attendees']; // Handle already-decoded data or string
+                        // $requiredAttendees = is_string($data['required_attendees'])
+                        //     ? json_decode($data['required_attendees'], true)
+                        //     : $data['required_attendees']; // Handle already-decoded data or string
 
-                        $optionalAttendees = is_string($data['optional_attendees'])
-                            ? json_decode($data['optional_attendees'], true)
-                            : $data['optional_attendees']; // Handle already-decoded data or string
+                        // $optionalAttendees = is_string($data['optional_attendees'])
+                        //     ? json_decode($data['optional_attendees'], true)
+                        //     : $data['optional_attendees']; // Handle already-decoded data or string
 
                         $meetingPayload = [
                             'start' => [
@@ -351,26 +367,26 @@ class DemoAppointmentRelationManager extends RelationManager
                                 'timeZone' => 'Asia/Kuala_Lumpur'
                             ],
                             'subject' => $data['title'], // Event title
-                            'attendees' => array_merge(
-                                array_map(function ($attendee) {
-                                    return [
-                                        'emailAddress' => [
-                                            'address' => $attendee['email'],
-                                            'name' => $attendee['name'],
-                                        ],
-                                        'type' => 'Required', // Set type as Required
-                                    ];
-                                }, $requiredAttendees ?? []),
-                                array_map(function ($attendee) {
-                                    return [
-                                        'emailAddress' => [
-                                            'address' => $attendee['email'],
-                                            'name' => $attendee['name'],
-                                        ],
-                                        'type' => 'Optional', // Set type as Optional
-                                    ];
-                                }, $optionalAttendees ?? [])
-                            ),
+                            // 'attendees' => array_merge(
+                            //     array_map(function ($attendee) {
+                            //         return [
+                            //             'emailAddress' => [
+                            //                 'address' => $attendee['email'],
+                            //                 'name' => $attendee['name'],
+                            //             ],
+                            //             'type' => 'Required', // Set type as Required
+                            //         ];
+                            //     }, $requiredAttendees ?? []),
+                            //     array_map(function ($attendee) {
+                            //         return [
+                            //             'emailAddress' => [
+                            //                 'address' => $attendee['email'],
+                            //                 'name' => $attendee['name'],
+                            //             ],
+                            //             'type' => 'Optional', // Set type as Optional
+                            //         ];
+                            //     }, $optionalAttendees ?? [])
+                            // ),
                             'isOnlineMeeting' => true,
                             'onlineMeetingProvider' => 'teamsForBusiness',
                         ];
@@ -385,7 +401,6 @@ class DemoAppointmentRelationManager extends RelationManager
                             // Update the appointment with meeting details
                             if($data['appointment_type'] == 'Online Demo'){
                                 $appointment->update([
-                                    'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
                                     'event_id' => $onlineMeeting->getId(),
                                 ]);
                             }else{
@@ -587,209 +602,225 @@ class DemoAppointmentRelationManager extends RelationManager
             Tables\Actions\Action::make('Add Appointment')
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Appointment')
-                ->steps([
-                    Step::make('Appointment Details')
+                ->hidden(is_null($this->getOwnerRecord()->lead_owner))
+                ->form([
+                    // Appointment Details
+                    Select::make('type')
+                        ->options(function () {
+                            // Check if the lead has an appointment with 'new' or 'done' status
+                            $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
+                                ->whereIn('status', ['New', 'Done'])
+                                ->exists();
+
+                            // Dynamically set options
+                            $options = [
+                                'New Private Demo' => 'New Private Demo',
+                                'New Webinar Demo' => 'New Webinar Demo',
+                            ];
+
+                            if ($leadHasNewAppointment) {
+                                $options = [
+                                    'Second Demo' => 'Second Demo',
+                                    'HRDF Discussion' => 'HRDF Discussion',
+                                    'System Discussion' => 'System Discussion',
+                                ];
+                            }
+
+                            return $options;
+                        })
+                        ->required()
+                        ->label('DEMO TYPE'),
+
+                    Select::make('appointment_type')
+                        ->options([
+                            'Onsite Demo' => 'Onsite Demo',
+                            'Online Demo' => 'Online Demo',
+                        ])
+                        ->required()
+                        ->label('APPOINTMENT TYPE'),
+
+                    // Schedule
+                    Forms\Components\ToggleButtons::make('mode')
+                        ->label('')
+                        ->options([
+                            'auto' => 'Auto',
+                            'custom' => 'Custom',
+                        ]) // Define custom options
+                        ->reactive()
+                        ->inline()
+                        ->grouped()
+                        ->default('auto')
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            if ($state === 'custom') {
+                                $set('date', null);
+                                $set('start_time', null);
+                                $set('end_time', null);
+                            }else{
+                                $set('date', Carbon::today()->toDateString());
+                                $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                            }
+                        }),
+
+                    DatePicker::make('date')
+                        ->required()
+                        ->label('DATE')
+                        ->default(Carbon::today()->toDateString()),
+
+                    Forms\Components\Grid::make()
                         ->schema([
-                            Select::make('type')
-                                ->options(function () {
-                                    // Check if the lead has an appointment with 'new' status
-                                    $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
-                                        ->whereIn('status', ['New', 'Done'])
-                                        ->exists();
-
-                                    // Dynamically set options
-                                    $options = [
-                                        'New Demo' => 'New Demo',
-                                        'Second Demo' => 'Second Demo',
-                                        'HRDF Discussion' => 'HRDF Discussion',
-                                        'System Discussion' => 'System Discussion',
-                                    ];
-
-                                    if ($leadHasNewAppointment) {
-                                        unset($options['New Demo']); // Remove 'New Demo' if condition is met
-                                    }
-
-                                    return $options;
+                            Forms\Components\TimePicker::make('start_time')
+                                ->label('START TIME')
+                                ->required()
+                                ->seconds(false)
+                                ->columnSpan(1)
+                                ->reactive()
+                                ->default(function () {
+                                    // Get the current time and round up to the next 30-minute interval
+                                    $now = Carbon::now();
+                                    $roundedTime = $now->addMinutes(30 - ($now->minute % 30))->format('H:i'); // Round up
+                                    return $roundedTime;
                                 })
-                                ->required()
-                                ->label('DEMO TYPE'),
-
-                            Select::make('appointment_type')
-                                ->options([
-                                    'Onsite Demo' => 'Onsite Demo',
-                                    'Online Demo' => 'Online Demo',
-                                ])
-                                ->required()
-                                ->label('APPOINTMENT TYPE'),
-                        ]),
-
-                    Step::make('Schedule')
-                        ->schema([
-                            DatePicker::make('date')
-                                ->required()
-                                ->native(false)
-                                ->label('DATE'),
-
-                            Grid::make()
-                                ->schema([
-                                    TimePicker::make('start_time')
-                                        ->required()
-                                        ->seconds(false)
-                                        ->label('START TIME')
-                                        ->columnSpan(1), // Each TimePicker will take 1 column
-
-                                    TimePicker::make('end_time')
-                                        ->required()
-                                        ->seconds(false)
-                                        ->label('END TIME')
-                                        ->columnSpan(1), // Each TimePicker will take 1 column
-                                ])
-                                ->columns(2)
-                        ]),
-
-                    Step::make('Salesperson')
-                        ->schema([
-                            Select::make('salesperson')
-                                ->label('SALESPERSON')
-                                ->options(function (ActivityLog $activityLog) {
-                                    $lead = $this->ownerRecord;;
-                                    if ($lead->salesperson) {
-                                        $salesperson = User::where('id', $lead->salesperson)->first();
-                                        return [
-                                            $lead->salesperson => $salesperson->name,
-                                        ];
-                                    }
-
-                                    if (auth()->user()->role_id == 3) {
-                                        return \App\Models\User::query()
-                                        ->whereIn('role_id', [2, 3])
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                    }else{
-                                        // Otherwise, fetch all salespeople with role_id = 2
-                                        return \App\Models\User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($get('mode') === 'auto' && $state) {
+                                        $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
                                     }
                                 })
-                                ->disableOptionWhen(function ($value, $get) {
-                                    $date = $get('date');
-                                    $startTime = $get('start_time');
-                                    $endTime = $get('end_time');
-
-                                    if ($date && $startTime && $endTime) {
-                                        // First, check for overlapping appointments
-                                        $hasOverlap = Appointment::where('salesperson', $value)
-                                            ->where('status', 'New')
-                                            ->whereDate('date', $date)
-                                            ->where(function ($query) use ($startTime, $endTime) {
-                                                $query->whereBetween('start_time', [$startTime, $endTime])
-                                                        ->orWhereBetween('end_time', [$startTime, $endTime])
-                                                        ->orWhere(function ($query) use ($startTime, $endTime) {
-                                                            $query->where('start_time', '<', $startTime)
-                                                                ->where('end_time', '>', $endTime);
-                                                        });
-                                            })
-                                            ->exists();
-
-                                        if ($hasOverlap) {
-                                            return true;
+                                ->datalist(function (callable $get) {
+                                    if ($get('mode') === 'auto') {
+                                        $times = [];
+                                        $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                        $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                        while ($startTime->lte($endTime)) {
+                                            $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                            $startTime->addMinutes(30); // Increment by 30 minutes
                                         }
-
-                                        // Determine if the current appointment is in the morning or afternoon
-                                        $isMorning = strtotime($startTime) < strtotime('12:00:00');
-
-                                        // Check for existing morning and afternoon appointments
-                                        if ($isMorning) {
-                                            $morningCount = Appointment::where('salesperson', $value)
-                                                ->whereNot('status', 'Cancelled')
-                                                ->whereDate('date', $date)
-                                                ->whereTime('start_time', '<', '12:00:00')
-                                                ->count();
-
-                                            if ($morningCount >= 1) {
-                                                return true; // Morning slot already filled
-                                            }
-                                        } else {
-                                            $afternoonCount = Appointment::where('salesperson', $value)
-                                                ->whereNot('status', 'Cancelled')
-                                                ->whereDate('date', $date)
-                                                ->whereTime('start_time', '>=', '12:00:00')
-                                                ->count();
-
-                                            if ($afternoonCount >= 1) {
-                                                return true; // Afternoon slot already filled
-                                            }
-                                        }
+                                        return $times;
                                     }
-
-                                    return false;
-                                })
-                                ->required()
-                                ->placeholder('Select a salesperson'),
-
-                            Textarea::make('remarks')
-                                ->label('REMARKS'),
-                        ]),
-
-                    Step::make('Additional Information')
-                        ->schema([
-                            TextInput::make('title')
-                                ->required()
-                                ->label('TITLE'),
-
-
-                            Repeater::make('required_attendees')
-                                ->label('Required Attendees')
-                                ->schema([
-                                    TextInput::make('email')
-                                        ->label('Email Address')
-                                        ->email(),
-                                    TextInput::make('name')
-                                        ->label('Name'),
-                                ])
-                                // ->default([
-                                //     [
-                                //         'email' => 'asdasd@gmail.com',
-                                //         'name' => 'sadsada',
-                                //     ],
-                                // ])
-                                ->minItems(1)
-                                ->default(function (ActivityLog $activityLog) {
-                                    $lead = $this->ownerRecord;
-                                    return [
-                                        [
-                                            'email' => $lead->email, // Default email from the lead
-                                            'name' => $lead->name,   // Default name from the lead
-                                        ]
-                                    ];
                                 }),
 
-
-                            Repeater::make('optional_attendees')
-                                ->label('Optional Attendees')
-                                ->schema([
-                                    TextInput::make('email')
-                                        ->label('Email Address')
-                                        ->email(),
-                                    TextInput::make('name')
-                                        ->label('Name'),
-                                ])
-                                ->minItems(0),
-
-
-                            TextInput::make('location')
-                                ->label('LOCATION')
-                                ->disabled(fn ($get) => $get('appointment_type') === 'Online Demo')
-                                ->placeholder(fn ($get) => $get('appointment_type') === 'Online Demo' ? 'Location is not required for Online Demo' : 'Enter the location')
-                                ->required(fn ($get) => $get('appointment_type') === 'Onsite Demo'),
-
-                            RichEditor::make('details')
-                                ->label('DETAILS')
-                                ->required(),
+                            Forms\Components\TimePicker::make('end_time')
+                                ->label('END TIME')
+                                ->required()
+                                ->seconds(false)
+                                ->columnSpan(1)
+                                ->reactive()
+                                ->default(function (callable $get) {
+                                    // Default end_time to one hour after start_time
+                                    $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                    return $startTime->addHour()->format('H:i');
+                                })
+                                ->datalist(function (callable $get) {
+                                    if ($get('mode') === 'auto') {
+                                        $times = [];
+                                        $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                        $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                        while ($startTime->lte($endTime)) {
+                                            $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                            $startTime->addMinutes(30); // Increment by 30 minutes
+                                        }
+                                        return $times;
+                                    }
+                                }),
                         ])
-                ])->action(function (Appointment $appointment, array $data) {
+                        ->columns(2),
+
+                    // Salesperson
+                    Select::make('salesperson')
+                        ->label('SALESPERSON')
+                        ->options(function (ActivityLog $activityLog) {
+                            $lead = $this->ownerRecord;
+                            if ($lead->salesperson) {
+                                $salesperson = User::where('id', $lead->salesperson)->first();
+                                return [
+                                    $lead->salesperson => $salesperson->name,
+                                ];
+                            }
+
+                            if (auth()->user()->role_id == 3) {
+                                return \App\Models\User::query()
+                                    ->whereIn('role_id', [2, 3])
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            } else {
+                                return \App\Models\User::query()
+                                    ->where('role_id', 2)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            }
+                        })
+                        ->disableOptionWhen(function ($value, $get) {
+                            $date = $get('date');
+                            $startTime = $get('start_time');
+                            $endTime = $get('end_time');
+
+                            if ($date && $startTime && $endTime) {
+                                // Check for overlapping appointments
+                                $hasOverlap = Appointment::where('salesperson', $value)
+                                    ->where('status', 'New')
+                                    ->whereDate('date', $date)
+                                    ->where(function ($query) use ($startTime, $endTime) {
+                                        $query->whereBetween('start_time', [$startTime, $endTime])
+                                            ->orWhereBetween('end_time', [$startTime, $endTime])
+                                            ->orWhere(function ($query) use ($startTime, $endTime) {
+                                                $query->where('start_time', '<', $startTime)
+                                                    ->where('end_time', '>', $endTime);
+                                            });
+                                    })
+                                    ->exists();
+
+                                if ($hasOverlap) {
+                                    return true;
+                                }
+
+                                // Morning or afternoon validation
+                                $isMorning = strtotime($startTime) < strtotime('12:00:00');
+
+                                if ($isMorning) {
+                                    $morningCount = Appointment::where('salesperson', $value)
+                                        ->whereNot('status', 'Cancelled')
+                                        ->whereDate('date', $date)
+                                        ->whereTime('start_time', '<', '12:00:00')
+                                        ->count();
+
+                                    if ($morningCount >= 1) {
+                                        return true; // Morning slot already filled
+                                    }
+                                } else {
+                                    $afternoonCount = Appointment::where('salesperson', $value)
+                                        ->whereNot('status', 'Cancelled')
+                                        ->whereDate('date', $date)
+                                        ->whereTime('start_time', '>=', '12:00:00')
+                                        ->count();
+
+                                    if ($afternoonCount >= 1) {
+                                        return true; // Afternoon slot already filled
+                                    }
+                                }
+                            }
+
+                            return false;
+                        })
+                        ->required()
+                        ->placeholder('Select a salesperson'),
+
+                    Textarea::make('remarks')
+                        ->label('REMARKS'),
+
+                    // Additional Information
+                    TextInput::make('title')
+                        ->required()
+                        ->label('TITLE'),
+
+                    TextInput::make('required_attendees')
+                        ->label('Required Attendees')
+                        ->required()
+                        ->helperText('Separate each email and name pair with a semicolon (e.g., email1;email2;email3).')
+                        ->rules([
+                            'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
+                        ]),
+                ])
+                ->action(function (Appointment $appointment, array $data) {
                     // Create a new Appointment and store the form data in the appointments table
                     $lead = $this->ownerRecord;
                     $appointment = new \App\Models\Appointment();
@@ -804,10 +835,10 @@ class DemoAppointmentRelationManager extends RelationManager
                         'remarks' => $data['remarks'],
                         'title' => $data['title'],
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
-                        'optional_attendees' => json_encode($data['optional_attendees']),
-                        'location' => $data['location'] ?? null,
-                        'details' => $data['details'],
-                        'status' => 'New'
+                        // 'optional_attendees' => json_encode($data['optional_attendees']),
+                        // 'location' => $data['location'] ?? null,
+                        // 'details' => $data['details'],
+                        // 'status' => 'New'
                     ]);
                     $appointment->save();
                     // Retrieve the related Lead model from ActivityLog
@@ -836,13 +867,13 @@ class DemoAppointmentRelationManager extends RelationManager
 
                     $organizerEmail = $salesperson->email; // Get the salesperson's email
 
-                    $requiredAttendees = is_string($data['required_attendees'])
-                        ? json_decode($data['required_attendees'], true)
-                        : $data['required_attendees']; // Handle already-decoded data or string
+                    // $requiredAttendees = is_string($data['required_attendees'])
+                    //     ? json_decode($data['required_attendees'], true)
+                    //     : $data['required_attendees']; // Handle already-decoded data or string
 
-                    $optionalAttendees = is_string($data['optional_attendees'])
-                        ? json_decode($data['optional_attendees'], true)
-                        : $data['optional_attendees']; // Handle already-decoded data or string
+                    // $optionalAttendees = is_string($data['optional_attendees'])
+                    //     ? json_decode($data['optional_attendees'], true)
+                    //     : $data['optional_attendees']; // Handle already-decoded data or string
 
                     $meetingPayload = [
                         'start' => [
@@ -853,31 +884,31 @@ class DemoAppointmentRelationManager extends RelationManager
                             'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
-                        'body'=> [
-                            'contentType'=> 'HTML',
-                            'content'=> $data['details']
-                        ],
+                        // 'body'=> [
+                        //     'contentType'=> 'HTML',
+                        //     'content'=> $data['details']
+                        // ],
                         'subject' => $data['title'], // Event title
-                        'attendees' => array_merge(
-                            array_map(function ($attendee) {
-                                return [
-                                    'emailAddress' => [
-                                        'address' => $attendee['email'],
-                                        'name' => $attendee['name'],
-                                    ],
-                                    'type' => 'Required', // Set type as Required
-                                ];
-                            }, $requiredAttendees ?? []),
-                            array_map(function ($attendee) {
-                                return [
-                                    'emailAddress' => [
-                                        'address' => $attendee['email'],
-                                        'name' => $attendee['name'],
-                                    ],
-                                    'type' => 'Optional', // Set type as Optional
-                                ];
-                            }, $optionalAttendees ?? [])
-                        ),
+                        // 'attendees' => array_merge(
+                        //     array_map(function ($attendee) {
+                        //         return [
+                        //             'emailAddress' => [
+                        //                 'address' => $attendee['email'],
+                        //                 'name' => $attendee['name'],
+                        //             ],
+                        //             'type' => 'Required', // Set type as Required
+                        //         ];
+                        //     }, $requiredAttendees ?? []),
+                        //     array_map(function ($attendee) {
+                        //         return [
+                        //             'emailAddress' => [
+                        //                 'address' => $attendee['email'],
+                        //                 'name' => $attendee['name'],
+                        //             ],
+                        //             'type' => 'Optional', // Set type as Optional
+                        //         ];
+                        //     }, $optionalAttendees ?? [])
+                        // ),
                         'isOnlineMeeting' => true,
                         'onlineMeetingProvider' => 'teamsForBusiness',
                     ];
@@ -950,11 +981,31 @@ class DemoAppointmentRelationManager extends RelationManager
                                     'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
                                     'department' => $leadowner->department ?? 'N/A', // department
                                     'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                    'demo_type' => $appointment->appointment_type
                                 ],
                             ];
-                            // Send the email with the appropriate template view
-                            Mail::mailer('secondary')->to($lead->email)
-                                ->send(new DemoNotification($emailContent, $viewName));
+
+                            $email = $lead->companyDetails->email ?? $lead->email;
+                            $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
+
+                            // Collect required attendees' emails
+                            $requiredAttendees = $demoAppointment->required_attendees ?? null;
+
+                            // Parse attendees' emails if not null
+                            $attendeeEmails = [];
+                            if (!empty($requiredAttendees)) {
+                                $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                $attendeeEmails = explode(';', $cleanedAttendees);
+                                $attendeeEmails = array_filter($attendeeEmails);
+                            }
+                            // Combine primary email and attendee emails
+                            $allEmails = array_unique(array_merge([$email], $attendeeEmails));
+
+                            // Send emails to all recipients
+                            foreach ($allEmails as $recipient) {
+                                Mail::mailer('secondary')->to($recipient)
+                                    ->send(new DemoNotification($emailContent, $viewName));
+                            }
                         } catch (\Exception $e) {
                             // Handle email sending failure
                             Log::error("Email sending failed for salesperson: {$data['salesperson']}, Error: {$e->getMessage()}");

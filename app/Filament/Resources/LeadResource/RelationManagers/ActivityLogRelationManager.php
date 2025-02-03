@@ -42,6 +42,7 @@ use Filament\Tables\Columns\Layout\View;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -103,6 +104,7 @@ class ActivityLogRelationManager extends RelationManager
         $this->totalnum = ActivityLog::where('subject_id', $this->getOwnerRecord()->id)->count();
 
         return $table
+            ->poll('5s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
             ->columns([
@@ -151,6 +153,58 @@ class ActivityLogRelationManager extends RelationManager
                 TextColumn::make('description')->label('SUBJECT'),
             ])
             ->actions([
+                Tables\Actions\Action::make('updateLeadOwner')
+                        ->label(__('Assign to Me'))
+                        ->form([
+                            Forms\Components\Placeholder::make('')
+                            ->content(__('Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.'))
+                        ])
+                        ->color('success')
+                        ->size(ActionSize::Small)
+                        ->button()
+                        ->icon('heroicon-o-pencil-square')
+                        ->visible(function (ActivityLog $record) {
+                            $lead = $record->lead;
+
+                            // Get the latest activity log for the given lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                // Check if the latest activity log description needs updating
+                                if (str_contains($latestActivityLog->description, 'New lead created')){
+                                    return true; // Show button
+                                }
+                            }
+                        })
+                        ->action(function (ActivityLog $record, array $data) {
+                            // $original = $record->getOriginal();
+
+                            $record->lead->update([
+                                    'lead_owner' => auth()->user()->name,
+                                    'categories' => 'Active',
+                                    'stage' => 'Transfer',
+                                    'lead_status' => 'New',
+                                ]);
+
+                                $latestActivityLog = ActivityLog::where('subject_id', $record->lead->id)
+                                    ->orderByDesc('created_at')
+                                    ->first();
+                                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+                                    // Update the latest activity log description if it doesn't match
+                                    $latestActivityLog->update([
+                                        'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+                                    ]);
+                                    activity()
+                                        ->causedBy(auth()->user())
+                                        ->performedOn($record);
+                                }
+                                Notification::make()
+                                    ->title('Lead Owner Assigned Successfully')
+                                    ->success()
+                                    ->send();
+                        }),
                 ActionGroup::make([
                     Tables\Actions\Action::make('addFollowUp')
                         ->visible(function (ActivityLog $record) {
@@ -186,36 +240,30 @@ class ActivityLogRelationManager extends RelationManager
                                 ->placeholder('Enter remarks here...')
                                 ->maxLength(500),
 
-                            Forms\Components\Checkbox::make('follow_up_needed')
-                                ->label('Enable automatic follow-up (4 times)')
-                                ->default(false),
-
-                            Forms\Components\Select::make('follow_up_choice')
-                                ->label('NEXT FOLLOW UP DATE')
-                                ->options(['custom' => 'Custom'])
-                                ->required()
-                                ->default('custom')
-                                ->disabled(fn (Forms\Get $get) => $get('follow_up_needed')), // Disable if checkbox is checked
+                            // Forms\Components\Checkbox::make('follow_up_needed')
+                            //     ->label('Enable automatic follow-up (4 times)')
+                            //     ->default(false),
 
                             Forms\Components\DatePicker::make('follow_up_date')
-                                ->label('')
-                                ->required()
-                                ->placeholder('Select a follow-up date')
-                                ->default(now())
-                                ->disabled(fn (Forms\Get $get) => $get('follow_up_needed'))
-                                ->reactive()
-                                ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                    if ($get('follow_up_needed')) {
-                                        $set('follow_up_date', now()->next(Carbon::TUESDAY)); // Set to next Tuesday if checked
-                                    }
-                                }),
+                            ->label('Next Follow Up Date')
+                            ->required()
+                            ->placeholder('Select a follow-up date')
+                            ->default(fn ($record) => $record->lead->follow_up_date ?? now())
+                            ->reactive()
+                            ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
+                            ->visible(fn (Forms\Get $get) => !$get('follow_up_needed')) // Hide when follow_up_needed is checked
+                            ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                if ($get('follow_up_needed')) {
+                                    $nextTuesday = Carbon::now()->next(Carbon::TUESDAY);
+                                    $set('follow_up_date', $nextTuesday); // Set to next Tuesday if checked
+                                }
+                            }),
                         ])
                         ->color('success')
                         ->icon('heroicon-o-pencil-square')
                         ->action(function (ActivityLog $activityLog, array $data, Component $livewire) {
                             // Retrieve the related Lead model from ActivityLog
                             $lead = $activityLog->lead;
-                            // dd(env('TWILIO_SID'));
 
                             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
@@ -238,19 +286,41 @@ class ActivityLogRelationManager extends RelationManager
                                 $followUpDescription = ($followUpCount) . 'st Lead Owner Follow Up';
                                 $viewName = 'emails.email_blasting_1st';
                                 $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
+                                $message = "Hi {$lead->name}! I'm ". auth()->user()->name." from TimeTec. Thanks for your interest in our HR Cloud Solutions!
+
+                                We offer awesome modules to make HR tasks a breeze:
+                                ✅ Time Attendance
+                                ✅ Payroll System
+                                ✅ Claim Management
+                                ✅ Leave Management
+
+                                🎁 Special Promotion:
+                                Secure a FREE Biometric Device when you subscribe to our Time Attendance module!
+                                Why not schedule a quick demo to see how our solutions can benefit your organization? Plus, I’ll show you how to claim your FREE Biometric Device.
+
+                                🚀 Here’s our brochure to get you started: https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf
+                                Can’t wait to chat with you! 😊";
 
                                 if ($followUpCount == 2) {
                                     $followUpDescription = '2nd Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_2nd';
                                     $contentTemplateSid = 'HX72acd0ab4ffec49493288f9c0b53a17a';
+                                    $message = "Hi {$lead->name}, ". auth()->user()->name." here again! 😊 Just wanted to check in and see if you've had a chance to look over our brochure.
+                                        If you're interested in setting up a demo, please let me know the best time to call you so we can arrange it for you.";
+
                                 } elseif ($followUpCount == 3) {
                                     $followUpDescription = '3rd Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_3rd';
                                     $contentTemplateSid = 'HX9ed8a4589f03d9563e94d47c529aaa0a';
+                                    $message = "Just a quick reminder—the offer for a FREE Biometric Device is still available!
+                                        It’s a great way to enhance your HR capabilities at no extra cost. 😊
+                                        If now isn't the right time or if there’s someone else I should reach out to, please let me know. I’m here to assist!";
                                 } elseif ($followUpCount >= 4) {
                                     $followUpDescription = $followUpCount . 'th Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_4th';
                                     $contentTemplateSid = 'HXa18012edd80d072d54b60b93765dd3af';
+                                    $message = "Just popping in one last time to make sure I’m not overloading your WhatsApp. 🙈 If now isn’t the right time for a chat, could you let me know when might be better, or if there’s someone else I should reach out to?
+                                        And hey, if you ever want to revisit this down the line, I’m just a message away and ready to dive back in whenever you are! 😊";
                                 }
 
                                 // Update or create the latest activity log description
@@ -301,7 +371,8 @@ class ActivityLogRelationManager extends RelationManager
                                     ];
                                     Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
-                                    Mail::mailer('secondary')->to($lead->email)
+                                    Mail::mailer('secondary')
+                                        ->to($lead->companyDetail->email ?? $lead->email)
                                         ->send(new FollowUpNotification($emailContent, $viewName));
                                 } catch (\Exception $e) {
                                     // Handle email sending failure
@@ -310,11 +381,14 @@ class ActivityLogRelationManager extends RelationManager
 
                                 $phoneNumber = $lead->phone; // Recipient's WhatsApp number
                                 $variables = [$lead->name, $lead->lead_owner];
-                                // $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
-
+                                $message = trim($message);
+                                $message = preg_replace('/^[ \t]+/m', '', $message);
+                                $message = urlencode($message);
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
                                 $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
+                                $phoneNumber = $lead->phone; // Ensure this includes the country code
+                                // Redirect to WhatsApp Web/App
+                                return $livewire->js("window.open('https://api.whatsapp.com/send?phone={$phoneNumber}&text={$message}', '_blank');");
                                 return $response;
                             }else if($lead->lead_status === 'Transfer' || $lead->lead_status === 'Pending Demo'){
 
@@ -394,7 +468,8 @@ class ActivityLogRelationManager extends RelationManager
                                     ];
                                     Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
-                                    Mail::mailer('secondary')->to($lead->email)
+                                    Mail::mailer('secondary')
+                                        ->to($lead->companyDetail->email ?? $lead->email)
                                         ->send(new FollowUpNotification($emailContent, $viewName));
                                 } catch (\Exception $e) {
                                     // Handle email sending failure
@@ -604,211 +679,218 @@ class ActivityLogRelationManager extends RelationManager
                                 }
                             }
                         }),
-                    Tables\Actions\Action::make('addDemo')
+                        Tables\Actions\Action::make('addDemo')
                         ->label(__('Add Demo'))
                         ->modalHeading('Add Appointment')
-                        ->steps([
-                            Step::make('Appointment Details')
+                        ->form([
+                            // Appointment Details
+                            Select::make('type')
+                                ->options(function () {
+                                    $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
+                                        ->where('status', 'New')
+                                        ->exists();
+
+                                    $options = [
+                                        'New Demo' => 'New Demo',
+                                        'Second Demo' => 'Second Demo',
+                                        'HRDF Discussion' => 'HRDF Discussion',
+                                        'System Discussion' => 'System Discussion',
+                                    ];
+
+                                    if ($leadHasNewAppointment) {
+                                        unset($options['New Demo']);
+                                    }
+
+                                    return $options;
+                                })
+                                ->required()
+                                ->label('DEMO TYPE'),
+
+                            Select::make('appointment_type')
+                                ->options([
+                                    'Onsite Demo' => 'Onsite Demo',
+                                    'Online Demo' => 'Online Demo',
+                                ])
+                                ->required()
+                                ->label('APPOINTMENT TYPE'),
+
+                            // Schedule
+                            Forms\Components\ToggleButtons::make('mode')
+                                ->label('')
+                                ->options([
+                                    'auto' => 'Auto',
+                                    'custom' => 'Custom',
+                                ]) // Define custom options
+                                ->reactive() // Make it reactive to trigger changes
+                                ->inline()
+                                ->default('auto')
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === 'custom') {
+                                        $set('date', null);
+                                        $set('start_time', null);
+                                        $set('end_time', null);
+                                    }else{
+                                        $set('date', Carbon::today()->toDateString());
+                                        $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                        $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                                    }
+                                }),
+
+                            DatePicker::make('date')
+                                ->required()
+                                ->label('DATE')
+                                ->default(Carbon::today()->toDateString()),
+
+                            Forms\Components\Grid::make()
                                 ->schema([
-                                    Select::make('type')
-                                        ->options(function () {
-                                            // Check if the lead has an appointment with 'new' status
-                                            $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
-                                                ->where('status', 'New')
-                                                ->exists();
-
-                                            // Dynamically set options
-                                            $options = [
-                                                'New Demo' => 'New Demo',
-                                                'Second Demo' => 'Second Demo',
-                                                'HRDF Discussion' => 'HRDF Discussion',
-                                                'System Discussion' => 'System Discussion',
-                                            ];
-
-                                            if ($leadHasNewAppointment) {
-                                                unset($options['New Demo']); // Remove 'New Demo' if condition is met
-                                            }
-
-                                            return $options;
+                                    Forms\Components\TimePicker::make('start_time')
+                                        ->label('START TIME')
+                                        ->required()
+                                        ->seconds(false)
+                                        ->columnSpan(1)
+                                        ->reactive()
+                                        ->default(function () {
+                                            // Get the current time and round up to the next 30-minute interval
+                                            $now = Carbon::now();
+                                            $roundedTime = $now->addMinutes(30 - ($now->minute % 30))->format('H:i'); // Round up
+                                            return $roundedTime;
                                         })
-                                        ->required()
-                                        ->label('DEMO TYPE'),
-
-                                    Select::make('appointment_type')
-                                        ->options([
-                                            'Onsite Demo' => 'Onsite Demo',
-                                            'Online Demo' => 'Online Demo',
-                                        ])
-                                        ->required()
-                                        ->label('APPOINTMENT TYPE'),
-                                ]),
-
-                            Step::make('Schedule')
-                                ->schema([
-                                    DatePicker::make('date')
-                                        ->required()
-                                        ->native(false)
-                                        ->label('DATE'),
-
-                                    Grid::make()
-                                        ->schema([
-                                            TimePicker::make('start_time')
-                                                ->required()
-                                                ->seconds(false)
-                                                ->label('START TIME')
-                                                ->columnSpan(1), // Each TimePicker will take 1 column
-
-                                            TimePicker::make('end_time')
-                                                ->required()
-                                                ->seconds(false)
-                                                ->label('END TIME')
-                                                ->columnSpan(1), // Each TimePicker will take 1 column
-                                        ])
-                                        ->columns(2)
-                                ]),
-
-                            Step::make('Salesperson')
-                                ->schema([
-                                    Select::make('salesperson')
-                                        ->label('SALESPERSON')
-                                        ->options(function (ActivityLog $activityLog) {
-                                            $lead = $activityLog->lead;
-                                            if ($lead->salesperson) {
-                                                $salesperson = User::where('id', $lead->salesperson)->first();
-                                                return [
-                                                    $lead->salesperson => $salesperson->name,
-                                                ];
-                                            }
-                                            if (auth()->user()->role_id == 3) {
-                                                return \App\Models\User::query()
-                                                ->whereIn('role_id', [2, 3])
-                                                ->pluck('name', 'id')
-                                                ->toArray();
-                                            }else{
-                                                // Otherwise, fetch all salespeople with role_id = 2
-                                                return \App\Models\User::query()
-                                                ->where('role_id', 2)
-                                                ->pluck('name', 'id')
-                                                ->toArray();
+                                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                            if ($get('mode') === 'auto' && $state) {
+                                                $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
                                             }
                                         })
-                                        ->disableOptionWhen(function ($value, $get) {
-                                            $date = $get('date');
-                                            $startTime = $get('start_time');
-                                            $endTime = $get('end_time');
-
-                                            if ($date && $startTime && $endTime) {
-                                                // First, check for overlapping appointments
-                                                $hasOverlap = Appointment::where('salesperson', $value)
-                                                    ->where('status', 'New')
-                                                    ->whereDate('date', $date)
-                                                    ->where(function ($query) use ($startTime, $endTime) {
-                                                        $query->whereBetween('start_time', [$startTime, $endTime])
-                                                                ->orWhereBetween('end_time', [$startTime, $endTime])
-                                                                ->orWhere(function ($query) use ($startTime, $endTime) {
-                                                                    $query->where('start_time', '<', $startTime)
-                                                                        ->where('end_time', '>', $endTime);
-                                                                });
-                                                    })
-                                                    ->exists();
-
-                                                if ($hasOverlap) {
-                                                    return true;
+                                        ->datalist(function (callable $get) {
+                                            if ($get('mode') === 'auto') {
+                                                $times = [];
+                                                $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                                $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                                while ($startTime->lte($endTime)) {
+                                                    $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                                    $startTime->addMinutes(30); // Increment by 30 minutes
                                                 }
-
-                                                // Determine if the current appointment is in the morning or afternoon
-                                                $isMorning = strtotime($startTime) < strtotime('12:00:00');
-
-                                                // Check for existing morning and afternoon appointments
-                                                if ($isMorning) {
-                                                    $morningCount = Appointment::where('salesperson', $value)
-                                                        ->whereNot('status', 'Cancelled')
-                                                        ->whereDate('date', $date)
-                                                        ->whereTime('start_time', '<', '12:00:00')
-                                                        ->count();
-
-                                                    if ($morningCount >= 1) {
-                                                        return true; // Morning slot already filled
-                                                    }
-                                                } else {
-                                                    $afternoonCount = Appointment::where('salesperson', $value)
-                                                        ->whereNot('status', 'Cancelled')
-                                                        ->whereDate('date', $date)
-                                                        ->whereTime('start_time', '>=', '12:00:00')
-                                                        ->count();
-
-                                                    if ($afternoonCount >= 1) {
-                                                        return true; // Afternoon slot already filled
-                                                    }
-                                                }
+                                                return $times;
                                             }
-
-                                            return false;
-                                        })
-                                        ->required()
-                                        ->placeholder('Select a salesperson'),
-
-                                    Textarea::make('remarks')
-                                        ->label('REMARKS'),
-                                ]),
-
-                            Step::make('Additional Information')
-                                ->schema([
-                                    TextInput::make('title')
-                                        ->required()
-                                        ->label('TITLE'),
-
-
-                                    Repeater::make('required_attendees')
-                                        ->label('Required Attendees')
-                                        ->schema([
-                                            TextInput::make('email')
-                                                ->label('Email Address')
-                                                ->email(),
-                                            TextInput::make('name')
-                                                ->label('Name'),
-                                        ])
-                                        // ->default([
-                                        //     [
-                                        //         'email' => 'asdasd@gmail.com',
-                                        //         'name' => 'sadsada',
-                                        //     ],
-                                        // ])
-                                        ->minItems(1)
-                                        ->default(function (ActivityLog $activityLog) {
-                                            $lead = $activityLog->lead;
-                                            return [
-                                                [
-                                                    'email' => $lead->email, // Default email from the lead
-                                                    'name' => $lead->name,   // Default name from the lead
-                                                ]
-                                            ];
                                         }),
 
-
-                                    Repeater::make('optional_attendees')
-                                        ->label('Optional Attendees')
-                                        ->schema([
-                                            TextInput::make('email')
-                                                ->label('Email Address')
-                                                ->email(),
-                                            TextInput::make('name')
-                                                ->label('Name'),
-                                        ])
-                                        ->minItems(0),
-
-
-                                    TextInput::make('location')
-                                        ->label('LOCATION')
-                                        ->disabled(fn ($get) => $get('appointment_type') === 'Online Demo')
-                                        ->placeholder(fn ($get) => $get('appointment_type') === 'Online Demo' ? 'Location is not required for Online Demo' : 'Enter the location')
-                                        ->required(fn ($get) => $get('appointment_type') === 'Onsite Demo'),
-
-                                    RichEditor::make('details')
-                                        ->label('DETAILS')
-                                        ->required(),
+                                    Forms\Components\TimePicker::make('end_time')
+                                        ->label('END TIME')
+                                        ->required()
+                                        ->seconds(false)
+                                        ->columnSpan(1)
+                                        ->reactive()
+                                        ->default(function (callable $get) {
+                                            // Default end_time to one hour after start_time
+                                            $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                            return $startTime->addHour()->format('H:i');
+                                        })
+                                        ->datalist(function (callable $get) {
+                                            if ($get('mode') === 'auto') {
+                                                $times = [];
+                                                $startTime = Carbon::createFromTimeString('00:00'); // Start of the day
+                                                $endTime = Carbon::createFromTimeString('23:30');  // End of the day
+                                                while ($startTime->lte($endTime)) {
+                                                    $times[] = $startTime->format('H:i'); // Format as HH:mm
+                                                    $startTime->addMinutes(30); // Increment by 30 minutes
+                                                }
+                                                return $times;
+                                            }
+                                        }),
                                 ])
-                        ])
+                                ->columns(2),
+
+                            // Salesperson
+                            Select::make('salesperson')
+                                ->label('SALESPERSON')
+                                ->options(function (ActivityLog $activityLog) {
+                                    $lead = $activityLog->lead;
+                                    if ($lead->salesperson) {
+                                        $salesperson = User::where('id', $lead->salesperson)->first();
+                                        return [
+                                            $lead->salesperson => $salesperson->name,
+                                        ];
+                                    }
+                                    if (auth()->user()->role_id == 3) {
+                                        return \App\Models\User::query()
+                                            ->whereIn('role_id', [2, 3])
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    } else {
+                                        return \App\Models\User::query()
+                                            ->where('role_id', 2)
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    }
+                                })
+                                ->disableOptionWhen(function ($value, $get) {
+                                    $date = $get('date');
+                                    $startTime = $get('start_time');
+                                    $endTime = $get('end_time');
+
+                                    if ($date && $startTime && $endTime) {
+                                        $hasOverlap = Appointment::where('salesperson', $value)
+                                            ->where('status', 'New')
+                                            ->whereDate('date', $date)
+                                            ->where(function ($query) use ($startTime, $endTime) {
+                                                $query->whereBetween('start_time', [$startTime, $endTime])
+                                                    ->orWhereBetween('end_time', [$startTime, $endTime])
+                                                    ->orWhere(function ($query) use ($startTime, $endTime) {
+                                                        $query->where('start_time', '<', $startTime)
+                                                            ->where('end_time', '>', $endTime);
+                                                    });
+                                            })
+                                            ->exists();
+
+                                        if ($hasOverlap) {
+                                            return true;
+                                        }
+
+                                        $isMorning = strtotime($startTime) < strtotime('12:00:00');
+
+                                        if ($isMorning) {
+                                            $morningCount = Appointment::where('salesperson', $value)
+                                                ->whereNot('status', 'Cancelled')
+                                                ->whereDate('date', $date)
+                                                ->whereTime('start_time', '<', '12:00:00')
+                                                ->count();
+
+                                            if ($morningCount >= 1) {
+                                                return true;
+                                            }
+                                        } else {
+                                            $afternoonCount = Appointment::where('salesperson', $value)
+                                                ->whereNot('status', 'Cancelled')
+                                                ->whereDate('date', $date)
+                                                ->whereTime('start_time', '>=', '12:00:00')
+                                                ->count();
+
+                                            if ($afternoonCount >= 1) {
+                                                return true;
+                                            }
+                                        }
+                                    }
+
+                                    return false;
+                                })
+                                ->required()
+                                ->placeholder('Select a salesperson'),
+
+                            Textarea::make('remarks')
+                                ->label('REMARKS'),
+
+                            // Additional Information
+                            TextInput::make('title')
+                                ->required()
+                                ->label('TITLE'),
+
+                            TextInput::make('required_attendees')
+                                ->label('Required Attendees')
+                                ->required()
+                                ->helperText('Separate each email and name pair with a semicolon (e.g., email1;email2;email3).')
+                                ->rules([
+                                    'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
+                                ]),
+                            ])
                         ->visible(function (ActivityLog $record) {
                             // Decode properties once and retrieve relevant attributes
                             $attributes = json_decode($record->properties, true)['attributes'] ?? [];
@@ -836,7 +918,6 @@ class ActivityLogRelationManager extends RelationManager
                         })
 
                     ->color('success')
-                    ->modalCloseButton(false)
                     // ->modalSubmitAction(false)
                     ->modalCancelAction(false)
                     ->icon('heroicon-o-pencil-square')
@@ -855,10 +936,10 @@ class ActivityLogRelationManager extends RelationManager
                             'remarks' => $data['remarks'],
                             'title' => $data['title'],
                             'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
-                            'optional_attendees' => json_encode($data['optional_attendees']),
-                            'location' => $data['location'] ?? null,
-                            'details' => $data['details'],
-                            'status' => 'New'
+                            // 'optional_attendees' => json_encode($data['optional_attendees']),
+                            // 'location' => $data['location'] ?? null,
+                            // 'details' => $data['details'],
+                            // 'status' => 'New'
                         ]);
                         $appointment->save();
                         // Retrieve the related Lead model from ActivityLog
@@ -887,13 +968,13 @@ class ActivityLogRelationManager extends RelationManager
 
                         $organizerEmail = $salesperson->email; // Get the salesperson's email
 
-                        $requiredAttendees = is_string($data['required_attendees'])
-                            ? json_decode($data['required_attendees'], true)
-                            : $data['required_attendees']; // Handle already-decoded data or string
+                        // $requiredAttendees = is_string($data['required_attendees'])
+                        //     ? json_decode($data['required_attendees'], true)
+                        //     : $data['required_attendees']; // Handle already-decoded data or string
 
-                        $optionalAttendees = is_string($data['optional_attendees'])
-                            ? json_decode($data['optional_attendees'], true)
-                            : $data['optional_attendees']; // Handle already-decoded data or string
+                        // $optionalAttendees = is_string($data['optional_attendees'])
+                        //     ? json_decode($data['optional_attendees'], true)
+                        //     : $data['optional_attendees']; // Handle already-decoded data or string
 
                         $meetingPayload = [
                             'start' => [
@@ -904,36 +985,36 @@ class ActivityLogRelationManager extends RelationManager
                                 'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
                                 'timeZone' => 'Asia/Kuala_Lumpur'
                             ],
-                            'body'=> [
-                                'contentType'=> 'HTML',
-                                'content'=> $data['details']
-                            ],
+                            // 'body'=> [
+                            //     'contentType'=> 'HTML',
+                            //     'content'=> $data['details']
+                            // ],
                             'subject' => $data['title'], // Event title
-                            'attendees' => array_merge(
-                                array_map(function ($attendee) {
-                                    return [
-                                        'emailAddress' => [
-                                            'address' => $attendee['email'],
-                                            'name' => $attendee['name'],
-                                        ],
-                                        'type' => 'Required', // Set type as Required
-                                    ];
-                                }, $requiredAttendees ?? []),
-                                array_map(function ($attendee) {
-                                    return [
-                                        'emailAddress' => [
-                                            'address' => $attendee['email'],
-                                            'name' => $attendee['name'],
-                                        ],
-                                        'type' => 'Optional', // Set type as Optional
-                                    ];
-                                }, $optionalAttendees ?? [])
-                            ),
+                            // 'attendees' => array_merge(
+                            //     array_map(function ($attendee) {
+                            //         return [
+                            //             'emailAddress' => [
+                            //                 'address' => $attendee['email'],
+                            //                 'name' => $attendee['name'],
+                            //             ],
+                            //             'type' => 'Required', // Set type as Required
+                            //         ];
+                            //     }, $requiredAttendees ?? []),
+                            //     array_map(function ($attendee) {
+                            //         return [
+                            //             'emailAddress' => [
+                            //                 'address' => $attendee['email'],
+                            //                 'name' => $attendee['name'],
+                            //             ],
+                            //             'type' => 'Optional', // Set type as Optional
+                            //         ];
+                            //     }, $optionalAttendees ?? [])
+                            // ),
                             'isOnlineMeeting' => true,
                             'onlineMeetingProvider' => 'teamsForBusiness',
-                            'location' => [
-                                'displayName' => $data['location'] ?? null, // Specify the location
-                            ],
+                            // 'location' => [
+                            //     'displayName' => $data['location'] ?? null, // Specify the location
+                            // ],
                         ];
 
                         try {
@@ -1014,8 +1095,28 @@ class ActivityLogRelationManager extends RelationManager
                                         'demo_type' => $appointment->appointment_type
                                     ],
                                 ];
-                                Mail::mailer('secondary')->to($lead->email)
-                                    ->send(new DemoNotification($emailContent, $viewName));
+
+                                $email = $lead->companyDetails->email ?? $lead->email;
+                                $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
+
+                                // Collect required attendees' emails
+                                $requiredAttendees = $demoAppointment->required_attendees ?? null;
+
+                                // Parse attendees' emails if not null
+                                $attendeeEmails = [];
+                                if (!empty($requiredAttendees)) {
+                                    $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                    $attendeeEmails = explode(';', $cleanedAttendees);
+                                    $attendeeEmails = array_filter($attendeeEmails);
+                                }
+                                // Combine primary email and attendee emails
+                                $allEmails = array_unique(array_merge([$email], $attendeeEmails));
+
+                                // Send emails to all recipients
+                                foreach ($allEmails as $recipient) {
+                                    Mail::mailer('secondary')->to($recipient)
+                                        ->send(new DemoNotification($emailContent, $viewName));
+                                }
                             } catch (\Exception $e) {
                                 // Handle email sending failure
                                 Log::error("Email sending failed for salesperson: {$data['salesperson']}, Error: {$e->getMessage()}");
@@ -1246,7 +1347,6 @@ class ActivityLogRelationManager extends RelationManager
                         ->action(function (ActivityLog $activityLog, array $data, Component $livewire) {
                             // Retrieve the related Lead model from ActivityLog
                             $lead = $activityLog->lead;
-                            // dd(env('TWILIO_SID'));
 
                             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
@@ -2016,7 +2116,7 @@ class ActivityLogRelationManager extends RelationManager
                     }
 
                     // Apply the salesperson null check only for role_id = 1
-                    if (auth()->user()->role_id === 1 && !is_null($lead->salesperson)) {
+                    if ((auth()->user()->role_id === 1 && !is_null($lead->salesperson))) {
                         return false; // Hide for role_id = 1 if salesperson is not null
                     }
 

@@ -23,7 +23,10 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('leads:update-status')->dailyAt('00:01'); // Runs daily at 12:01 AM
 
-        $schedule->command('follow-up:auto')->weeklyOn(2, '10:00'); //RUns weekly at Tuesday 10am
+        $schedule->command('follow-up:auto')->weeklyOn(2, '10:00'); //Runs weekly at Tuesday 10am
+
+        $schedule->command('facebook:fetch-leads')->everyMinute();  //Runs every minutes
+
     }
 
     /**

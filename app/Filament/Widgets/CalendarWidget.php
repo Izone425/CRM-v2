@@ -62,17 +62,21 @@ class CalendarWidget extends FullCalendarWidget
                 $endDateTime = $appointment->end_time ? "{$appointment->date} {$appointment->end_time}" : null;
                 $presenter = User::find($appointment->salesperson)?->name ?? 'Unknown'; // Safely retrieve the salesperson name
 
+                // Determine the color dynamically based on the appointment type
+                $color = match ($appointment->appointment_type) {
+                    'Online Demo' => '#B91C1C',
+                    'Webinar Demo' => '#62FB5A',
+                    'Onsite Demo' => '#D8C603',
+                    default => '#808080',
+                };
+
                 return [
-                    'id'    => $appointment->id,
-                    'title' => "{$appointment->lead->companyDetail->company_name} - {$appointment->type} ({$appointment->status}): {$presenter}",
-                    'start' => \Carbon\Carbon::parse($startDateTime)->toIso8601String(),
-                    'end'   => $endDateTime ? \Carbon\Carbon::parse($endDateTime)->toIso8601String() : null,
-                    'color' => match ($appointment->appointment_type) {
-                        'Online Demo' => '#B91C1C',
-                        'Webinar Demo' => '#c6fec3',
-                        'Onsite Demo' => '#D8C603',
-                    },
-                    'url'   => route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]),
+                    'id'        => $appointment->id,
+                    'title'     => "{$appointment->lead->companyDetail->company_name} - {$appointment->type} ({$appointment->status}): {$presenter}",
+                    'start'     => \Carbon\Carbon::parse($startDateTime)->toIso8601String(),
+                    'end'       => $endDateTime ? \Carbon\Carbon::parse($endDateTime)->toIso8601String() : null,
+                    'color'     => $color,
+                    'url'       => route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]),
                 ];
             })
             ->toArray();
@@ -82,10 +86,10 @@ class CalendarWidget extends FullCalendarWidget
     {
         return [
             'firstDay' => 1,
-            'scrollTime' => '08:00:00', // Default time to start view
+            'scrollTime' => '08:00:00',
             'height' => 'auto',
             'headerToolbar' => [
-                'right' => 'dayGridWeek,dayGridDay,dayGridMonth',
+                'right' => '',
                 'center' => 'title',
                 'left' => 'prev,next today',
             ],

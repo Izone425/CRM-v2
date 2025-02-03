@@ -19,6 +19,7 @@
         "laravel/tinker": "^2.8",
         "laraveldaily/laravel-invoices": "^3.1",
         "league/oauth2-client": "*",
+        "malzariey/filament-daterangepicker-filter": "^3.1",
         "microsoft/microsoft-graph": "1.42.0",
         "njxqlus/filament-relation-manager-component": "^1.0",
         "parfaitementweb/filament-country-field": "^2.2",

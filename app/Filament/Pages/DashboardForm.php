@@ -6,7 +6,10 @@ use Filament\Pages\Page;
 use Filament\Tables;
 use App\Models\Lead;
 use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
+use Filament\Support\Enums\ActionSize;
 
 class DashboardForm extends Page
 {
@@ -31,6 +34,13 @@ class DashboardForm extends Page
         $this->assignToMeModalVisible = true; // Show the modal
     }
 
+    public $currentDashboard = 'LeadOwner';
+
+    public function toggleDashboard($dashboard)
+    {
+        $this->currentDashboard = $dashboard;
+    }
+
     public function updatedSelectedUser($userId)
     {
         $selectedUser = User::find($userId);
@@ -40,6 +50,8 @@ class DashboardForm extends Page
         } else {
             $this->selectedUserRole = null; // Reset if no user is selected
         }
+
+        // Add additional logic for live updates here
     }
 
     public function handleSelectedUser()
@@ -51,6 +63,11 @@ class DashboardForm extends Page
     public function getPendingLeadsQuery()
     {
         return Lead::query()->where('categories', 'New');
+    }
+
+    public function getNoResponseLeadsQuery()
+    {
+        return Lead::query()->where('lead_status', 'No Response');
     }
 
     // My New Leads Table

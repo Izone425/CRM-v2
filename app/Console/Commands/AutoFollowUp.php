@@ -107,7 +107,8 @@ class AutoFollowUp extends Command
                             ],
                         ];
 
-                        Mail::mailer('secondary')->to($lead->email)
+                        Mail::mailer('secondary')
+                            ->to($lead->companyDetail->email ?? $lead->email)
                             ->send(new FollowUpNotification($emailContent, $viewName));
                     } catch (\Exception $e) {
                         // Handle email sending failure
