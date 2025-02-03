@@ -26,6 +26,9 @@ class Calendar extends Component
     public $weekDays;
     public $selectedMonth;
     public $holidays;
+    public $leaves;
+    public $monthList;
+    public $currentMonth;
 
     public function mount()
     {
@@ -61,7 +64,6 @@ class Calendar extends Component
         $date = $date ? Carbon::parse($date) : Carbon::now();
         $this->startDate = $date->copy()->startOfWeek()->toDateString();
         $this->endDate = $date->copy()->endOfWeek()->toDateString();
-
         $appointments = DB::table('appointments')
             ->join('users', 'users.id', '=', 'appointments.salesperson')
             ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
@@ -90,7 +92,7 @@ class Calendar extends Component
                 'fridayNewDemo' => 0,
                 'saturdayNewDemo' => 0,
                 'sundayNewDemo' => 0,
-                'leave' => (new UserLeave())->getUserLeavesByDateRange($salesperson['id'],$this->startDate,$this->endDate),
+                'leave' => UserLeave::getUserLeavesByDateRange($salesperson['id'],$this->startDate,$this->endDate),
             ];
 
 
@@ -131,13 +133,40 @@ class Calendar extends Component
             ->get();
     }
 
+    public function updatedSelectedMonth()
+    {
+        $this->date = Carbon::create(null, $this->selectedMonth, 1)->startOfMonth();
+    }
+
+    public function setSelectedMonthToCurrentMonth(){
+        $this->selectedMonth = $this->date->month;
+    }
+
+    public function getAllMonthForCurrentYear(){
+        $nextYearSuffix = "'" . Carbon::now()->format('y');
+
+        $months = [];
+        for ($month = 1; $month <= 12; $month++) {
+            // Get the abbreviated month name (Jan, Feb, etc.)
+            $monthName = Carbon::create(null, $month, 1)->format('M');
+            // Format as "Jan '25"
+            $formattedMonth = $monthName . ' ' . $nextYearSuffix;
+            // Map to its decimal value (e.g., 1.0)
+            $months[$formattedMonth] = (float)$month;
+        }
+        $this->monthList = $months;
+    }
+
     public function render()
     {
 
+        $this->getAllMonthForCurrentYear();
         $this->weekDays = $this->getWeekDateDays($this->date);
         $this->rows = $this->getWeeklyAppointments($this->date);
         // $this->getSalesPersonNoNewDemo($this->rows);
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate,$this->endDate);
+        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate,$this->endDate);
+        $this->setSelectedMonthToCurrentMonth();
         return view('livewire.calendar');
     }
 }

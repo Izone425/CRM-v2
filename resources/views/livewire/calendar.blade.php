@@ -210,8 +210,10 @@
                <td class="first-column"><!-- Demo Appointment Type Filter -->
                     <div>
                          <form>
-                              <select class="scroll-dropdown">
-                                   <option value="">Jan '24</option>
+                              <select class="scroll-dropdown" wire:model.change="selectedMonth">
+                                   @foreach($monthList as $key=>$value)
+                                   <option  value="{{$value}}">{{$key}}</option>
+                                   @endforeach
                               </select>
                          </form>
                     </div>
@@ -303,13 +305,17 @@
                </tr>
                <tr>
                     <td class="first-column">On Leave</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
-                    <td class="other-columns">Hello</td>
+                    @for($day = 1; $day < 8 ; $day++)
+                    <td class="other-columns">
+                         <div class="demo-avatar">
+                              @foreach ($leaves as $leave)
+                              @if ($leave['day_of_week'] == $day)
+                              <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                              @endif
+                              @endforeach
+                         </div>
+                    </td>
+                    @endfor
                </tr>
           </table>
      </div>
@@ -326,7 +332,7 @@
                          style="border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; background-color: #C2C2C2; position: absolute; left: calc(15% + (12.143% * {{$row['day_of_week']-1}})); top: 0; height: 100%; width: 12.143%;">
                          <div>
                               <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-                              <div style="font-size: 0.8rem;">{{$row['name']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$row['name']}}</div>
                          </div>
                     </div>
                </td>
@@ -348,7 +354,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][1]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][1]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -371,7 +377,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][2]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][2]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -394,7 +400,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][3]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][3]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -417,7 +423,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][4]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][4]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -440,7 +446,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][5]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][5]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -463,7 +469,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][6]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][6]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
@@ -486,7 +492,7 @@
                          style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
                          <div style="flex:1; text-align: center;">
                               <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;">{{$value['leave'][7]['leave_type']}}</div>
+                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][7]['leave_type']}}</div>
                          </div>
                     </div>
                     @else
