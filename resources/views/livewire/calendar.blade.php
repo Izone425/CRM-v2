@@ -1,517 +1,722 @@
-<div
-     style="height: 100%;   background-color: #ffffff; border-radius: 17px; box-shadow: 0px 2px 4px rgba(0,0,0,0.08); display: flex; flex-direction: column; position: relative;">
-     <style>
-          :root {
-               --bar-color-blue: #4f46ba;
-               --bar-color-orange: #ff9500;
-          }
+<div x-data="tooltipHandler()">
+    <style>
+        :root {
+            --bar-color-blue: #F6F8FF;
+            --bar-color-orange: #ff9500;
+            --bg-color-border: #E5E7EB;
+            --bg-color-white: white;
+            --icon-color: black;
+        }
 
-          .image-container {
-               width: 50px;
-               /* Set the container width */
-               height: 50px;
-               /* Set the container height */
-               background-color: grey;
-               /* Grey background for placeholder */
-               border-radius: 50px;
-               /* Rounded corners */
-               flex-shrink: 0;
-          }
+        .calendar-header {
+            display: grid;
+            grid-template-columns: 0.5fr repeat(5, 1fr);
+            gap: 1px;
+            background: var(--bg-color-border);
+            border-radius: 17px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
 
-          /* ||  Calendar CSS ||  START*/
-          .appointment-card {
-               margin-block: 0.5rem;
-               width: 100%;
-               background-color: rgba(252, 158, 162, 0.2);
-               display: flex;
-               flex-direction: row;
-          }
+        /* Salespersonrow */
+        .calendar-body {
+            display: grid;
+            grid-template-columns: 0.5fr repeat(5, 1fr);
+            gap: 1px;
+            background: var(--bg-color-border);
+            border-radius: 17px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
 
-          .appointment-card-bar {
-               background-color: var(--bar-color-blue);
-               width: 12px;
-          }
+        /* END */
 
-          .appointment-card-info {
-               display: flex;
-               flex: 1;
-               flex-direction: column;
-               padding-block: 0.25rem;
-               padding-inline: 0.5rem;
-          }
+        .header-row {
+            display: grid;
+            grid-template-columns: 0.5fr repeat(5, 1fr);
+            grid-column: 1 / -1;
+        }
 
+        .header,
+        .time,
+        .day,
+        .summary-cell {
+            background: var(--bg-color-white);
+            padding: 10px;
+            min-height: 50px;
+            text-align: center;
+        }
 
-          table {
-               width: 100%;
-               border-collapse: collapse;
-          }
+        .header-date {
+            font-size: 24px;
+        }
 
-          td {
-               padding: 10px;
-               border: 1px solid #e5e7eb;
-          }
+        .time {
+            font-weight: bold;
+        }
 
-          .first-column {
-               width: 15%;
-               /* Adjust the width of the first column */
-          }
+        .dropdown-summary {
+            grid-column: 1 / -1;
+            background-color: var(--bar-color-blue);
+            min-height: 50px;
+        }
 
-          .other-columns {
-               width: 12.143%;
-               /* Adjust width of the other columns */
-               vertical-align: top;
-          }
+        .summary-cell {
+            background-color: var(--bar-color-blue);
+            min-height: 30px;
+        }
 
-          .other-columns.invisible {
-               padding: 0;
-          }
+        /* Leave Logo */
+        .summary-cell img {
+            height: 50px;
+            margin: 0 auto;
+        }
 
-          .flex-container {
-               display: flex;
-               width: 100%;
-               height: 100%;
-               align-items: center;
-               justify-content: center;
-               gap: 0.1rem;
-               text-align: center;
-          }
-
-          .scroll td {
-               border: none;
-          }
-
-          .scroll .other-columns {
-               vertical-align: middle;
-               position: relative;
-          }
-
-          /* || FINISH || */
-
-          /* Scroll */
-          select.scroll-dropdown {
-               outline: 0;
-               /* Removes the blue ring */
-               border: none;
-               /* Optional: Add your custom border */
-               border-radius: 4px;
-               /* Optional: Add rounded corners */
-               font-size: 28px;
-               font-weight: bold;
-               width: 100%;
-          }
-
-          select.scroll-dropdown:focus {
-               border-color: pink;
-               /* Optional: Customize the border on focus */
-               outline: 0;
-          }
-
-          select.scroll-dropdown option {
-               border-color: #007bff;
-               padding: 1rem;
-          }
-
-          .spinner {
-               border: 10px solid #f3f3f3;
-               /* Light gray background */
-               border-top: 10px solid #3498db;
-               /* Blue color for the spinner */
-               border-radius: 50%;
-               width: 100px;
-               height: 100px;
-               animation: spin 1s linear infinite;
-               margin-block: auto;
-          }
-
-          /* Spinner animation */
-          @keyframes spin {
-               0% {
-                    transform: rotate(0deg);
-               }
-
-               100% {
-                    transform: rotate(360deg);
-               }
-          }
-
-          /* The overlay that covers the content */
-          .overlay {
-               position: absolute;
-               top: 0;
-               left: 0;
-               right: 0;
-               bottom: 0;
-               background-color: rgba(236, 240, 241, 0.5);
-               /* Semi-transparent grey */
-               display: flex;
-               justify-content: center;
-               /* Center horizontally */
-               align-items: center;
-               /* Center vertically */
-               color: white;
-               z-index: 9999;
-               /* Make sure it appears on top */
-               height: 100%;
-               width: 100%;
-          }
-
-          .demo-avatar {
-               display: grid;
-               grid-template-columns: repeat(5, 1fr);
-               row-gap: 5px;
-               column-gap: 2px;
-          }
-
-          .demo-avatar img {
-               border-radius: 50%;
-          }
-
-          /* For 1280 */
-          @media (max-width: 1400px) {
-               body {
-                    font-size: 0.9rem;
-               }
-
-               .appointment-card-info {
-                    font-size: 0.7rem;
-               }
-
-               .image-container {
-                    width: 2rem;
-                    /* Set the container width */
-                    height: 2rem;
-                    /* Set the container height */
-               }
-
-               .demo-avatar {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    row-gap: 5px;
-                    column-gap: 3px;
+        .circle-bg {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-color-white);
+            border-radius: 50%;
+            color: var(--icon-color);
+        }
 
 
-               }
+        /* APPOINTMENT-CARD */
+        .appointment-card {
+            margin-block: 0.5rem;
+            width: 100%;
+            background-color: rgba(252, 158, 162, 0.2);
+            display: flex;
+            flex-direction: row;
+        }
 
-               .demo-avatar img {
-                    width: 100%;
-                    height: auto;
-               }
+        .appointment-card-bar {
+            background-color: var(--bar-color-blue);
+            width: 12px;
+        }
 
-          }
-     </style>
+        .appointment-card-info {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            padding-block: 0.25rem;
+            padding-inline: 0.5rem;
+        }
 
-     <!-- Loading overlay (this will show while Livewire is processing) -->
-     <div class="overlay" wire:loading.flex>
-          <div class="spinner"></div>
-     </div>
+        .appointment-company-name {
+            font-weight: bold;
+        }
 
-     <table class="scroll">
-          <tr>
-               <td class="first-column"><!-- Demo Appointment Type Filter -->
-                    <div>
-                         <form>
-                              <select class="scroll-dropdown" wire:model.change="selectedMonth">
-                                   @foreach($monthList as $key=>$value)
-                                   <option  value="{{$value}}">{{$key}}</option>
-                                   @endforeach
-                              </select>
-                         </form>
+        /* || END || */
+
+
+        /* For Salesperson Image */
+        .flex-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            gap: 0.1rem;
+            text-align: center;
+        }
+
+        .image-container {
+            width: 45px;
+            /* Set the container width */
+            height: 45px;
+            /* Set the container height */
+            background-color: grey;
+            /* Grey background for placeholder */
+            border-radius: 50px;
+            /* Rounded corners */
+            flex-shrink: 0;
+        }
+
+        /* END */
+
+        /* Summary Avatarr */
+
+        .demo-avatar {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            row-gap: 3px;
+            column-gap: 1px;
+        }
+
+        .demo-avatar img {
+            border-radius: 50%;
+            height: 45px;
+            width: 45px;
+        }
+
+        /* || END || Summary Avatar */
+
+        /* public holiday overlay */
+        .holiday-overlay {
+            position: absolute;
+            top: 0;
+            /* Adjust dynamically with JS */
+            left: calc(1 * (100% / 6));
+            /* Start at column 1 */
+            width: calc(5 * (100% / 6));
+            /* Cover columns 1-5 */
+            height: 100%;
+            /* Adjust dynamically with JS */
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+
+        /* Initially hide the inner div */
+        .hover-content {
+            display: none;
+        }
+
+        /* When hovering over the container, display the inner div */
+        .hover-container:hover .hover-content {
+            display: flex;
+        }
+
+        .tooltip {
+            /* These styles are provided inline by Alpine via :style,
+       but you can add additional styling if needed */
+            z-index: 100;
+        }
+    </style>
+
+
+
+    <div class="calendar-header">
+        <div class="header-row">
+            <div class="header">
+                Time
+            </div>
+            <div class="header">
+                <div class="flex">
+                    <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
+                        <div class="header-date text-center">{{ $weekDays[0]['date'] }}</div>
+                        <div>{{ $weekDays[0]['day'] }}</div>
+                    </span>
+                </div>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[1]['date'] }}</div>
+                <div>{{ $weekDays[1]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[2]['date'] }}</div>
+                <div>{{ $weekDays[2]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[3]['date'] }}</div>
+                <div>{{ $weekDays[3]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="flex">
+                    <div class="flex-1" @if ($weekDays[4]['today']) style="background-color: lightblue;" @endif>
+                        <div class="header-date">{{ $weekDays[4]['date'] }}</div>
+                        <div>{{ $weekDays[4]['day'] }}</div>
                     </div>
-               </td>
-               <td class="other-columns text-center">
-                    <div class="flex">
-                         <button wire:click="prevWeek" style="width: 10%;"><i
-                                   class="fa-solid fa-chevron-left"></i></button>
-                         <span class="flex-1" @if($weekDays[0]['today']) style="background-color: lightblue;" @endif>
-                              <span class="block text-center" style="font-size: 24px;">{{$weekDays[0]['date']}}</span>
-                              <span class="block">{{$weekDays[0]['day']}}</span>
-                         </span>
-                    </div>
+                    <button wire:click="nextWeek" style="width: 10%;"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
 
-               </td>
-               <td class="other-columns text-center" @if($weekDays[1]['today']) style="background-color: lightblue;"
-                    @endif>
-                    <span class="block" style="font-size: 24px;">{{$weekDays[1]['date']}}</span>
-                    <span class="block">{{$weekDays[1]['day']}}</span>
-               </td>
-               <td class="other-columns text-center" @if($weekDays[2]['today']) style="background-color: lightblue;"
-                    @endif>
-                    <span class="block" style="font-size: 24px;">{{$weekDays[2]['date']}}</span>
-                    <span class="block">{{$weekDays[2]['day']}}</span>
-               </td>
-               <td class="other-columns text-center" @if($weekDays[3]['today']) style="background-color: lightblue;"
-                    @endif>
-                    <span class="block" style="font-size: 24px;">{{$weekDays[3]['date']}}</span>
-                    <span class="block">{{$weekDays[3]['day']}}</span>
-               </td>
+        <!-- Dropdown -->
+        <div class="dropdown-summary"></div>
 
-               <td class="other-columns text-center" @if($weekDays[4]['today']) style="background-color: lightblue;"
-                    @endif>
-                    <span class="block" style="font-size: 24px;">{{$weekDays[4]['date']}}</span>
-                    <span class="block">{{$weekDays[4]['day']}}</span>
-               </td>
-               <td class="other-columns text-center" @if($weekDays[5]['today']) style="background-color: lightblue;"
-                    @endif>
-                    <span class="block" style="font-size: 24px;">{{$weekDays[5]['date']}}</span>
-                    <span class="block">{{$weekDays[5]['day']}}</span>
-               </td>
-               <td class="other-columns text-center" style="text-align: center;">
-                    <div class="flex">
-                         <div class="flex-1" @if($weekDays[6]['today']) style="background-color: lightblue;" @endif>
-                              <span class="block" style="font-size: 24px;">{{$weekDays[6]['date']}}</span>
-                              <span class="block">{{$weekDays[6]['day']}}</span>
-                         </div>
-                         <button wire:click="nextWeek" style="width: 10%;"><i
-                                   class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-               </td>
+        <!-- No New Demo -->
+        <div class="summary-cell">
+            <div class="circle-bg">
+                <i class="fa-solid fa-x"></i>
+            </div>
+        </div>
+        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+            <div class="summary-cell">
+                <div class="demo-avatar">
+                    @if (count($rows) < 6)
+                        @foreach ($rows as $salesperson)
+                            @if ($salesperson['newDemo'][$day] == 0)
+                                <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                            @endif
+                        @endforeach
+                    @else
+                        @php
+                            $counter = 0;
+                        @endphp
+                        @for ($i = 0; $i < count($rows); $i++)
+                            @if ($counter >= 5)
+                            @break
+                        @endif
 
-          </tr>
-     </table>
-
-     <div>
-          <div class=" w-full h-16" style="background-color: #F6F8FF"></div>
-          <table style="background-color: #F6F8FF">
-               <tr>
-                    <td class="first-column">No New Demo</td>
-                    @foreach (['mondayNewDemo', 'tuesdayNewDemo', 'wednesdayNewDemo', 'thursdayNewDemo',
-                    'fridayNewDemo', 'saturdayNewDemo', 'sundayNewDemo'] as $day)
-                    <td class="other-columns">
-                         <div class="demo-avatar">
-                              @foreach ($rows as $salesperson)
-                              @if ($salesperson[$day] == 0)
-                              <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                              @endif
-                              @endforeach
-                         </div>
-                    </td>
-                    @endforeach
-               </tr>
-               <tr>
-
-                    <td class="first-column">One New Demo</td>
-                    @foreach (['mondayNewDemo', 'tuesdayNewDemo', 'wednesdayNewDemo', 'thursdayNewDemo',
-                    'fridayNewDemo', 'saturdayNewDemo', 'sundayNewDemo'] as $day)
-                    <td class="other-columns">
-                         <div class="demo-avatar">
-                              @foreach ($rows as $salesperson)
-                              @if ($salesperson[$day] == 1)
-                              <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                              @endif
-                              @endforeach
-                         </div>
-                    </td>
-                    @endforeach
-               </tr>
-               <tr>
-                    <td class="first-column">On Leave</td>
-                    @for($day = 1; $day < 8 ; $day++)
-                    <td class="other-columns">
-                         <div class="demo-avatar">
-                              @foreach ($leaves as $leave)
-                              @if ($leave['day_of_week'] == $day)
-                              <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                              @endif
-                              @endforeach
-                         </div>
-                    </td>
+                        @if ($rows[$i]['newDemo'][$day] == 0)
+                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                            @php
+                                $counter++;
+                            @endphp
+                        @endif
                     @endfor
-               </tr>
-          </table>
-     </div>
 
-     <table style="position: relative; height: fit-content;">
-          <tr>
-               <td class="first-column" style="padding: 0; border: 0;">
-               </td>
+                    <div class="hover-container" style="position: relative">
+                        <div class="circle-bg">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </div>
+                        <div class="hover-content"
+                            style="position: absolute; background-color: grey; flex-direction: column; z-index: 10000; width: 150px;justify-content: space-between;">
+                            @foreach ($rows as $salesperson)
+                                @if ($salesperson['newDemo'][$day] == 0)
+                                    <div style="display: flex; flex-direction: row;">
+                                        <img style="width:30%" src="{{ $salesperson['salespersonAvatar'] }}"
+                                            alt="Salesperson Avatar"
+                                            data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                        <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endforeach
 
-               @if(!empty($holidays))
-               @foreach($holidays as $row)
-               <td class="other-columns" style="padding: 0;  border: 0;">
-                    <div
-                         style="border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; background-color: #C2C2C2; position: absolute; left: calc(15% + (12.143% * {{$row['day_of_week']-1}})); top: 0; height: 100%; width: 12.143%;">
-                         <div>
-                              <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$row['name']}}</div>
-                         </div>
-                    </div>
-               </td>
-               @endforeach
-               @endif
-          </tr>
-          @foreach($rows as $key=>$value)
-          <tr @if($loop->even) style="background-color: rgba(242,242,242,0.4);" @endif>
-               <td class="first-column">
-                    <div class="flex-container">
-                         <div class="image-container"><img style="border-radius: 50%;"
-                                   src="{{$value['salespersonAvatar']}}"></div>
-                         <span style="flex: 1;">{{$value['salespersonName']}}</span>
-                    </div>
-               </td>
-               <td class="other-columns" style="height: 100%;">
-                    @if(isset($value['leave'][1]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][1]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['mondayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
+    <!-- 1 New Demo -->
+    <div class="summary-cell">
+        <div class="circle-bg">
+            <i class="fa-solid fa-1"></i>
+        </div>
+    </div>
+    @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+        <div class="summary-cell">
+            <div class="demo-avatar">
+                @foreach ($rows as $salesperson)
+                    @if ($salesperson['newDemo'][$day] == 1)
+                        <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
                     @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][2]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][2]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['tuesdayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][3]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][3]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['wednesdayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][4]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][4]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['thursdayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][5]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][5]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['fridayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][6]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][6]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['saturdayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-               <td class="other-columns">
-                    @if(isset($value['leave'][7]))
-                    <div
-                         style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-                         <div style="flex:1; text-align: center;">
-                              <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                              <div style="font-size: 0.8rem;font-style: italic;">{{$value['leave'][7]['leave_type']}}</div>
-                         </div>
-                    </div>
-                    @else
-                    @foreach($value['sundayAppointments'] as $appointment)
-                    <div class="appointment-card">
-                         <div class="appointment-card-bar"></div>
-                         <div class="appointment-card-info">
-                              <span class="appointment-card-title">{{$appointment->title}}</span>
-                              <span class="appointment-card-type">{{$appointment->type}}</span>
-                              <span class="appointment-card-time">{{$appointment->start_time}} -
-                                   {{$appointment->end_time}}</span>
-                         </div>
-                    </div>
-                    @endforeach
-                    @endif
-               </td>
-          </tr>
-          @endforeach
-     </table>
+                @endforeach
+            </div>
+        </div>
+    @endforeach
 
+    <!-- 2 New Demo -->
+    <div class="summary-cell">
+        <div class="circle-bg">
+            <i class="fa-solid fa-2"></i>
+        </div>
+    </div>
+
+    @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+        <div class="summary-cell">
+            <div class="demo-avatar">
+                @foreach ($rows as $salesperson)
+                    @if ($salesperson['newDemo'][$day] == 2)
+                        <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+
+    <!-- On Leave -->
+    <div class="summary-cell">
+        <img src={{ asset('img/leave-icon-white.svg') }} alt="Description of the image" style="fill: white;">
+    </div>
+    @for ($day = 1; $day < 6; $day++)
+        <div class="summary-cell">
+            <div class="demo-avatar">
+                @foreach ($leaves as $leave)
+                    @if ($leave['day_of_week'] == $day)
+                        <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endfor
+</div>
+
+<div class="calendar-body">
+
+    <div
+        style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 100%;">
+    </div>
+
+    @if (isset($holidays['1']))
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
+        </div>
+    @endif
+    @if (isset($holidays['2']))
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
+        </div>
+    @endif
+    @if (isset($holidays['3']))
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
+        </div>
+    @endif
+    @if (isset($holidays['4']))
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
+        </div>
+    @endif
+    @if (isset($holidays['5']))
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
+        </div>
+    @endif
+
+    <!-- SalesPerson Row -->
+    @foreach ($rows as $row)
+        <div class="time">
+            <div class="flex-container">
+                <div class="image-container"><img style="border-radius: 50%;"
+                        src="{{ $row['salespersonAvatar'] }}">
+                </div>
+            </div>
+        </div>
+        <div class="day">
+            @if (isset($row['leave'][1]))
+                <div
+                    style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div style="flex:1; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                        <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][1]['leave_type'] }}
+                        </div>
+                    </div>
+                </div>
+            @else
+                {{-- END OF CUSTOM
+                @foreach ($row['mondayAppointments'] as $appointment)
+                    <div class="appointment-card">
+                        <div class="appointment-card-bar"></div>
+                        <div class="appointment-card-info">
+                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                            <div class="appointment-company-name"><a
+                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a></div>
+                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                {{ $appointment->end_time }}</div>
+                        </div>
+                    </div>
+                @endforeach --}}
+
+                {{-- CUSTOM --}}
+                <div x-data="{ expanded: false }">
+                    @if (count($row['mondayAppointments']) <= 4)
+                        @foreach ($row['mondayAppointments'] as $appointment)
+                            <div class="appointment-card">
+                                <div class="appointment-card-bar"></div>
+                                <div class="appointment-card-info">
+                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                    <div class="appointment-appointment-type">{{ $appointment->appointment_type }}
+                                    </div>
+                                    <div class="appointment-company-name"><a
+                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                    </div>
+                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                        {{ $appointment->end_time }}</div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        {{-- More than 3 cards --}}
+                        <template x-if="!expanded">
+                            <div>
+                                {{-- If higher than 3  --}}
+                                @foreach ($row['mondayAppointments'] as $appointment)
+                                    @if ($loop->index < 3)
+                                        <div class="appointment-card">
+                                            <div class="appointment-card-bar"></div>
+                                            <div class="appointment-card-info">
+                                                <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                                <div class="appointment-appointment-type">
+                                                    {{ $appointment->appointment_type }}</div>
+                                                <div class="appointment-company-name"><a
+                                                        href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                                </div>
+                                                <div class="appointment-time">{{ $appointment->start_time }} -
+                                                    {{ $appointment->end_time }}</div>
+                                            </div>
+                                        </div>
+                                    @elseif($loop->index === 3)
+                                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
+                                            @click="expanded = true">
+                                            +{{ count($cards) - 2 }} more
+                                        </div>
+                                    @endif
+                                @endforeach
+                                {{--  --}}
+
+                            </div>
+                        </template>
+
+                        <template x-if="expanded">
+                            <div>
+                                {{-- When expanded, display all cards --}}
+                                @foreach ($row['mondayAppointments'] as $appointment)
+                                    <div class="appointment-card">
+                                        <div class="appointment-card-bar"></div>
+                                        <div class="appointment-card-info">
+                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                            <div class="appointment-appointment-type">
+                                                {{ $appointment->appointment_type }}
+                                            </div>
+                                            <div class="appointment-company-name"><a
+                                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                            </div>
+                                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                                {{ $appointment->end_time }}</div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </template>
+                    @endif
+                </div>
+            @endif
+        </div>
+        <div class="day">
+            @if (isset($row['leave'][2]))
+                <div
+                    style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div style="flex:1; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                        <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][2]['leave_type'] }}
+                        </div>
+                    </div>
+                </div>
+            @else
+                @foreach ($row['tuesdayAppointments'] as $appointment)
+                    <div class="appointment-card">
+                        <div class="appointment-card-bar"></div>
+                        <div class="appointment-card-info">
+                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                            <div class="appointment-company-name"><a
+                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a></div>
+                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                {{ $appointment->end_time }}</div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+        <div class="day">
+            @if (isset($row['leave'][3]))
+                <div
+                    style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div style="flex:1; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                        <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][3]['leave_type'] }}
+                        </div>
+                    </div>
+                </div>
+            @else
+                @foreach ($row['wednesdayAppointments'] as $appointment)
+                    <div class="appointment-card">
+                        <div class="appointment-card-bar"></div>
+                        <div class="appointment-card-info">
+                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                            <div class="appointment-company-name"><a
+                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a></div>
+                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                {{ $appointment->end_time }}</div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+        <div class="day">
+            @if (isset($row['leave'][4]))
+                <div
+                    style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div style="flex:1; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                        <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][4]['leave_type'] }}
+                        </div>
+                    </div>
+                </div>
+            @else
+                @foreach ($row['thursdayAppointments'] as $appointment)
+                    <div class="appointment-card">
+                        <div class="appointment-card-bar"></div>
+                        <div class="appointment-card-info">
+                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                            <div class="appointment-company-name"><a
+                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a></div>
+                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                {{ $appointment->end_time }}</div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+        <div class="day">
+            @if (isset($row['leave'][5]))
+                <div
+                    style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                    <div style="flex:1; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                        <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][5]['leave_type'] }}
+                        </div>
+                    </div>
+                </div>
+            @else
+                {{-- @foreach ($row['fridayAppointments'] as $appointment)
+                    <div class="appointment-card">
+                        <div class="appointment-card-bar"></div>
+                        <div class="appointment-card-info">
+                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                            <div class="appointment-company-name"><a
+                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a></div>
+                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                {{ $appointment->end_time }}</div>
+                        </div>
+                    </div>
+                @endforeach --}}
+                {{-- CUSTOM --}}
+                <div x-data="{ expanded: false }">
+                    @if (count($row['fridayAppointments']) <= 4)
+                        @foreach ($row['fridayAppointments'] as $appointment)
+                            <div class="appointment-card">
+                                <div class="appointment-card-bar"></div>
+                                <div class="appointment-card-info">
+                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                    <div class="appointment-appointment-type">{{ $appointment->appointment_type }}
+                                    </div>
+                                    <div class="appointment-company-name"><a
+                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                    </div>
+                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                        {{ $appointment->end_time }}</div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        {{-- More than 3 cards --}}
+                        <template x-if="!expanded">
+                            <div>
+                                {{-- If higher than 3  --}}
+                                @foreach ($row['fridayAppointments'] as $appointment)
+                                    @if ($loop->index < 3)
+                                        <div class="appointment-card">
+                                            <div class="appointment-card-bar"></div>
+                                            <div class="appointment-card-info">
+                                                <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                                <div class="appointment-appointment-type">
+                                                    {{ $appointment->appointment_type }}</div>
+                                                <div class="appointment-company-name"><a
+                                                        href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                                </div>
+                                                <div class="appointment-time">{{ $appointment->start_time }} -
+                                                    {{ $appointment->end_time }}</div>
+                                            </div>
+                                        </div>
+                                    @elseif($loop->index === 3)
+                                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
+                                            @click="expanded = true">
+                                            +{{ count($row['fridayAppointments']) - 3 }} more
+                                        </div>
+                                    @endif
+                                @endforeach
+                                {{--  --}}
+
+                            </div>
+                        </template>
+
+                        <template x-if="expanded">
+                            <div>
+                                {{-- When expanded, display all cards --}}
+                                @foreach ($row['fridayAppointments'] as $appointment)
+                                    <div class="appointment-card">
+                                        <div class="appointment-card-bar"></div>
+                                        <div class="appointment-card-info">
+                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                            <div class="appointment-appointment-type">
+                                                {{ $appointment->appointment_type }}
+                                            </div>
+                                            <div class="appointment-company-name"><a
+                                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                            </div>
+                                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                                {{ $appointment->end_time }}</div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
+                                    @click="expanded = false">
+                                    Hide
+                                </div>
+                            </div>
+                        </template>
+                    @endif
+                </div>
+            @endif
+        </div>
+    @endforeach
+</div>
+
+<!-- Global tooltip container -->
+<div x-show="showTooltip" :style="tooltipStyle"
+    class="tooltip fixed pointer-events-none text-white text-sm px-2 py-1 rounded">
+    <span x-text="tooltip"></span>
+</div>
+
+<script>
+    function tooltipHandler() {
+        return {
+            tooltip: '', // Holds the text to show
+            showTooltip: false, // Controls tooltip visibility
+            tooltipX: 0, // X position for the tooltip
+            tooltipY: 0, // Y position for the tooltip
+
+            // Called when the mouse enters an image
+            show(event) {
+                this.tooltip = event.target.dataset.tooltip;
+                this.showTooltip = true;
+                this.updatePosition(event);
+            },
+
+            // Update tooltip position on mouse move
+            updatePosition(event) {
+                // Position the tooltip near the cursor. Adjust offsets as needed.
+                this.tooltipX = event.clientX;
+                this.tooltipY = event.clientY - 10; // Slightly above the cursor
+            },
+
+            // Hide the tooltip when mouse leaves
+            hide() {
+                this.showTooltip = false;
+            },
+
+            // Compute the inline style for the tooltip (positioned relative to the viewport)
+            get tooltipStyle() {
+                return `left: ${this.tooltipX}px; top: ${this.tooltipY}px; transform: translate(-50%, -100%); background-color:black; z-index: 10000`;
+            }
+        };
+    }
+</script>
 
 </div>

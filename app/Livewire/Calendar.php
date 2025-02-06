@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Classes\Encryptor;
 use App\Models\Appointment;
 use App\Models\PublicHoliday;
 use App\Models\User;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Http;
 use Livewire\Component;
 use PDO;
 use App\Services\LeaveAPIService;
+use Illuminate\Support\Arr;
 
 class Calendar extends Component
 {
@@ -29,6 +31,8 @@ class Calendar extends Component
     public $leaves;
     public $monthList;
     public $currentMonth;
+    public $newDemo;
+
 
     public function mount()
     {
@@ -49,6 +53,7 @@ class Calendar extends Component
             $day = $startOfWeek->copy()->addDays($i);
             $weekDays[$i]["day"] = $startOfWeek->copy()->addDays($i)->format('D');  // Format as Fri,Sat,Mon
             $weekDays[$i]["date"] = $startOfWeek->copy()->addDays($i)->format('j');  // Format as Date
+            $weekDays[$i]['carbonDate'] =$startOfWeek->copy()->addDays($i);
             if ($day->isToday()) {
                 $weekDays[$i]["today"] = true; // Set to true if today's date is found
             } else
@@ -72,12 +77,20 @@ class Calendar extends Component
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->get();
 
+        $this->newDemo = [
+            "monday"=>[],
+            "tuesday"=>[],
+            "wednesday"=>[],
+            "thursday"=>[],
+            "friday"=>[],
+        ];
+
         $result = $this->salesPeople->map(function ($salesperson) use ($appointments) {
             // Initialize fields for each day of the week
             $data = [
                 'salespersonID' => $salesperson['id'],
                 'salespersonName' => $salesperson['name'],
-                'salespersonAvatar' => "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $salesperson['name'], "background" => "random"]),
+                'salespersonAvatar' => !empty($salesperson['avatar_path']) ? $salesperson['avatar_path']: "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $salesperson['name'], "background" => "random"]),
                 'mondayAppointments' => [],
                 'tuesdayAppointments' => [],
                 'wednesdayAppointments' => [],
@@ -85,17 +98,17 @@ class Calendar extends Component
                 'fridayAppointments' => [],
                 'saturdayAppointments' => [],
                 'sundayAppointments' => [],
-                'mondayNewDemo' => 0,
-                'tuesdayNewDemo' => 0,
-                'wednesdayNewDemo' => 0,
-                'thursdayNewDemo' => 0,
-                'fridayNewDemo' => 0,
-                'saturdayNewDemo' => 0,
-                'sundayNewDemo' => 0,
-                'leave' => UserLeave::getUserLeavesByDateRange($salesperson['id'],$this->startDate,$this->endDate),
+                'newDemo'=>[
+                    'monday'=>0,
+                    'tuesday'=>0,
+                    'wednesday'=>0,
+                    'thursday'=>0,
+                    'friday'=>0,
+                    'saturday'=>0,
+                    'sunday'=>0,
+                ],
+                'leave' => UserLeave::getUserLeavesByDateRange($salesperson['id'], $this->startDate, $this->endDate),
             ];
-
-
 
             // Filter appointments for the current salesperson
             $salespersonAppointments = $appointments->where('salesperson', $salesperson['id']);
@@ -105,10 +118,13 @@ class Calendar extends Component
                 $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
                 $dayField = "{$dayOfWeek}Appointments";
                 $data[$dayField][] = $appointment;
+                $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
+                $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
+                $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
 
-                if ($appointment->type === "New Demo" || $appointment->type === "New Private Demo" || $appointment->type === "New Webinar Demo") {
-                    $dayFieldNewDemo = "{$dayOfWeek}NewDemo";
-                    $data[$dayFieldNewDemo]++;
+                // For new demo summary which shows no,1,2 new demo
+                if ($appointment->type === "NEW DEMO" || $appointment->type === "New Private Demo" || $appointment->type === "New Webinar Demo") {
+                    $data['newDemo'][$dayOfWeek]++;
                 }
             }
             return $data;
@@ -129,7 +145,7 @@ class Calendar extends Component
     public function getAllSalesPeople()
     {
         $this->salesPeople = User::where('role_id', '2')
-            ->select('id', 'name','api_user_id')
+            ->select('id', 'name', 'api_user_id','avatar_path')
             ->get();
     }
 
@@ -138,11 +154,13 @@ class Calendar extends Component
         $this->date = Carbon::create(null, $this->selectedMonth, 1)->startOfMonth();
     }
 
-    public function setSelectedMonthToCurrentMonth(){
+    public function setSelectedMonthToCurrentMonth()
+    {
         $this->selectedMonth = $this->date->month;
     }
 
-    public function getAllMonthForCurrentYear(){
+    public function getAllMonthForCurrentYear()
+    {
         $nextYearSuffix = "'" . Carbon::now()->format('y');
 
         $months = [];
@@ -160,12 +178,16 @@ class Calendar extends Component
     public function render()
     {
 
+        
         $this->getAllMonthForCurrentYear();
         $this->weekDays = $this->getWeekDateDays($this->date);
+        // foreach($this->weekDays as $day){
+        //     $this->getNewDemo($day['carbonDate']);
+        // }
         $this->rows = $this->getWeeklyAppointments($this->date);
         // $this->getSalesPersonNoNewDemo($this->rows);
-        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate,$this->endDate);
-        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate,$this->endDate);
+        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
+        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate);
         $this->setSelectedMonthToCurrentMonth();
         return view('livewire.calendar');
     }

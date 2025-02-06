@@ -18,6 +18,13 @@ class PublicHoliday extends Model
     ];
 
     public static function getPublicHoliday($startDate,$endDate){
-        return self::whereBetween('date',[$startDate,$endDate])->get();
+        return self::whereBetween('date',[$startDate,$endDate])->get()->mapWithKeys(function ($holiday) {
+            return [
+                $holiday->day_of_week => [
+                    'name' => $holiday->name,
+                    'date' => $holiday->date,
+                ]
+            ];
+        })->toArray();
     }
 }
