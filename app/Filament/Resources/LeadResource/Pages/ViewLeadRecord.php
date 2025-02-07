@@ -71,26 +71,26 @@ class ViewLeadRecord extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('whatsappMe')
-                ->label(__('WhatsApp to Lead'))
-                ->color('success')
-                ->size(ActionSize::Large)
-                ->button()
-                ->icon('heroicon-o-chat-bubble-oval-left-ellipsis')
-                ->url(function () {
-                    $lead = $this->record;
-                    // $userName = auth()->user()->name; // Get current user's name
-                    $whatsappNumber = $lead->phone; // Ensure the user model has this field
+            // Action::make('whatsappMe')
+            //     ->label(__('WhatsApp to Lead'))
+            //     ->color('success')
+            //     ->size(ActionSize::Large)
+            //     ->button()
+            //     ->icon('heroicon-o-chat-bubble-oval-left-ellipsis')
+            //     ->url(function () {
+            //         $lead = $this->record;
+            //         // $userName = auth()->user()->name; // Get current user's name
+            //         $whatsappNumber = $lead->phone; // Ensure the user model has this field
 
-                    // Prepare WhatsApp message content
-                    // $message = "Hi, {$userName} here";
+            //         // Prepare WhatsApp message content
+            //         // $message = "Hi, {$userName} here";
 
-                    // // Encode the message for URL
-                    // $encodedMessage = urlencode($message);
+            //         // // Encode the message for URL
+            //         // $encodedMessage = urlencode($message);
 
-                    // Generate WhatsApp URL
-                    return "https://wa.me/{$whatsappNumber}";
-                }, true),
+            //         // Generate WhatsApp URL
+            //         return "https://wa.me/{$whatsappNumber}";
+            //     }, true),
             Action::make('updateLeadOwner')
                 ->label(__('Assign to Me'))
                 ->form([
@@ -99,6 +99,7 @@ class ViewLeadRecord extends ViewRecord
                 ])
                 ->size(ActionSize::Large)
                 ->button()
+                ->color('success')
                 ->icon('heroicon-o-pencil-square')
                 ->visible(function () {
                     return is_null($this->record->lead_owner);

@@ -21,8 +21,8 @@ class DemoNotification extends Mailable
     {
         return $this->view($this->viewName) // Use the selected template dynamically
                     ->subject(
-                        $this->content['lead']['salespersonName'] . " | " .
-                        strtoupper($this->content['lead']['demo_type']) . " | TIMETEC HR | " .
+                        strtoupper($this->content['lead']['demo_type']) . " | " .
+                        strtoupper($this->content['lead']['appointment_type']) . " | TIMETEC HR | " .
                         $this->content['lead']['company']
                     )
                     ->with([

@@ -198,7 +198,7 @@
                         <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Company Name</th>
                         <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Description</th>
                         <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Remarks</th>
-                        <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Pending Time</th>
+                        <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Pending Days</th>
                         <th class="px-2 py-2 font-semibold text-left text-gray-700 border-b">Actions</th>
                     </tr>
                 </thead>

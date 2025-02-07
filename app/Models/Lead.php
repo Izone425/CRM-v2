@@ -38,6 +38,9 @@ class Lead extends Model
         'follow_up_counter',
         'follow_up_count',
         'rfq_followup_at',
+        'rfq_transfer_at',
+        'call_attempt',
+        'done_call',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -66,6 +69,8 @@ class Lead extends Model
                 'follow_up_count',
                 'demo_follow_up_count',
                 'rfq_followup_at',
+                'call_attempt',
+                'done_call',
             ]);
     }
 
@@ -205,7 +210,9 @@ class Lead extends Model
     // Accessor for formatted products
     public function getFormattedProductsAttribute()
     {
-        return collect(json_decode($this->products, true))
+        $products = is_string($this->products) ? json_decode($this->products, true) : $this->products;
+
+        return collect($products)
             ->map(fn($product) => self::$productMapping[$product] ?? ucwords(str_replace('_', ' ', $product)))
             ->join(', ');
     }

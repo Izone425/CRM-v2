@@ -49,6 +49,11 @@ class QuotationResource extends Resource
 
     public $lead;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '1';
+    }
+
     public function mount($lead_id): void
     {
         try {

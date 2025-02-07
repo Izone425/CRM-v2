@@ -129,118 +129,121 @@ class LeadResource extends Resource
                                             ]),
                                         ])
                                         ->columnSpan(2),
-                                        Forms\Components\Section::make('Sales In-Charge')
-                                            ->extraAttributes([
-                                                'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
-                                            ])
-                                            ->icon('heroicon-o-user')
+                                        Forms\Components\Grid::make(1)
                                             ->schema([
-                                                Forms\Components\Grid::make(1) // Single column in the right-side section
+                                                Forms\Components\Section::make('Sales In-Charge')
+                                                    ->extraAttributes([
+                                                        'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                                    ])
+                                                    ->icon('heroicon-o-user')
                                                     ->schema([
-                                                        Forms\Components\Placeholder::make('lead Owner')
-                                                            ->label('Lead Owner')
-                                                            ->content(fn ($record) =>  $record->lead_owner ?? 'No Lead Owner'),
-                                                        Forms\Components\Placeholder::make('salesperson')
-                                                            ->label('Salesperson')
-                                                            ->content(function ($record) {
-                                                                $salespersonId = $record->salesperson; // Get the salesperson ID
-                                                                $user = \App\Models\User::find($salespersonId); // Find the User by ID
-                                                                return $user->name ?? 'No Salesperson'; // Return the name or fallback to 'No Salesperson'
-                                                            }),
-                                                        Actions::make([
-                                                            Actions\Action::make('edit_sales_in_charge')
-                                                                ->label('Edit')
-                                                                ->visible(function ($record) {
-                                                                    return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner)
-                                                                    || auth()->user()?->role_id === 3);
-                                                                })
-                                                                ->form(array_merge(
-                                                                    auth()->user()->role_id !== 1
-                                                                        ? [
-                                                                            Grid::make()
-                                                                                ->schema([
-                                                                                    Forms\Components\Select::make('position')
-                                                                                        ->label('Lead Owner Role')
-                                                                                        ->options([
-                                                                                            'sale_admin' => 'Sales Admin',
-                                                                                        ]),
-                                                                                    Forms\Components\Select::make('lead_owner')
-                                                                                        ->label('Lead Owner')
-                                                                                        ->options(
-                                                                                            \App\Models\User::where('role_id', 1)
-                                                                                                ->pluck('name', 'id')
-                                                                                        )
-                                                                                        ->searchable(),
-                                                                                ])->columns(2),
-                                                                        ]
-                                                                        : [],
-                                                                    [
-                                                                        Forms\Components\Select::make('salesperson')
-                                                                            ->label('Salesperson')
-                                                                            ->options(
-                                                                                \App\Models\User::where('role_id', 2)
-                                                                                    ->pluck('name', 'id')
-                                                                            )
-                                                                            ->required()
-                                                                            ->searchable(),
-                                                                    ]
-                                                                ))
-                                                                ->action(function ($record, $data) {
-                                                                    if (!empty($data['salesperson'])) {
-                                                                        $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
-                                                                        $record->update(['salesperson' => $data['salesperson']]);
-                                                                    }
+                                                        Forms\Components\Grid::make(1) // Single column in the right-side section
+                                                            ->schema([
+                                                                Forms\Components\Placeholder::make('lead Owner')
+                                                                    ->label('Lead Owner')
+                                                                    ->content(fn ($record) =>  $record->lead_owner ?? 'No Lead Owner'),
+                                                                Forms\Components\Placeholder::make('salesperson')
+                                                                    ->label('Salesperson')
+                                                                    ->content(function ($record) {
+                                                                        $salespersonId = $record->salesperson; // Get the salesperson ID
+                                                                        $user = \App\Models\User::find($salespersonId); // Find the User by ID
+                                                                        return $user->name ?? 'No Salesperson'; // Return the name or fallback to 'No Salesperson'
+                                                                    }),
+                                                                Actions::make([
+                                                                    Actions\Action::make('edit_sales_in_charge')
+                                                                        ->label('Edit')
+                                                                        ->visible(function ($record) {
+                                                                            return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner)
+                                                                            || auth()->user()?->role_id === 3);
+                                                                        })
+                                                                        ->form(array_merge(
+                                                                            auth()->user()->role_id !== 1
+                                                                                ? [
+                                                                                    Grid::make()
+                                                                                        ->schema([
+                                                                                            Forms\Components\Select::make('position')
+                                                                                                ->label('Lead Owner Role')
+                                                                                                ->options([
+                                                                                                    'sale_admin' => 'Sales Admin',
+                                                                                                ]),
+                                                                                            Forms\Components\Select::make('lead_owner')
+                                                                                                ->label('Lead Owner')
+                                                                                                ->options(
+                                                                                                    \App\Models\User::where('role_id', 1)
+                                                                                                        ->pluck('name', 'id')
+                                                                                                )
+                                                                                                ->searchable(),
+                                                                                        ])->columns(2),
+                                                                                ]
+                                                                                : [],
+                                                                            [
+                                                                                Forms\Components\Select::make('salesperson')
+                                                                                    ->label('Salesperson')
+                                                                                    ->options(
+                                                                                        \App\Models\User::where('role_id', 2)
+                                                                                            ->pluck('name', 'id')
+                                                                                    )
+                                                                                    ->required()
+                                                                                    ->searchable(),
+                                                                            ]
+                                                                        ))
+                                                                        ->action(function ($record, $data) {
+                                                                            if (!empty($data['salesperson'])) {
+                                                                                $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+                                                                                $record->update(['salesperson' => $data['salesperson']]);
+                                                                            }
 
-                                                                    // Check and update lead_owner if it's not null
-                                                                    if (!empty($data['lead_owner'])) {
-                                                                        $leadOwnerName = \App\Models\User::find($data['lead_owner'])?->name ?? 'Unknown Lead Owner';
-                                                                        $record->update(['lead_owner' => $leadOwnerName]);
-                                                                    }
+                                                                            // Check and update lead_owner if it's not null
+                                                                            if (!empty($data['lead_owner'])) {
+                                                                                $leadOwnerName = \App\Models\User::find($data['lead_owner'])?->name ?? 'Unknown Lead Owner';
+                                                                                $record->update(['lead_owner' => $leadOwnerName]);
+                                                                            }
 
-                                                                    $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
-                                                                        ->orderByDesc('created_at')
-                                                                        ->take(2)
-                                                                        ->get();
+                                                                            $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
+                                                                                ->orderByDesc('created_at')
+                                                                                ->take(2)
+                                                                                ->get();
 
-                                                                    // Check if at least two logs exist
-                                                                    if (auth()->user()->role_id == 3) {
-                                                                        $causer_id = auth()->user()->id;
-                                                                        $causer_name = \App\Models\User::find($causer_id)->name;
-                                                                        $latestActivityLogs[0]->update([
-                                                                            'description' => 'Lead Owner updated by '. $causer_name . ": " . $leadOwnerName,
-                                                                        ]);
+                                                                            // Check if at least two logs exist
+                                                                            if (auth()->user()->role_id == 3) {
+                                                                                $causer_id = auth()->user()->id;
+                                                                                $causer_name = \App\Models\User::find($causer_id)->name;
+                                                                                $latestActivityLogs[0]->update([
+                                                                                    'description' => 'Lead Owner updated by '. $causer_name . ": " . $leadOwnerName,
+                                                                                ]);
 
-                                                                        // Update the second activity log
-                                                                        $latestActivityLogs[1]->update([
-                                                                            'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
-                                                                        ]);
-                                                                    }else{
-                                                                        $causer_id = auth()->user()->id;
-                                                                        $causer_name = \App\Models\User::find($causer_id)->name;
-                                                                        // $latestActivityLogs[0]->delete();
-                                                                        $latestActivityLogs[0]->update([
-                                                                            'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
-                                                                        ]);
-                                                                    }
-                                                                    // Log the activity for auditing
-                                                                    activity()
-                                                                        ->causedBy(auth()->user())
-                                                                        ->performedOn($record);
+                                                                                // Update the second activity log
+                                                                                $latestActivityLogs[1]->update([
+                                                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                                                ]);
+                                                                            }else{
+                                                                                $causer_id = auth()->user()->id;
+                                                                                $causer_name = \App\Models\User::find($causer_id)->name;
+                                                                                // $latestActivityLogs[0]->delete();
+                                                                                $latestActivityLogs[0]->update([
+                                                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                                                ]);
+                                                                            }
+                                                                            // Log the activity for auditing
+                                                                            activity()
+                                                                                ->causedBy(auth()->user())
+                                                                                ->performedOn($record);
 
-                                                                    Notification::make()
-                                                                    ->title('Sales In-Charge Edited Successfully')
-                                                                    ->success()
-                                                                    ->send();
-                                                                })
-                                                                ->modalHeading('Edit Sales In-Charge')
-                                                                ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff
-                                                                                    to take action on the current and future follow-ups only.')
-                                                                ->modalSubmitActionLabel('Save Changes'),
-                                                        ]),
-                                                    ]),
-                                            ])
-                                            ->columnSpan(1), // Right side spans 1 column
-                                    ]),
+                                                                            Notification::make()
+                                                                            ->title('Sales In-Charge Edited Successfully')
+                                                                            ->success()
+                                                                            ->send();
+                                                                        })
+                                                                        ->modalHeading('Edit Sales In-Charge')
+                                                                        ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff
+                                                                                            to take action on the current and future follow-ups only.')
+                                                                        ->modalSubmitActionLabel('Save Changes'),
+                                                                ]),
+                                                            ]),
+                                                    ])
+                                                    ->columnSpan(1), // Right side spans 1 column
+                                            ])->columnSpan(1),
+                                ]),
                             ]),
                             Forms\Components\Tabs\Tab::make('Company')->schema([
                                 Forms\Components\Grid::make(3) // A three-column grid for overall layout
@@ -1243,8 +1246,6 @@ class LeadResource extends Resource
                         ->color('warning')
                         ->size(ActionSize::Small)
                         ->button()
-                        ->modalHeading(__('Reset Lead'))
-                        ->modalSubmitActionLabel(__('Reset'))
                         ->visible(fn (Lead $record) => !is_null($record->lead_owner) && in_array(auth()->id(), [12, 11, 4, 5]))
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
@@ -1261,6 +1262,8 @@ class LeadResource extends Resource
                                 'follow_up_counter' => 0,
                                 'follow_up_needed' => 0,
                                 'follow_up_count' => 0,
+                                'call_attempt' => 0,
+                                'done_call' => 0
                             ]);
 
                             // Delete all related data
