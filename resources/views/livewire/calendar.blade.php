@@ -265,13 +265,14 @@
 
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
-                            <i class="fa-solid fa-ellipsis"></i>
+                            <i class="fa-solid fa-plus"></i>
                         </div>
                         <div class="hover-content"
                             style="position: absolute; background-color: grey; flex-direction: column; z-index: 10000; width: 150px;justify-content: space-between;">
                             @foreach ($rows as $salesperson)
                                 @if ($salesperson['newDemo'][$day] == 0)
                                     <div style="display: flex; flex-direction: row;">
+                                    {{-- Image for popup --}}
                                         <img style="width:30%" src="{{ $salesperson['salespersonAvatar'] }}"
                                             alt="Salesperson Avatar"
                                             data-tooltip="{{ $salesperson['salespersonName'] }}"
@@ -299,7 +300,10 @@
             <div class="demo-avatar">
                 @foreach ($rows as $salesperson)
                     @if ($salesperson['newDemo'][$day] == 1)
-                        <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                        <img src="{{ $salesperson['salespersonAvatar'] }}" 
+                        data-tooltip="{{$salesperson['salespersonName']}}"
+                        @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()"
+                        alt="Salesperson Avatar" />
                     @endif
                 @endforeach
             </div>
@@ -345,7 +349,7 @@
 <div class="calendar-body">
 
     <div
-        style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 100%;">
+        style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;">
     </div>
 
     @if (isset($holidays['1']))
@@ -388,8 +392,11 @@
     @foreach ($rows as $row)
         <div class="time">
             <div class="flex-container">
-                <div class="image-container"><img style="border-radius: 50%;"
-                        src="{{ $row['salespersonAvatar'] }}">
+                <div class="image-container">
+                <img style="border-radius: 50%;"
+                        src="{{ $row['salespersonAvatar'] }}"
+                        data-tooltip="{{$row['salespersonName']}}"
+                        @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()">
                 </div>
             </div>
         </div>

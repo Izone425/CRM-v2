@@ -5,6 +5,8 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\ProformaInvoices;
+use App\Filament\Pages\RankingForm;
+use App\Filament\Pages\RankingFormPage;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProductResource;
@@ -63,7 +65,8 @@ class AdminPanelProvider extends PanelProvider
                 // Pages\Dashboard::class,
                 Calendar::class,
                 DashboardForm::class,
-                ProformaInvoices::class
+                ProformaInvoices::class,
+                RankingFormPage::class
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
