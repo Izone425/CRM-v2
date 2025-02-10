@@ -31,6 +31,11 @@ class ProductResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '1';
+    }
+
     public static function form(Form $form): Form
     {
         return $form

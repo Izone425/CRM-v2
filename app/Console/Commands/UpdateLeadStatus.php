@@ -10,35 +10,51 @@ use Carbon\Carbon;
 class UpdateLeadStatus extends Command
 {
     protected $signature = 'leads:update-status';
-    protected $description = 'Update leads from demo-assigned to RFQ-Follow Up after midnight';
+    protected $description = 'Update leads from demo-assigned to RFQ-Follow Up the day after the appointment date at midnight';
 
     public function handle()
     {
-        info('Demo-Assigned status update to RFQ-Follow Up command in everyday 12am executed at ' . now());
+        info('Demo-Assigned status update to RFQ-Follow Up command executed at ' . now());
 
-        // Fetch leads with status 'demo-assigned' that need to be updated
+        // Fetch leads with status 'Demo-Assigned' and stage 'Demo' where today is the day after the appointment date
         $leads = Lead::where('lead_status', 'Demo-Assigned')
-                     ->where('stage', 'Demo')
-                    //  ->where('updated_at', '<', Carbon::now()->startOfDay()) // Only process leads not updated today
-                     ->get();
+            ->where('stage', 'New')
+            ->whereHas('demoAppointment', function ($query) {
+                $query->whereDate('date', Carbon::yesterday()); // Check if the appointment date is yesterday
+            })
+            ->get();
 
         foreach ($leads as $lead) {
+            // Update the lead's status and stage
             $lead->update([
                 'lead_status' => 'RFQ-Follow Up',
                 'stage' => 'Follow Up',
             ]);
+
+            // Fetch the latest activity log for the lead
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                 ->orderByDesc('created_at')
                 ->first();
 
-            if ($latestActivityLog && $latestActivityLog->description) {
+            // Update or create a new activity log
+            if ($latestActivityLog) {
                 $latestActivityLog->update([
-                    'description' => 'Demo-Assigned auto change to RFQ-Follow Up'
+                    'description' => 'Demo-Assigned auto changed to RFQ-Follow Up after appointment date',
                 ]);
-                activity()
-                    ->causedBy(auth()->user())
-                    ->performedOn($lead);
+            } else {
+                ActivityLog::create([
+                    'description' => 'Demo-Assigned auto changed to RFQ-Follow Up after appointment date',
+                    'subject_id' => $lead->id,
+                    'causer_id' => null, // No specific user
+                ]);
             }
+
+            activity()
+                ->causedBy(null) // No specific user caused this
+                ->performedOn($lead)
+                ->log('Demo-Assigned auto changed to RFQ-Follow Up');
         }
+
+        info('Status update completed for ' . $leads->count() . ' leads.');
     }
 }

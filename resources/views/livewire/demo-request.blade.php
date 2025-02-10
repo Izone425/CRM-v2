@@ -4,6 +4,11 @@
     {{-- <link href="{{ asset('demoRequest.css') }}" rel="stylesheet" id="bootstrap-css"> --}}
     <div class="row justify-content-center">
         <div class="col-md-9" style="width: 520px;">
+                @if (session()->has('message'))
+                    <div class="alert alert-success">
+                        {{ session('message') }}
+                    </div>
+                @endif
             <div class="card" style='width: 500px;'>
                 <div class="card-body">
                     <form wire:submit.prevent="submit">
@@ -11,7 +16,7 @@
 
                         <div class="mb-3 form-group">
                             <label for="name" class="form-label" style="font-weight:bold">Name <span class="text-danger">*</span></label>
-                            <input type="text" id="name" name="name" class="form-control" wire:model.defer="name" required>
+                            <input type="text" id="name" name="name" class="form-control" wire:model.defer="name" required style="text-transform: uppercase;">
                             @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
@@ -23,14 +28,14 @@
 
                         <div class="mb-3 form-group">
                             <label for="phone" class="form-label" style="font-weight:bold">Phone <span class="text-danger">*</span></label><br>
-                            <input class="form-control" style='width: 465px;' id="phone" type="tel" name="phone"/>
+                            <input class="form-control" style='width: 465px;' id="phone" type="tel" name="phone" wire:model.defer="phoneNumber"/>
                             <div id="error-msg" style="color: red;"></div>
                                 @error('phone') <span style="color: red; font-size: 0.875rem; font-weight: bold;">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="mb-3 form-group">
                             <label for="company_name" class="form-label" style="font-weight:bold">Company Name <span class="text-danger">*</span></label>
-                            <input type="text" id="company_name" name="company_name" class="form-control" wire:model.defer="company_name" required>
+                            <input type="text" id="company_name" name="company_name" class="form-control" wire:model.defer="company_name" required style="text-transform: uppercase;">
                             @error('company_name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 

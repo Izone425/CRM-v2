@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->enum('department', ['HR Solutions', 'Sales', 'IT', 'Support'])->nullable();
+            $table->string('position');
             $table->string('password');
             $table->unsignedBigInteger('role_id')->nullable();
             $table->rememberToken()->nullable();

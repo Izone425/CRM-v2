@@ -25,7 +25,7 @@ class SalespersonNotification extends Mailable
     {
         return $this->from($this->fromEmail, $this->fromName) // Set the sender email and name here dynamically
                     ->view($this->viewName) // Use the selected template dynamically
-                    ->subject("New HR Lead Assigned | TimeTec ")
+                    ->subject("NEW LEADS | RFQ | " . $this->content['lead']['company'])
                     ->with([
                         'lead' => $this->content['lead'],
                         'salespersonName' => $this->content['salespersonName'],
