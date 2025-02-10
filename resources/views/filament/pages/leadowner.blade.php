@@ -1,5 +1,5 @@
 <!-- Pending Section -->
-<div class="p-4 bg-white rounded-lg shadow" >
+{{-- <div class="p-4 bg-white rounded-lg shadow" >
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">New Leads</h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getPendingLeadsQuery()->count() }})</span>
@@ -52,7 +52,7 @@
                                target="_blank"
                                class="inline-block"
                                style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>
@@ -182,7 +182,6 @@
                                 <span>{{ $sortDirectionPendingTasks === 'asc' ? '▲' : '▼' }}</span>
                             @endif
                         </th>
-
                         <th class="px-2 py-2 font-semibold text-center text-gray-700 border-b cursor-pointer"
                             wire:click="sortBy('pending_days', 'pendingTasks')">
                             Pending<br> Days
@@ -200,19 +199,20 @@
                                target="_blank"
                                class="inline-block"
                                style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>
                         <td class="px-1 py-1 text-center">{{ \Carbon\Carbon::parse($lead->created_at)->format('d M Y g:iA') }}</td>
-                        <td class="px-1 py-1 text-center" style="color: red">
+                        <td class="px-1 py-1 text-center"
+                            style="color: {{ ($lead->created_at->diffInDays(now()) == 0) ? 'black' : 'red' }}">
+
                             @if ($lead->updated_at && $lead->created_at)
-                                {{ $lead->created_at->diffInDays($lead->updated_at) }} days
+                                {{ $lead->created_at->diffInDays(now()) }} days
                             @else
                                 N/A
                             @endif
                         </td>
-
                         <td class="px-1 py-1 text-center">
                             <x-filament::button>
                                 <a href="{{ url('admin/leads/' . \App\Classes\Encryptor::encrypt($lead->id)) }}"
@@ -283,7 +283,7 @@
                                target="_blank"
                                class="inline-block"
                                style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>
@@ -361,10 +361,12 @@
                     <tr class="border-b" style="height:43px;">
                         <td class="px-1 py-1 font-medium">
                             <a href="{{ url('admin/leads/' . \App\Classes\Encryptor::encrypt($lead->id)) }}"
-                            target="_blank"
-                            class="inline-block"
-                            style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               target="_blank"
+                               class="inline-block"
+                               style="color:#338cf0;">
+
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
+
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>
@@ -392,9 +394,28 @@
             <p class="text-center text-gray-500">No data available.</p>
         </div>
     @endif
-</div>
+</div> --}}
 
-<!-- Active (1-24) Section -->
+<style>
+    .fi-ta-ctn .py-4 {
+        padding-top: .5rem !important;
+        padding-bottom: .5rem !important;
+    }
+</style>
+
+<livewire:new-lead-table />
+<livewire:pending-lead-table />
+<livewire:prospect-reminder-today-table />
+<livewire:prospect-reminder-overdue-table />
+<livewire:active-small-comp-table />
+<livewire:active-big-comp-table />
+<livewire:call-attempt-small-comp-table />
+<livewire:call-attempt-big-comp-table />
+<livewire:salesperson-small-comp-table />
+<livewire:salesperson-big-comp-table />
+<livewire:inactive-small-comp-table />
+<livewire:inactive-big-comp-table />
+{{-- <!-- Active (1-24) Section -->
 @include('filament.pages.smallCompany.active')
 
 <!-- Active (25 above) Section -->
@@ -416,4 +437,4 @@
 @include('filament.pages.smallCompany.inactive')
 
 <!-- In-Active (25 Above) Section -->
-@include('filament.pages.largeCompany.inactive')
+@include('filament.pages.largeCompany.inactive') --}}

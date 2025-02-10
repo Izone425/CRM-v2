@@ -4,7 +4,7 @@
     <title>New Lead Assigned</title>
 </head>
 <body>
-    <p>Dear {{ $salespersonName->name }}, <br> This is an automated email.</p>
+    <p>Dear {{ $salespersonName }}, <br> This is an automated email.</p>
     <p>{{ $leadOwnerName }} has assigned the following lead to you. Please follow up on the leads below:</p>
 
     <ul>

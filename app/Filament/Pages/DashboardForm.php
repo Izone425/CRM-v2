@@ -10,6 +10,8 @@ use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
 use App\Enums\QuotationStatusEnum;
+use App\Filament\Resources\LeadResource\Widgets\NewLeadTable;
+use App\Filament\Resources\LeadResource\Widgets\PendingLeadTable;
 use App\Mail\DemoNotification;
 use App\Mail\FollowUpNotification;
 use App\Mail\SalespersonNotification;
@@ -45,6 +47,7 @@ use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\Layout\View;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Widgets\Concerns\InteractsWithPageTable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -59,6 +62,8 @@ use Microsoft\Graph\Model as MicrosoftGraph;
 use Microsoft\Graph\Model\Event;
 class DashboardForm extends Page
 {
+    use InteractsWithPageTable;
+
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationLabel = 'Dashboard';
     protected static ?string $title = 'Dashboard';
@@ -111,6 +116,10 @@ class DashboardForm extends Page
     public function mount()
     {
         $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
+
+        if (request()->has('page') && request()->get('page') != 1) {
+            return redirect()->to(url()->current() . '?page=1');
+        }
     }
 
     public function sortBy($column, $table)

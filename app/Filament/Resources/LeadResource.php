@@ -1299,13 +1299,14 @@ class LeadResource extends Resource
                         $query->where('salesperson', $userId)
                               ->orWhere('categories', 'Inactive');
                     });
-                } elseif ($roleId === 1) {
-                    // Salespeople (role_id = 2) can see only their records or those without a lead owner
-                    $query->where(function ($query) use ($userName) {
-                        $query->where('lead_owner', $userName)
-                              ->orWhereNull('lead_owner');
-                    });
                 }
+                // elseif ($roleId === 1) {
+                //     // Salespeople (role_id = 2) can see only their records or those without a lead owner
+                //     $query->where(function ($query) use ($userName) {
+                //         $query->where('lead_owner', $userName)
+                //               ->orWhereNull('lead_owner');
+                //     });
+                // }
             });
 
     }
@@ -1339,10 +1340,10 @@ class LeadResource extends Resource
             });
         } elseif ($roleId === 1) {
             // Role 1: Filter by lead owner or null lead owner
-            $query->where(function ($query) use ($userName) {
-                $query->where('lead_owner', $userName)
-                      ->orWhereNull('lead_owner');
-            });
+            // $query->where(function ($query) use ($userName) {
+            //     $query->where('lead_owner', $userName)
+            //           ->orWhereNull('lead_owner');
+            // });
         }
 
         // Return the count based on the modified query

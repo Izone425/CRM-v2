@@ -88,10 +88,12 @@
                     <tr class="border-b" style="height:43px;">
                         <td class="px-1 py-1 font-medium">
                             <a href="{{ url('admin/leads/' . \App\Classes\Encryptor::encrypt($lead->id)) }}"
-                            target="_blank"
-                            class="inline-block"
-                            style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               target="_blank"
+                               class="inline-block"
+                               style="color:#338cf0;">
+
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
+
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>

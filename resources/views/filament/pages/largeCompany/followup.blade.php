@@ -7,13 +7,13 @@
                     <form wire:submit.prevent="resetBigCompanyDoneCall">
                         <x-filament::modal width="2xl">
                             <x-slot name="trigger">
-                                <x-filament::button
+                                {{-- <x-filament::button
                                     type="button"
                                     x-on:click="isOpen = true; leadId = {{ $lead->id }}"
                                     class="text-white rounded-lg hover:bg-blue-600"
                                     style="background-color: #ff0800; white-space: nowrap;">
                                     Reset Done Call
-                                </x-filament::button>
+                                </x-filament::button> --}}
                             </x-slot>
 
                             <x-slot name="heading">
@@ -88,10 +88,12 @@
                     <tr class="border-b" style="height:43px;">
                         <td class="px-1 py-1 font-medium">
                             <a href="{{ url('admin/leads/' . \App\Classes\Encryptor::encrypt($lead->id)) }}"
-                            target="_blank"
-                            class="inline-block"
-                            style="color:#338cf0;">
-                                {{ strtoupper($lead->companyDetail->company_name ?? 'N/A') }}
+                               target="_blank"
+                               class="inline-block"
+                               style="color:#338cf0;">
+
+                               {{ strtoupper(\Illuminate\Support\Str::limit($lead->companyDetail->company_name ?? 'N/A', 10, '...')) }}
+
                             </a>
                         </td>
                         <td class="px-1 py-1">{{ $lead->getCompanySizeLabelAttribute() }}</td>

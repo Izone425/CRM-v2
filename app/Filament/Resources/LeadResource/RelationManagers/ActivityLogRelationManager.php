@@ -881,26 +881,6 @@ class ActivityLogRelationManager extends RelationManager
                             }
                         }),
                     Tables\Actions\Action::make('addFollowUp')
-                        ->visible(function (ActivityLog $record) {
-                            $lead = $record->lead;
-
-                            // Get the latest activity log for the given lead
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            if ($latestActivityLog) {
-                                // Check if the latest activity log description needs updating
-                                if ($latestActivityLog->description == '4th Lead Owner Follow Up (Auto Follow Up Stop)'|| $latestActivityLog->description == '4th Salesperson Transfer Follow Up'
-                                    || $latestActivityLog->description == 'Order Uploaded. Pending Approval to close lead.'
-                                    || $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' || $latestActivityLog->description == '4th Quotation Transfer Follow Up'
-                                    || ((str_contains($latestActivityLog->description, 'Quotation Sent.') && $lead->lead_status !== 'Pending Demo') || str_contains($latestActivityLog->description, 'Quotation Transfer Follow Up'))
-                                    || $lead->categories == 'Inactive' || $lead->lead_status == 'Demo-Assigned' || $lead->lead_status == 'RFQ-Follow Up' || $lead->lead_status == 'RFQ-Transfer') {
-                                    return false; // Show button
-                                }
-                            }
-                            return true; // Default: Hide button
-                        })
                         ->label(__('Add Follow Up'))
                         ->form([
                             Forms\Components\Placeholder::make('')
@@ -947,34 +927,26 @@ class ActivityLogRelationManager extends RelationManager
                             if($lead->lead_status === 'New' || $lead->lead_status === 'Under Review'){
 
                                 $lead->update([
-                                    'lead_status' => 'Under Review',
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
-                                    'follow_up_needed' => 0,
-                                    'call_attempt' => $lead->call_attempt + 1,
-                                    'done_call' => 1
+                                    'follow_up_count' => $lead->follow_up_count + 1,
                                 ]);
 
-                                // Fetch the number of previous follow-ups for this lead
-                                $followUpCount = ActivityLog::where('subject_id', $lead->id)
-                                    ->whereJsonContains('properties->attributes->lead_status', 'Under Review') // Filter by lead_status in properties
-                                    ->count();
-
                                 // Increment the follow-up count for the new description
-                                $followUpDescription = ($followUpCount) . 'st Lead Owner Follow Up';
+                                $followUpDescription = ($lead->follow_up_count) . 'st Lead Owner Follow Up';
                                 $viewName = 'emails.email_blasting_1st';
                                 $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
 
-                                if ($followUpCount == 2) {
+                                if ($lead->follow_up_count == 2) {
                                     $followUpDescription = '2nd Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_2nd';
                                     $contentTemplateSid = 'HX72acd0ab4ffec49493288f9c0b53a17a';
-                                } elseif ($followUpCount == 3) {
+                                } elseif ($lead->follow_up_count == 3) {
                                     $followUpDescription = '3rd Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_3rd';
                                     $contentTemplateSid = 'HX9ed8a4589f03d9563e94d47c529aaa0a';
-                                } elseif ($followUpCount >= 4) {
-                                    $followUpDescription = $followUpCount . 'th Lead Owner Follow Up';
+                                } elseif ($lead->follow_up_count >= 4) {
+                                    $followUpDescription = $lead->follow_up_count . 'th Lead Owner Follow Up';
                                     $viewName = 'emails.email_blasting_4th';
                                     $contentTemplateSid = 'HXa18012edd80d072d54b60b93765dd3af';
                                 }
@@ -1036,12 +1008,9 @@ class ActivityLogRelationManager extends RelationManager
                             }else if($lead->lead_status === 'Transfer' || $lead->lead_status === 'Pending Demo'){
 
                                 $lead->update([
-                                    'lead_status' => 'Pending Demo',
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
-                                    'follow_up_needed' => $data['follow_up_needed'] ?? false,
-                                    'call_attempt' => $lead->call_attempt + 1,
-                                    'done_call' => 1
+                                    'demo_follow_up_count' => $lead->demo_follow_up_count + 1,
                                 ]);
 
                                 // Fetch the number of previous follow-ups for this lead
