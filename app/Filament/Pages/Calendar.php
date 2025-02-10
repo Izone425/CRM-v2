@@ -23,7 +23,8 @@ class Calendar extends Page
     public array $demoAppointmentTypeOptions = [];
     public array $demoTypeOptions = [];
     public bool $allSelected = false;
-
+    public bool $allDemoAppointmentTypeSelected = false;
+    
     public function mount(): void
     {
         // Populate salesperson options
@@ -34,9 +35,7 @@ class Calendar extends Page
         $this->allSelected = true;
 
         // Populate demo appointment types
-        $this->demoAppointmentTypeOptions = Appointment::distinct('appointment_type')
-            ->pluck('appointment_type', 'appointment_type')
-            ->toArray();
+        $this->demoAppointmentTypeOptions = ['ONLINE','ONSITE'];
 
         // Populate demo types
         $this->demoTypeOptions = Appointment::distinct('type')
