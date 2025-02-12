@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
+use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -19,42 +20,55 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Livewire\Attributes\On;
 
-class ActiveBigCompTable extends Component implements HasForms, HasTable
+class DemoTmrTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public function getActiveBigCompanyLeads()
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
     {
-        return Lead::query()
-            ->where('company_size', '!=', '1-24') // Exclude small companies
-            ->whereNull('salesperson') // Salesperson must be NULL
-            ->whereNotNull('lead_owner')
-            ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-            ->where(function ($query) {
-                $query->whereNull('done_call') // Include NULL values
-                    ->orWhere('done_call', 0); // Include 0 values
-            })
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
+        info("Received selected user ID in DemoTodayTable: " . $selectedUser); // Debugging
+
+        $this->selectedUser = $selectedUser;
+        session(['selectedUser' => $selectedUser]); // Store for consistency
+
+        $this->resetTable(); // Refresh the table
+    }
+
+    public function getTomorrowDemos()
+    {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+
+        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
+
+        return Appointment::whereDate('date', today()->addDay()) // Filter by today's date in Appointment
+            ->whereHas('lead', function ($query) use ($salespersonId) { // Ensure Lead exists
+                $query->where('salesperson', $salespersonId) // Salesperson check from Lead
+                    ->where('status', 'new'); // Status check from Lead
+            });
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('5s')
-            ->query($this->getActiveBigCompanyLeads())
+            ->query($this->getTomorrowDemos())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
-                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
+                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->lead->id)) . '"
                             target="_blank"
                             class="inline-block"
                             style="color:#338cf0;">
@@ -62,8 +76,8 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
-                TextColumn::make('company_size_label')
-                    ->label('Company Size')
+                TextColumn::make('type')
+                    ->label('Demo Type')
                     ->sortable(query: function ($query, $direction) {
                         return $query->orderByRaw("
                             CASE
@@ -75,25 +89,25 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                TextColumn::make('call_attempt')
-                    ->label('Call Attempt')
-                    ->sortable(),
-                TextColumn::make('pending_time')
-                    ->label('Pending Days')
+                TextColumn::make('start_time')
+                    ->label('Time')
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                    ->formatStateUsing(fn ($record) =>
+                        Carbon::parse($record->date)->format('d M Y') . ', ' . // Format date
+                        Carbon::parse($record->start_time)->format('h:i A') .
+                        ' - ' .
+                        Carbon::parse($record->end_time)->format('h:i A')
+                ),
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getAddDemoAction(),
-                    LeadActions::getAddRFQ(),
-                    LeadActions::getAddFollowUp(),
-                    LeadActions::getAddAutomation(),
-                    LeadActions::getArchiveAction(),
-                    LeadActions::getViewAction(),
-                    LeadActions::getViewRemark(),
-                    LeadActions::getTransferCallAttempt(),
+                    // LeadActions::getAddDemoAction(),
+                    // LeadActions::getAddRFQ(),
+                    // LeadActions::getAddFollowUp(),
+                    // LeadActions::getAddAutomation(),
+                    // LeadActions::getArchiveAction(),
+                    LeadActions::getDemoViewAction(),
+                    // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
                 ->color('primary'),
@@ -102,6 +116,6 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.active-big-comp-table');
+        return view('livewire.salesperson_dashboard.demo-tmr-table');
     }
 }

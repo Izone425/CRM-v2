@@ -79,7 +79,12 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
                     ->color(fn ($record) => $record->created_at->diffInDays($record->updated_at) == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
-                LeadActions::getLeadDetailAction(),
+                ActionGroup::make([
+                    LeadActions::getLeadDetailAction(),
+                    LeadActions::getViewAction(),
+                ])
+                ->button()
+                ->color('warning'),
             ]);
     }
 

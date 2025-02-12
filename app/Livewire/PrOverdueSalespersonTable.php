@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
+use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -19,28 +20,41 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Livewire\Attributes\On;
 
-class InactiveBigCompTable extends Component implements HasForms, HasTable
+class PROverdueSalespersonTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public function getInactiveBigCompanyLeads()
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
     {
+        $this->selectedUser = $selectedUser;
+        session(['selectedUser' => $selectedUser]); // Store for consistency
+
+        $this->resetTable(); // Refresh the table
+    }
+
+    public function getOverdueProspects()
+    {
+        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
+
         return Lead::query()
-            ->where('categories', 'Inactive') // Only Inactive leads
-            ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
-            ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
+            ->where('salesperson', $salespersonId) // Filter by salesperson
+            ->whereDate('follow_up_date', '<', today());
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('5s')
-            ->query($this->getInactiveBigCompanyLeads())
+            ->query($this->getOverdueProspects())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            // ->heading(fn () => 'Inactive (25 Above) - ' . $this->getInactiveBigCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
@@ -56,32 +70,22 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
-                TextColumn::make('company_size_label')
-                    ->label('Company Size')
-                    ->sortable(query: function ($query, $direction) {
-                        return $query->orderByRaw("
-                            CASE
-                                WHEN company_size = '1-24' THEN 1
-                                WHEN company_size = '25-99' THEN 2
-                                WHEN company_size = '100-500' THEN 3
-                                WHEN company_size = '501 and Above' THEN 4
-                                ELSE 5
-                            END $direction
-                        ");
-                    }),
-                TextColumn::make('lead_status')
-                    ->label('Status')
-                    ->sortable(),
-                TextColumn::make('pending_days')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays($record->updated_at) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays($record->updated_at) == 0 ? 'draft' : 'danger'),
+                TextColumn::make('activityLogs.description')
+                    ->label('Latest Activity')
+                    ->wrap()
+                    ->formatStateUsing(fn ($record) => $record->activityLogs->first()?->description ?? 'No activity'),
+                TextColumn::make('remark')
+                    ->label('Remark'),
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getLeadDetailAction(),
-                    LeadActions::getViewAction(),
+                    // LeadActions::getAddDemoAction(),
+                    // LeadActions::getAddRFQ(),
+                    // LeadActions::getAddFollowUp(),
+                    // LeadActions::getAddAutomation(),
+                    // LeadActions::getArchiveAction(),
+                    LeadActions::getDemoViewAction(),
+                    // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
                 ->color('primary'),
@@ -90,6 +94,6 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.inactive-big-comp-table');
+        return view('livewire.salesperson_dashboard.pr-overdue-salesperson-table');
     }
 }

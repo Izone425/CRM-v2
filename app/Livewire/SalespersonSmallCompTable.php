@@ -87,7 +87,6 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
                     LeadActions::getAddAutomation(),
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
-                    LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
                 ->color('warning'),

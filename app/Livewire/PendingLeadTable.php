@@ -29,12 +29,22 @@ class PendingLeadTable extends Component implements HasForms, HasTable
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
     {
-        $this->selectedUser = $selectedUser;
+        if ($selectedUser) {
+            $this->selectedUser = $selectedUser;
+            session(['selectedUser' => $selectedUser]); // Store selected user
+        } else {
+            // Reset to "Your Own Dashboard" (value = 7)
+            $this->selectedUser = 7;
+            session(['selectedUser' => 7]);
+        }
+
         $this->resetTable(); // Refresh the table
     }
 
     public function getNewLeadsQuery()
     {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
+        info($this->selectedUser);
         $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
             ? User::find($this->selectedUser)->name
             : auth()->user()->name;
@@ -82,11 +92,12 @@ class PendingLeadTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                TextColumn::make('created_at')
-                    ->label('Created Time')
-                    ->sortable()
-                    ->dateTime('d M Y, h:i A')
-                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
+                // TextColumn::make('created_at')
+                //     ->label('Created Time')
+                //     ->wrap()
+                //     ->sortable()
+                //     ->dateTime('d M Y, h:i A')
+                //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()
