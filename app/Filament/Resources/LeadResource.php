@@ -925,6 +925,7 @@ class LeadResource extends Resource
                 // Filter for Lead Owner
                 SelectFilter::make('lead_owner')
                     ->label('')
+                    ->multiple()
                     ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
                     ->placeholder('Select Lead Owner')
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo', 'follow_up'])),
@@ -932,6 +933,7 @@ class LeadResource extends Resource
                 // Filter for Salesperson
                 SelectFilter::make('salesperson')
                     ->label('')
+                    ->multiple()
                     ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
                     ->placeholder('Select Salesperson'),
 
@@ -968,6 +970,7 @@ class LeadResource extends Resource
                 // Filter for Categories
                 SelectFilter::make('categories')
                     ->label('')
+                    ->multiple()
                     ->options(
                         collect(LeadCategoriesEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
                     )
@@ -977,6 +980,7 @@ class LeadResource extends Resource
                 // Filter for Stage
                 SelectFilter::make('stage')
                     ->label('')
+                    ->multiple()
                     ->options(
                         collect(LeadStageEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
                     )
@@ -986,6 +990,7 @@ class LeadResource extends Resource
                 // Filter for Lead Status
                 SelectFilter::make('lead_status')
                     ->label('')
+                    ->multiple()
                     ->options(
                         collect(LeadStatusEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
                     )
@@ -1033,21 +1038,18 @@ class LeadResource extends Resource
                             : null;
                     }),
 
-                Filter::make('company_size_label')
+                SelectFilter::make('company_size_label') // Use the correct filter key
                     ->label('')
-                    ->form([
-                        Forms\Components\Select::make('company_size_label')
-                            ->label('')
-                            ->placeholder('Select Company Size')
-                            ->options([
-                                'Small' => 'Small',
-                                'Medium' => 'Medium',
-                                'Large' => 'Large',
-                                'Enterprise' => 'Enterprise',
-                            ]),
+                    ->options([
+                        'Small' => 'Small',
+                        'Medium' => 'Medium',
+                        'Large' => 'Large',
+                        'Enterprise' => 'Enterprise',
                     ])
+                    ->multiple() // Enables multi-selection
+                    ->placeholder('Select Company Size')
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['company_size_label'])) {
+                        if (!empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
                                 'Medium' => '25-99',
@@ -1055,18 +1057,19 @@ class LeadResource extends Resource
                                 'Enterprise' => '501 and Above',
                             ];
 
-                            $dbValue = $sizeMap[$data['company_size_label']] ?? null;
+                            // Convert selected sizes to DB values
+                            $dbValues = collect($data['values'])->map(fn ($size) => $sizeMap[$size] ?? null)->filter();
 
-                            if ($dbValue) {
-                                $query->whereHas('companyDetail', function ($query) use ($dbValue) {
-                                    $query->where('company_size', $dbValue);
+                            if ($dbValues->isNotEmpty()) {
+                                $query->whereHas('companyDetail', function ($query) use ($dbValues) {
+                                    $query->whereIn('company_size', $dbValues);
                                 });
                             }
                         }
                     })
                     ->indicateUsing(function (array $data) {
-                        return isset($data['company_size_label'])
-                            ? 'Company Size: ' . $data['company_size_label']
+                        return !empty($data['values'])
+                            ? 'Company Size: ' . implode(', ', $data['values'])
                             : null;
                     }),
             ], layout: FiltersLayout::AboveContent)

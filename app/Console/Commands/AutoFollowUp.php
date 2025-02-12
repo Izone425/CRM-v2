@@ -124,44 +124,45 @@ class AutoFollowUp extends Command
                     // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
                     // return $response;
-                } else {
-                    // Handle case where lead is canceled
-                    $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
-                        ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled')
-                        ->count();
-
-                    $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
-                    if ($cancelfollowUpCount == 2) {
-                        $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
-                    } elseif ($cancelfollowUpCount == 3) {
-                        $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
-                    } elseif ($cancelfollowUpCount >= 4) {
-                        $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
-                    }
-
-                    $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                        ->orderByDesc('created_at')
-                        ->first();
-
-                    if ($latestActivityLog && $lead->follow_up_count >= 4) {
-                        $latestActivityLog->update([
-                            'description' => 'Demo Cancelled. ' . $cancelfollowUpCount . 'th Demo Cancelled Follow Up (Auto Follow Up Stop)',
-                        ]);
-                        $lead->updateQuietly([
-                            'follow_up_needed' => false,
-                            'follow_up_count' => 1,
-                        ]);
-                    } else if ($latestActivityLog) {
-                        $latestActivityLog->update([
-                            'description' => 'Demo Cancelled. ' . $cancelFollowUpDescription,
-                        ]);
-                    } else {
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($lead)
-                            ->withProperties(['description' => $cancelFollowUpDescription]);
-                    }
                 }
+                // else {
+                //     // Handle case where lead is canceled
+                //     $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                //         ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled')
+                //         ->count();
+
+                //     $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
+                //     if ($cancelfollowUpCount == 2) {
+                //         $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
+                //     } elseif ($cancelfollowUpCount == 3) {
+                //         $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
+                //     } elseif ($cancelfollowUpCount >= 4) {
+                //         $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
+                //     }
+
+                //     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                //         ->orderByDesc('created_at')
+                //         ->first();
+
+                //     if ($latestActivityLog && $lead->follow_up_count >= 4) {
+                //         $latestActivityLog->update([
+                //             'description' => 'Demo Cancelled. ' . $cancelfollowUpCount . 'th Demo Cancelled Follow Up (Auto Follow Up Stop)',
+                //         ]);
+                //         $lead->updateQuietly([
+                //             'follow_up_needed' => false,
+                //             'follow_up_count' => 1,
+                //         ]);
+                //     } else if ($latestActivityLog) {
+                //         $latestActivityLog->update([
+                //             'description' => 'Demo Cancelled. ' . $cancelFollowUpDescription,
+                //         ]);
+                //     } else {
+                //         activity()
+                //             ->causedBy(auth()->user())
+                //             ->performedOn($lead)
+                //             ->withProperties(['description' => $cancelFollowUpDescription]);
+                //     }
+                // }
             }
         });
     }

@@ -31,27 +31,7 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
             ->whereNotNull('salesperson') // Ensure salesperson is NOT NULL
             ->where('company_size', '=', '1-24') // Only small companies (1-24)
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time') // Calculate Pending Time
-            // ->when($this->sortColumnActiveSmallCompanyLeadsWithSalesperson === 'pending_time', function ($query) {
-            //     return $query->orderBy('pending_time', $this->sortDirectionActiveSmallCompanyLeadsWithSalesperson);
-            // })
-            // ->when($this->sortColumnActiveSmallCompanyLeadsWithSalesperson === 'salesperson', function ($query) {
-            //     return $query->orderBy('salesperson', $this->sortDirectionActiveSmallCompanyLeadsWithSalesperson);
-            // })
-            // ->when($this->sortColumnActiveSmallCompanyLeadsWithSalesperson === 'company_size', function ($query) {
-            //     return $query->orderByRaw("
-            //         CASE
-            //             WHEN company_size = '1-24' THEN 1
-            //             WHEN company_size = '25-99' THEN 2
-            //             WHEN company_size = '100-500' THEN 3
-            //             WHEN company_size = '501 and above' THEN 4
-            //             ELSE 5
-            //         END " . $this->sortDirectionActiveSmallCompanyLeadsWithSalesperson);
-            // })
-            // ->when($this->sortColumnActiveSmallCompanyLeadsWithSalesperson === 'stage', function ($query) {
-            //     return $query->orderBy('stage', $this->sortDirectionActiveSmallCompanyLeadsWithSalesperson);
-            // });
-            ->orderBy('created_at', 'desc'); // Default sorting by latest created leads
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time'); // Default sorting by latest created leads
     }
 
     public function table(Table $table): Table
@@ -59,13 +39,15 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
         return $table
             ->poll('5s')
             ->query($this->getActiveSmallCompanyLeadsWithSalesperson())
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->heading(fn () => 'SalesPerson (1-24) - ' . $this->getActiveSmallCompanyLeadsWithSalesperson()->count() . ' Records') // Display count
+            // ->heading(fn () => 'SalesPerson (1-24) - ' . $this->getActiveSmallCompanyLeadsWithSalesperson()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
+                    ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
                         '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
                             target="_blank"
@@ -75,12 +57,25 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
+                TextColumn::make('company_size_label')
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('stage')
-                    ->label('Company Stage'),
-                TextColumn::make('call_attempt')
-                    ->label('Call Attempt'),
+                    ->label('Stage')
+                    ->sortable(),
                 TextColumn::make('pending_time')
                     ->label('Pending Days')
+                    ->sortable()
                     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
                     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])

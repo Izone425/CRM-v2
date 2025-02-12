@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
+use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -20,41 +21,38 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 
-class ActiveBigCompTable extends Component implements HasForms, HasTable
+class DemoTodayTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public function getActiveBigCompanyLeads()
+    public function getTodayDemos()
     {
-        return Lead::query()
-            ->where('company_size', '!=', '1-24') // Exclude small companies
-            ->whereNull('salesperson') // Salesperson must be NULL
-            ->whereNotNull('lead_owner')
-            ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-            ->where(function ($query) {
-                $query->whereNull('done_call') // Include NULL values
-                    ->orWhere('done_call', 0); // Include 0 values
-            })
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
+        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
+
+        return Appointment::whereDate('date', today()) // Filter by today's date in Appointment
+            ->whereHas('lead', function ($query) use ($salespersonId) { // Ensure Lead exists
+                $query->where('salesperson', $salespersonId) // Salesperson check from Lead
+                    ->where('status', 'new'); // Status check from Lead
+            });
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('5s')
-            ->query($this->getActiveBigCompanyLeads())
+            ->query($this->getTodayDemos())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
-                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
+                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->lead->id)) . '"
                             target="_blank"
                             class="inline-block"
                             style="color:#338cf0;">
@@ -62,8 +60,8 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
-                TextColumn::make('company_size_label')
-                    ->label('Company Size')
+                TextColumn::make('type')
+                    ->label('Demo Type')
                     ->sortable(query: function ($query, $direction) {
                         return $query->orderByRaw("
                             CASE
@@ -75,9 +73,15 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                TextColumn::make('call_attempt')
-                    ->label('Call Attempt')
-                    ->sortable(),
+                TextColumn::make('start_time')
+                    ->label('Time')
+                    ->sortable()
+                    ->formatStateUsing(fn ($record) =>
+                        Carbon::parse($record->date)->format('d M Y') . ' | ' . // Format date
+                        Carbon::parse($record->start_time)->format('h:i A') .
+                        ' - ' .
+                        Carbon::parse($record->end_time)->format('h:i A')
+                ),
                 TextColumn::make('pending_time')
                     ->label('Pending Days')
                     ->sortable()
@@ -86,13 +90,13 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getAddDemoAction(),
-                    LeadActions::getAddRFQ(),
-                    LeadActions::getAddFollowUp(),
-                    LeadActions::getAddAutomation(),
-                    LeadActions::getArchiveAction(),
-                    LeadActions::getViewAction(),
-                    LeadActions::getTransferCallAttempt(),
+                    // LeadActions::getAddDemoAction(),
+                    // LeadActions::getAddRFQ(),
+                    // LeadActions::getAddFollowUp(),
+                    // LeadActions::getAddAutomation(),
+                    // LeadActions::getArchiveAction(),
+                    // LeadActions::getViewAction(),
+                    // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
                 ->color('primary'),
@@ -101,6 +105,6 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.active-big-comp-table');
+        return view('livewire.demo-today-table');
     }
 }
