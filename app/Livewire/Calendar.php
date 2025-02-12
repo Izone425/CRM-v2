@@ -288,7 +288,7 @@ class Calendar extends Component
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
         $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate);
         // $this->setSelectedMonthToCurrentMonth(); //Not used
-        $this->currentMonth = $this->date->format('F y');
+        $this->currentMonth = $this->date->startOfWeek()->format('F y');
         return view('livewire.calendar');
     }
 }
