@@ -17,7 +17,7 @@
     <p>Best regards,</p>
     <p>
         {{ $leadOwnerName }}<br>
-        {{ $lead['department'] ?? 'Department Not Specified' }}<br>
+        {{ $lead['position'] ?? 'Position Not Specified' }}<br>
         TimeTec Cloud Sdn Bhd<br>
         Office: +603-8070 9933<br>
         WhatsApp: {{ $lead['leadOwnerMobileNumber'] ?? 'N/A' }}

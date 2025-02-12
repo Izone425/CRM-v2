@@ -19,7 +19,7 @@ class AutoFollowUp extends Command
 
     public function handle()
     {
-        info('Follow-up auto command in every Tuesday 10am executed at ' . now());
+        // info('Follow-up auto command in every Tuesday 10am executed at ' . now());
 
         // Begin a database transaction to ensure atomicity
         DB::transaction(function () {
@@ -32,29 +32,27 @@ class AutoFollowUp extends Command
                 // Increment follow-up count and set the next follow-up date
                 $lead->update([
                     'follow_up_count' => $lead->follow_up_count + 1,
-                    'follow_up_date' => now()->addWeek(1),
+                    'follow_up_date' => now()->next('Tuesday'),
                 ]);
 
                 if ($lead->lead_status === 'New' || $lead->lead_status === 'Under Review') {
                     // Count the follow-ups for 'Under Review' status
-                    $followUpCount = ActivityLog::where('subject_id', $lead->id)
-                        ->whereJsonContains('properties->attributes->lead_status', 'Under Review')
-                        ->count();
+                    $followUpCount = $lead->follow_up_count;
                     $viewName = 'emails.email_blasting_1st';
                     $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
 
                     // Define the follow-up description based on the count
-                    $followUpDescription = ($followUpCount) . 'st Lead Owner Follow Up (Auto Follow Up Started)';
+                    $followUpDescription = ($followUpCount) . 'st Automation Follow Up';
                     if ($followUpCount == 2) {
                         $viewName = 'emails.email_blasting_2nd';
-                        $followUpDescription = '2nd Lead Owner Follow Up';
+                        $followUpDescription = '2nd Automation Follow Up';
                         $contentTemplateSid = 'HX72acd0ab4ffec49493288f9c0b53a17a';
                     } elseif ($followUpCount == 3) {
-                        $followUpDescription = '3rd Lead Owner Follow Up';
+                        $followUpDescription = '3rd Automation Follow Up';
                         $viewName = 'emails.email_blasting_3rd';
                         $contentTemplateSid = 'HX9ed8a4589f03d9563e94d47c529aaa0a';
                     } elseif ($followUpCount >= 4) {
-                        $followUpDescription = $followUpCount . 'th Lead Owner Follow Up';
+                        $followUpDescription = 'Final Automation Follow Up';
                         $viewName = 'emails.email_blasting_4th';
                         $contentTemplateSid = 'HXa18012edd80d072d54b60b93765dd3af';
                     }
@@ -67,12 +65,15 @@ class AutoFollowUp extends Command
                     // Stop follow-ups if the counter reaches 4
                     if ($latestActivityLog && $lead->follow_up_count >= 4) {
                         $latestActivityLog->update([
-                            'description' => '4th Lead Owner Follow Up (Auto Follow Up Stop)',
+                            'description' => 'Final Automation Follow Up',
                             'causer_id' => 0
                         ]);
                         $lead->updateQuietly([
                             'follow_up_needed' => false,
                             'follow_up_count' => 1,
+                            'categories' => 'Inactive',
+                            'stage' => null,
+                            'lead_status' => 'No Response'
                         ]);
                     } else if ($latestActivityLog) {
                         $latestActivityLog
@@ -100,14 +101,15 @@ class AutoFollowUp extends Command
                                 'email' => $lead->email ?? 'N/A', // Lead's Email
                                 'country' => $lead->country ?? 'N/A', // Lead's Country
                                 'products' => $lead->products ?? 'N/A', // Products
-                                'department' => $leadowner->department ?? 'N/A', // department
+                                'position' => $leadowner->position ?? 'N/A', // position
                                 'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                                 'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                 // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                             ],
                         ];
 
-                        Mail::mailer('secondary')->to($lead->email)
+                        Mail::mailer('secondary')
+                            ->to($lead->companyDetail->email ?? $lead->email)
                             ->send(new FollowUpNotification($emailContent, $viewName));
                     } catch (\Exception $e) {
                         // Handle email sending failure
@@ -118,10 +120,10 @@ class AutoFollowUp extends Command
                     $variables = [$lead->name, $lead->lead_owner];
                     // $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
 
-                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                    // $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                    // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                    return $response;
+                    // return $response;
                 } else {
                     // Handle case where lead is canceled
                     $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)

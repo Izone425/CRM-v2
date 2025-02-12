@@ -8,6 +8,7 @@ use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
 use App\Filament\Resources\DashboardResource;
+use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
@@ -59,6 +60,7 @@ class AdminPanelProvider extends PanelProvider
                 LeadResource::class,
                 ProductResource::class,
                 QuotationResource::class,
+                DemoResource::class
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

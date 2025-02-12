@@ -66,6 +66,8 @@ Route::get('/quotation-v2/{quotation?}', GenerateQuotationPdfController::class)-
 Route::get('/proforma-invoice/{quotation?}', ProformaInvoiceController::class)->name('pdf.print-proforma-invoice');
 Route::get('/proforma-invoice-v2/{quotation?}', GenerateProformaInvoicePdfController::class)->name('pdf.print-proforma-invoice-v2');
 
+Route::post('/webhook/whatsapp', [WhatsAppController::class, 'receiveMessage']);
+
 // Route::get('/demo-request', DemoRequest::class)->name('demo-request');
 
 // Route::get('/send-whatsapp', [WhatsAppController::class, 'sendWhatsAppMessage']);

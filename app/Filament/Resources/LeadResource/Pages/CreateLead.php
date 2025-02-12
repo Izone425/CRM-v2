@@ -93,7 +93,7 @@ class CreateLead extends CreateRecord
         return [
             // Define fields relevant for creating a lead
             TextInput::make('name')
-                ->label('Lead Name')
+                ->label('Company Name')
                 ->required(),
             TextInput::make('email')
                 ->label('Work Email')

@@ -1,0 +1,80 @@
+/* Table styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-header {
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    background-color: #f3f4f6;
+    font-weight: bold;
+    color: #374151;
+}
+
+/* Background Colors */
+.bg-orange {
+    background-color: #ffa500 !important;
+}
+
+.bg-gray {
+    background-color: #f3f4f6 !important;
+}
+
+/* Buttons */
+.filament-button {
+    color: white !important;
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+
+.filament-button:hover {
+    background-color: #e69500 !important;
+}
+
+/* Links */
+.link-blue {
+    color: #338cf0 !important;
+    text-decoration: none;
+}
+
+.link-blue:hover {
+    text-decoration: underline;
+}
+
+/* Modal */
+.modal-container {
+    display: inline-flex;
+    gap: 3rem;
+}
+
+.modal-button {
+    border-radius: 20px;
+    padding: 10px 20px;
+    border: none;
+    color: white;
+}
+
+.modal-button.close {
+    background-color: #6c757d;
+}
+
+.modal-button.confirm {
+    background-color: #28a745;
+}
+
+/* Text Colors */
+.text-red {
+    color: red !important;
+}
+
+.text-gray {
+    color: #6b7280 !important;
+}
+
+/* Utility */
+.max-height-263 {
+    max-height: 263px;
+    overflow-y: auto;
+}

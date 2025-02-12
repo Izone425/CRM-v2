@@ -11,7 +11,7 @@
 
                         <div class="mb-3 form-group">
                             <label for="referral_name" class="form-label" style="font-weight:bold">Referral Name <span class="text-danger">*</span></label>
-                            <input type="text" id="referral_name" name="referral_name" class="form-control" wire:model.defer="referral_name" required>
+                            <input type="text" id="referral_name" name="referral_name" class="form-control" wire:model.defer="referral_name" required style="text-transform: uppercase;">
                             @error('referral_name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
@@ -30,13 +30,13 @@
 
                         <div class="mb-3 form-group">
                             <label for="referral_company_name" class="form-label" style="font-weight:bold">Referral Company Name <span class="text-danger">*</span></label>
-                            <input type="text" id="referral_company_name" name="referral_company_name" class="form-control" wire:model.defer="referral_company_name" required>
+                            <input type="text" id="referral_company_name" name="referral_company_name" class="form-control" wire:model.defer="referral_company_name" required style="text-transform: uppercase;">
                             @error('referral_company_name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="mb-3 form-group">
                             <label for="referral_remark" class="form-label" style="font-weight:bold">Remark <span class="text-danger">*</span></label>
-                            <input type="text" id="referral_remark" name="referral_remark" class="form-control" wire:model.defer="referral_remark" required>
+                            <input type="text" id="referral_remark" name="referral_remark" class="form-control" wire:model.defer="referral_remark" required style="text-transform: uppercase;">
                             @error('referral_remark') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
@@ -45,7 +45,7 @@
 
                         <div class="mb-3 form-group">
                             <label for="name" class="form-label" style="font-weight:bold">Name <span class="text-danger">*</span></label>
-                            <input type="text" id="name" name="name" class="form-control" wire:model.defer="name" required>
+                            <input type="text" id="name" name="name" class="form-control" wire:model.defer="name" required style="text-transform: uppercase;">
                             @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
@@ -64,7 +64,7 @@
 
                         <div class="mb-3 form-group">
                             <label for="company_name" class="form-label" style="font-weight:bold">Company Name <span class="text-danger">*</span></label>
-                            <input type="text" id="company_name" name="company_name" class="form-control" wire:model.defer="company_name" required>
+                            <input type="text" id="company_name" name="company_name" class="form-control" wire:model.defer="company_name" required style="text-transform: uppercase;">
                             @error('company_name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
