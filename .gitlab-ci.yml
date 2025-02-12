@@ -6,11 +6,11 @@ deploy:
   before_script:
     - mkdir -p ~/.ssh
     - eval $(ssh-agent -s)
-    - ssh-keyscan 192.168.1.250 >> ~/.ssh/known_hosts
+    - ssh-keyscan 192.168.1.246 >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   script:
      # Connect to the server and deploy
-    - ssh crm@192.168.1.250 "cd /var/www/html/timetec-crm && git pull"
+    - ssh crm@192.168.1.246 "cd /var/www/html/timetec-crm && git pull"
   only:
     - master
