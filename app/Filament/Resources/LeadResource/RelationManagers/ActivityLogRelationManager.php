@@ -924,7 +924,7 @@ class ActivityLogRelationManager extends RelationManager
 
                             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
-                            if($lead->lead_status === 'New' || $lead->lead_status === 'Under Review'){
+                            // if($lead->lead_status === 'New' || $lead->lead_status === 'Under Review'){
 
                                 $lead->update([
                                     'follow_up_date' => $followUpDate,
@@ -1005,136 +1005,138 @@ class ActivityLogRelationManager extends RelationManager
                                     // Handle email sending failure
                                     Log::error("Error: {$e->getMessage()}");
                                 }
-                            }else if($lead->lead_status === 'Transfer' || $lead->lead_status === 'Pending Demo'){
+                            // }
+                            // else if($lead->lead_status === 'Transfer' || $lead->lead_status === 'Pending Demo'){
 
-                                $lead->update([
-                                    'follow_up_date' => $followUpDate,
-                                    'remark' => $data['remark'],
-                                    'demo_follow_up_count' => $lead->demo_follow_up_count + 1,
-                                ]);
+                            //     $lead->update([
+                            //         'follow_up_date' => $followUpDate,
+                            //         'remark' => $data['remark'],
+                            //         'demo_follow_up_count' => $lead->demo_follow_up_count + 1,
+                            //     ]);
 
-                                // Fetch the number of previous follow-ups for this lead
-                                $followUpCount = ActivityLog::where('subject_id', $lead->id)
-                                    ->whereJsonContains('properties->attributes->lead_status', 'Pending Demo') // Filter by lead_status in properties
-                                    ->count();
+                            //     // Fetch the number of previous follow-ups for this lead
+                            //     $followUpCount = ActivityLog::where('subject_id', $lead->id)
+                            //         ->whereJsonContains('properties->attributes->lead_status', 'Pending Demo') // Filter by lead_status in properties
+                            //         ->count();
 
-                                $followUpCount = max(0, $followUpCount - 1); // Ensure count does not go below 0
+                            //     $followUpCount = max(0, $followUpCount - 1); // Ensure count does not go below 0
 
-                                $viewName = 'emails.email_blasting_1st';
-                                $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
+                            //     $viewName = 'emails.email_blasting_1st';
+                            //     $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
 
-                                // Increment the follow-up count for the new description
-                                $followUpDescription = ($followUpCount) . 'st Salesperson Transfer Follow Up';
-                                if ($followUpCount == 2) {
-                                    $followUpDescription = '2nd Salesperson Transfer Follow Up';
-                                } elseif ($followUpCount == 3) {
-                                    $followUpDescription = '3rd Salesperson Transfer Follow Up';
-                                } elseif ($followUpCount >= 4) {
-                                    $followUpDescription = $followUpCount . 'th Salesperson Transfer Follow Up';
-                                }
+                            //     // Increment the follow-up count for the new description
+                            //     $followUpDescription = ($followUpCount) . 'st Salesperson Transfer Follow Up';
+                            //     if ($followUpCount == 2) {
+                            //         $followUpDescription = '2nd Salesperson Transfer Follow Up';
+                            //     } elseif ($followUpCount == 3) {
+                            //         $followUpDescription = '3rd Salesperson Transfer Follow Up';
+                            //     } elseif ($followUpCount >= 4) {
+                            //         $followUpDescription = $followUpCount . 'th Salesperson Transfer Follow Up';
+                            //     }
 
-                                // Update or create the latest activity log description
-                                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                    ->orderByDesc('created_at')
-                                    ->first();
+                            //     // Update or create the latest activity log description
+                            //     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                            //         ->orderByDesc('created_at')
+                            //         ->first();
 
-                                if ($latestActivityLog) {
-                                    $latestActivityLog->update([
-                                        'description' => $followUpDescription,
-                                    ]);
-                                } else {
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($lead)
-                                        ->withProperties(['description' => $followUpDescription]);
-                                }
+                            //     if ($latestActivityLog) {
+                            //         $latestActivityLog->update([
+                            //             'description' => $followUpDescription,
+                            //         ]);
+                            //     } else {
+                            //         activity()
+                            //             ->causedBy(auth()->user())
+                            //             ->performedOn($lead)
+                            //             ->withProperties(['description' => $followUpDescription]);
+                            //     }
 
-                                // Send a notification
-                                Notification::make()
-                                    ->title('Follow Up Added Successfully')
-                                    ->success()
-                                    ->send();
+                            //     // Send a notification
+                            //     Notification::make()
+                            //         ->title('Follow Up Added Successfully')
+                            //         ->success()
+                            //         ->send();
 
-                                $leadowner = User::where('name', $lead->lead_owner)->first();
-                                try {
-                                    // Get the currently logged-in user
-                                    $currentUser = Auth::user();
-                                    if (!$currentUser) {
-                                        throw new Exception('User not logged in');
-                                    }
+                            //     $leadowner = User::where('name', $lead->lead_owner)->first();
+                            //     try {
+                            //         // Get the currently logged-in user
+                            //         $currentUser = Auth::user();
+                            //         if (!$currentUser) {
+                            //             throw new Exception('User not logged in');
+                            //         }
 
-                                    $emailContent = [
-                                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
-                                        'lead' => [
-                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                                            'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                                            'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                                            'email' => $lead->email ?? 'N/A', // Lead's Email
-                                            'country' => $lead->country ?? 'N/A', // Lead's Country
-                                            'products' => $lead->products ?? 'N/A', // Products
-                                            'position' => $leadowner->position ?? 'N/A', // position
-                                            'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
-                                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                            // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
-                                        ],
-                                    ];
-                                    Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
+                            //         $emailContent = [
+                            //             'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                            //             'lead' => [
+                            //                 'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                            //                 'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                            //                 'companySize' => $lead->company_size ?? 'N/A', // Company Size
+                            //                 'phone' => $lead->phone ?? 'N/A', // Lead's Phone
+                            //                 'email' => $lead->email ?? 'N/A', // Lead's Email
+                            //                 'country' => $lead->country ?? 'N/A', // Lead's Country
+                            //                 'products' => $lead->products ?? 'N/A', // Products
+                            //                 'position' => $leadowner->position ?? 'N/A', // position
+                            //                 'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
+                            //                 'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                            //                 // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
+                            //             ],
+                            //         ];
+                            //         Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
-                                    Mail::mailer('secondary')
-                                        ->to($lead->companyDetail->email ?? $lead->email)
-                                        ->send(new FollowUpNotification($emailContent, $viewName));
-                                } catch (\Exception $e) {
-                                    // Handle email sending failure
-                                    Log::error("Error: {$e->getMessage()}");
-                                }
-                            }else{
-                                // Retrieve the related Lead model from ActivityLog
-                                $lead = $activityLog->lead; // Assuming the 'activityLogs' relation in Lead is named 'lead'
-                                // Update the Lead model
-                                $lead->update([
-                                    'lead_status' => 'Demo Cancelled',
-                                    'remark' => $data['remark'],
-                                    'follow_up_date' => $followUpDate,
-                                    'follow_up_needed' => $data['follow_up_needed'] ?? false,
-                                    'follow_up_count' => $lead->demo_follow_up_count + 1,
-                                ]);
+                            //         Mail::mailer('secondary')
+                            //             ->to($lead->companyDetail->email ?? $lead->email)
+                            //             ->send(new FollowUpNotification($emailContent, $viewName));
+                            //     } catch (\Exception $e) {
+                            //         // Handle email sending failure
+                            //         Log::error("Error: {$e->getMessage()}");
+                            //     }
+                            // }
+                            // else{
+                            //     // Retrieve the related Lead model from ActivityLog
+                            //     $lead = $activityLog->lead; // Assuming the 'activityLogs' relation in Lead is named 'lead'
+                            //     // Update the Lead model
+                            //     $lead->update([
+                            //         'lead_status' => 'Demo Cancelled',
+                            //         'remark' => $data['remark'],
+                            //         'follow_up_date' => $followUpDate,
+                            //         'follow_up_needed' => $data['follow_up_needed'] ?? false,
+                            //         'follow_up_count' => $lead->demo_follow_up_count + 1,
+                            //     ]);
 
-                                $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
-                                        ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
-                                        ->count();
+                            //     $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                            //             ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
+                            //             ->count();
 
-                                    // Increment the follow-up count for the new description
-                                    $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
-                                    if ($cancelfollowUpCount == 2) {
-                                        $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
-                                    } elseif ($cancelfollowUpCount == 3) {
-                                        $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
-                                    } elseif ($cancelfollowUpCount >= 4) {
-                                        $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
-                                    }
+                            //         // Increment the follow-up count for the new description
+                            //         $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
+                            //         if ($cancelfollowUpCount == 2) {
+                            //             $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
+                            //         } elseif ($cancelfollowUpCount == 3) {
+                            //             $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
+                            //         } elseif ($cancelfollowUpCount >= 4) {
+                            //             $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
+                            //         }
 
-                                    // Update or create the latest activity log description
-                                    $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                        ->orderByDesc('created_at')
-                                        ->first();
+                            //         // Update or create the latest activity log description
+                            //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                            //             ->orderByDesc('created_at')
+                            //             ->first();
 
-                                    if ($latestActivityLog) {
-                                        $latestActivityLog->update([
-                                            'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
-                                        ]);
-                                    } else {
-                                        activity()
-                                            ->causedBy(auth()->user())
-                                            ->performedOn($lead)
-                                            ->withProperties(['description' => $cancelFollowUpDescription]);
-                                    }
+                            //         if ($latestActivityLog) {
+                            //             $latestActivityLog->update([
+                            //                 'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
+                            //             ]);
+                            //         } else {
+                            //             activity()
+                            //                 ->causedBy(auth()->user())
+                            //                 ->performedOn($lead)
+                            //                 ->withProperties(['description' => $cancelFollowUpDescription]);
+                            //         }
 
-                                Notification::make()
-                                    ->title('You had follow up a cancelled demo')
-                                    ->success()
-                                    ->send();
-                            }
+                            //     Notification::make()
+                            //         ->title('You had follow up a cancelled demo')
+                            //         ->success()
+                            //         ->send();
+                            // }
                         }),
                     Tables\Actions\Action::make('addAutomation')
                         ->label(__('Add Automation'))

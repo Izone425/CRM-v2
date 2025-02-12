@@ -32,40 +32,25 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function getPendingLeadsQuery()
     {
         return Lead::query()
-            ->where('categories', 'New') // Filter only new leads
-            // ->when($this->sortColumnNewLeads === 'companyDetail.company_name', function ($query) {
-            //     return $query->leftJoin('company_details', 'leads.company_id', '=', 'company_details.id')
-            //         ->orderBy('company_details.company_name', $this->sortDirectionNewLeads);
-            // })
-            // ->when($this->sortColumnNewLeads === 'company_size', function ($query) {
-            //     return $query->orderByRaw("
-            //         CASE
-            //             WHEN company_size = '1-24' THEN 1
-            //             WHEN company_size = '25-99' THEN 2
-            //             WHEN company_size = '100-500' THEN 3
-            //             WHEN company_size = '501 and above' THEN 4
-            //             ELSE 5
-            //         END " . $this->sortDirectionNewLeads);
-            // })
-            // ->when(!in_array($this->sortColumnNewLeads, ['companyDetail.company_name', 'company_size']), function ($query) {
-            //     return $query->orderBy($this->sortColumnNewLeads, $this->sortDirectionNewLeads);
-            // })
-            ->orderBy('created_at', 'desc'); // Default sorting by latest created leads
+            ->where('categories', 'New');
+            // ->orderBy('created_at', 'desc');
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('5s')
+            ->defaultSort('created_at', 'desc')
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            ->heading('New Leads')
-            ->heading(fn () => 'New Leads - ' . $this->getPendingLeadsQuery()->count() . ' Records') // Display count
+            // ->heading('New Leads')
+            // ->heading(fn () => 'New Leads - ' . $this->getPendingLeadsQuery()->count() . ' Records') // Display count
             ->query($this->getPendingLeadsQuery()) // Use the new query method
             ->emptyState(fn () => view('components.empty-state-question'))
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
+                    ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
                         '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
                             target="_blank"
@@ -76,9 +61,21 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     )
                     ->html(),
                 TextColumn::make('company_size_label')
-                    ->label('Company Size'),
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('created_at')
                     ->label('Created Time')
+                    ->sortable()
                     ->dateTime('d M Y, h:i A')
                     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('details')->label('Details'),
@@ -87,6 +84,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
                 ActionGroup::make([
                     LeadActions::getViewAction(),
                     LeadActions::getAssignToMeAction(),
+                    LeadActions::getAssignLeadAction(),
                 ])
                 ->button()
                 ->color('warning'),

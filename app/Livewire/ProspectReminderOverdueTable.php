@@ -17,12 +17,20 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 
 class ProspectReminderOverdueTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+    public $selectedUser; // Selected user's ID
 
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
+    {
+        $this->selectedUser = $selectedUser;
+        $this->resetTable(); // Refresh the table
+    }
     public function getProspectOverdueQuery()
     {
         $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
@@ -33,24 +41,7 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
             ->whereDate('follow_up_date', '<', today()) // Overdue follow-ups
             ->where('lead_owner', $leadOwner) // Filter by authenticated user's name
             ->whereNull('salesperson') // Ensure salesperson is NULL
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days') // Add pending_days
-            // ->when($this->sortColumnProspectOverdue === 'pending_days_prospect_overdue', function ($query) {
-            //     return $query->orderBy('pending_days_prospect_overdue', $this->sortDirectionProspectOverdue);
-            // })
-            // ->when($this->sortColumnProspectOverdue === 'company_size', function ($query) {
-            //     return $query->orderByRaw("
-            //         CASE
-            //             WHEN company_size = '1-24' THEN 1
-            //             WHEN company_size = '25-99' THEN 2
-            //             WHEN company_size = '100-500' THEN 3
-            //             WHEN company_size = '501 and above' THEN 4
-            //             ELSE 5
-            //         END " . $this->sortDirectionProspectOverdue);
-            // })
-            // ->when($this->sortColumnProspectOverdue === 'created_at', function ($query) {
-            //     return $query->orderBy('created_at', $this->sortDirectionProspectOverdue);
-            // })
-            ->orderBy('follow_up_date', 'asc'); // Default sorting by follow-up date
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days'); // Default sorting by follow-up date
     }
 
     public function table(Table $table): Table
@@ -58,13 +49,15 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
         return $table
             ->poll('5s')
             ->query($this->getProspectOverdueQuery())
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->heading(fn () => 'Prospect Reminder (Overdue) - ' . $this->getProspectOverdueQuery()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Prospect Reminder (Overdue) - ' . $this->getProspectOverdueQuery()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
+                    ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
                         '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
                             target="_blank"
@@ -75,13 +68,26 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
                     )
                     ->html(),
                 TextColumn::make('company_size_label')
-                    ->label('Company Size'),
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('created_at')
                     ->label('Created Time')
+                    ->sortable()
                     ->dateTime('d M Y, h:i A')
                     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
+                    ->sortable()
                     ->formatStateUsing(fn ($record) => $record->follow_up_date->diffInDays(now()) . ' days')
                     ->color(fn ($record) => $record->follow_up_date->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])

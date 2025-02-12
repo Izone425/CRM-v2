@@ -93,28 +93,43 @@ class ViewLeadRecord extends ViewRecord
             //     }, true),
             Action::make('updateLeadOwner')
                 ->label(__('Assign to Me'))
-                ->form([
-                    Placeholder::make('confirm')
-                        ->content(__('Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.'))
-                ])
+                ->requiresConfirmation()
+                ->modalDescription('')
                 ->size(ActionSize::Large)
-                ->button()
+                ->form(function (Lead $record) {
+                    $isDuplicate = Lead::query()
+                        ->where('company_name', $record->companyDetail->company_name)
+                        ->orWhere('email', $record->email)
+                        ->where('id', '!=', $record->id) // Exclude the current lead
+                        ->exists();
+
+                    $content = $isDuplicate
+                        ? '⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?'
+                        : 'Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.';
+
+                    return [
+                        Placeholder::make('warning')
+                            ->content($content)
+                            ->hiddenLabel()
+                            ->extraAttributes([
+                                'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
+                            ]),
+                    ];
+                })
                 ->color('success')
                 ->icon('heroicon-o-pencil-square')
-                ->visible(function () {
-                    return is_null($this->record->lead_owner);
-                })
-                ->action(function () {
-                    // Use $this->record instead of passing $record
-                    $this->record->update([
+                ->visible(fn (Lead $record) => is_null($record->lead_owner)) // Show only if lead_owner is NULL
+                ->action(function (Lead $record) {
+                    // Update the lead owner and related fields
+                    $record->update([
                         'lead_owner' => auth()->user()->name,
                         'categories' => 'Active',
                         'stage' => 'Transfer',
                         'lead_status' => 'New',
                     ]);
 
-                    // Update the latest Activity Log
-                    $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
+                    // Update the latest activity log
+                    $latestActivityLog = ActivityLog::where('subject_id', $record->id)
                         ->orderByDesc('created_at')
                         ->first();
 
@@ -122,14 +137,17 @@ class ViewLeadRecord extends ViewRecord
                         $latestActivityLog->update([
                             'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
                         ]);
+
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($record);
                     }
 
-                    // Send success notification
                     Notification::make()
                         ->title('Lead Owner Assigned Successfully')
                         ->success()
                         ->send();
-                }),
+                })
         ];
     }
 }
