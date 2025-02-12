@@ -89,7 +89,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getAddAutomation(),
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
-                    LeadActions::getTransferCallAttempt(),
+                    LeadActions::getViewRemark(),
                 ])
                 ->button()
                 ->color('primary'),

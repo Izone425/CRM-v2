@@ -92,6 +92,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                     LeadActions::getAddAutomation(),
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
+                    LeadActions::getViewRemark(),
                     LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()

@@ -28,11 +28,24 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
     {
-        $this->selectedUser = $selectedUser;
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
+
+        if ($selectedUser) {
+            $this->selectedUser = $selectedUser;
+            session(['selectedUser' => $selectedUser]); // Store selected user
+        } else {
+            // Reset to "Your Own Dashboard" (value = 7)
+            $this->selectedUser = 7;
+            session(['selectedUser' => 7]);
+        }
+
         $this->resetTable(); // Refresh the table
     }
+
     public function getProspectOverdueQuery()
     {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+
         $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
             ? User::find($this->selectedUser)->name
             : auth()->user()->name;

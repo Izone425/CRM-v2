@@ -4,4 +4,6 @@
     <p>PIC CONTACT NO: {{ $lead->companyDetail->contact_no ?? $lead->phone }}</p>
     <p>PIC EMAIL ADDRESS: {{ $lead->companyDetail->email ?? $lead->email }}</p>
     <p>LEADS CREATED: {{ \Carbon\Carbon::parse($lead->created_at)->format('d M Y g:ia') }}</p>
+    <p>COMPANY SIZE: {{ $lead->company_size_label}} </p>
+    <p>Pending Days: {{ $pending_days }} days</p> <!-- Display Pending Days -->
 </div>

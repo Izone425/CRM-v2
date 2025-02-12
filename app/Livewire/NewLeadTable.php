@@ -32,7 +32,8 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function getPendingLeadsQuery()
     {
         return Lead::query()
-            ->where('categories', 'New');
+            ->where('categories', 'New')
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
             // ->orderBy('created_at', 'desc');
     }
 
@@ -73,12 +74,17 @@ class NewLeadTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                TextColumn::make('created_at')
-                    ->label('Created Time')
+                // TextColumn::make('created_at')
+                //     ->label('Created Time')
+                //     ->sortable()
+                //     ->dateTime('d M Y, h:i A')
+                //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
+                // TextColumn::make('details')->label('Details'),
+                TextColumn::make('pending_days')
+                    ->label('Pending Days')
                     ->sortable()
-                    ->dateTime('d M Y, h:i A')
-                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
-                TextColumn::make('details')->label('Details'),
+                    ->formatStateUsing(fn ($record) => $record->pending_days . ' days') // Use DB computed value
+                    ->color(fn ($record) => $record->pending_days == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
                 ActionGroup::make([

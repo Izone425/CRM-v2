@@ -20,20 +20,39 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Livewire\Attributes\On;
 
 class DemoTodayTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
+    {
+        $this->selectedUser = $selectedUser;
+        session(['selectedUser' => $selectedUser]); // Store for consistency
+
+        $this->resetTable(); // Refresh the table
+    }
+
     public function getTodayDemos()
     {
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
+        // Ensure selectedUser is fetched from session if not set
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+
+        info("Current selectedUser in getTodayDemos: " . $this->selectedUser); // Debugging
+
+        $salespersonId = ($this->selectedUser && auth()->user()->role_id == 3) ? $this->selectedUser : auth()->id();
+
+        info("Using salespersonId for filtering: " . $salespersonId); // Debugging
 
         return Appointment::whereDate('date', today()) // Filter by today's date in Appointment
-            ->whereHas('lead', function ($query) use ($salespersonId) { // Ensure Lead exists
-                $query->where('salesperson', $salespersonId) // Salesperson check from Lead
-                    ->where('status', 'new'); // Status check from Lead
+            ->whereHas('lead', function ($query) use ($salespersonId) {
+                $query->where('salesperson', $salespersonId)
+                    ->where('status', 'new');
             });
     }
 
@@ -77,16 +96,11 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                     ->label('Time')
                     ->sortable()
                     ->formatStateUsing(fn ($record) =>
-                        Carbon::parse($record->date)->format('d M Y') . ' | ' . // Format date
+                        Carbon::parse($record->date)->format('d M Y') . ', ' . // Format date
                         Carbon::parse($record->start_time)->format('h:i A') .
                         ' - ' .
                         Carbon::parse($record->end_time)->format('h:i A')
                 ),
-                TextColumn::make('pending_time')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -95,7 +109,7 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                     // LeadActions::getAddFollowUp(),
                     // LeadActions::getAddAutomation(),
                     // LeadActions::getArchiveAction(),
-                    // LeadActions::getViewAction(),
+                    LeadActions::getDemoViewAction(),
                     // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
@@ -105,6 +119,6 @@ class DemoTodayTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.demo-today-table');
+        return view('livewire.salesperson_dashboard.demo-today-table');
     }
 }

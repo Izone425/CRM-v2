@@ -79,6 +79,10 @@ class DashboardForm extends Page
     {
         $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
 
+        // Default selectedUser to 7 (Your Own Dashboard) when the page loads
+        $this->selectedUser = session('selectedUser') == 7;
+        session(['selectedUser' => $this->selectedUser]); // Store it in session
+
         if (request()->has('page') && request()->get('page') != 1) {
             return redirect()->to(url()->current() . '?page=1');
         }
@@ -93,22 +97,25 @@ class DashboardForm extends Page
 
     public function updatedSelectedUser($userId)
     {
+        info("Updated selected user ID: " . $userId); // Debugging
+
+        $this->selectedUser = $userId; // Store selected user
         $selectedUser = User::find($userId);
 
         if ($selectedUser) {
             $this->selectedUserRole = $selectedUser->role_id;
+
+            // Use toggleDashboard to switch dashboards dynamically
+            $this->toggleDashboard($this->selectedUserRole == 2 ? 'Salesperson' : 'LeadOwner');
         } else {
             $this->selectedUserRole = null;
+            $this->toggleDashboard('LeadOwner'); // Default to LeadOwner if no user selected
         }
 
-        // Dispatch a single event to notify multiple tables
-        $this->dispatch('updateTablesForUser', selectedUser: $this->selectedUser);
+        session(['selectedUser' => $userId]); // Store the selected user in session
+        $this->dispatch('updateTablesForUser', selectedUser: $userId); // Dispatch event
     }
 
-    public function handleSelectedUser()
-    {
-        $this->updatedSelectedUser($this->selectedUser); // Manually call the update method
-    }
 
     public function assignLeadToUser($leadId)
     {
