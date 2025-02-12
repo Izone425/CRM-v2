@@ -46,6 +46,9 @@ class LeadActions
             ->label('View Details')
             ->icon('heroicon-o-eye')
             ->color('primary')
+            ->requiresConfirmation()
+            ->modalSubmitAction(false)
+            ->modalCancelAction(false)
             ->modalHeading('Lead Details')
             ->modalDescription('Here are the details for this lead.')
             ->modalContent(fn (Lead $record) => view('filament.modals.lead-details', ['lead' => $record]));
@@ -111,15 +114,68 @@ class LeadActions
             });
     }
 
+    public static function getAssignLeadAction(): Action
+    {
+        return Action::make('assignLead')
+            ->label(__('Assign Lead To Lead Owner'))
+            ->modalHeading('Confirm Lead Assignment')
+            ->modalDescription('Select a lead owner to handle this lead.')
+            ->form(function (Lead $record) {
+                return [
+                    Select::make('selected_user')
+                        ->label('Assign To')
+                        ->options(User::where('role_id', 1)->pluck('name', 'id'))
+                        ->required(),
+                    Placeholder::make('warning')
+                        ->content('Make sure to confirm assignment before proceeding.'),
+                ];
+            })
+            ->color('warning')
+            ->icon('heroicon-o-receipt-refund')
+            ->visible(fn () => auth()->user()->role_id == 3) // Only for users with role_id = 3
+            ->action(function (Lead $record, array $data) {
+                $selectedUser = User::find($data['selected_user']);
+
+                if (!$selectedUser) {
+                    Notification::make()
+                        ->title('User Not Found')
+                        ->danger()
+                        ->send();
+                    return;
+                }
+
+                // Update the lead owner
+                $record->update([
+                    'lead_owner' => $selectedUser->name,
+                    'categories' => 'Active',
+                    'stage' => 'Transfer',
+                    'lead_status' => 'New',
+                ]);
+
+                // Log the activity
+                ActivityLog::create([
+                    'description' => 'Lead assigned to Lead Owner: ' . $selectedUser->name,
+                    'subject_id' => $record->id,
+                    'causer_id' => auth()->id(),
+                ]);
+
+                Notification::make()
+                    ->title('Lead successfully assigned to ' . $selectedUser->name)
+                    ->success()
+                    ->send();
+            });
+    }
+
     public static function getAddDemoAction(): Action
     {
         return
-            Action::make('Add Appointment')
+            Action::make('add_demo')
                 ->icon('heroicon-o-pencil')
                 ->color('success')
+                ->label('Add Demo')
                 ->modalHeading('Add Demo')
                 ->hidden(fn (Lead $record) => is_null($record->lead_owner)) // Use $record instead of getOwnerRecord()
-                ->form(fn (Lead $record) => [
+                ->form(fn (?Lead $record) => $record ? [ // Ensure record exists before running form logic
                     Grid::make(3) // 3 columns for 3 Select fields
                     ->schema([
                         Select::make('type')
@@ -160,7 +216,7 @@ class LeadActions
 
                         Select::make('salesperson')
                             ->label('SALESPERSON')
-                            ->options(function (ActivityLog $activityLog) {
+                            ->options(function () {
                                 // if ($lead->salesperson) {
                                 //     $salesperson = User::where('id', $lead->salesperson)->first();
                                 //     return [
@@ -340,8 +396,8 @@ class LeadActions
                         // ->rules([
                         //     'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
                         // ]),
-                ])
-                ->action(function (Appointment $appointment, array $data, Lead $lead) {
+                ] : []) // Return empty form if no record is found
+                ->action(function (array $data, Lead $lead) {
                     // Create a new Appointment and store the form data in the appointments table
                     $appointment = new \App\Models\Appointment();
                     $appointment->fill([
@@ -811,6 +867,7 @@ class LeadActions
                     'follow_up_date' => $followUpDate,
                     'remark' => $data['remark'],
                     'follow_up_count' => $lead->follow_up_count + 1,
+                    'lead_status' => 'Under Review',
                 ]);
 
                 // Increment the follow-up count for the new description
@@ -1201,8 +1258,11 @@ class LeadActions
             ->label('View Remark')
             ->icon('heroicon-o-eye')
             ->modalHeading('Lead Remark')
+            ->requiresConfirmation()
             ->modalSubmitAction(false)
             ->modalCancelAction(false)
+            ->modalHeading('Lead Remarks')
+            ->modalDescription('Here are the remark for this lead.')
             ->modalContent(function (Lead $record) {
                 // Extract the remark, fallback to '-'
                 $remark = $record->remark;
@@ -1215,8 +1275,8 @@ class LeadActions
 
     public static function getTransferCallAttempt()
     {
-        return Action::make('view_remark')
-            ->label('Transfer to Follow Up')
+        return Action::make('transfer_call_attempt')
+            ->label('Transfer to Call Attempt')
             ->requiresConfirmation()
             ->icon('heroicon-o-paper-airplane')
             ->modalHeading('Transfer to Call Attempt')

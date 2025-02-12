@@ -1,3 +1,5 @@
+<livewire:demo-today-table />
+
 <div class="p-4 bg-white rounded-lg shadow" wire:poll.5s>
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Demo (Today)</h3>

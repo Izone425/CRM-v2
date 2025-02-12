@@ -31,24 +31,7 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
             ->where('done_call', '=', '1')
             ->whereNull('salesperson') // Salesperson is NULL
             ->where('company_size', '=', '1-24') // Only small companies (1-24)
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time') // Calculate Pending Time
-            // ->when($this->sortColumnFollowUpSmallCompanyLeads === 'pending_time', function ($query) {
-            //     return $query->orderBy('pending_time', $this->sortDirectionFollowUpSmallCompanyLeads);
-            // })
-            // ->when($this->sortColumnFollowUpSmallCompanyLeads === 'company_size', function ($query) {
-            //     return $query->orderByRaw("
-            //         CASE
-            //             WHEN company_size = '1-24' THEN 1
-            //             WHEN company_size = '25-99' THEN 2
-            //             WHEN company_size = '100-500' THEN 3
-            //             WHEN company_size = '501 and above' THEN 4
-            //             ELSE 5
-            //         END " . $this->sortDirectionFollowUpSmallCompanyLeads);
-            // })
-            // ->when($this->sortColumnFollowUpSmallCompanyLeads === 'call_attempt', function ($query) {
-            //     return $query->orderBy('call_attempt', $this->sortDirectionFollowUpSmallCompanyLeads);
-            // })
-            ->orderBy('created_at', 'desc');
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
     }
 
     public function table(Table $table): Table
@@ -56,13 +39,15 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
         return $table
             ->poll('5s')
             ->query($this->getFollowUpSmallCompanyLeads())
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->heading(fn () => 'Call Attempt (1-24) - ' . $this->getFollowUpSmallCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Call Attempt (1-24) - ' . $this->getFollowUpSmallCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
+                    ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
                         '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
                             target="_blank"
@@ -73,11 +58,24 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
                     )
                     ->html(),
                 TextColumn::make('company_size_label')
-                    ->label('Company Size'),
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('call_attempt')
-                    ->label('Call Attempt'),
+                    ->label('Call Attempt')
+                    ->sortable(),
                 TextColumn::make('pending_time')
                     ->label('Pending Days')
+                    ->sortable()
                     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
                     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
@@ -151,6 +149,6 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.call-attempt-big-comp-table');
+        return view('livewire.call-attempt-small-comp-table');
     }
 }

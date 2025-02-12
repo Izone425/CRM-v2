@@ -36,24 +36,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                 $query->whereNull('done_call') // Include NULL values
                     ->orWhere('done_call', 0); // Include 0 values
             })
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days') // Add pending_days
-            // ->when($this->sortColumnActiveSmallCompanyLeads === 'pending_time', function ($query) {
-            //     return $query->orderBy('pending_time', $this->sortDirectionActiveSmallCompanyLeads);
-            // })
-            // ->when($this->sortColumnActiveSmallCompanyLeads === 'company_size', function ($query) {
-            //     return $query->orderByRaw("
-            //         CASE
-            //             WHEN company_size = '1-24' THEN 1
-            //             WHEN company_size = '25-99' THEN 2
-            //             WHEN company_size = '100-500' THEN 3
-            //             WHEN company_size = '501 and above' THEN 4
-            //             ELSE 5
-            //         END " . $this->sortDirectionActiveSmallCompanyLeads);
-            // })
-            // ->when($this->sortColumnActiveSmallCompanyLeads === 'call_attempt', function ($query) {
-            //     return $query->orderBy('call_attempt', $this->sortDirectionActiveSmallCompanyLeads);
-            // })
-            ->orderBy('created_at', 'desc');
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
     }
 
     public function table(Table $table): Table
@@ -61,13 +44,15 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
         return $table
             ->poll('5s')
             ->query($this->getActiveSmallCompanyLeads())
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->heading(fn () => 'Active (1-24) - ' . $this->getActiveSmallCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Active (1-24) - ' . $this->getActiveSmallCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
+                    ->sortable()
                     ->formatStateUsing(fn ($state, $record) =>
                         '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
                             target="_blank"
@@ -78,11 +63,24 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                     )
                     ->html(),
                 TextColumn::make('company_size_label')
-                    ->label('Company Size'),
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('call_attempt')
-                    ->label('Call Attempt'),
+                    ->label('Call Attempt')
+                    ->sortable(),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
+                    ->sortable()
                     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
                     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
@@ -103,6 +101,6 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.active-big-comp-table');
+        return view('livewire.active-small-comp-table');
     }
 }
