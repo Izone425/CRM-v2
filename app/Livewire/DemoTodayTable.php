@@ -50,10 +50,10 @@ class DemoTodayTable extends Component implements HasForms, HasTable
         info("Using salespersonId for filtering: " . $salespersonId); // Debugging
 
         return Appointment::whereDate('date', today()) // Filter by today's date in Appointment
-            ->whereHas('lead', function ($query) use ($salespersonId) {
-                $query->where('salesperson', $salespersonId)
-                    ->where('status', 'new');
-            });
+        ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')
+        ->join('leads', 'appointments.lead_id', '=', 'leads.id') // Assuming there is a 'lead_id' in appointments
+        ->where('leads.salesperson', $salespersonId)
+        ->where('status', 'New');
     }
 
     public function table(Table $table): Table

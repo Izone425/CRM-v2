@@ -46,11 +46,11 @@ class DemoTmrTable extends Component implements HasForms, HasTable
 
         $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
 
-        return Appointment::whereDate('date', today()->addDay()) // Filter by today's date in Appointment
-            ->whereHas('lead', function ($query) use ($salespersonId) { // Ensure Lead exists
-                $query->where('salesperson', $salespersonId) // Salesperson check from Lead
-                    ->where('status', 'new'); // Status check from Lead
-            });
+        return Appointment::whereDate('date', today()->addDay()) // Filter by tomorrow's date in Appointment
+            ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')
+            ->join('leads', 'appointments.lead_id', '=', 'leads.id') // Join leads table
+            ->where('leads.salesperson', $salespersonId) // Salesperson check from Lead
+            ->where('status', 'New');
     }
 
     public function table(Table $table): Table

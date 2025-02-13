@@ -74,8 +74,9 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
                     ->html(),
                 TextColumn::make('activityLogs.description')
                     ->label('Latest Activity')
+                    ->limit(30)
                     ->wrap()
-                    ->formatStateUsing(fn ($record) => $record->activityLogs->first()?->description ?? 'No activity'),
+                    ->formatStateUsing(fn ($record) => $record->activityLogs->sortByDesc('created_at')->first()?->description ?? 'No activity'),
                 TextColumn::make('remark')
                     ->label('Remark'),
             ])
