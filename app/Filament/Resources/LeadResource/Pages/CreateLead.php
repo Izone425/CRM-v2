@@ -92,27 +92,12 @@ class CreateLead extends CreateRecord
     {
         return [
             // Define fields relevant for creating a lead
-            TextInput::make('name')
-                ->label('Company Name')
-                ->required(),
-            TextInput::make('email')
-                ->label('Work Email')
-                ->email()
-                ->required(),
-            PhoneInput::make('phone')
-                ->label('Phone Number')
-                ->required()
-                ->dehydrateStateUsing(function ($state) {
-                    // Remove the "+" symbol from the phone number
-                    return ltrim($state, '+');
-                }),
-            TextInput::make('lead_code')
-                ->label('Lead Source')
-                ->default('CRM')
-                ->readOnly(),
             TextInput::make('company_name')
                 ->label('Company Name')
                 ->required()
+                ->reactive()
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                ->afterStateUpdated(fn ($state, callable $set) => $set('company_name', strtoupper($state)))
                 ->dehydrateStateUsing(function ($state, $set, $get) {
                     $latestLeadId = \App\Models\Lead::max('id') ?? 0; // Get the latest lead ID or default to 0
 
@@ -129,6 +114,32 @@ class CreateLead extends CreateRecord
 
                     return $companyDetail->id; // Optionally return the ID
                 }),
+            TextInput::make('name')
+                ->label('Name')
+                ->required()
+                ->reactive()
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+            TextInput::make('email')
+                ->label('Work Email Address')
+                ->email()
+                ->required(),
+            PhoneInput::make('phone')
+                ->label('Phone Number')
+                ->required()
+                ->dehydrateStateUsing(function ($state) {
+                    // Remove the "+" symbol from the phone number
+                    return ltrim($state, '+');
+                }),
+            Select::make('company_size')
+                ->label('Company Size')
+                ->options([
+                    '1-24' => '1 - 24',
+                    '25-99' => '25 - 99',
+                    '100-500' => '100 - 500',
+                    '501 and Above' => '501 and Above',
+                ])
+                ->required(),
             Select::make('country')
                 ->label('Country')
                 ->searchable()
@@ -166,15 +177,12 @@ class CreateLead extends CreateRecord
 
                     return $state; // Fallback to the original state if mapping fails
                 }),
-            Select::make('company_size')
-                ->label('Company Size')
+            Select::make('lead_code')
+                ->label('Lead Source')
+                ->default('CRM')
                 ->options([
-                    '1-24' => '1 - 24',
-                    '25-99' => '25 - 99',
-                    '100-500' => '100 - 500',
-                    '501 and Above' => '501 and Above',
-                ])
-                ->required(),
+                    'CRM' => 'CRM',
+                ]),
             Select::make('products')
                 ->label('Products')
                 ->multiple()
