@@ -93,11 +93,11 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
                             END $direction
                         ");
                     }),
-                TextColumn::make('created_at')
-                    ->label('Created Time')
-                    ->sortable()
-                    ->dateTime('d M Y, h:i A')
-                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
+                // TextColumn::make('created_at')
+                //     ->label('Created Time')
+                //     ->sortable()
+                //     ->dateTime('d M Y, h:i A')
+                //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()
