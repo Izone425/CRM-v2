@@ -9,13 +9,15 @@ use App\Models\Role;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Storage;
 use TomatoPHP\FilamentTwilio\Traits\InteractsWithTwilioWhatsapp;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     use HasApiTokens, HasFactory, Notifiable;
     use InteractsWithTwilioWhatsapp;
@@ -37,7 +39,9 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role_id',
+        'avatar_path'
     ];
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -77,5 +81,14 @@ class User extends Authenticatable implements FilamentUser
         }
 
         return $this->role && $this->role->name === 'Admin';
+    }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        if($this->avatar_path){
+            return Storage::url($this->avatar_path);
+        }
+
+        return "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $this->name, "background" => "random"]);
     }
 }

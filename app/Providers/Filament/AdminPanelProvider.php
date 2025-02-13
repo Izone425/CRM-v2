@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\ProformaInvoices;
@@ -45,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
             // ->registration()
             ->passwordReset()
             ->emailVerification()
-            ->profile()
+            ->profile(EditProfile::class)
             ->brandName('TimeTec CRM')
             ->colors([
                 'primary' => '#431fa1',
@@ -68,7 +69,6 @@ class AdminPanelProvider extends PanelProvider
                 Calendar::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
-                RankingFormPage::class
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

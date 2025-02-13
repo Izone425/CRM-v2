@@ -5,7 +5,7 @@ namespace App\Livewire;
 use App\Models\User;
 use Livewire\Component;
 
-class CreateRanking extends Component 
+class CalendarRankingForm extends Component 
 {
 
     public $users;
@@ -17,6 +17,6 @@ class CreateRanking extends Component
 
     public function render()
     {
-        return view('livewire.create-ranking');
+        return view('livewire.calendar-ranking-form');
     }
 }

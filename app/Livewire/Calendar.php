@@ -158,13 +158,13 @@ class Calendar extends Component
         }
 
 
-        $result = $salesPeople->map(function ($salesperson) use ($appointments) {
+        $result = $salesPeople->map(function (User $salesperson) use ($appointments) {
 
             // Initialize fields for each day of the week
             $data = [
                 'salespersonID' => $salesperson['id'],
                 'salespersonName' => $salesperson['name'],
-                'salespersonAvatar' => !empty($salesperson['avatar_path']) ? $salesperson['avatar_path'] : "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $salesperson['name'], "background" => "random"]),
+                'salespersonAvatar' => $salesperson->getFilamentAvatarUrl(),
                 'mondayAppointments' => [],
                 'tuesdayAppointments' => [],
                 'wednesdayAppointments' => [],
