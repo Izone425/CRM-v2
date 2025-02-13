@@ -110,62 +110,7 @@ class LeadActions
                     }),
             ]);
     }
-    public static function getEditViewAction(): Action
-    {
-        return Action::make('view_lead')
-            ->label('View Details')
-            ->icon('heroicon-o-eye')
-            ->color('primary')
-            ->requiresConfirmation()
-            ->modalHeading('Lead Details')
-            ->modalDescription('Edit the lead details below.')
-            ->form(fn (Lead $record) => [
-                TextInput::make('company_name')
-                    ->label('Company Name')
-                    ->default($record->companyDetail->company_name ?? 'N/A')
-                    ->disabled(), // Keep it disabled if it's not editable
 
-                TextInput::make('name')
-                    ->label('PIC Name')
-                    ->default($record->companyDetail->name ?? $record->companyDetail->company_name),
-
-                TextInput::make('contact_no')
-                    ->label('PIC Contact No')
-                    ->default($record->companyDetail->contact_no ?? $record->phone),
-
-                TextInput::make('email')
-                    ->label('PIC Email Address')
-                    ->default($record->companyDetail->email ?? $record->email),
-
-                TextInput::make('company_size_label')
-                    ->label('Company Size')
-                    ->default($record->company_size_label),
-
-                TextInput::make('pending_days')
-                    ->label('Pending Days')
-                    ->default($record->pending_days)
-                    ->disabled(), // Optional: If you want to disable pending days editing
-
-                Textarea::make('notes')
-                    ->label('Notes')
-                    ->default($record->notes ?? '')
-                    ->rows(3), // Allow the user to add/edit notes
-            ])
-            ->action(function (array $data, Lead $record) {
-                // Update the lead with the new values
-                $record->update([
-                    'name' => $data['name'],
-                    'phone' => $data['contact_no'],
-                    'email' => $data['email'],
-                    'notes' => $data['notes'] ?? $record->notes,
-                ]);
-
-                Notification::make()
-                    ->title('Lead Updated Successfully')
-                    ->success()
-                    ->send();
-            });
-    }
     public static function getDemoViewAction(): Action
     {
         return Action::make('view_lead')
@@ -177,7 +122,10 @@ class LeadActions
             ->modalCancelAction(false)
             ->modalHeading('Lead Details')
             ->modalDescription('Here are the details for this lead.')
-            ->modalContent(fn (Appointment $record) => view('filament.modals.lead-details', ['lead' => $record->lead]));
+            ->modalContent(fn (Appointment $record) => view('filament.modals.lead-details', [
+                'lead' => $record->lead,
+                'pending_days' => $record->pending_days, // Pass pending_days to the view
+            ]));
     }
 
     public static function getAssignToMeAction(): Action
