@@ -93,6 +93,22 @@ class DemoAppointmentRelationManager extends RelationManager
 
                         return "{$date} | {$startTime} - {$endTime}";
                     }),
+                TextColumn::make('status')
+                    ->label('STATUS')
+                    ->sortable()
+                    ->color(fn ($state) => match ($state) {
+                        'Done' => 'success',    // Green
+                        'Cancelled' => 'danger', // Red
+                        'New' => 'warning',  // Yellow (Optional)
+                        default => 'gray',       // Default color
+                    })
+                    ->icon(fn ($state) => match ($state) {
+                        'Done' => 'heroicon-o-check-circle',
+                        'Cancelled' => 'heroicon-o-x-circle',
+                        'New' => 'heroicon-o-clock', // Optional icon for pending
+                        default => 'heroicon-o-question-mark-circle',
+                    }),
+
             ])
             ->actions([
                 ActionGroup::make([
@@ -149,7 +165,10 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->label('Remarks')
                                     ->default($record->remarks)
                                     ->autosize()
-                                    ->disabled(),
+                                    ->disabled()
+                                    ->reactive()
+                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                    ->afterStateUpdated(fn ($state, callable $set) => $set('remarks', strtoupper($state))),
 
                                 TextInput::make('required_attendees')
                                     ->label('Required Attendees')
@@ -170,8 +189,11 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->label('Remarks')
                                 ->required()
                                 ->placeholder('Enter remarks here...')
-                                ->maxLength(500),
-                        ])
+                                ->maxLength(500)
+                                ->reactive()
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                ->afterStateUpdated(fn ($state, callable $set) => $set('remark', strtoupper($state))),
+                            ])
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
                         ->action(function (array $data, $record) {
@@ -487,7 +509,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->label('REMARKS')
                         ->rows(3)
                         ->autosize()
-                        ->reactive()
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                         ->afterStateUpdated(fn ($state, callable $set) => $set('remarks', strtoupper($state))),
 
                     TextInput::make('required_attendees')

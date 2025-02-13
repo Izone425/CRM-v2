@@ -87,7 +87,6 @@ class SalespersonBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getAddAutomation(),
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
-                    LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
                 ->color('primary'),
