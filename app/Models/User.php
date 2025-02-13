@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Storage;
+use Svg\Gradient\Stop;
 use TomatoPHP\FilamentTwilio\Traits\InteractsWithTwilioWhatsapp;
 
 class User extends Authenticatable implements FilamentUser, HasAvatar
@@ -85,7 +86,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function getFilamentAvatarUrl(): ?string
     {
-        if($this->avatar_path){
+        if($this->avatar_path && Storage::exists($this->avatar_path)){
             return Storage::url($this->avatar_path);
         }
 
