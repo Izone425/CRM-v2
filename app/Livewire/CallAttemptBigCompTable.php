@@ -71,9 +71,9 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                TextColumn::make('call_attempt')
-                    ->label('Call Attempt')
-                    ->sortable(),
+                // TextColumn::make('call_attempt')
+                //     ->label('Call Attempt')
+                //     ->sortable(),
                 TextColumn::make('pending_time')
                     ->label('Pending Days')
                     ->sortable()

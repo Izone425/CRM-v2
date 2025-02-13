@@ -73,11 +73,11 @@ class SalespersonBigCompTable extends Component implements HasForms, HasTable
                 TextColumn::make('stage')
                     ->label('Stage')
                     ->sortable(),
-                TextColumn::make('pending_days')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                // TextColumn::make('pending_days')
+                //     ->label('Pending Days')
+                //     ->sortable()
+                //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
+                //     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
                 ActionGroup::make([

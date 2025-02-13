@@ -78,11 +78,11 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                 TextColumn::make('call_attempt')
                     ->label('Call Attempt')
                     ->sortable(),
-                TextColumn::make('pending_time')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                // TextColumn::make('pending_time')
+                //     ->label('Pending Days')
+                //     ->sortable()
+                //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
+                //     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
                 ActionGroup::make([
