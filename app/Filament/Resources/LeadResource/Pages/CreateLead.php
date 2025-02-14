@@ -6,10 +6,12 @@ use App\Classes\Encryptor;
 use App\Filament\Resources\LeadResource;
 use App\Mail\NewLeadNotification;
 use App\Models\ActivityLog;
+use App\Models\LeadSource;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -97,7 +99,6 @@ class CreateLead extends CreateRecord
                 ->required()
                 ->reactive()
                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                ->afterStateUpdated(fn ($state, callable $set) => $set('company_name', strtoupper($state)))
                 ->dehydrateStateUsing(function ($state, $set, $get) {
                     $latestLeadId = \App\Models\Lead::max('id') ?? 0; // Get the latest lead ID or default to 0
 
@@ -118,8 +119,7 @@ class CreateLead extends CreateRecord
                 ->label('Name')
                 ->required()
                 ->reactive()
-                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
             TextInput::make('email')
                 ->label('Work Email Address')
                 ->email()
@@ -177,12 +177,83 @@ class CreateLead extends CreateRecord
 
                     return $state; // Fallback to the original state if mapping fails
                 }),
+
             Select::make('lead_code')
                 ->label('Lead Source')
                 ->default('CRM')
-                ->options([
-                    'CRM' => 'CRM',
-                ]),
+                ->options(fn () => LeadSource::pluck('salesperson')->toArray()) // Fetch existing lead sources
+                ->searchable()
+                ->createOptionForm([
+                    TextInput::make('lead_code')
+                        ->label('Lead Code')
+                        ->required()
+                        ->unique(\App\Models\LeadSource::class, 'lead_code')
+                        ->rules(['required', 'string', 'max:255', 'unique:lead_sources,lead_code']),
+
+                    TextInput::make('salesperson')
+                        ->label('Salesperson')
+                        ->required(),
+
+                    TextInput::make('platform')
+                    ->label('Platform')
+                    ->required(),
+                ])
+                ->createOptionUsing(function (array $data) {
+                    // Validate again before saving
+                    $validatedData = validator($data, [
+                        'code' => 'required|string|max:255|unique:lead_sources,code',
+                        'name' => 'required|string|max:255',
+                    ])->validate();
+
+                    // Create new lead source if validation passes
+                    $leadSource = \App\Models\LeadSource::create($validatedData);
+                    return $leadSource->code; // Return newly created option
+                }),
+
+            Select::make('lead_code')
+                ->label('Lead Source')
+                ->default('CRM')
+                ->options(fn () => LeadSource::pluck('salesperson')->toArray()) // Fetch existing lead sources
+                ->searchable()
+                ->createOptionForm([
+                    TextInput::make('lead_code')
+                        ->label('Lead Code')
+                        ->required()
+                        ->unique(\App\Models\LeadSource::class, 'lead_code')
+                        ->rules(['required', 'string', 'max:255', 'unique:lead_sources,lead_code']),
+
+                    TextInput::make('salesperson')
+                        ->label('Salesperson')
+                        ->required(),
+
+                    TextInput::make('platform')
+                        ->label('Platform')
+                        ->required(),
+                ])
+                ->createOptionUsing(function (array $data) {
+                    if (auth()->user()->role_id !== 3) {
+                        Notification::make()
+                            ->title('Access Denied')
+                            ->body('You are not allowed to create a Lead Source.')
+                            ->danger()
+                            ->send();
+
+                        return null; // Prevent creation
+                    }
+
+                    // Validate before saving
+                    $validatedData = validator($data, [
+                        'lead_code' => 'required|string|max:255|unique:lead_sources,lead_code',
+                        'salesperson' => 'required|string|max:255',
+                        'platform' => 'required|string|max:255',
+                    ])->validate();
+
+                    // Create new lead source if validation passes
+                    $leadSource = \App\Models\LeadSource::create($validatedData);
+                    return $leadSource->lead_code; // Return newly created option
+                })
+                ->visible(fn () => auth()->user()->role_id === 3),
+
             Select::make('products')
                 ->label('Products')
                 ->multiple()

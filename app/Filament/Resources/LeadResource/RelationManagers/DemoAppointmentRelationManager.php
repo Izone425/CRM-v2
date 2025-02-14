@@ -139,7 +139,7 @@ class DemoAppointmentRelationManager extends RelationManager
 
                                         TextInput::make('salesperson')
                                             ->label('Salesperson')
-                                            ->default(optional($record->salespersonDetails)->name)
+                                            ->default(fn ($record) => \App\Models\User::find($record->salesperson)?->name ?? 'N/A') // Get name from User table
                                             ->disabled(),
                                     ]),
 
@@ -167,8 +167,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->autosize()
                                     ->disabled()
                                     ->reactive()
-                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                    ->afterStateUpdated(fn ($state, callable $set) => $set('remarks', strtoupper($state))),
+                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
                                 TextInput::make('required_attendees')
                                     ->label('Required Attendees')
@@ -191,8 +190,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->placeholder('Enter remarks here...')
                                 ->maxLength(500)
                                 ->reactive()
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                ->afterStateUpdated(fn ($state, callable $set) => $set('remark', strtoupper($state))),
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                             ])
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
@@ -230,8 +228,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                         'organizer' => $organizerEmail,
                                     ]);
 
-                                    $appointment->update(['status' => 'Cancelled']);
-
                                     Notification::make()
                                         ->title('Teams Meeting Cancelled Successfully')
                                         ->warning()
@@ -263,19 +259,47 @@ class DemoAppointmentRelationManager extends RelationManager
 
                             // Update Lead stage and status
                             $lead->update([
+                                'salesperson' => null,
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
                                 'remark' => $data['remark'],
                                 'follow_up_date' => null,
                             ]);
 
-                            // Log activity
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead)
-                                ->withProperties(['description' => 'Demo Cancelled']);
+                            $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                                    ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
+                                    ->count();
 
-                            $appointment->update(['status' => 'Cancelled']);
+                            // Increment the follow-up count for the new description
+                            $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
+                            if ($cancelfollowUpCount == 2) {
+                                $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
+                            } elseif ($cancelfollowUpCount == 3) {
+                                $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
+                            } elseif ($cancelfollowUpCount >= 4) {
+                                $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
+                            }
+
+                            // Update or create the latest activity log description
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
+                                ]);
+                            } else {
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->withProperties(['description' => $cancelFollowUpDescription]);
+                            }
+
+                            $appointment->updateQuietly([
+                                'status' => 'Cancelled',
+                                'remarks' => $data['remark'],
+                            ]);
 
                             Notification::make()
                                 ->title('You have cancelled a demo')
@@ -509,8 +533,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->label('REMARKS')
                         ->rows(3)
                         ->autosize()
-                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                        ->afterStateUpdated(fn ($state, callable $set) => $set('remarks', strtoupper($state))),
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
                     TextInput::make('required_attendees')
                         ->label('Required Attendees')

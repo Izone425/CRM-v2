@@ -30,6 +30,36 @@ class CompanyDetail extends Model
         'email',
     ];
 
+    public function setCompanyNameAttribute($value)
+    {
+        $this->attributes['company_name'] = strtoupper($value);
+    }
+
+    public function setIndustryAttribute($value)
+    {
+        $this->attributes['industry'] = strtoupper($value);
+    }
+
+    public function setCompanyAddress1Attribute($value)
+    {
+        $this->attributes['company_address1'] = strtoupper($value);
+    }
+
+    public function setCompanyAddress2Attribute($value)
+    {
+        $this->attributes['company_address2'] = strtoupper($value);
+    }
+
+    public function setStateAttribute($value)
+    {
+        $this->attributes['state'] = strtoupper($value);
+    }
+
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = strtoupper($value);
+    }
+
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
