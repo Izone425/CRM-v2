@@ -32,6 +32,11 @@ class Appointment extends Model
         'status'
     ];
 
+    public function setRemarksAttribute($value)
+    {
+        $this->attributes['remarks'] = strtoupper($value);
+    }
+
     // public function getActivitylogOptions(): LogOptions
     // {
     //     return LogOptions::defaults()

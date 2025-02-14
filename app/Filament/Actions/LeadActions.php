@@ -66,11 +66,13 @@ class LeadActions
                     ->form(fn (Lead $record) => [
                         TextInput::make('company_name')
                             ->label('Company Name')
-                            ->default($record->companyDetail->company_name ?? 'N/A'),
+                            ->default($record->companyDetail->company_name ?? 'N/A')
+                            ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
 
                         TextInput::make('name')
                             ->label('PIC Name')
-                            ->default($record->companyDetail->name ?? $record->companyDetail->company_name),
+                            ->default($record->companyDetail->name ?? $record->companyDetail->company_name)
+                            ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
 
                         TextInput::make('contact_no')
                             ->label('PIC Contact No')
@@ -92,7 +94,7 @@ class LeadActions
                     ])
                     ->action(function (array $data, Lead $record) {
                         // Update the lead with the new values
-                        $record->companyDetail()->update([
+                        $record->companyDetail->update([
                             'company_name' => $data['company_name'],
                             'name' => $data['name'],
                             'contact_no' => $data['contact_no'],

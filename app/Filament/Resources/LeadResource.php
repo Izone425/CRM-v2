@@ -261,28 +261,27 @@ class LeadResource extends Resource
                                                         ->form([ // Define the form fields to show in the modal
                                                             Forms\Components\TextInput::make('company_name')
                                                                 ->label('Company Name')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->companyDetail->company_name ?? '-'),
+                                                                ->default(fn ($record) => strtoupper($record->companyDetail->company_name ?? '-'))
+                                                                ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
                                                             Forms\Components\TextInput::make('company_address1')
                                                                 ->label('Company Address 1')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-'),
+                                                                ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-')
+                                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                                                             Forms\Components\TextInput::make('company_address2')
                                                                 ->label('Company Address 2')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-'),
+                                                                ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
+                                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                                                             Forms\Components\TextInput::make('postcode')
                                                                 ->label('Postcode')
-                                                                ->required()
                                                                 ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
                                                             Forms\Components\TextInput::make('industry')
                                                                 ->label('Industry')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->companyDetail->industry ?? '-'),
+                                                                ->default(fn ($record) => $record->companyDetail->industry ?? '-')
+                                                                ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
                                                             Forms\Components\TextInput::make('state')
                                                                 ->label('State')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->companyDetail->state ?? '-'),
+                                                                ->default(fn ($record) => $record->companyDetail->state ?? '-')
+                                                                ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             $record = $lead->companyDetail;
@@ -339,15 +338,17 @@ class LeadResource extends Resource
                                                                 Forms\Components\TextInput::make('name')
                                                                     ->label('Name')
                                                                     ->required()
-                                                                    ->default(fn ($record) => $record->companyDetail->name ?? null),
+                                                                    ->default(fn ($record) => $record->companyDetail->name ?? null)
+                                                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                    ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
                                                                 Forms\Components\TextInput::make('email')
                                                                     ->label('Email')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->email ?? null),
-                                                                Forms\Components\TextInput::make('position')
-                                                                    ->label('Position')
-                                                                    ->required()
-                                                                    ->default(fn ($record) => $record->companyDetail->position ?? null),
+                                                                // Forms\Components\TextInput::make('position')
+                                                                //     ->label('Position')
+                                                                //     ->required()
+                                                                //     ->default(fn ($record) => $record->companyDetail->position ?? null),
                                                                 Forms\Components\TextInput::make('contact_no')
                                                                     ->label('Contact No.')
                                                                     ->required()
@@ -597,20 +598,8 @@ class LeadResource extends Resource
                                                                 ->label('6. HOW MANY STAFF DO YOU HAVE?')
                                                                 ->content(fn ($record) => $record?->systemQuestion?->staff_count ?? '-')
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('subsidiaries')
-                                                                ->label('7. HOW MANY SUBSIDIARIES?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->subsidiaries ?? '-')
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('branches')
-                                                                ->label('8. HOW MANY BRANCHES?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->branches ?? '-')
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('industry')
-                                                                ->label('9. WHAT IS YOUR INDUSTRY?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->industry ?? '-')
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('hrdf_contribution')
-                                                                ->label('10. DO YOU CONTRIBUTE TO HRDF FUND?')
+                                                                ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
                                                                 ->content(fn ($record) => $record?->systemQuestion?->hrdf_contribution ?? '-')
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
@@ -620,19 +609,17 @@ class LeadResource extends Resource
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
                                                                 ->visible(function ($record) {
-                                                                    $demoAppointment = $record->demoAppointment()->latest()->first();
+                                                                    $demoAppointment = $record->demoAppointment()
+                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
+                                                                        ->latest() // Get the latest 'Done' demo
+                                                                        ->first();
 
                                                                     if (!$demoAppointment) {
-                                                                        return false;
+                                                                        return false; // If no 'Done' demo is found, hide the field
                                                                     }
 
-                                                                    if ($demoAppointment->status === 'Done') {
-                                                                        $timeDifference = $demoAppointment->updated_at->diffInHours(now());
-
-                                                                        return $timeDifference <= 48;
-                                                                    }
-
-                                                                    return false;
+                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
+                                                                    return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
                                                                     Forms\Components\TextInput::make('modules')
@@ -655,19 +642,8 @@ class LeadResource extends Resource
                                                                         ->label('6. HOW MANY STAFF DO YOU HAVE?')
                                                                         ->numeric()
                                                                         ->default(fn ($record) => $record?->systemQuestion?->staff_count),
-                                                                    Forms\Components\TextInput::make('subsidiaries')
-                                                                        ->label('7. HOW MANY SUBSIDIARIES?')
-                                                                        ->numeric()
-                                                                        ->default(fn ($record) => $record?->systemQuestion?->subsidiaries),
-                                                                    Forms\Components\TextInput::make('branches')
-                                                                        ->label('8. HOW MANY BRANCHES?')
-                                                                        ->numeric()
-                                                                        ->default(fn ($record) => $record?->systemQuestion?->branches),
-                                                                    Forms\Components\TextInput::make('industry')
-                                                                        ->label('9. WHAT IS YOUR INDUSTRY?')
-                                                                        ->default(fn ($record) => $record?->systemQuestion?->industry),
                                                                     Forms\Components\Select::make('hrdf_contribution')
-                                                                        ->label('10. DO YOU CONTRIBUTE TO HRDF FUND?')
+                                                                        ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
                                                                         ->options([
                                                                             'Yes' => 'Yes',
                                                                             'No' => 'No',
@@ -681,6 +657,7 @@ class LeadResource extends Resource
                                                                     if ($record) {
                                                                         // Include causer_id in the data
                                                                         $data['causer_name'] = auth()->user()->name;
+                                                                        $record->updated_at_phase_1 = now();
 
                                                                         // Update the existing SystemQuestion record
                                                                         $record->update($data);
@@ -704,16 +681,171 @@ class LeadResource extends Resource
                                                                 }),
                                                         ])
                                                 ]),
-                                        Forms\Components\Tabs\Tab::make('Phase 2')
-                                            ->schema([
-                                                Forms\Components\Placeholder::make('phase_2_content')
-                                                    ->content('Content for Phase 2 goes here.'),
-                                            ]),
-                                        Forms\Components\Tabs\Tab::make('Phase 3')
-                                            ->schema([
-                                                Forms\Components\Placeholder::make('phase_3_content')
-                                                    ->content('Content for Phase 3 goes here.'),
-                                            ]),
+                                            Forms\Components\Tabs\Tab::make('Phase 2')
+                                                ->schema([
+                                                    Forms\Components\Section::make('Phase 2')
+                                                        ->description(fn ($record) =>
+                                                            $record && $record->systemQuestion
+                                                                ? 'Updated by ' . ($record->systemQuestion->causer_name ?? 'Unknown') . ' on ' .
+                                                                ($record->systemQuestion->updated_at?->format('F j, Y, g:i A') ?? 'N/A')
+                                                                : null
+                                                        )
+                                                        ->schema([
+                                                            Forms\Components\Placeholder::make('modules')
+                                                                ->label('1.  PROSPECT QUESTION – NEED TO REFER SUPPORT TEAM.')
+                                                                ->content(fn ($record) => $record?->systemQuestion?->modules ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('existing_system')
+                                                                ->label('2. PROSPECT CUSTOMIZATION – NEED TO REFER PRODUCT TEAM.')
+                                                                ->content(fn ($record) => $record?->systemQuestion?->existing_system ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                        ])
+                                                        ->headerActions([
+                                                            Forms\Components\Actions\Action::make('update_phase2')
+                                                                ->label('Update')
+                                                                ->color('primary')
+                                                                ->modalHeading('Update Data')
+                                                                ->visible(function ($record) {
+                                                                    $demoAppointment = $record->demoAppointment()
+                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
+                                                                        ->latest() // Get the latest 'Done' demo
+                                                                        ->first();
+
+                                                                    if (!$demoAppointment) {
+                                                                        return false; // If no 'Done' demo is found, hide the field
+                                                                    }
+
+                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
+                                                                    return $demoAppointment->updated_at->diffInHours(now()) <= 48;
+                                                                })
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('modules')
+                                                                        ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->modules),
+                                                                ])
+                                                                ->action(function (Lead $lead, array $data) {
+                                                                    // Retrieve the current lead's systemQuestion
+                                                                    $record = $lead->systemQuestion;
+
+                                                                    if ($record) {
+                                                                        // // Include causer_id in the data
+                                                                        // $data['causer_name'] = auth()->user()->name;
+                                                                        // $record->causer_name_phase3 = auth()->user()->name;
+                                                                        // $record->updated_at_phase_3 = now();
+                                                                        // // Update the existing SystemQuestion record
+                                                                        // $record->update($data);
+
+                                                                        Notification::make()
+                                                                            ->title('Updated Successfully')
+                                                                            ->success()
+                                                                            ->send();
+                                                                    } else {
+                                                                        // // Add causer_id to the data for the new record
+                                                                        // $data['causer_name'] = auth()->user()->name;
+
+                                                                        // // Create a new SystemQuestion record via the relation
+                                                                        // $lead->systemQuestion()->create($data);
+
+                                                                        Notification::make()
+                                                                            ->title('Created Successfully')
+                                                                            ->success()
+                                                                            ->send();
+                                                                    }
+                                                                }),
+                                                        ])
+                                                ]),
+                                            Forms\Components\Tabs\Tab::make('Phase 3')
+                                                ->schema([
+                                                    Forms\Components\Section::make('Phase 3')
+                                                        ->description(function ($record) {
+                                                            if ($record && $record->systemQuestionPhase3 && !empty($record->systemQuestionPhase3->updated_at)) {
+                                                                return 'Updated by ' . ($record->systemQuestionPhase3->causer_name ?? 'Unknown') . ' on ' .
+                                                                    \Carbon\Carbon::parse($record->systemQuestionPhase3->updated_at)->format('F j, Y, g:i A');
+                                                            }
+
+                                                            return null; // Return null if no update exists
+                                                        })
+                                                        ->schema([
+                                                            Forms\Components\Placeholder::make('percentage')
+                                                                ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
+                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->percentage ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('vendor')
+                                                                ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
+                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->vendor ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('plan')
+                                                                ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
+                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->plan ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('finalise')
+                                                                ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
+                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->finalise ?? '-')
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                        ])
+                                                        ->headerActions([
+                                                            Forms\Components\Actions\Action::make('update_phase3')
+                                                                ->label('Update')
+                                                                ->color('primary')
+                                                                ->modalHeading('Update Data')
+                                                                ->visible(function ($record) {
+                                                                    $demoAppointment = $record->demoAppointment()
+                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
+                                                                        ->latest() // Get the latest 'Done' demo
+                                                                        ->first();
+
+                                                                    if (!$demoAppointment) {
+                                                                        return false; // If no 'Done' demo is found, hide the field
+                                                                    }
+
+                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
+                                                                    return $demoAppointment->updated_at->diffInHours(now()) <= 48;
+                                                                })
+                                                                ->form([
+                                                                    Forms\Components\TextInput::make('percentage')
+                                                                        ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase3?->percentage),
+                                                                    Forms\Components\TextInput::make('vendor')
+                                                                        ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase3?->vendor),
+                                                                    Forms\Components\TextInput::make('plan')
+                                                                        ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase3?->plan),
+                                                                    Forms\Components\TextInput::make('finalise')
+                                                                        ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase3?->finalise),
+                                                                ])
+                                                                ->action(function (Lead $lead, array $data) {
+                                                                    // Retrieve the current lead's systemQuestion
+                                                                    $record = $lead->systemQuestionPhase3;
+
+                                                                    if ($record) {
+                                                                        // Include causer_id in the data
+                                                                        $record->systemQuestionPhase3->causer_name = auth()->user()->name;
+                                                                        $record->systemQuestionPhase3->updated_at = now();
+
+                                                                        // Update the existing SystemQuestion record
+                                                                        $record->update($data);
+
+                                                                        Notification::make()
+                                                                            ->title('Updated Successfully')
+                                                                            ->success()
+                                                                            ->send();
+                                                                    } else {
+                                                                        // Add causer_id to the data for the new record
+                                                                        $data['causer_name'] = auth()->user()->name;
+
+                                                                        // Create a new SystemQuestion record via the relation
+                                                                        $lead->systemQuestionPhase3()->create($data);
+
+                                                                        Notification::make()
+                                                                            ->title('Created Successfully')
+                                                                            ->success()
+                                                                            ->send();
+                                                                    }
+                                                                }),
+                                                        ])
+                                                ]),
                                     ])
                                 ]),
                             Forms\Components\Tabs\Tab::make('Refer & Earn')
@@ -972,7 +1104,9 @@ class LeadResource extends Resource
                     ->label('')
                     ->multiple()
                     ->options(
-                        collect(LeadCategoriesEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
+                        collect(LeadCategoriesEnum::cases())
+                            ->mapWithKeys(fn ($case) => [$case->value => ucfirst(strtolower($case->name))])
+                            ->toArray()
                     )
                     ->placeholder('Select Category')
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['transfer', 'active', 'demo', 'follow_up', 'inactive'])),

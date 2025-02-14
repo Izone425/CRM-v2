@@ -70,12 +70,15 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Role::class);
     }
 
-    public function sAdmin(): bool
+    public function getMailerConfig()
     {
-        if (!$this->relationLoaded('role')) {
-            $this->load('role');
-        }
-
-        return $this->role && $this->role->name === 'Admin';
+        return [
+            'transport' => 'smtp',
+            'host' => $this->smtp_host ?? env('MAIL_HOST'),
+            'port' => $this->smtp_port ?? env('MAIL_PORT'),
+            'encryption' => $this->smtp_encryption ?? env('MAIL_ENCRYPTION'),
+            'username' => $this->smtp_username ?? env('MAIL_USERNAME'),
+            'password' => $this->smtp_password ?? env('MAIL_PASSWORD'),
+        ];
     }
 }

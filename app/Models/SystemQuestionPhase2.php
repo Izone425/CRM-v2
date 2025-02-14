@@ -12,19 +12,16 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Carbon\Carbon;
 
-class SystemQuestion extends Model
+class SystemQuestionPhase2 extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'lead_id',
-        'modules',
-        'existing_system',
-        'usage_duration',
-        'expired_date',
-        'reason_for_change',
-        'staff_count',
-        'hrdf_contribution',
+        'plan',
+        'finalise',
+        'vendor',
+        'percentage',
         'causer_name',
     ];
 

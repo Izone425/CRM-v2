@@ -80,6 +80,16 @@ class Lead extends Model
         'products' => 'array',
     ];
 
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = strtoupper($value);
+    }
+
+    public function setRemarkAttribute($value)
+    {
+        $this->attributes['remark'] = strtoupper($value);
+    }
+
     public static function boot()
     {
         parent::boot();
@@ -164,6 +174,16 @@ class Lead extends Model
     public function systemQuestion(): HasOne
     {
         return $this->hasOne(SystemQuestion::class, 'lead_id', 'id');
+    }
+
+    public function systemQuestionPhase2(): HasOne
+    {
+        return $this->hasOne(SystemQuestionPhase2::class, 'lead_id', 'id');
+    }
+
+    public function systemQuestionPhase3(): HasOne
+    {
+        return $this->hasOne(SystemQuestionPhase3::class, 'lead_id', 'id');
     }
 
     public function bankDetail(): HasOne
