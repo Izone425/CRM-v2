@@ -43,11 +43,7 @@ class DemoTodayTable extends Component implements HasForms, HasTable
         // Ensure selectedUser is fetched from session if not set
         $this->selectedUser = $this->selectedUser ?? session('selectedUser');
 
-        info("Current selectedUser in getTodayDemos: " . $this->selectedUser); // Debugging
-
         $salespersonId = ($this->selectedUser && auth()->user()->role_id == 3) ? $this->selectedUser : auth()->id();
-
-        info("Using salespersonId for filtering: " . $salespersonId); // Debugging
 
         return Appointment::whereDate('date', today()) // Filter by today's date in Appointment
         ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')

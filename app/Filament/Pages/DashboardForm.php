@@ -97,8 +97,6 @@ class DashboardForm extends Page
 
     public function updatedSelectedUser($userId)
     {
-        info("Updated selected user ID: " . $userId); // Debugging
-
         $this->selectedUser = $userId; // Store selected user
         $selectedUser = User::find($userId);
 

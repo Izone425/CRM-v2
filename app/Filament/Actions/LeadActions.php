@@ -839,7 +839,6 @@ class LeadActions
                 // Fetch lead owner details
                 $leadOwner = User::where('name', $record->lead_owner)->first();
                 $salespersonUser = User::find($data['salesperson']);
-                info($salespersonUser);
                 if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                     try {
                         // Get logged-in user details
@@ -1010,7 +1009,6 @@ class LeadActions
                             // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                         ],
                     ];
-                    Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
                     // Mail::mailer('secondary')
                     //     ->to($lead->companyDetail->email ?? $lead->email)
@@ -1093,7 +1091,6 @@ class LeadActions
                             // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                         ],
                     ];
-                    Log::info('Company Name:', ['companyName' => $lead->companyDetail->company_name ?? 'N/A']);
 
                     Mail::mailer('secondary')
                         ->to($lead->companyDetail->email ?? $lead->email)

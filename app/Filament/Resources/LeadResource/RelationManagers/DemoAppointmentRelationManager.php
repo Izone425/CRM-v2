@@ -393,7 +393,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     return false; // Allow selection without restrictions
                                 }
 
-                                if ($date && $startTime && $endTime) {
+                                // if ($date && $startTime && $endTime) {
                                     // Check for overlapping appointments
                                     $hasOverlap = Appointment::where('salesperson', $value)
                                         ->where('status', 'New')
@@ -413,33 +413,33 @@ class DemoAppointmentRelationManager extends RelationManager
                                     }
 
                                     // Morning or afternoon validation
-                                    $isMorning = strtotime($startTime) < strtotime('12:00:00');
+                                    // $isMorning = strtotime($startTime) < strtotime('12:00:00');
 
-                                    if ($isMorning) {
-                                        $morningCount = Appointment::where('salesperson', $value)
-                                            ->whereNot('status', 'Cancelled')
-                                            ->whereDate('date', $date)
-                                            ->whereTime('start_time', '<', '12:00:00')
-                                            ->count();
+                                    // if ($isMorning) {
+                                    //     $morningCount = Appointment::where('salesperson', $value)
+                                    //         ->whereNot('status', 'Cancelled')
+                                    //         ->whereDate('date', $date)
+                                    //         ->whereTime('start_time', '<', '12:00:00')
+                                    //         ->count();
 
-                                        if ($morningCount >= 1) {
-                                            return true; // Morning slot already filled
-                                        }
-                                    } else {
-                                        $afternoonCount = Appointment::where('salesperson', $value)
-                                            ->whereNot('status', 'Cancelled')
-                                            ->whereDate('date', $date)
-                                            ->whereTime('start_time', '>=', '12:00:00')
-                                            ->count();
+                                    //     if ($morningCount >= 1) {
+                                    //         return true; // Morning slot already filled
+                                    //     }
+                                    // } else {
+                                    //     $afternoonCount = Appointment::where('salesperson', $value)
+                                    //         ->whereNot('status', 'Cancelled')
+                                    //         ->whereDate('date', $date)
+                                    //         ->whereTime('start_time', '>=', '12:00:00')
+                                    //         ->count();
 
-                                        if ($afternoonCount >= 1) {
-                                            return true; // Afternoon slot already filled
-                                        }
-                                    }
-                                }
+                                    //     if ($afternoonCount >= 1) {
+                                    //         return true; // Afternoon slot already filled
+                                    //     }
+                                    // }
+                                // }
 
 
-                                return false;
+                                // return false;
                             })
                             ->required()
                             ->hidden(fn () => auth()->user()->role_id === 2)

@@ -1702,11 +1702,6 @@ class ActivityLogRelationManager extends RelationManager
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
                                         ->execute();
 
-                                    Log::info('Teams meeting cancelled successfully', [
-                                        'event_id' => $eventId,
-                                        'organizer' => $organizerEmail,
-                                    ]);
-
                                     $appointment->update([
                                         'status' => 'Cancelled',
                                     ]);
