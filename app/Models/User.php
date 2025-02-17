@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Filament\Panel;
 use App\Models\Role;
+use Beta\Microsoft\Graph\TermStore\Model\Store;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
@@ -86,10 +87,9 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function getFilamentAvatarUrl(): ?string
     {
-        if($this->avatar_path && Storage::exists($this->avatar_path)){
+        if($this->avatar_path && Storage::disk("public")->exists($this->avatar_path)){
             return Storage::url($this->avatar_path);
         }
-
         return "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $this->name, "background" => "random"]);
     }
 }

@@ -17,6 +17,10 @@ class UserLeave extends Model
         'leave_type',
         'date',
         'day_of_week',
+        'status',
+        'start_time',
+        'end_time',
+        'session'
     ];
 
         public function user()

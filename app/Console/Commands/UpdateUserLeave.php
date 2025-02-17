@@ -15,7 +15,7 @@ class UpdateUserLeave extends Command
      *
      * @var string
      */
-    protected $signature = 'userleave:update {dateFrom} {dateTo}';
+    protected $signature = 'userleave:update';
 
     /**
      * The console command description.
@@ -27,7 +27,7 @@ class UpdateUserLeave extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    /*public function handle()
     {
         UserLeave::truncate();
 
@@ -53,6 +53,60 @@ class UpdateUserLeave extends Command
 
             }  
         }
+    }*/ //OLD
+
+    public function handle(){
+        //Clear Current User leave
+        UserLeave::truncate();
+
+        $currentDate = Carbon::now()->startOfYear();
+
+        //
+        $salesPeople = $this->getAllSalesPeople()->toArray();
+
+        //$i is the number of months forward to keep in DB
+        for ($i=0; $i < 12; $i++) { 
+
+            $dateFrom = $currentDate->copy()->startOfMonth();
+            $dateTo = $currentDate->copy()->endOfMonth();
+            $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
+            $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
+            $params = ["CompanyID" => 351, "DateFrom" => $dateFrom, "DateTo" => $dateTo];
+            $leave = json_decode($LeaveAPIService->getClient()->GetApprovedPendingLeaves($params)->GetApprovedPendingLeavesResult,true)['Result']['UserLeaveObj'];
+            
+            array_map(function ($row) use($salesPeople) {
+                    foreach($salesPeople as $salesPerson){
+                        if($salesPerson['api_user_id'] == $row['User_ID']) {
+
+                            if(empty($row['StartTime']) || empty($row['EndTime'])){
+                                $session = "full";
+                            }
+                            else {
+                                $convertedEndTime = Carbon::parse($row["EndTime"])->hour;
+                                if($convertedEndTime < 13){
+                                    $session = "am";
+                                }
+                                else
+                                    $session = "pm";
+                            }
+
+                            UserLeave::create([
+                                'user_ID' => $salesPerson['id'],
+                                'leave_type' => $row['LeaveType'],
+                                'date' => $row['Date'],
+                                'day_of_week' => Carbon::parse($row['Date'])->dayOfWeekIso,
+                                'status'=> $row['Status'],
+                                'session'=> $session,
+                                'start_time'=> $row['StartTime'] ?? null,
+                                'end_time'=> $row['EndTime'] ?? null,
+                            ]);
+                        }       
+                    }
+            }, $leave);
+
+            $currentDate->addMonth(1);
+        }
+
     }
 
     private function getAllSalesPeople()

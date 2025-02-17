@@ -28,9 +28,9 @@ class Test extends Command
     {
         $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
         $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-        $params = ["CompanyID" => 351, "CheckTimeFrom" => "2025-01-15", "CheckTimeTo" => "2025-02-10"];
+        $params = ["CompanyID" => 351, "DateFrom" => "2025-01-15", "DateTo" => "2025-02-10"];
 
-        $leave = json_decode($LeaveAPIService->getClient()->GetApprovedPendingLeaves($params)->UserLeaveObj,true);
-        $this->info('Starting the command...');
+        $leave = json_decode($LeaveAPIService->getClient()->GetApprovedPendingLeaves($params)->GetApprovedPendingLeavesResult,true);
+        dd($leave);
     }
 }
