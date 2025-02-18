@@ -42,7 +42,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('1s')
+            ->poll('5')
             ->query($this->getActiveBigCompanyLeads())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
