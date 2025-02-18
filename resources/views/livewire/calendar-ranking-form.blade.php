@@ -2,12 +2,9 @@
     <style>
         .ranking-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            /* Two columns of equal width */
+            grid-template-columns: repeat(4, 1fr); /* Four columns */
             gap: 20px;
-            /* Space between columns and rows */
-            max-width: 600px;
-            /* Adjust as needed */
+            max-width: 90%; /* Adjust as needed */
             margin: 0 auto;
             padding: 20px;
             border: 1px solid #ccc;
@@ -37,8 +34,7 @@
         .error-message {
             color: red;
             margin-bottom: 20px;
-            grid-column: span 2;
-            /* Takes full width */
+            grid-column: span 4; /* Takes full width across 4 columns */
         }
 
         .submit-button {
@@ -49,13 +45,13 @@
             font-size: 16px;
             border-radius: 4px;
             cursor: pointer;
-            grid-column: span 2;
-            /* Spans both columns */
+            grid-column: span 4; /* Spans all four columns */
         }
     </style>
-    <!-- Left Column -->
+
+    <!-- Column 1 -->
     <div class="column">
-        <template x-for="rank in leftRanks" :key="rank">
+        <template x-for="rank in column1" :key="rank">
             <div class="rank-field">
                 <label x-text="'Rank ' + rank"></label>
                 <select x-model="rankings[rank]">
@@ -70,9 +66,43 @@
         </template>
     </div>
 
-    <!-- Right Column -->
+    <!-- Column 2 -->
     <div class="column">
-        <template x-for="rank in rightRanks" :key="rank">
+        <template x-for="rank in column2" :key="rank">
+            <div class="rank-field">
+                <label x-text="'Rank ' + rank"></label>
+                <select x-model="rankings[rank]">
+                    <option value="">Select User</option>
+                    <template x-for="user in users" :key="user.id">
+                        <option :value="user.id" x-text="user.name"
+                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
+                        </option>
+                    </template>
+                </select>
+            </div>
+        </template>
+    </div>
+
+    <!-- Column 3 -->
+    <div class="column">
+        <template x-for="rank in column3" :key="rank">
+            <div class="rank-field">
+                <label x-text="'Rank ' + rank"></label>
+                <select x-model="rankings[rank]">
+                    <option value="">Select User</option>
+                    <template x-for="user in users" :key="user.id">
+                        <option :value="user.id" x-text="user.name"
+                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
+                        </option>
+                    </template>
+                </select>
+            </div>
+        </template>
+    </div>
+
+    <!-- Column 4 -->
+    <div class="column">
+        <template x-for="rank in column4" :key="rank">
             <div class="rank-field">
                 <label x-text="'Rank ' + rank"></label>
                 <select x-model="rankings[rank]">
@@ -98,25 +128,31 @@
     <button type="button" @click="submitForm()" class="submit-button">
         Submit Rankings
     </button>
+
     <script>
         function rankingForm(users) {
             return {
-                users: users, // Array of user objects: each should have { id, name }
+                users: users, // Array of user objects: { id, name }
                 // Create ranking numbers from 1 up to the number of users.
-                rankingNumbers: Array.from({
-                    length: users.length
-                }, (_, i) => i + 1),
+                rankingNumbers: Array.from({ length: users.length }, (_, i) => i + 1),
                 rankings: {}, // Object to hold the selected user id for each rank
 
-                // Left column: first half of ranking numbers.
-                get leftRanks() {
-                    const half = Math.ceil(this.rankingNumbers.length / 2);
-                    return this.rankingNumbers.slice(0, half);
+                // Calculate the size of each column (quarter of total ranking numbers).
+                get quarter() {
+                    return Math.ceil(this.rankingNumbers.length / 4);
                 },
-                // Right column: remaining ranking numbers.
-                get rightRanks() {
-                    const half = Math.ceil(this.rankingNumbers.length / 2);
-                    return this.rankingNumbers.slice(half);
+                // Split the ranking numbers into 4 columns.
+                get column1() {
+                    return this.rankingNumbers.slice(0, this.quarter);
+                },
+                get column2() {
+                    return this.rankingNumbers.slice(this.quarter, this.quarter * 2);
+                },
+                get column3() {
+                    return this.rankingNumbers.slice(this.quarter * 2, this.quarter * 3);
+                },
+                get column4() {
+                    return this.rankingNumbers.slice(this.quarter * 3);
                 },
                 // Check if a user id is already selected in any rank (excluding the current one).
                 isUserSelected(userId) {
@@ -140,5 +176,4 @@
             }
         }
     </script>
-
 </div>

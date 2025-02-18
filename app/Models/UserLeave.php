@@ -44,9 +44,10 @@ class UserLeave extends Model
         ->get();
 
         foreach($temp as &$row){
-            $row['salespersonAvatar'] = $row->user->getFilamentAvatarUrl();
+            $row->salespersonAvatar = $row->user->getFilamentAvatarUrl();
+            $row->salespersonName = $row->user->name;
         }
-        return $temp;
+        return $temp->toArray();
     }
 
 }

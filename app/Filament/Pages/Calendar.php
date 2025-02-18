@@ -5,12 +5,14 @@ namespace App\Filament\Pages;
 use App\Models\Appointment;
 use App\Models\User;
 use Filament\Pages\Page;
+use Illuminate\Contracts\Support\Htmlable;
 
 class Calendar extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static string $view = 'filament.pages.calendar';
     protected static ?int $navigationSort = 6;
+
 
     public $totalDemos = 0;
     public $newDemos = 0;
@@ -24,7 +26,13 @@ class Calendar extends Page
     public array $demoTypeOptions = [];
     public bool $allSelected = false;
     public bool $allDemoAppointmentTypeSelected = false;
-    
+
+
+    public function getTitle(): string | Htmlable
+    {
+        return __("");
+    }
+
     public function mount(): void
     {
         // Populate salesperson options
@@ -35,7 +43,7 @@ class Calendar extends Page
         $this->allSelected = true;
 
         // Populate demo appointment types
-        $this->demoAppointmentTypeOptions = ['ONLINE','ONSITE'];
+        $this->demoAppointmentTypeOptions = ['ONLINE', 'ONSITE'];
 
         // Populate demo types
         $this->demoTypeOptions = Appointment::distinct('type')
