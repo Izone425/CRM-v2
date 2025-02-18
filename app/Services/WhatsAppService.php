@@ -48,7 +48,7 @@ class WhatsAppService
     public function sendFile($to, $fileUrl, $fileMimeType)
     {
         // ✅ Convert private URL to public
-        $fileUrl = str_replace('crm.timeteccloud.com:8082', 'crm.timeteccloud.com:8083', $fileUrl);
+        $fileUrl = str_replace('192.168.1.31:8082', 'crm.timeteccloud.com:8083', $fileUrl);
 
         try {
             $response = $this->twilio->messages->create(
