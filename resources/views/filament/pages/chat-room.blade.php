@@ -103,11 +103,11 @@
                 <div class="p-4 bg-white border-t">
                     <form wire:submit.prevent="sendMessage">
                         <div class="flex items-center space-x-2">
-                            <!-- File Upload Button -->
+                            {{-- <!-- File Upload Button -->
                             <label for="fileUpload" class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg cursor-pointer hover:bg-gray-300">
                                 <i class="fas fa-paperclip"></i>
                             </label>
-                            <input type="file" id="fileUpload" wire:model="file" class="hidden">
+                            <input type="file" id="fileUpload" wire:model="file" class="hidden"> --}}
 
                             <!-- Text Input -->
                             <input type="text" wire:model="message" placeholder="Type a message"
