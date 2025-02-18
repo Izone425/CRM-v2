@@ -53,11 +53,11 @@ class ChatRoom extends Page
                 ->title('New Customer Message')
                 ->body("You have $newMessages new message(s). Click to view.")
                 ->success()
-                ->actions([
-                    \Filament\Notifications\Actions\Action::make('View Messages')
-                        ->url(route('filament.admin.resources.chat-messages.index')) // Adjust route
-                        ->button()
-                ])
+                // ->actions([
+                //     \Filament\Notifications\Actions\Action::make('View Messages')
+                //         ->url(route('filament.admin.resources.chat-messages.index')) // Adjust route
+                //         ->button()
+                // ])
                 ->send();
         }
     }

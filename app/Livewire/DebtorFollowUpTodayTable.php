@@ -52,7 +52,7 @@ class DebtorFollowUpTodayTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('1s')
             ->query($this->getTodayProspects())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

@@ -40,7 +40,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('1s')
             ->defaultSort('created_at', 'desc')
             ->defaultPaginationPageOption(5)
             ->paginated([5])

@@ -106,7 +106,7 @@ class ActivityLogRelationManager extends RelationManager
         $this->totalnum = ActivityLog::where('subject_id', $this->getOwnerRecord()->id)->count();
 
         return $table
-            ->poll('5s')
+            ->poll('1s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
             ->columns([

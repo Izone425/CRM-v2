@@ -56,7 +56,7 @@ class QuotationRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('1s')
             ->headerActions([
                 Action::make('createQuotation')
                 ->label('Add Quotation')

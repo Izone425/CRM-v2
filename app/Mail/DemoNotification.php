@@ -8,26 +8,32 @@ use Illuminate\Queue\SerializesModels;
 
 class DemoNotification extends Mailable
 {
-    public $content;
-    public $viewName; // This holds the Blade template to use
+    public $emailContent;
+    public $viewName;
+    public $senderEmail;
+    public $senderName;
 
-    public function __construct($content, $viewName)
+    public function __construct($emailContent, $viewName, $senderEmail, $senderName)
     {
-        $this->content = $content;
-        $this->viewName = $viewName; // Set the view name dynamically
+        $this->emailContent = $emailContent;
+        $this->viewName = $viewName;
+        $this->senderEmail = $senderEmail;
+        $this->senderName = $senderName;
     }
 
     public function build()
     {
-        return $this->view($this->viewName) // Use the selected template dynamically
+        return $this->from($this->senderEmail, $this->senderName)
+                    ->replyTo($this->senderEmail, $this->senderName) // Ensure replies go to the actual sender
+                    ->view($this->viewName)
                     ->subject(
-                        strtoupper($this->content['lead']['demo_type']) . " | " .
-                        strtoupper($this->content['lead']['appointment_type']) . " | TIMETEC HR | " .
-                        $this->content['lead']['company']
+                        strtoupper($this->emailContent['lead']['demo_type']) . " | " .
+                        strtoupper($this->emailContent['lead']['appointment_type']) . " | TIMETEC HR | " .
+                        $this->emailContent['lead']['company']
                     )
                     ->with([
-                        'lead' => $this->content['lead'],
-                        'leadOwnerName' => $this->content['leadOwnerName'],
+                        'lead' => $this->emailContent['lead'],
+                        'leadOwnerName' => $this->emailContent['leadOwnerName'],
                     ]);
     }
 }
