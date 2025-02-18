@@ -341,35 +341,6 @@ class LeadActions
                                     if ($hasOverlap) {
                                         return true;
                                     }
-
-                                    // Morning or afternoon validation
-                                    // $isMorning = strtotime($startTime) < strtotime('12:00:00');
-
-                                //     if ($isMorning) {
-                                //         $morningCount = Appointment::where('salesperson', $value)
-                                //             ->whereNot('status', 'Cancelled')
-                                //             ->whereDate('date', $date)
-                                //             ->whereTime('start_time', '<', '12:00:00')
-                                //             ->count();
-
-                                //         if ($morningCount >= 1) {
-                                //             return true; // Morning slot already filled
-                                //         }
-                                //     } else {
-                                //         $afternoonCount = Appointment::where('salesperson', $value)
-                                //             ->whereNot('status', 'Cancelled')
-                                //             ->whereDate('date', $date)
-                                //             ->whereTime('start_time', '>=', '12:00:00')
-                                //             ->count();
-
-                                //         if ($afternoonCount >= 1) {
-                                //             return true; // Afternoon slot already filled
-                                //         }
-                                //     }
-                                // }
-
-
-                                // return false;
                             })
                             ->required()
                             ->hidden(fn () => auth()->user()->role_id === 2)
@@ -487,10 +458,6 @@ class LeadActions
                         'remarks' => $data['remarks'],
                         'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
-                        // 'optional_attendees' => json_encode($data['optional_attendees']),
-                        // 'location' => $data['location'] ?? null,
-                        // 'details' => $data['details'],
-                        // 'status' => 'New'
                     ]);
                     $appointment->save();
                     // Retrieve the related Lead model from ActivityLog
@@ -517,15 +484,7 @@ class LeadActions
                         return; // Exit if no valid email is found
                     }
 
-                    $organizerEmail = $salesperson->email; // Get the salesperson's email
-
-                    // $requiredAttendees = is_string($data['required_attendees'])
-                    //     ? json_decode($data['required_attendees'], true)
-                    //     : $data['required_attendees']; // Handle already-decoded data or string
-
-                    // $optionalAttendees = is_string($data['optional_attendees'])
-                    //     ? json_decode($data['optional_attendees'], true)
-                    //     : $data['optional_attendees']; // Handle already-decoded data or string
+                    $organizerEmail = $salesperson->email;
 
                     $meetingPayload = [
                         'start' => [
@@ -536,31 +495,7 @@ class LeadActions
                             'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
-                        // 'body'=> [
-                        //     'contentType'=> 'HTML',
-                        //     'content'=> $data['details']
-                        // ],
-                        'subject' => $lead->companyDetail->company_name, // Event title
-                        // 'attendees' => array_merge(
-                        //     array_map(function ($attendee) {
-                        //         return [
-                        //             'emailAddress' => [
-                        //                 'address' => $attendee['email'],
-                        //                 'name' => $attendee['name'],
-                        //             ],
-                        //             'type' => 'Required', // Set type as Required
-                        //         ];
-                        //     }, $requiredAttendees ?? []),
-                        //     array_map(function ($attendee) {
-                        //         return [
-                        //             'emailAddress' => [
-                        //                 'address' => $attendee['email'],
-                        //                 'name' => $attendee['name'],
-                        //             ],
-                        //             'type' => 'Optional', // Set type as Optional
-                        //         ];
-                        //     }, $optionalAttendees ?? [])
-                        // ),
+                        'subject' => $lead->companyDetail->company_name,
                         'isOnlineMeeting' => true,
                         'onlineMeetingProvider' => 'teamsForBusiness',
                     ];
@@ -665,12 +600,18 @@ class LeadActions
                             $allEmails = array_filter($allEmails, function ($email) {
                                 return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                             });
-
+                            info($allEmails);
                             // Check if we have valid recipients before sending emails
                             if (!empty($allEmails)) {
                                 foreach ($allEmails as $recipient) {
-                                    Mail::mailer('secondary')->to($recipient)
-                                        ->send(new DemoNotification($emailContent, $viewName));
+                                    Mail::mailer()
+                                    ->to($recipient)
+                                    ->send(new DemoNotification(
+                                        $emailContent,
+                                        $viewName,
+                                        auth()->user()->email, // Auth user email as sender
+                                        auth()->user()->name   // Auth user name
+                                    ));
                                 }
                             } else {
                                 Log::error("No valid email addresses found for sending DemoNotification.");
