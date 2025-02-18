@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0f86239cf1411a4371cc54ca219af5a1",
+    "content-hash": "66b0e5dd59b1e933a5b6e0cac882ef22",
     "packages": [
         {
             "name": "alexjustesen/filament-spatie-laravel-activitylog",

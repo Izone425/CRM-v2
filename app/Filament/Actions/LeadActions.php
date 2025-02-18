@@ -464,7 +464,7 @@ class LeadActions
                         ->rows(3)
                         ->autosize()
                         ->reactive()
-                        ->afterStateUpdated(fn ($state, callable $set) => $set('remarks', strtoupper($state))),
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
                     TextInput::make('required_attendees')
                         ->label('Required Attendees')
@@ -718,24 +718,24 @@ class LeadActions
                         ->success()
                         ->send();
 
-                    // $phoneNumber = $lead->phone; // Recipient's WhatsApp number
-                    // $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
+                    $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+                    $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
 
-                    // $variables = [
-                    //     $lead->name,
-                    //     $lead->companyDetail->company_name,
-                    //     $contactNo,
-                    //     $picName,
-                    //     $email,
-                    //     $appointment->appointment_type,
-                    //     "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
-                    //     $onlineMeeting->getOnlineMeeting()->getJoinUrl()
-                    // ];
+                    $variables = [
+                        $lead->name,
+                        $lead->companyDetail->company_name,
+                        $contactNo,
+                        $picName,
+                        $email,
+                        $appointment->appointment_type,
+                        "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
+                        $onlineMeeting->getOnlineMeeting()->getJoinUrl()
+                    ];
 
-                    // $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                    $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                    // return $response;
+                    return $response;
                 });
     }
 
@@ -797,7 +797,7 @@ class LeadActions
                     ->autosize()
                     ->required()
                     ->placeholder('Enter remarks here...')
-                    ->afterStateUpdated(fn ($state, callable $set) => $set('remark', strtoupper($state))),
+                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
             ])
             ->color('success')
             ->icon('heroicon-o-pencil-square')
@@ -907,11 +907,7 @@ class LeadActions
                 ->required()
                 ->placeholder('Enter remarks here...')
                 ->maxLength(500)
-                ->afterStateUpdated(fn ($state, callable $set) => $set('remark', strtoupper($state))),
-
-            // Forms\Components\Checkbox::make('follow_up_needed')
-            //     ->label('Enable automatic follow-up (4 times)')
-            //     ->default(false),
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
             DatePicker::make('follow_up_date')
             ->label('Next Follow Up Date')
@@ -941,28 +937,19 @@ class LeadActions
                 $lead->update([
                     'follow_up_date' => $followUpDate,
                     'remark' => $data['remark'],
-                    'follow_up_count' => $lead->follow_up_count + 1,
-                    'lead_status' => 'Under Review',
+                    'follow_up_needed' => 0
                 ]);
 
-                // Increment the follow-up count for the new description
-                $followUpDescription = ($lead->follow_up_count) . 'st Lead Owner Follow Up';
-                $viewName = 'emails.email_blasting_1st';
-                $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
-
-                if ($lead->follow_up_count == 2) {
-                    $followUpDescription = '2nd Lead Owner Follow Up';
-                    $viewName = 'emails.email_blasting_2nd';
-                    $contentTemplateSid = 'HX72acd0ab4ffec49493288f9c0b53a17a';
-                } elseif ($lead->follow_up_count == 3) {
-                    $followUpDescription = '3rd Lead Owner Follow Up';
-                    $viewName = 'emails.email_blasting_3rd';
-                    $contentTemplateSid = 'HX9ed8a4589f03d9563e94d47c529aaa0a';
-                } elseif ($lead->follow_up_count >= 4) {
-                    $followUpDescription = $lead->follow_up_count . 'th Lead Owner Follow Up';
-                    $viewName = 'emails.email_blasting_4th';
-                    $contentTemplateSid = 'HXa18012edd80d072d54b60b93765dd3af';
+                if(auth()->user()->role_id = 1){
+                    $role = 'Lead Owner';
+                }else if(auth()->user->role_id = 2){
+                    $role = 'Salesperson';
+                }else{
+                    $role = 'Manager';
                 }
+                // Increment the follow-up count for the new description
+                $followUpDescription = $role .' Follow Up';
+
                 // Update or create the latest activity log description
                 $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                     ->orderByDesc('created_at')
@@ -984,39 +971,6 @@ class LeadActions
                     ->title('Follow Up Added Successfully')
                     ->success()
                     ->send();
-
-                $leadowner = User::where('name', $lead->lead_owner)->first();
-                try {
-                    // Get the currently logged-in user
-                    $currentUser = Auth::user();
-                    if (!$currentUser) {
-                        throw new Exception('User not logged in');
-                    }
-
-                    $emailContent = [
-                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
-                        'lead' => [
-                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                            'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                            'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                            'email' => $lead->email ?? 'N/A', // Lead's Email
-                            'country' => $lead->country ?? 'N/A', // Lead's Country
-                            'products' => $lead->products ?? 'N/A', // Products
-                            'position' => $leadowner->position ?? 'N/A', // position
-                            'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
-                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                            // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
-                        ],
-                    ];
-
-                    // Mail::mailer('secondary')
-                    //     ->to($lead->companyDetail->email ?? $lead->email)
-                    //     ->send(new FollowUpNotification($emailContent, $viewName));
-                } catch (\Exception $e) {
-                    // Handle email sending failure
-                    Log::error("Error: {$e->getMessage()}");
-                }
             }else if($lead->lead_status === 'Transfer' || $lead->lead_status === 'Pending Demo'){
 
                 $lead->update([
@@ -1221,6 +1175,15 @@ class LeadActions
                 ->success()
                 ->body('Will auto send email to lead every Tuesday 10am in 3 times')
                 ->send();
+
+            $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+            $variables = [$lead->name, $lead->lead_owner];
+            $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
+
+            $whatsappController = new \App\Http\Controllers\WhatsAppController();
+            $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+
+            return $response;
         });
     }
 
@@ -1276,12 +1239,12 @@ class LeadActions
 
                     return $newReason->id; // Return the newly created reason ID
                 }),
-
-            TextInput::make('remark')
+            Textarea::make('remark')
                 ->label('Remarks')
-                ->required()
-                ->placeholder('Enter remarks here...')
-                ->maxLength(500),
+                ->rows(3)
+                ->autosize()
+                ->reactive()
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
         ])
         ->action(function (Lead $record, array $data) {
             $statusLabels = [

@@ -724,10 +724,10 @@ class ActivityLogRelationManager extends RelationManager
                             $onlineMeeting->getOnlineMeeting()->getJoinUrl()
                         ];
 
-                        // $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                        // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                        $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                        $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                        // return $response;
+                        return $response;
                     }),
                     Tables\Actions\Action::make('addRFQ')
                         ->label(__('Add RFQ'))
@@ -925,6 +925,7 @@ class ActivityLogRelationManager extends RelationManager
                                 $lead->update([
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
+                                    'follow_up_needed' => 0
                                 ]);
 
                                 if(auth()->user()->role_id = 1){
@@ -958,36 +959,6 @@ class ActivityLogRelationManager extends RelationManager
                                     ->title('Follow Up Added Successfully')
                                     ->success()
                                     ->send();
-
-                                $leadowner = User::where('name', $lead->lead_owner)->first();
-                                try {
-                                    // Get the currently logged-in user
-                                    $currentUser = Auth::user();
-                                    if (!$currentUser) {
-                                        throw new Exception('User not logged in');
-                                    }
-
-                                    $emailContent = [
-                                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
-                                        'lead' => [
-                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                                            'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                                            'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                                            'email' => $lead->email ?? 'N/A', // Lead's Email
-                                            'country' => $lead->country ?? 'N/A', // Lead's Country
-                                            'products' => $lead->products ?? 'N/A', // Products
-                                            'position' => $leadowner->position ?? 'N/A', // position
-                                            'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
-                                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                            // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
-                                        ],
-                                    ];
-
-                                } catch (\Exception $e) {
-                                    // Handle email sending failure
-                                    Log::error("Error: {$e->getMessage()}");
-                                }
                         }),
                     Tables\Actions\Action::make('addAutomation')
                         ->label(__('Add Automation'))

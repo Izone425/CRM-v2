@@ -12,6 +12,7 @@
         "alexjustesen/filament-spatie-laravel-activitylog": "^0.7",
         "barryvdh/laravel-dompdf": "*",
         "filament/filament": "^3.0",
+        "filament/notifications": "*",
         "filament/tables": "*",
         "guava/calendar": "^1.10",
         "guzzlehttp/guzzle": "^7.9",

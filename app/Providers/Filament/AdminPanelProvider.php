@@ -4,10 +4,12 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
+use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
+use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\LeadResource;
@@ -33,6 +35,9 @@ use Filament\Support\Enums\MaxWidth;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
+use App\Models\ChatMessage;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -43,6 +48,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // ->notifications()
+            // ->livewire(Notification::class)
             // ->registration()
             ->passwordReset()
             ->emailVerification()
@@ -61,7 +68,7 @@ class AdminPanelProvider extends PanelProvider
                 LeadResource::class,
                 ProductResource::class,
                 QuotationResource::class,
-                DemoResource::class
+                DemoResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -69,6 +76,7 @@ class AdminPanelProvider extends PanelProvider
                 Calendar::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
+                ChatRoom::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
@@ -100,4 +108,21 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->maxContentWidth(MaxWidth::Full);
     }
+
+    // public function boot()
+    // {
+    //     Filament::serving(function () {
+    //         $newMessages = ChatMessage::where('is_from_customer', true)
+    //             ->where('is_read', false)
+    //             ->count();
+
+    //         if ($newMessages > 0) {
+    //             Notification::make()
+    //                 ->title('New Messages')
+    //                 ->body("You have $newMessages unread messages.")
+    //                 ->success()
+    //                 ->send();
+    //         }
+    //     });
+    // }
 }

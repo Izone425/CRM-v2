@@ -1,0 +1,245 @@
+<x-filament::page>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+    <div class="flex h-screen bg-white border border-gray-200 rounded-lg" wire:poll.1s>
+        <!-- Left Sidebar - Chat List -->
+        <div class="w-1/4 border-r bg-gray-50">
+            <div class="p-4 bg-white border-b">
+                <h2 class="text-lg font-semibold">Chats</h2>
+            </div>
+
+            <div class="overflow-y-auto h-[calc(100vh-9rem)]">
+                @foreach($this->fetchContacts() as $contact)
+                    <div wire:click="selectChat('{{ $contact->user1 }}', '{{ $contact->user2 }}')"
+                        class="p-4 border-b cursor-pointer hover:bg-gray-50 {{ $selectedChat === $contact->participant_name ? 'bg-blue-50' : '' }}">
+
+                        <div class="flex items-center justify-between">
+                            <div class="font-medium text-gray-900">
+                                {{ $contact->participant_name }}
+                            </div>
+                            @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
+                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
+                            @endif
+                        </div>
+
+                        <div class="text-sm text-gray-500 truncate">
+                            <i class="fa {{ $contact->is_from_customer ? 'fa fa-reply' : 'fa fa-share' }}" aria-hidden="true"></i>
+                            {{ \Illuminate\Support\Str::limit($contact->latest_message, 50, '...') }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <!-- Middle Section - Chat Messages -->
+        <div class="flex flex-col flex-1">
+            @if($selectedChat)
+                <!-- Chat Header -->
+                <div class="p-4 bg-white border-b">
+                    @php
+                        $details = $this->fetchParticipantDetails();
+                    @endphp
+                    <h2 class="text-lg font-semibold">
+                        {{ $selectedChat ? $details['name'] : 'Select a chat' }}
+                    </h2>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100" wire:poll.5s>
+                    @foreach($this->fetchMessages($selectedChat) as $message)
+                        <div class="flex {{ $message->is_from_customer ? 'justify-start' : 'justify-end' }}">
+                            <div class="max-w-[70%] rounded-lg p-3
+                                    {{ $message->is_from_customer ? 'bg-white' : 'bg-primary-600 text-white' }}">
+                                @if ($message->media_url)
+                                    @if (str_contains($message->media_type, 'image'))
+                                        <!-- Display Image -->
+                                        <img src="{{ $message->media_url }}" alt="Image Message" class="w-20 h-20 rounded-lg">
+                                    @elseif (str_contains($message->media_type, 'audio'))
+                                        <!-- Show an Audio Player for Voice Messages -->
+                                        <div class="relative flex items-center w-full p-3 bg-gray-200 rounded-lg shadow-md">
+                                            <audio id="audio-{{ $message->id }}" class="hidden">
+                                                <source src="{{ $message->media_url }}" type="{{ $message->media_type }}">
+                                                Your browser does not support the audio element.
+                                            </audio>
+
+                                            <!-- Play/Pause Button -->
+                                            <button onclick="toggleAudio('audio-{{ $message->id }}', 'play-btn-{{ $message->id }}')" id="play-btn-{{ $message->id }}"
+                                                class="flex items-center justify-center w-10 h-10 p-2 text-white bg-blue-500 rounded-full">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+
+                                            <!-- Progress Bar -->
+                                            <div class="flex-1 mx-4">
+                                                <input type="range" id="progress-{{ $message->id }}" value="0" step="0.1" class="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                                            </div>
+
+                                            <!-- Time Display -->
+                                            <span id="time-{{ $message->id }}" class="text-sm text-gray-600">00:00</span>
+                                        </div>
+                                    @elseif (str_contains($message->media_type, 'application') || str_contains($message->media_type, 'text'))
+                                        <!-- Show Download Link for Files -->
+                                        <a href="{{ $message->media_url }}" target="_blank" class="flex items-center text-blue-600 hover:underline">
+                                            <i class="mr-2 fa fa-file-alt"></i>&nbsp; Download File
+                                        </a>
+                                    @else
+                                        <!-- Show as a generic media message -->
+                                        <a href="{{ $message->media_url }}" target="_blank" class="text-blue-600 hover:underline">
+                                            [Media File]
+                                        </a>
+                                    @endif
+                                @else
+                                    <!-- Normal Text Message -->
+                                    <div class="text-sm">{{ $message->message }}</div>
+                                @endif
+                                <div class="mt-1 text-xs opacity-70">
+                                    {{ $message->created_at->format('g:i A') }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Message Input -->
+                <div class="p-4 bg-white border-t">
+                    <form wire:submit.prevent="sendMessage">
+                        <div class="flex items-center space-x-2">
+                            <!-- File Upload Button -->
+                            <label for="fileUpload" class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg cursor-pointer hover:bg-gray-300">
+                                <i class="fas fa-paperclip"></i>
+                            </label>
+                            <input type="file" id="fileUpload" wire:model="file" class="hidden">
+
+                            <!-- Text Input -->
+                            <input type="text" wire:model="message" placeholder="Type a message"
+                                class="flex-1 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500">
+
+                            <!-- Send Button -->
+                            <button type="submit" class="px-4 py-2 text-white rounded-lg bg-primary-500 hover:bg-primary-600">
+                                Send
+                            </button>
+                        </div>
+
+                        <!-- Loading Indicator for File Upload -->
+                        @if ($file)
+                            <p class="mt-2 text-sm text-gray-500">Uploading: {{ $file->getClientOriginalName() }}</p>
+                        @endif
+                    </form>
+                </div>
+            @else
+                <!-- Empty State -->
+                <div class="flex items-center justify-center flex-1 bg-gray-50">
+                    <div class="text-center text-gray-500">
+                        <div class="mb-2 text-xl font-medium">Select a chat</div>
+                        <p class="text-sm">Choose a conversation from the list to start messaging</p>
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <!-- Right Sidebar - Contact Details -->
+        @if ($selectedChat)
+        <div class="w-1/4 border-l shadow-md bg-gray-50">
+            <div class="flex items-center justify-between p-4 bg-white border-b">
+                <h2 class="text-lg font-semibold text-gray-700">Contact Details</h2>
+            </div>
+
+            @php
+                $details = $this->fetchParticipantDetails();
+            @endphp
+
+            <div class="p-6 space-y-4">
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
+                        <i class="fa fa-user-circle" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Name</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-900">{{ $details['name'] }}</p>
+                </div>
+
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
+                        <i class="fa fa-envelope" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Email</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-900" style="color:#338cf0;" >
+                        <a href="mailto:{{ $details['email'] }}" class="text-blue-600 hover:underline">
+                            {{ $details['email'] }}
+                        </a>
+                    </p>
+                </div>
+
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
+                        <i class="fa fa-phone" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Phone</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-900">{{ $details['phone'] }}</p>
+                </div>
+
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
+                        <i class="fa fa-building" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Company</p>
+                    </div>
+                    @if ($details['company_url'])
+                        <p class="text-lg font-semibold" style="color:#338cf0;">
+                            <a href="{{ $details['company_url'] }}" target="_blank" class="text-blue-600 hover:underline">
+                                {{ $details['company'] }}
+                            </a>
+                        </p>
+                    @else
+                        <p class="text-lg font-semibold text-gray-900">{{ $details['company'] }}</p>
+                    @endif
+                </div>
+
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
+                        <i class="fa fa-wifi" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Source</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-900">{{ $details['source'] }}</p>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- JavaScript for Custom Audio Player -->
+    <script>
+        function toggleAudio(audioId, buttonId) {
+            let audio = document.getElementById(audioId);
+            let button = document.getElementById(buttonId);
+            let progressBar = document.getElementById('progress-' + audioId.split('-')[1]);
+            let timeDisplay = document.getElementById('time-' + audioId.split('-')[1]);
+
+            if (audio.paused) {
+                audio.play();
+                button.innerHTML = '<i class="fas fa-pause"></i>';
+            } else {
+                audio.pause();
+                button.innerHTML = '<i class="fas fa-play"></i>';
+            }
+
+            // Update Progress Bar & Time Display
+            audio.ontimeupdate = function () {
+                let currentTime = Math.floor(audio.currentTime);
+                let minutes = Math.floor(currentTime / 60);
+                let seconds = currentTime % 60;
+                timeDisplay.innerText = minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+                progressBar.value = (audio.currentTime / audio.duration) * 100;
+            };
+
+            // Seek Audio on Progress Bar Change
+            progressBar.oninput = function () {
+                audio.currentTime = (this.value / 100) * audio.duration;
+            };
+
+            // Reset on Audio End
+            audio.onended = function () {
+                button.innerHTML = '<i class="fas fa-play"></i>';
+                progressBar.value = 0;
+                timeDisplay.innerText = '00:00';
+            };
+        }
+    </script>
+</x-filament::page>
