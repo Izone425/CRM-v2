@@ -1046,7 +1046,7 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('1s')
+            ->poll('5')
             ->defaultPaginationPageOption(50)
             ->modifyQueryUsing(function ($query) {
                 $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")

@@ -57,7 +57,7 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('1s')
+            ->poll('5')
             ->query($this->getProspectTodayQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
