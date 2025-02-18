@@ -17,6 +17,10 @@ class UserLeave extends Model
         'leave_type',
         'date',
         'day_of_week',
+        'status',
+        'start_time',
+        'end_time',
+        'session'
     ];
 
         public function user()
@@ -40,9 +44,10 @@ class UserLeave extends Model
         ->get();
 
         foreach($temp as &$row){
-            $row['salespersonAvatar'] = $row->user->getFilamentAvatarUrl();
+            $row->salespersonAvatar = $row->user->getFilamentAvatarUrl();
+            $row->salespersonName = $row->user->name;
         }
-        return $temp;
+        return $temp->toArray();
     }
 
 }

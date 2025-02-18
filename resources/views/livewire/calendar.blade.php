@@ -452,8 +452,9 @@
     <!-- Calendar Section -->
     <div class="calendar-header">
         <div class="header-row">
-            <div class="header" style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
-            <div>{{$this->currentMonth}}</div>
+            <div class="header"
+                style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
+                <div>{{ $this->currentMonth }}</div>
             </div>
             <div class="header">
                 <div class="flex">
@@ -513,854 +514,441 @@
                         @endphp
                         @for ($i = 0; $i < count($rows); $i++)
                             @if ($counter >= 5)
-                            @break
-                        @endif
+                                @break
+                            @endif
 
-                        @if ($rows[$i]['newDemo'][$day] == 0)
-                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
-                                src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
-                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                @mouseout="hide()" />
-                            @php
-                                $counter++;
-                            @endphp
-                        @endif
-                    @endfor
-                    @if ($counter >= 5)
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
+                            @if ($rows[$i]['newDemo'][$day] == 0)
+                                <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                    src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                    @mouseout="hide()" />
                                 @php
-                                    $numbering = 1;
+                                    $counter++;
                                 @endphp
-                                @foreach ($rows as $salesperson)
-                                    @if ($salesperson['newDemo'][$day] == 0)
-                                        <div class="hover-content-flexcontainer">
-                                            <span>
-                                                <div class="circle-bg"
-                                                    style="background-color:black;color: white">
-                                                    {{ $numbering }}
-                                                </div>
-                                            </span>
-                                            <img src="{{ $salesperson['salespersonAvatar'] }}"
-                                                alt="Salesperson Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $salesperson['salespersonName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span
-                                                style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
-                                        </div>
-                                        @php
-                                            $numbering++;
-                                        @endphp
-                                    @endif
-                                @endforeach
+                            @endif
+                        @endfor
+                        @if ($counter >= 5)
+                            <div class="hover-container" style="position: relative">
+                                <div class="circle-bg">
+                                    <i class="fa-solid fa-plus"></i>
+                                </div>
+                                <div class="hover-content">
+                                    @php
+                                        $numbering = 1;
+                                    @endphp
+                                    @foreach ($rows as $salesperson)
+                                        @if ($salesperson['newDemo'][$day] == 0)
+                                            <div class="hover-content-flexcontainer">
+                                                <span>
+                                                    <div class="circle-bg"
+                                                        style="background-color:black;color: white">
+                                                        {{ $numbering }}
+                                                    </div>
+                                                </span>
+                                                <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                    alt="Salesperson Avatar"
+                                                    style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
+                                                    data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                    @mouseout="hide()" />
+                                                <span
+                                                    style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                            </div>
+                                            @php
+                                                $numbering++;
+                                            @endphp
+                                        @endif
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
+                        @endif
                     @endif
-                @endif
+                </div>
+            </div>
+        @endforeach
+
+        <!-- 1 New Demo -->
+        <div class="summary-cell">
+            <div class="circle-bg" style="background-color:var(--bg-demo-yellow)">
+                <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
             </div>
         </div>
-    @endforeach
+        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+            <div class="summary-cell">
+                <div class="demo-avatar">
+                    @if (count($rows) < 6)
+                        @foreach ($rows as $salesperson)
+                            @if ($salesperson['newDemo'][$day] == 1)
+                                <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                            @endif
+                        @endforeach
+                    @else
+                        @php
+                            $counter = 0;
+                        @endphp
+                        @for ($i = 0; $i < count($rows); $i++)
+                            @if ($counter >= 5)
+                                @break
+                            @endif
 
-    <!-- 1 New Demo -->
-    <div class="summary-cell">
-        <div class="circle-bg" style="background-color:var(--bg-demo-yellow)">
-            <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
-        </div>
-    </div>
-    @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="summary-cell">
-            <div class="demo-avatar">
-                @if (count($rows) < 6)
-                    @foreach ($rows as $salesperson)
-                        @if ($salesperson['newDemo'][$day] == 1)
-                            <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                        @endif
-                    @endforeach
-                @else
-                    @php
-                        $counter = 0;
-                    @endphp
-                    @for ($i = 0; $i < count($rows); $i++)
+                            @if ($rows[$i]['newDemo'][$day] == 1)
+                                <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                    src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                    @mouseout="hide()" />
+                                @php
+                                    $counter++;
+                                @endphp
+                            @endif
+                        @endfor
                         @if ($counter >= 5)
-                        @break
-                    @endif
-
-                    @if ($rows[$i]['newDemo'][$day] == 1)
-                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
-                            src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
-                            @mouseover="show($event)" @mousemove="updatePosition($event)"
-                            @mouseout="hide()" />
-                        @php
-                            $counter++;
-                        @endphp
-                    @endif
-                @endfor
-                @if ($counter >= 5)
-                    <div class="hover-container" style="position: relative">
-                        <div class="circle-bg">
-                            <i class="fa-solid fa-plus"></i>
-                        </div>
-                        <div class="hover-content">
-                            @php
-                                $numbering = 1;
-                            @endphp
-                            @foreach ($rows as $salesperson)
-                                @if ($salesperson['newDemo'][$day] == 1)
-                                    <div class="hover-content-flexcontainer">
-                                        <span>
-                                            <div class="circle-bg"
-                                                style="background-color:black;color: white">
-                                                {{ $numbering }}
-                                            </div>
-                                        </span>
-                                        {{-- Image for popup --}}
-                                        <img src="{{ $salesperson['salespersonAvatar'] }}"
-                                            style="max-width: 40px;" alt="Salesperson Avatar"
-                                            data-tooltip="{{ $salesperson['salespersonName'] }}"
-                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                            @mouseout="hide()" />
-                                        <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
-                                    </div>
+                            <div class="hover-container" style="position: relative">
+                                <div class="circle-bg">
+                                    <i class="fa-solid fa-plus"></i>
+                                </div>
+                                <div class="hover-content">
                                     @php
-                                        $numbering++;
+                                        $numbering = 1;
                                     @endphp
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-            @endif
-        </div>
-    </div>
-@endforeach
-
-<!-- 2 New Demo -->
-<div class="summary-cell">
-    <div class="circle-bg" style="background-color:var(--bg-demo-green)">
-        <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
-    </div>
-</div>
-
-@foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-    <div class="summary-cell">
-        <div class="demo-avatar">
-            @if (count($rows) < 6)
-                @foreach ($rows as $salesperson)
-                    @if ($salesperson['newDemo'][$day] == 2)
-                        <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                                    @foreach ($rows as $salesperson)
+                                        @if ($salesperson['newDemo'][$day] == 1)
+                                            <div class="hover-content-flexcontainer">
+                                                <span>
+                                                    <div class="circle-bg"
+                                                        style="background-color:black;color: white">
+                                                        {{ $numbering }}
+                                                    </div>
+                                                </span>
+                                                {{-- Image for popup --}}
+                                                <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                    style="max-width: 40px;" alt="Salesperson Avatar"
+                                                    data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                    @mouseout="hide()" />
+                                                <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
+                                            </div>
+                                            @php
+                                                $numbering++;
+                                            @endphp
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     @endif
-                @endforeach
-            @else
-                @php
-                    $counter = 0;
-                @endphp
-                @for ($i = 0; $i < count($rows); $i++)
-                    @if ($counter >= 5)
-                    @break
-                @endif
+                </div>
+            </div>
+        @endforeach
 
-                @if ($rows[$i]['newDemo'][$day] == 2)
-                    <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
-                        src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
-                        @mouseover="show($event)" @mousemove="updatePosition($event)"
-                        @mouseout="hide()" />
-                    @php
-                        $counter++;
-                    @endphp
-                @endif
-            @endfor
-            @if ($counter >= 5)
-                <div class="hover-container" style="position: relative">
-                    <div class="circle-bg">
-                        <i class="fa-solid fa-plus"></i>
-                    </div>
-                    <div class="hover-content">
-                        @php
-                            $numbering = 1;
-                        @endphp
+        <!-- 2 New Demo -->
+        <div class="summary-cell">
+            <div class="circle-bg" style="background-color:var(--bg-demo-green)">
+                <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
+            </div>
+        </div>
+
+        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+            <div class="summary-cell">
+                <div class="demo-avatar">
+                    @if (count($rows) < 6)
                         @foreach ($rows as $salesperson)
                             @if ($salesperson['newDemo'][$day] == 2)
-                                <div class="hover-content-flexcontainer">
-                                    <span>
-                                        <div class="circle-bg"
-                                            style="background-color:black;color: white">
-                                            {{ $numbering }}
-                                        </div>
-                                    </span>
-                                    {{-- Image for popup --}}
-                                    <img src="{{ $salesperson['salespersonAvatar'] }}"
-                                        style="max-width: 40px;" alt="Salesperson Avatar"
-                                        data-tooltip="{{ $salesperson['salespersonName'] }}"
-                                        @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                        @mouseout="hide()" />
-                                    <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
-                                </div>
+                                <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
+                            @endif
+                        @endforeach
+                    @else
+                        @php
+                            $counter = 0;
+                        @endphp
+                        @for ($i = 0; $i < count($rows); $i++)
+                            @if ($counter >= 5)
+                                @break
+                            @endif
+
+                            @if ($rows[$i]['newDemo'][$day] == 2)
+                                <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                    src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                    @mouseout="hide()" />
                                 @php
-                                    $numbering++;
+                                    $counter++;
                                 @endphp
                             @endif
-                        @endforeach
+                        @endfor
+                        @if ($counter >= 5)
+                            <div class="hover-container" style="position: relative">
+                                <div class="circle-bg">
+                                    <i class="fa-solid fa-plus"></i>
+                                </div>
+                                <div class="hover-content">
+                                    @php
+                                        $numbering = 1;
+                                    @endphp
+                                    @foreach ($rows as $salesperson)
+                                        @if ($salesperson['newDemo'][$day] == 2)
+                                            <div class="hover-content-flexcontainer">
+                                                <span>
+                                                    <div class="circle-bg"
+                                                        style="background-color:black;color: white">
+                                                        {{ $numbering }}
+                                                    </div>
+                                                </span>
+                                                {{-- Image for popup --}}
+                                                <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                    style="max-width: 40px;" alt="Salesperson Avatar"
+                                                    data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                    @mouseout="hide()" />
+                                                <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
+                                            </div>
+                                            @php
+                                                $numbering++;
+                                            @endphp
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            </div>
+        @endforeach
+
+        <!-- On Leave -->
+        <div class="summary-cell">
+            <img src={{ asset('img/leave-icon-white.svg') }} alt="Description of the image" style="fill: white;">
+        </div>
+        @for ($day = 1; $day < 6; $day++)
+            <div class="summary-cell">
+                <div class="demo-avatar">
+                    @foreach ($leaves as $leave)
+                        @if ($leave['day_of_week'] == $day)
+                            <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                data-tooltip="{{ $leave['salespersonName'] }}" @mouseover="show($event)"
+                                @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @endfor
+    </div>
+
+    <div class="calendar-body">
+
+        <div
+            style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;">
+        </div>
+
+        @if (isset($holidays['1']))
+            <div
+                style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['2']))
+            <div
+                style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['3']))
+            <div
+                style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['4']))
+            <div
+                style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['5']))
+            <div
+                style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
+            </div>
+        @endif
+
+        <!-- SalesPerson Row -->
+        @foreach ($rows as $row)
+            <div class="time">
+                <div class="flex-container">
+                    <div class="image-container">
+                        <img style="border-radius: 50%;" src="{{ $row['salespersonAvatar'] }}"
+                            data-tooltip="{{ $row['salespersonName'] }}" @mouseover="show($event)"
+                            @mousemove="updatePosition($event)" @mouseout="hide()">
                     </div>
                 </div>
-            @endif
-        @endif
-    </div>
-</div>
-@endforeach
+            </div>
+            @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+                <div class="day">
+                    @if (isset($row['leave'][$loop->iteration]))
+                        <div
+                            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
+                            <div style="flex:1; text-align: center;">
+                                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                                <div style="font-size: 0.8rem;font-style: italic;">
+                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                                </div>
+                                <div style="font-size: 0.8rem;"> {{ $row['leave'][$loop->iteration]['status'] }} |
+                                    @if ($row['leave'][$loop->iteration]['session'] === 'full')
+                                        Full Day
+                                    @elseif($row['leave'][$loop->iteration]['session'] === 'am')
+                                        Half AM
+                                    @else
+                                        Half PM
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div x-data="{ expanded: false }">
+                            @if (count($row[$day . 'Appointments']) <= 4)
+                                @foreach ($row[$day . 'Appointments'] as $appointment)
+                                    <div class="appointment-card"
+                                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
+                                @elseif ($appointment->type == 'WEBINAR DEMO')
+                                    style="background-color: var(--bg-demo-yellow)"
+                                @else
+                                    style="background-color: var(--bg-demo-red)" @endif>
+                                        <div class="appointment-card-bar"></div>
+                                        <div class="appointment-card-info">
+                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                            <div class="appointment-appointment-type">
+                                                {{ $appointment->appointment_type }}
+                                            </div>
+                                            <div class="appointment-company-name"><a target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                            </div>
+                                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                                {{ $appointment->end_time }}</div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @else
+                                {{-- More than 3 cards --}}
+                                <template x-if="!expanded">
+                                    <div>
+                                        {{-- If higher than 3 --}}
+                                        @foreach ($row[$day . 'Appointments'] as $appointment)
+                                            @if ($loop->index < 3)
+                                                <div class="appointment-card"
+                                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
+                                @elseif ($appointment->type == 'WEBINAR DEMO')
+                                    style="background-color: var(--bg-demo-yellow)"
+                                @else
+                                    style="background-color: var(--bg-demo-red)" @endif>
+                                                    <div class="appointment-card-bar"></div>
+                                                    <div class="appointment-card-info">
+                                                        <div class="appointment-demo-type">{{ $appointment->type }}
+                                                        </div>
+                                                        <div class="appointment-appointment-type">
+                                                            {{ $appointment->appointment_type }}</div>
+                                                        <div class="appointment-company-name"><a target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                                        </div>
+                                                        <div class="appointment-time">{{ $appointment->start_time }} -
+                                                            {{ $appointment->end_time }}</div>
+                                                    </div>
+                                                </div>
+                                            @elseif($loop->index === 3)
+                                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
+                                                    @click="expanded = true">
+                                                    +{{ count($row[$day . 'Appointments']) - 3 }} more
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                        {{-- --}}
 
-<!-- On Leave -->
-<div class="summary-cell">
-<img src={{ asset('img/leave-icon-white.svg') }} alt="Description of the image" style="fill: white;">
-</div>
-@for ($day = 1; $day < 6; $day++)
-<div class="summary-cell">
-    <div class="demo-avatar">
-        @foreach ($leaves as $leave)
-            @if ($leave['day_of_week'] == $day)
-                <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar"
-                    data-tooltip="{{ $leave['name'] }}" @mouseover="show($event)"
-                    @mousemove="updatePosition($event)" @mouseout="hide()" />
-            @endif
+                                    </div>
+                                </template>
+
+                                <template x-if="expanded">
+                                    <div>
+                                        {{-- When expanded, display all cards --}}
+                                        @foreach ($row[$day . 'Appointments'] as $appointment)
+                                            <div class="appointment-card"
+                                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
+                                @elseif ($appointment->type == 'WEBINAR DEMO')
+                                    style="background-color: var(--bg-demo-yellow)"
+                                @else
+                                    style="background-color: var(--bg-demo-red)" @endif>
+                                                <div class="appointment-card-bar"></div>
+                                                <div class="appointment-card-info">
+                                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                                    <div class="appointment-appointment-type">
+                                                        {{ $appointment->appointment_type }}
+                                                    </div>
+                                                    <div class="appointment-company-name"><a target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
+                                                    </div>
+                                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                                        {{ $appointment->end_time }}</div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
+                                            @click="expanded = false">
+                                            Hide
+                                        </div>
+                                    </div>
+                                </template>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+            @endforeach
         @endforeach
     </div>
-</div>
-@endfor
-</div>
 
-<div class="calendar-body">
-
-<div
-style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;">
-</div>
-
-@if (isset($holidays['1']))
-<div
-    style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
-</div>
-@endif
-@if (isset($holidays['2']))
-<div
-    style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
-</div>
-@endif
-@if (isset($holidays['3']))
-<div
-    style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
-</div>
-@endif
-@if (isset($holidays['4']))
-<div
-    style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
-</div>
-@endif
-@if (isset($holidays['5']))
-<div
-    style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
-</div>
-@endif
-
-<!-- SalesPerson Row -->
-@foreach ($rows as $row)
-<div class="time">
-    <div class="flex-container">
-        <div class="image-container">
-            <img style="border-radius: 50%;" src="{{ $row['salespersonAvatar'] }}"
-                data-tooltip="{{ $row['salespersonName'] }}" @mouseover="show($event)"
-                @mousemove="updatePosition($event)" @mouseout="hide()">
-        </div>
+    <!-- Global tooltip container -->
+    <div x-show="showTooltip" :style="tooltipStyle"
+        class="tooltip fixed pointer-events-none text-white text-sm px-2 py-1 rounded">
+        <span x-text="tooltip"></span>
     </div>
-</div>
-<div class="day">
-    @if (isset($row['leave'][1]))
-        <div
-            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-            <div style="flex:1; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][1]['leave_type'] }}
-                </div>
-            </div>
-        </div>
-    @else
-        <div x-data="{ expanded: false }">
-            @if (count($row['mondayAppointments']) <= 4)
-                @foreach ($row['mondayAppointments'] as $appointment)
-                    <div class="appointment-card"
-                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                        <div class="appointment-card-bar"></div>
-                        <div class="appointment-card-info">
-                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}
-                            </div>
-                            <div class="appointment-company-name"><a target="_blank"
-                                    rel="noopener noreferrer"
-                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                            </div>
-                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                {{ $appointment->end_time }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                {{-- More than 3 cards --}}
-                <template x-if="!expanded">
-                    <div>
-                        {{-- If higher than 3 --}}
-                        @foreach ($row['mondayAppointments'] as $appointment)
-                            @if ($loop->index < 3)
-                                <div class="appointment-card"
-                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}</div>
-                                        <div class="appointment-company-name"><a target="_blank"
-                                                rel="noopener noreferrer"
-                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @elseif($loop->index === 3)
-                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                                    @click="expanded = true">
-                                    +{{ count($cards) - 2 }} more
-                                </div>
-                            @endif
-                        @endforeach
-                        {{-- --}}
 
-                    </div>
-                </template>
+    <script>
+        function tooltipHandler() {
+            return {
+                tooltip: '', // Holds the text to show
+                showTooltip: false, // Controls tooltip visibility
+                tooltipX: 0, // X position for the tooltip
+                tooltipY: 0, // Y position for the tooltip
 
-                <template x-if="expanded">
-                    <div>
-                        {{-- When expanded, display all cards --}}
-                        @foreach ($row['mondayAppointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }}
-                                    </div>
-                                    <div class="appointment-company-name"><a target="_blank"
-                                            rel="noopener noreferrer"
-                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </template>
-            @endif
-        </div>
-    @endif
-</div>
-<div class="day">
-    @if (isset($row['leave'][2]))
-        <div
-            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-            <div style="flex:1; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][2]['leave_type'] }}
-                </div>
-            </div>
-        </div>
-    @else
-        <div x-data="{ expanded: false }">
-            @if (count($row['tuesdayAppointments']) <= 4)
-                @foreach ($row['tuesdayAppointments'] as $appointment)
-                    <div class="appointment-card"
-                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                        <div class="appointment-card-bar"></div>
-                        <div class="appointment-card-info">
-                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}
-                            </div>
-                            <div class="appointment-company-name"><a target="_blank"
-                                    rel="noopener noreferrer"
-                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                            </div>
-                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                {{ $appointment->end_time }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                {{-- More than 3 cards --}}
-                <template x-if="!expanded">
-                    <div>
-                        {{-- If higher than 3 --}}
-                        @foreach ($row['tuesdayAppointments'] as $appointment)
-                            @if ($loop->index < 3)
-                                <div class="appointment-card"
-                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}</div>
-                                        <div class="appointment-company-name"><a target="_blank"
-                                                rel="noopener noreferrer"
-                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @elseif($loop->index === 3)
-                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                                    @click="expanded = true">
-                                    +{{ count($row['tuesdayAppointments']) - 3 }} more
-                                </div>
-                            @endif
-                        @endforeach
-                        {{-- --}}
+                // Called when the mouse enters an image
+                show(event) {
+                    this.tooltip = event.target.dataset.tooltip;
+                    this.showTooltip = true;
+                    this.updatePosition(event);
+                },
 
-                    </div>
-                </template>
+                // Update tooltip position on mouse move
+                updatePosition(event) {
+                    // Position the tooltip near the cursor. Adjust offsets as needed.
+                    this.tooltipX = event.clientX;
+                    this.tooltipY = event.clientY - 10; // Slightly above the cursor
+                },
 
-                <template x-if="expanded">
-                    <div>
-                        {{-- When expanded, display all cards --}}
-                        @foreach ($row['tuesdayAppointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }}
-                                    </div>
-                                    <div class="appointment-company-name"><a target="_blank"
-                                            rel="noopener noreferrer"
-                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                            @click="expanded = false">
-                            Hide
-                        </div>
-                    </div>
-                </template>
-            @endif
-        </div>
-    @endif
-</div>
-<div class="day">
-    @if (isset($row['leave'][3]))
-        <div
-            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-            <div style="flex:1; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][3]['leave_type'] }}
-                </div>
-            </div>
-        </div>
-    @else
-        <div x-data="{ expanded: false }">
-            @if (count($row['wednesdayAppointments']) <= 4)
-                @foreach ($row['wednesdayAppointments'] as $appointment)
-                    <div class="appointment-card"
-                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                        <div class="appointment-card-bar"></div>
-                        <div class="appointment-card-info">
-                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}
-                            </div>
-                            <div class="appointment-company-name"><a target="_blank"
-                                    rel="noopener noreferrer"
-                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                            </div>
-                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                {{ $appointment->end_time }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                {{-- More than 3 cards --}}
-                <template x-if="!expanded">
-                    <div>
-                        {{-- If higher than 3 --}}
-                        @foreach ($row['wednesdayAppointments'] as $appointment)
-                            @if ($loop->index < 3)
-                                <div class="appointment-card"
-                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}</div>
-                                        <div class="appointment-company-name"><a target="_blank"
-                                                rel="noopener noreferrer"
-                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @elseif($loop->index === 3)
-                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                                    @click="expanded = true">
-                                    +{{ count($row['wednesdayAppointments']) - 3 }} more
-                                </div>
-                            @endif
-                        @endforeach
-                        {{-- --}}
+                // Hide the tooltip when mouse leaves
+                hide() {
+                    this.showTooltip = false;
+                },
 
-                    </div>
-                </template>
-
-                <template x-if="expanded">
-                    <div>
-                        {{-- When expanded, display all cards --}}
-                        @foreach ($row['wednesdayAppointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }}
-                                    </div>
-                                    <div class="appointment-company-name"><a target="_blank"
-                                            rel="noopener noreferrer"
-                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                            @click="expanded = false">
-                            Hide
-                        </div>
-                    </div>
-                </template>
-            @endif
-        </div>
-    @endif
-</div>
-<div class="day">
-    @if (isset($row['leave'][4]))
-        <div
-            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-            <div style="flex:1; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][4]['leave_type'] }}
-                </div>
-            </div>
-        </div>
-    @else
-        <div x-data="{ expanded: false }">
-            @if (count($row['thursdayAppointments']) <= 4)
-                @foreach ($row['thursdayAppointments'] as $appointment)
-                    <div class="appointment-card"
-                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                        <div class="appointment-card-bar"></div>
-                        <div class="appointment-card-info">
-                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                            <div class="appointment-appointment-type">
-                                {{ $appointment->appointment_type }}
-                            </div>
-                            <div class="appointment-company-name"><a target="_blank"
-                                    rel="noopener noreferrer"
-                                    href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                            </div>
-                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                {{ $appointment->end_time }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                {{-- More than 3 cards --}}
-                <template x-if="!expanded">
-                    <div>
-                        {{-- If higher than 3 --}}
-                        @foreach ($row['thursdayAppointments'] as $appointment)
-                            @if ($loop->index < 3)
-                                <div class="appointment-card"
-                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}</div>
-                                        <div class="appointment-company-name"><a target="_blank"
-                                                rel="noopener noreferrer"
-                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @elseif($loop->index === 3)
-                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                                    @click="expanded = true">
-                                    +{{ count($row['thursdayAppointments']) - 3 }} more
-                                </div>
-                            @endif
-                        @endforeach
-                        {{-- --}}
-
-                    </div>
-                </template>
-
-                <template x-if="expanded">
-                    <div>
-                        {{-- When expanded, display all cards --}}
-                        @foreach ($row['thursdayAppointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }}
-                                    </div>
-                                    <div class="appointment-company-name"><a target="_blank"
-                                            rel="noopener noreferrer" target="_blank"
-                                            rel="noopener noreferrer"
-                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                            @click="expanded = false">
-                            Hide
-                        </div>
-                    </div>
-                </template>
-            @endif
-        </div>
-    @endif
-</div>
-<div class="day">
-    @if (isset($row['leave'][5]))
-        <div
-            style="padding-block: 1rem; width: 100%; height: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center;">
-            <div style="flex:1; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $row['leave'][5]['leave_type'] }}
-                </div>
-            </div>
-        </div>
-    @else
-        <div x-data="{ expanded: false }">
-            @if (count($row['fridayAppointments']) <= 4)
-                @foreach ($row['fridayAppointments'] as $appointment)
-                    <div class="appointment-card"
-                        @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                        <div class="appointment-card-bar"></div>
-                        <div class="appointment-card-info">
-                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                            <div class="appointment-appointment-type">
-                                {{ $appointment->appointment_type }}
-                            </div>
-                            <div class="appointment-company-name"><a href={{ $appointment->url }}
-                                    target="_blank"
-                                    rel="noopener noreferrer">{{ $appointment->company_name }}</a>
-                            </div>
-                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                {{ $appointment->end_time }}</div>
-                        </div>
-                    </div>
-                @endforeach
-            @else
-                {{-- More than 3 cards --}}
-                <template x-if="!expanded">
-                    <div>
-                        {{-- If higher than 3 --}}
-                        @foreach ($row['fridayAppointments'] as $appointment)
-                            @if ($loop->index < 3)
-                                <div class="appointment-card"
-                                    @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}
-                                        </div>
-                                        <div class="appointment-company-name"><a target="_blank"
-                                                rel="noopener noreferrer"
-                                                href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @elseif($loop->index === 3)
-                                <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                                    @click="expanded = true">
-                                    +{{ count($row['fridayAppointments']) - 3 }} more
-                                </div>
-                            @endif
-                        @endforeach
-
-                    </div>
-                </template>
-
-                <template x-if="expanded">
-                    <div>
-                        {{-- When expanded, display all cards --}}
-                        @foreach ($row['fridayAppointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->type == 'WEBINAR DEMO')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }}
-                                    </div>
-                                    <div class="appointment-company-name"><a target="_blank"
-                                            rel="noopener noreferrer"
-                                            href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer"
-                            @click="expanded = false">
-                            Hide
-                        </div>
-                    </div>
-                </template>
-            @endif
-        </div>
-    @endif
-</div>
-@endforeach
-</div>
-
-<!-- Global tooltip container -->
-<div x-show="showTooltip" :style="tooltipStyle"
-class="tooltip fixed pointer-events-none text-white text-sm px-2 py-1 rounded">
-<span x-text="tooltip"></span>
-</div>
-
-<script>
-    function tooltipHandler() {
-        return {
-            tooltip: '', // Holds the text to show
-            showTooltip: false, // Controls tooltip visibility
-            tooltipX: 0, // X position for the tooltip
-            tooltipY: 0, // Y position for the tooltip
-
-            // Called when the mouse enters an image
-            show(event) {
-                this.tooltip = event.target.dataset.tooltip;
-                this.showTooltip = true;
-                this.updatePosition(event);
-            },
-
-            // Update tooltip position on mouse move
-            updatePosition(event) {
-                // Position the tooltip near the cursor. Adjust offsets as needed.
-                this.tooltipX = event.clientX;
-                this.tooltipY = event.clientY - 10; // Slightly above the cursor
-            },
-
-            // Hide the tooltip when mouse leaves
-            hide() {
-                this.showTooltip = false;
-            },
-
-            // Compute the inline style for the tooltip (positioned relative to the viewport)
-            get tooltipStyle() {
-                return `left: ${this.tooltipX}px; top: ${this.tooltipY}px; transform: translate(-50%, -100%); background-color:black; z-index: 10000`;
-            }
-        };
-    }
-</script>
+                // Compute the inline style for the tooltip (positioned relative to the viewport)
+                get tooltipStyle() {
+                    return `left: ${this.tooltipX}px; top: ${this.tooltipY}px; transform: translate(-50%, -100%); background-color:black; z-index: 10000`;
+                }
+            };
+        }
+    </script>
 
 </div>
