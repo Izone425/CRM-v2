@@ -223,11 +223,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
                                           ->execute();
 
-                                    Log::info('Teams meeting cancelled successfully', [
-                                        'event_id' => $eventId,
-                                        'organizer' => $organizerEmail,
-                                    ]);
-
                                     Notification::make()
                                         ->title('Teams Meeting Cancelled Successfully')
                                         ->warning()
@@ -790,24 +785,24 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->success()
                         ->send();
 
-                    // $phoneNumber = $lead->phone; // Recipient's WhatsApp number
-                    // $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
+                    $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+                    $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
 
-                    // $variables = [
-                    //     $lead->name,
-                    //     $lead->companyDetail->company_name,
-                    //     $contactNo,
-                    //     $picName,
-                    //     $email,
-                    //     $appointment->appointment_type,
-                    //     "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
-                    //     $onlineMeeting->getOnlineMeeting()->getJoinUrl()
-                    // ];
+                    $variables = [
+                        $lead->name,
+                        $lead->companyDetail->company_name,
+                        $contactNo,
+                        $picName,
+                        $email,
+                        $appointment->appointment_type,
+                        "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
+                        $onlineMeeting->getOnlineMeeting()->getJoinUrl()
+                    ];
 
-                    // $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                    $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                    // return $response;
+                    return $response;
                 }),
         ];
     }

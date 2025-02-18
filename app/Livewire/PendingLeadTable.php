@@ -44,7 +44,6 @@ class PendingLeadTable extends Component implements HasForms, HasTable
     public function getNewLeadsQuery()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
-        info($this->selectedUser);
         $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
             ? User::find($this->selectedUser)->name
             : auth()->user()->name;

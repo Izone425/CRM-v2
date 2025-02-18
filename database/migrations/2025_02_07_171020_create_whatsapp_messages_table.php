@@ -13,9 +13,12 @@ return new class extends Migration
     {
         Schema::create('chat_messages', function (Blueprint $table) {
             $table->id();
-            $table->string('customer_whatsapp'); // Customer's WhatsApp number
-            $table->text('message'); // Message text
-            $table->enum('type', ['sent', 'received']); // Whether message is sent or received
+            $table->string('sender'); // WhatsApp Number
+            $table->string('receiver'); // Your WhatsApp Number
+            $table->text('message'); // Message Content
+            $table->string('twilio_message_id')->unique(); // Unique Twilio Message ID
+            $table->string('profile_name')->nullable(); // Sender's WhatsApp Profile Name
+            $table->boolean('is_from_customer')->default(true); // Determine if the message is incoming
             $table->timestamps();
         });
     }
