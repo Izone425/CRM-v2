@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
+use App\Models\ActivityLog;
 use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\User;
@@ -83,16 +84,61 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    // LeadActions::getAddDemoAction(),
-                    // LeadActions::getAddRFQ(),
-                    // LeadActions::getAddFollowUp(),
-                    // LeadActions::getAddAutomation(),
-                    // LeadActions::getArchiveAction(),
-                    LeadActions::getDemoViewAction(),
-                    // LeadActions::getTransferCallAttempt(),
+                    LeadActions::getAddQuotationAction()
+                        ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' || $lead->lead_status === 'RFQ-Follow Up')),
+                    LeadActions::getAddDemoAction()
+                        ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' ||
+                        $lead->lead_status === 'Demo Cancelled' || $lead->lead_status === 'Pending Demo')),
+
+                    LeadActions::getDoneDemoAction()
+                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
+                    LeadActions::getCancelDemoAction()
+                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
+                    LeadActions::getQuotationFollowUpAction()
+                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'RFQ-Follow Up' ||
+                        $lead->lead_status === 'Hot' || $lead->lead_status === 'Warm' || $lead->lead_status === 'Cold'),
+                    LeadActions::getNoResponseAction()
+                        ->visible(function (Lead $lead) {
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                // Check if the latest activity log description needs updating
+                                if ($lead->call_attempt >= 4 || $latestActivityLog->description == '4th Lead Owner Follow Up (Auto Follow Up Stop)'||
+                                    $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
+                                    $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
+                                    $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
+                                    return true; // Show button
+                                }
+                            }
+
+                            return false; // Default: Hide button
+                        }),
+                    LeadActions::getAddFollowUp()
+                        ->visible(function (Lead $lead) {
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                // Check if the latest activity log description needs updating
+                                if ($lead->call_attempt >= 4 || $lead->lead_status =='Hot' || $lead->lead_status =='Warm' ||
+                                    $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' ||
+                                    $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
+                                    $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
+                                    $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
+                                    return false; // Show button
+                                }
+                            }
+
+                            return true; // Default: Hide button
+                        }),
+                    LeadActions::getViewAction(),
+                    LeadActions::getViewRemark(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color('warning'),
             ]);
     }
 

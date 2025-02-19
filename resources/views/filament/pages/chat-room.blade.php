@@ -1,9 +1,12 @@
 <x-filament::page>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-
+    <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox" wire:model="filterUnreplied" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <span class="text-sm text-gray-700">&nbsp&nbspShow Unreplied Only</span>
+    </label>
     <div class="flex h-screen bg-white border border-gray-200 rounded-lg" wire:poll.1s>
         <!-- Left Sidebar - Chat List -->
-        <div class="w-1/4 border-r bg-gray-50">
+        <div class="border-r bg-gray-50" style="width: 300px !important;"> <!-- ✅ Ensures width is applied -->
             <div class="p-4 bg-white border-b">
                 <h2 class="text-lg font-semibold">Chats</h2>
             </div>
@@ -18,7 +21,7 @@
                                 {{ $contact->participant_name }}
                             </div>
                             @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
-                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
+                                <span class="text-xl font-bold text-red-600">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
                             @endif
                         </div>
 
@@ -138,7 +141,8 @@
 
         <!-- Right Sidebar - Contact Details -->
         @if ($selectedChat)
-        <div class="w-1/4 border-l shadow-md bg-gray-50">
+        <div class="w-1/4 border-l shadow-md bg-gray-50" style="width: 300px !important;">
+
             <div class="flex items-center justify-between p-4 bg-white border-b">
                 <h2 class="text-lg font-semibold text-gray-700">Contact Details</h2>
             </div>
