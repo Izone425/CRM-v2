@@ -106,7 +106,7 @@ class ActivityLogRelationManager extends RelationManager
         $this->totalnum = ActivityLog::where('subject_id', $this->getOwnerRecord()->id)->count();
 
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
             ->columns([
@@ -802,7 +802,8 @@ class ActivityLogRelationManager extends RelationManager
                                 'remark' => $data['remark'],
                                 'salesperson' => $data['salesperson'],
                                 'follow_up_date' => today(),
-                                'rfq_transfer_at' => now()
+                                'rfq_transfer_at' => now(),
+                                'follow_up_counter' => true,
                             ]);
 
                             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -902,15 +903,8 @@ class ActivityLogRelationManager extends RelationManager
                                 ->required()
                                 ->placeholder('Select a follow-up date')
                                 ->default(fn ($record) => $record->lead->follow_up_date ?? now())
-                                ->reactive()
+                                ->reactive(),
                                 // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
-                                ->visible(fn (Forms\Get $get) => !$get('follow_up_needed')) // Hide when follow_up_needed is checked
-                                ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                    if ($get('follow_up_needed')) {
-                                        $nextTuesday = Carbon::now()->next(Carbon::TUESDAY);
-                                        $set('follow_up_date', $nextTuesday); // Set to next Tuesday if checked
-                                    }
-                                }),
                         ])
                         ->color('success')
                         ->icon('heroicon-o-pencil-square')
@@ -925,16 +919,18 @@ class ActivityLogRelationManager extends RelationManager
                                 $lead->update([
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
-                                    'follow_up_needed' => 0
+                                    'follow_up_needed' => 0,
+                                    'follow_up_counter' => true,
                                 ]);
 
-                                if(auth()->user()->role_id = 1){
+                                if(auth()->user()->role_id == 1){
                                     $role = 'Lead Owner';
-                                }else if(auth()->user->role_id = 2){
+                                }else if(auth()->user()->role_id == 2){
                                     $role = 'Salesperson';
                                 }else{
                                     $role = 'Manager';
                                 }
+                                info($role);
                                 // Increment the follow-up count for the new description
                                 $followUpDescription = $role .' Follow Up';
 
@@ -1708,11 +1704,9 @@ class ActivityLogRelationManager extends RelationManager
                             }
 
                             $lead->update([
-                                'salesperson' => null,
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
                                 'remark' => $data['remark'],
-                                'follow_up_date' => null,
                             ]);
 
                             $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)

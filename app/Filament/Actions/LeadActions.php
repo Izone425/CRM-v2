@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
 use Microsoft\Graph\Graph;
+use Illuminate\Support\Str;
 
 class LeadActions
 {
@@ -51,18 +52,26 @@ class LeadActions
             ->modalCancelAction(false)
             ->modalHeading('Lead Details')
             ->modalDescription('Here are the details for this lead.')
-            ->modalContent(fn (Lead $record) => view('filament.modals.lead-details', [
-                'lead' => $record,
-                'pending_days' => $record->pending_days, // Pass pending_days to the view
-            ]))
+            ->modalContent(fn (?Lead $record) => $record
+                ? view('filament.modals.lead-details', [
+                    'lead' => $record,
+                    'pending_days' => $record->pending_days, // Pass pending_days to the view
+                ])
+                : null // Return null if no record exists to prevent errors
+            )
             ->extraModalFooterActions([
-                Action::make('view_lead')
+                LeadActions::getAssignToMeAction()
+                    ->cancelParentActions(),
+
+                // ✅ Show "Edit Details" button if lead_owner is NOT NULL
+                Action::make('edit_lead')
                     ->label('Edit Details')
                     ->icon('heroicon-o-pencil-square')
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalHeading('Lead Details')
                     ->modalDescription('Edit the lead details below.')
+                    ->visible(fn (?Lead $record) => $record && !is_null($record->lead_owner) && auth()->user()?->role_id !== 2)
                     ->form(fn (Lead $record) => [
                         TextInput::make('company_name')
                             ->label('Company Name')
@@ -133,61 +142,73 @@ class LeadActions
     public static function getAssignToMeAction(): Action
     {
         return Action::make('updateLeadOwner')
-            ->label(__('Assign to Me'))
-            ->requiresConfirmation()
-            ->modalDescription('')
-            ->form(function (Lead $record) {
-                $isDuplicate = Lead::query()
-                    ->where('company_name', $record->companyDetail->company_name)
-                    ->orWhere('email', $record->email)
-                    ->where('id', '!=', $record->id) // Exclude the current lead
-                    ->exists();
+        ->label(__('Assign to Me'))
+        ->requiresConfirmation()
+        ->modalDescription('')
+        ->form(function (?Lead $record) {
+            // Find duplicate leads based on company name or email
+            $duplicateLeads = Lead::query()
+                ->where(function ($query) use ($record) {
+                    $query->where('company_name', $record->companyDetail->company_name)
+                          ->orWhere('email', $record->email);
+                })
+                ->where('id', '!=', $record->id) // Exclude the current lead
+                ->get(['id']); // Fetch only the 'id' field
 
-                $content = $isDuplicate
-                    ? '⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?'
-                    : 'Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.';
+            // Check if duplicates exist
+            $isDuplicate = $duplicateLeads->isNotEmpty();
 
-                return [
-                    Placeholder::make('warning')
-                        ->content($content)
-                        ->hiddenLabel()
-                        ->extraAttributes([
-                            'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
-                        ]),
-                ];
-            })
-            ->color('success')
-            ->icon('heroicon-o-pencil-square')
-            ->visible(fn (Lead $record) => is_null($record->lead_owner)) // Show only if lead_owner is NULL
-            ->action(function (Lead $record) {
-                // Update the lead owner and related fields
-                $record->update([
-                    'lead_owner' => auth()->user()->name,
-                    'categories' => 'Active',
-                    'stage' => 'Transfer',
-                    'lead_status' => 'New',
+            // Format duplicate lead IDs for display
+            $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
+                ->implode("\n\n");
+
+            // Define content message
+            $content = $isDuplicate
+                ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?\n\n$duplicateIds"
+                : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
+
+
+            return [
+                Placeholder::make('warning')
+                    ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString()) // Convert new lines to HTML <br>
+                    ->hiddenLabel()
+                    ->extraAttributes([
+                        'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
+                    ]),
+            ];
+        })
+        ->color('success')
+        ->icon('heroicon-o-pencil-square')
+        ->visible(fn (?Lead $record) => $record && is_null($record->lead_owner))
+        ->action(function (Lead $record) {
+            // Update the lead owner and related fields
+            $record->update([
+                'lead_owner' => auth()->user()->name,
+                'categories' => 'Active',
+                'stage' => 'Transfer',
+                'lead_status' => 'New',
+            ]);
+
+            // Update the latest activity log
+            $latestActivityLog = ActivityLog::where('subject_id', $record->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+                $latestActivityLog->update([
+                    'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
                 ]);
 
-                // Update the latest activity log
-                $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                    ->orderByDesc('created_at')
-                    ->first();
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($record);
+            }
 
-                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
-                    $latestActivityLog->update([
-                        'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-                    ]);
-
-                    activity()
-                        ->causedBy(auth()->user())
-                        ->performedOn($record);
-                }
-
-                Notification::make()
-                    ->title('Lead Owner Assigned Successfully')
-                    ->success()
-                    ->send();
-            });
+            Notification::make()
+                ->title('Lead Owner Assigned Successfully')
+                ->success()
+                ->send();
+        });
     }
 
     public static function getAssignLeadAction(): Action
@@ -604,14 +625,8 @@ class LeadActions
                             // Check if we have valid recipients before sending emails
                             if (!empty($allEmails)) {
                                 foreach ($allEmails as $recipient) {
-                                    Mail::mailer()
-                                    ->to($recipient)
-                                    ->send(new DemoNotification(
-                                        $emailContent,
-                                        $viewName,
-                                        auth()->user()->email, // Auth user email as sender
-                                        auth()->user()->name   // Auth user name
-                                    ));
+                                    Mail::mailer('secondary')->to($recipient)
+                                        ->send(new DemoNotification($emailContent, $viewName));
                                 }
                             } else {
                                 Log::error("No valid email addresses found for sending DemoNotification.");
@@ -751,6 +766,7 @@ class LeadActions
                     'salesperson' => $data['salesperson'],
                     'follow_up_date' => today(),
                     'rfq_transfer_at' => now(),
+                    'follow_up_counter' => true,
                 ]);
 
                 // Fetch the salesperson's name
@@ -878,7 +894,8 @@ class LeadActions
                 $lead->update([
                     'follow_up_date' => $followUpDate,
                     'remark' => $data['remark'],
-                    'follow_up_needed' => 0
+                    'follow_up_needed' => 0,
+                    'follow_up_counter' => 1
                 ]);
 
                 if(auth()->user()->role_id = 1){

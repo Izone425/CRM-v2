@@ -51,10 +51,10 @@ class LeadResource extends Resource
                     ->schema([
                         Forms\Components\Tabs::make()->tabs([
                             Forms\Components\Tabs\Tab::make('Lead')->schema([
-                                Forms\Components\Grid::make(3) // A three-column grid for overall layout
+                                Forms\Components\Grid::make(4) // A three-column grid for overall layout
                                 ->schema([
                                     // Left-side layout
-                                    Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                    Forms\Components\Grid::make(2) // Nested grid for left side (single column)
                                         ->schema([
                                             Forms\Components\Section::make('Lead Details')
                                                 ->icon('heroicon-o-briefcase')
@@ -63,7 +63,7 @@ class LeadResource extends Resource
                                                         ->schema([
                                                             Forms\Components\Placeholder::make('lead_id')
                                                                 ->label('Lead ID')
-                                                                ->content(fn ($record) => sprintf('%06d', $record->id) ?? '-'),
+                                                                ->content(fn ($record) => $record ? str_pad($record->id, 5, '0', STR_PAD_LEFT) : '-'),
                                                             Forms\Components\Placeholder::make('lead_source')
                                                                 ->label('Lead Source')
                                                                 ->content(fn ($record) => $record->leadSource?->platform ?? '-'),
@@ -99,36 +99,31 @@ class LeadResource extends Resource
                                                                 ->content(fn ($record) => $record->company_size ?? '-'),
                                                         ]),
                                                 ]),
+                                        ])
+                                        ->columnSpan(2),
+                                        Forms\Components\Grid::make(1)
+                                            ->schema([
                                                 Forms\Components\Section::make('Progress')
                                                     ->icon('heroicon-o-calendar-days')
                                                     ->schema([
-                                                        Forms\Components\Grid::make(2) // Two columns for Progress
+                                                        Forms\Components\Grid::make(1) // Single-column layout for progress
                                                             ->schema([
                                                                 Forms\Components\Placeholder::make('days_from_lead_created')
                                                                     ->label('Total Days from Lead Created')
                                                                     ->content(function ($record) {
                                                                         $createdDate = $record->created_at;
-
                                                                         if ($createdDate) {
                                                                             return $createdDate->diffInDays(now()) . ' days';
                                                                         }
-
                                                                         return '-';
                                                                     }),
                                                                 Forms\Components\Placeholder::make('days_from_new_demo')
                                                                     ->label('Total Days from New Demo')
                                                                     ->content(fn ($record) => $record->calculateDaysFromNewDemo() . ' days'),
                                                             ]),
-                                                Forms\Components\Placeholder::make('days_from_rfq_to_inactive')
-                                                    ->label('Days From RFQ-Follow Up to Inactive')
-                                                    ->content(function ($record) {
-                                                        $days = $record->calculateDaysFromRFQTransferToInactive();
-
-                                                        return "{$days} days";
-                                                    }),
-                                            ]),
-                                        ])
-                                        ->columnSpan(2),
+                                                    ]),
+                                            ])
+                                            ->columnSpan(1),
                                         Forms\Components\Grid::make(1)
                                             ->schema([
                                                 Forms\Components\Section::make('Sales In-Charge')
@@ -246,10 +241,9 @@ class LeadResource extends Resource
                                 ]),
                             ]),
                             Forms\Components\Tabs\Tab::make('Company')->schema([
-                                Forms\Components\Grid::make(3) // A three-column grid for overall layout
+                                Forms\Components\Grid::make(4)
                                 ->schema([
-                                    // Left-side layout
-                                    Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                    Forms\Components\Grid::make(2)
                                         ->schema([
                                             Forms\Components\Section::make('Company Details')
                                                 ->icon('heroicon-o-briefcase')
@@ -257,6 +251,7 @@ class LeadResource extends Resource
                                                     Action::make('edit_company_detail')
                                                         ->label('Edit') // Button label
                                                         ->modalHeading('Edit Information') // Modal heading
+                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
                                                         ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                         ->form([ // Define the form fields to show in the modal
                                                             Forms\Components\TextInput::make('company_name')
@@ -271,17 +266,65 @@ class LeadResource extends Resource
                                                                 ->label('Company Address 2')
                                                                 ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
                                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                                            Forms\Components\TextInput::make('postcode')
-                                                                ->label('Postcode')
-                                                                ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
-                                                            Forms\Components\TextInput::make('industry')
-                                                                ->label('Industry')
-                                                                ->default(fn ($record) => $record->companyDetail->industry ?? '-')
-                                                                ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
-                                                            Forms\Components\TextInput::make('state')
-                                                                ->label('State')
-                                                                ->default(fn ($record) => $record->companyDetail->state ?? '-')
-                                                                ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
+                                                            Forms\Components\Grid::make(3) // Create a 3-column grid
+                                                                ->schema([
+                                                                    Forms\Components\TextInput::make('postcode')
+                                                                        ->label('Postcode')
+                                                                        ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
+
+                                                                    Forms\Components\Select::make('state')
+                                                                        ->label('State')
+                                                                        ->options(function () {
+                                                                            $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                // Map 3-letter country codes to full country names
+                                                                                return collect($countries)->mapWithKeys(function ($country) {
+                                                                                    return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                                                })->toArray();
+                                                                            }
+
+                                                                            return [];
+                                                                        })
+                                                                        ->dehydrateStateUsing(function ($state) {
+                                                                            // Convert the selected code to the full country name
+                                                                            $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                foreach ($countries as $country) {
+                                                                                    if ($country['Code'] === $state) {
+                                                                                        return ucfirst(strtolower($country['State']));
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                            return $state; // Fallback to the original state if mapping fails
+                                                                        })
+                                                                        ->default(fn ($record) => $record->companyDetail->state ?? null)
+                                                                        ->searchable()
+                                                                        ->preload(),
+
+                                                                    Forms\Components\Select::make('industry')
+                                                                        ->label('Industry')
+                                                                        ->options([
+                                                                            'Manufacturing' => 'Manufacturing',
+                                                                            'Information Technology' => 'Information Technology',
+                                                                            'Finance' => 'Finance',
+                                                                            'Healthcare' => 'Healthcare',
+                                                                            'Education' => 'Education',
+                                                                            'Retail' => 'Retail',
+                                                                            'Other' => 'Other',
+                                                                        ])
+                                                                        ->default(fn ($record) => $record->companyDetail->industry ?? null)
+                                                                        ->searchable()
+                                                                        ->preload(),
+                                                                ]),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             $record = $lead->companyDetail;
@@ -327,11 +370,16 @@ class LeadResource extends Resource
                                                                 ->content(fn ($record) => $record->companyDetail->state ?? '-'),
                                                         ]),
                                                 ]),
+                                        ])
+                                        ->columnSpan(2),
+                                        Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                            ->schema([
                                                 Forms\Components\Section::make('Person In-Charge')
                                                     ->icon('heroicon-o-user')
                                                     ->headerActions([
                                                         Action::make('edit_person_in_charge')
                                                             ->label('Edit') // Button label
+                                                            ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
                                                             ->modalHeading('Edit on Person In-Charge') // Modal heading
                                                             ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                             ->form([ // Define the form fields to show in the modal
@@ -345,10 +393,6 @@ class LeadResource extends Resource
                                                                     ->label('Email')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->email ?? null),
-                                                                // Forms\Components\TextInput::make('position')
-                                                                //     ->label('Position')
-                                                                //     ->required()
-                                                                //     ->default(fn ($record) => $record->companyDetail->position ?? null),
                                                                 Forms\Components\TextInput::make('contact_no')
                                                                     ->label('Contact No.')
                                                                     ->required()
@@ -376,187 +420,184 @@ class LeadResource extends Resource
                                                             }),
                                                     ])
                                                     ->schema([
-                                                        Forms\Components\Grid::make(2) // Two columns for Progress
-                                                            ->schema([
-                                                                Forms\Components\Placeholder::make('name')
-                                                                    ->label('Name')
-                                                                    ->content(fn ($record) => $record->companyDetail->name ?? '-'),
-                                                                Forms\Components\Placeholder::make('contact_no')
-                                                                    ->label('Contact No.')
-                                                                    ->content(fn ($record) => $record->companyDetail->contact_no ?? '-'),
-                                                            ]),
-                                                        Forms\Components\Placeholder::make('position')
-                                                            ->label('Position')
-                                                            ->content(fn ($record) => $record->companyDetail->position ?? '-'),
+
+                                                        Forms\Components\Placeholder::make('name')
+                                                            ->label('Name')
+                                                            ->content(fn ($record) => $record->companyDetail->name ?? '-'),
+                                                        Forms\Components\Placeholder::make('contact_no')
+                                                            ->label('Contact No.')
+                                                            ->content(fn ($record) => $record->companyDetail->contact_no ?? '-'),
                                                         Forms\Components\Placeholder::make('email')
                                                             ->label('Email Address')
                                                             ->content(fn ($record) => $record->companyDetail->email ?? '-'),
-                                                ]),
-                                        ])
-                                        ->columnSpan(2),
-                                        Forms\Components\Section::make('Status')
-                                            ->icon('heroicon-o-information-circle')
-                                            ->extraAttributes([
-                                                'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
-                                            ])
-                                            ->schema([
-                                                Forms\Components\Grid::make(1) // Single column in the right-side section
-                                                    ->schema([
-                                                        Forms\Components\Placeholder::make('deal_amount')
-                                                            ->label('Deal Amount')
-                                                            ->content(function (Lead $record) {
-                                                                $latestQuotation = $record->quotations()->latest('created_at')->first();
-
-                                                                $currency = $latestQuotation->currency ?? 'USD';
-
-                                                                $dealAmount = $record->deal_amount ? number_format($record->deal_amount, 2) : '0.00';
-
-                                                                return $currency === 'MYR' ? "RM {$dealAmount}" : "$ {$dealAmount}";
-                                                            }),
-                                                        Forms\Components\Placeholder::make('status')
-                                                            ->label('Status')
-                                                            ->content(fn ($record) => ($record->stage ?? $record->categories)
-                                                            ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
-                                                            : '-'),
-                                                        Actions::make([
-                                                            Actions\Action::make('edit_status')
-                                                                ->label('Edit')
-                                                                ->action(function ($record, $data) {
-                                                                    // Extract selected values
-                                                                    $newStage = $data['new_stage'];
-                                                                    $newLeadStatus = $data['new_lead_status'];
-
-                                                                    // Update the record based on the selected values
-                                                                    $record->update([
-                                                                        'stage' => $newStage === 'Inactive' ? null : $newStage, // Set stage to null if $newStage is 'Inactive'
-                                                                        'lead_status' => $newLeadStatus,
-                                                                        'categories' => $newStage === 'Inactive' ? $newStage : $record->categories, // Update categories to newStage if it is 'Inactive'
-                                                                    ]);
-
-                                                                    // Fetch latest activity logs
-                                                                    $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
-                                                                        ->orderByDesc('created_at')
-                                                                        ->take(2)
-                                                                        ->get();
-
-                                                                    if ($latestActivityLogs->count() >= 2) {
-                                                                        // Update the first activity log
-                                                                        $latestActivityLogs[0]->update([
-                                                                            'description' => 'Lead Stage updated to: ' . $newStage,
-                                                                        ]);
-
-                                                                        // Update the second activity log
-                                                                        $latestActivityLogs[1]->update([
-                                                                            'description' => 'Lead Status updated to: ' . $newLeadStatus,
-                                                                        ]);
-                                                                    } elseif ($latestActivityLogs->count() === 1) {
-                                                                        // Update the single existing log if only one exists
-                                                                        $latestActivityLogs[0]->update([
-                                                                            'description' => 'Lead Stage updated to: ' . $newStage . ' and Lead Status updated to: ' . $newLeadStatus,
-                                                                        ]);
-                                                                    }
-
-                                                                    activity()
-                                                                        ->causedBy(auth()->user())
-                                                                        ->performedOn($record);
-
-                                                                    // Notify the user of successful update
-                                                                    Notification::make()
-                                                                        ->title('Sales In-Charge Edited Successfully')
-                                                                        ->success()
-                                                                        ->send();
-                                                                })
-                                                                ->form([
-                                                                    Grid::make() // Three columns layout
-                                                                    ->schema([
-                                                                        Forms\Components\Placeholder::make('current_status')
-                                                                            ->label('Current Status')
-                                                                            ->content(fn ($record) => ($record->stage ?? $record->categories)
-                                                                            ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
-                                                                            : '-'),
-                                                                        Forms\Components\Placeholder::make('arrow') // Arrow in the middle column
-                                                                            ->content('----------->') // Unicode arrow or any arrow symbol
-                                                                            ->columnSpan(1)
-                                                                            ->label(''),
-                                                                        Forms\Components\Select::make('new_stage')
-                                                                            ->label('New Stage')
-                                                                            ->options([
-                                                                                'New' => 'New',
-                                                                                'Transfer' => 'Transfer',
-                                                                                'Demo' => 'Demo',
-                                                                                'Follow Up' => 'Follow Up',
-                                                                                'Inactive' => 'Inactive',
-                                                                            ])
-                                                                            ->required()
-                                                                            ->reactive(), // Make this field reactive
-
-                                                                        Forms\Components\Select::make('new_lead_status')
-                                                                            ->label('New Lead Status')
-                                                                            ->options(fn ($get) => match ($get('new_stage')) {
-                                                                                'New' => [
-                                                                                    'None' => 'None',
-                                                                                ],
-                                                                                'Transfer' => [
-                                                                                    'New' => 'New',
-                                                                                    'Under Review' => 'Under Review',
-                                                                                    'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                                    'Pending Demo' => 'Pending Demo',
-                                                                                    'Demo Cancelled' => 'Demo Cancelled',
-                                                                                ],
-                                                                                'Demo' => [
-                                                                                    'Demo-Assigned' => 'Demo-Assigned',
-                                                                                ],
-                                                                                'Follow Up' => [
-                                                                                    'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                                    'Hot' => 'Hot',
-                                                                                    'Warm' => 'Warm',
-                                                                                    'Cold' => 'Cold',
-                                                                                ],
-                                                                                'Inactive' => [
-                                                                                    'Junk' => 'Junk',
-                                                                                    'On Hold' => 'On Hold',
-                                                                                    'Lost' => 'Lost',
-                                                                                    'No Response' => 'No Response',
-                                                                                    'Closed' => 'Closed',
-                                                                                ],
-                                                                                default => [
-                                                                                    'None' => 'None',
-                                                                                    'New' => 'New',
-                                                                                    'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                                    'Pending Demo' => 'Pending Demo',
-                                                                                    'Under Review' => 'Under Review',
-                                                                                    'Demo Cancelled' => 'Demo Cancelled',
-                                                                                    'Demo-Assigned' => 'Demo-Assigned',
-                                                                                    'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                                    'Hot' => 'Hot',
-                                                                                    'Warm' => 'Warm',
-                                                                                    'Cold' => 'Cold',
-                                                                                    'Junk' => 'Junk',
-                                                                                    'On Hold' => 'On Hold',
-                                                                                    'Lost' => 'Lost',
-                                                                                    'No Response' => 'No Response',
-                                                                                    'Closed' => 'Closed',
-                                                                                ],
-                                                                            })
-                                                                            ->required(),
-                                                                    ])->columns(4),
-
-                                                                ])
-                                                                ->modalHeading('Edit Status')
-                                                                ->modalDescription('You are about to change the status of this lead. Changing the lead
-                                                                                    status may trigger automated actions based on the new status.')
-                                                                ->modalSubmitActionLabel('Confirm')
-                                                                ->extraAttributes(function () {
-                                                                    // Hide the action by applying a CSS class when the user's role_id is 1 or 2
-                                                                    return auth()->user()->role_id === 2
-                                                                        ? ['class' => 'hidden']
-                                                                        : [];
-                                                                }),
-                                                            ]),
                                                     ]),
-                                            ])
-                                            ->columnSpan(1), // Right side spans 1 column
-                                    ]),
+                                                ])->columnSpan(1),
+                                        Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                            ->schema([
+                                                Forms\Components\Section::make('Status')
+                                                    ->icon('heroicon-o-information-circle')
+                                                    ->extraAttributes([
+                                                        'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                                    ])
+                                                    ->schema([
+                                                        Forms\Components\Grid::make(1) // Single column in the right-side section
+                                                            ->schema([
+                                                                Forms\Components\Placeholder::make('deal_amount')
+                                                                    ->label('Deal Amount')
+                                                                    ->content(function (Lead $record) {
+                                                                        $latestQuotation = $record->quotations()->latest('created_at')->first();
+
+                                                                        $currency = $latestQuotation->currency ?? 'USD';
+
+                                                                        $dealAmount = $record->deal_amount ? number_format($record->deal_amount, 2) : '0.00';
+
+                                                                        return $currency === 'MYR' ? "RM {$dealAmount}" : "$ {$dealAmount}";
+                                                                    }),
+                                                                Forms\Components\Placeholder::make('status')
+                                                                    ->label('Status')
+                                                                    ->content(fn ($record) => ($record->stage ?? $record->categories)
+                                                                    ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
+                                                                    : '-'),
+                                                                // Actions::make([
+                                                                //     Actions\Action::make('edit_status')
+                                                                //         ->label('Edit')
+                                                                //         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
+                                                                //         ->action(function ($record, $data) {
+                                                                //             // Extract selected values
+                                                                //             $newStage = $data['new_stage'];
+                                                                //             $newLeadStatus = $data['new_lead_status'];
+
+                                                                //             // Update the record based on the selected values
+                                                                //             $record->update([
+                                                                //                 'stage' => $newStage === 'Inactive' ? null : $newStage, // Set stage to null if $newStage is 'Inactive'
+                                                                //                 'lead_status' => $newLeadStatus,
+                                                                //                 'categories' => $newStage === 'Inactive' ? $newStage : $record->categories, // Update categories to newStage if it is 'Inactive'
+                                                                //             ]);
+
+                                                                //             // Fetch latest activity logs
+                                                                //             $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
+                                                                //                 ->orderByDesc('created_at')
+                                                                //                 ->take(2)
+                                                                //                 ->get();
+
+                                                                //             if ($latestActivityLogs->count() >= 2) {
+                                                                //                 // Update the first activity log
+                                                                //                 $latestActivityLogs[0]->update([
+                                                                //                     'description' => 'Lead Stage updated to: ' . $newStage,
+                                                                //                 ]);
+
+                                                                //                 // Update the second activity log
+                                                                //                 $latestActivityLogs[1]->update([
+                                                                //                     'description' => 'Lead Status updated to: ' . $newLeadStatus,
+                                                                //                 ]);
+                                                                //             } elseif ($latestActivityLogs->count() === 1) {
+                                                                //                 // Update the single existing log if only one exists
+                                                                //                 $latestActivityLogs[0]->update([
+                                                                //                     'description' => 'Lead Stage updated to: ' . $newStage . ' and Lead Status updated to: ' . $newLeadStatus,
+                                                                //                 ]);
+                                                                //             }
+
+                                                                //             activity()
+                                                                //                 ->causedBy(auth()->user())
+                                                                //                 ->performedOn($record);
+
+                                                                //             // Notify the user of successful update
+                                                                //             Notification::make()
+                                                                //                 ->title('Sales In-Charge Edited Successfully')
+                                                                //                 ->success()
+                                                                //                 ->send();
+                                                                //         })
+                                                                //         ->form([
+                                                                //             Grid::make() // Three columns layout
+                                                                //             ->schema([
+                                                                //                 Forms\Components\Placeholder::make('current_status')
+                                                                //                     ->label('Current Status')
+                                                                //                     ->content(fn ($record) => ($record->stage ?? $record->categories)
+                                                                //                     ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
+                                                                //                     : '-'),
+                                                                //                 Forms\Components\Placeholder::make('arrow') // Arrow in the middle column
+                                                                //                     ->content('----------->') // Unicode arrow or any arrow symbol
+                                                                //                     ->columnSpan(1)
+                                                                //                     ->label(''),
+                                                                //                 Forms\Components\Select::make('new_stage')
+                                                                //                     ->label('New Stage')
+                                                                //                     ->options([
+                                                                //                         'New' => 'New',
+                                                                //                         'Transfer' => 'Transfer',
+                                                                //                         'Demo' => 'Demo',
+                                                                //                         'Follow Up' => 'Follow Up',
+                                                                //                         'Inactive' => 'Inactive',
+                                                                //                     ])
+                                                                //                     ->required()
+                                                                //                     ->reactive(), // Make this field reactive
+
+                                                                //                 Forms\Components\Select::make('new_lead_status')
+                                                                //                     ->label('New Lead Status')
+                                                                //                     ->options(fn ($get) => match ($get('new_stage')) {
+                                                                //                         'New' => [
+                                                                //                             'None' => 'None',
+                                                                //                         ],
+                                                                //                         'Transfer' => [
+                                                                //                             'New' => 'New',
+                                                                //                             'Under Review' => 'Under Review',
+                                                                //                             'RFQ-Transfer' => 'RFQ-Transfer',
+                                                                //                             'Pending Demo' => 'Pending Demo',
+                                                                //                             'Demo Cancelled' => 'Demo Cancelled',
+                                                                //                         ],
+                                                                //                         'Demo' => [
+                                                                //                             'Demo-Assigned' => 'Demo-Assigned',
+                                                                //                         ],
+                                                                //                         'Follow Up' => [
+                                                                //                             'RFQ-Follow Up' => 'RFQ-Follow Up',
+                                                                //                             'Hot' => 'Hot',
+                                                                //                             'Warm' => 'Warm',
+                                                                //                             'Cold' => 'Cold',
+                                                                //                         ],
+                                                                //                         'Inactive' => [
+                                                                //                             'Junk' => 'Junk',
+                                                                //                             'On Hold' => 'On Hold',
+                                                                //                             'Lost' => 'Lost',
+                                                                //                             'No Response' => 'No Response',
+                                                                //                             'Closed' => 'Closed',
+                                                                //                         ],
+                                                                //                         default => [
+                                                                //                             'None' => 'None',
+                                                                //                             'New' => 'New',
+                                                                //                             'RFQ-Transfer' => 'RFQ-Transfer',
+                                                                //                             'Pending Demo' => 'Pending Demo',
+                                                                //                             'Under Review' => 'Under Review',
+                                                                //                             'Demo Cancelled' => 'Demo Cancelled',
+                                                                //                             'Demo-Assigned' => 'Demo-Assigned',
+                                                                //                             'RFQ-Follow Up' => 'RFQ-Follow Up',
+                                                                //                             'Hot' => 'Hot',
+                                                                //                             'Warm' => 'Warm',
+                                                                //                             'Cold' => 'Cold',
+                                                                //                             'Junk' => 'Junk',
+                                                                //                             'On Hold' => 'On Hold',
+                                                                //                             'Lost' => 'Lost',
+                                                                //                             'No Response' => 'No Response',
+                                                                //                             'Closed' => 'Closed',
+                                                                //                         ],
+                                                                //                     })
+                                                                //                     ->required(),
+                                                                //             ])->columns(4),
+
+                                                                //         ])
+                                                                //         ->modalHeading('Edit Status')
+                                                                //         ->modalDescription('You are about to change the status of this lead. Changing the lead
+                                                                //                             status may trigger automated actions based on the new status.')
+                                                                //         ->modalSubmitActionLabel('Confirm')
+                                                                //         ->extraAttributes(function () {
+                                                                //             // Hide the action by applying a CSS class when the user's role_id is 1 or 2
+                                                                //             return auth()->user()->role_id === 2
+                                                                //                 ? ['class' => 'hidden']
+                                                                //                 : [];
+                                                                //         }),
+                                                                //     ]),
+                                                            ]),
+                                                    ])
+                                            ])->columnSpan(1),
+                                        ]),
                             ]),
                             Tab::make('System')
                                 ->schema([
@@ -1046,7 +1087,7 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->defaultPaginationPageOption(50)
             ->modifyQueryUsing(function ($query) {
                 $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")

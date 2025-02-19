@@ -59,7 +59,7 @@ class ProformaInvoiceRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->query(function () {
                 $leadId = $this->getOwnerRecord()->id; // Get the lead ID dynamically

@@ -54,13 +54,14 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
             ->whereDate('follow_up_date', '<', today()) // Overdue follow-ups
             ->where('lead_owner', $leadOwner) // Filter by authenticated user's name
             ->whereNull('salesperson') // Ensure salesperson is NULL
+            ->where('follow_up_counter', true)
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days'); // Default sorting by follow-up date
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->query($this->getProspectOverdueQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

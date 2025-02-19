@@ -50,11 +50,6 @@ class CompanyDetail extends Model
         $this->attributes['company_address2'] = strtoupper($value);
     }
 
-    public function setStateAttribute($value)
-    {
-        $this->attributes['state'] = strtoupper($value);
-    }
-
     public function setNameAttribute($value)
     {
         $this->attributes['name'] = strtoupper($value);
