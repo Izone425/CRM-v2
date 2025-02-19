@@ -2,8 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Classes\Encryptor;
 use App\Models\Appointment;
+use App\Models\PublicHoliday;
 use App\Models\User;
+use App\Models\UserLeave;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -20,15 +23,39 @@ class CalendarMonthlyCalendar extends Component
     public $salesPeople;
     public $selectedSalesPerson;
     public $demos;
+    public $days;
 
+
+    public function getSalespersonDays($id){
+
+        $days = [
+            "totalDays" => $this->getNumberOfDays($this->currentDate),
+            "pb" => 0,
+            "weekend" => 0,
+            "leave"=>0,
+            "working"=>0,
+        ];
+
+
+        $days['pb'] = PublicHoliday::whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])->count();
+        $days["leave"] = UserLeave::where('user_ID',$id)->whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])->count();
+        $days['weekend'] = count($this->currentDate->getWeekendDays());
+        $days["working"] = $days['totalDays'] - $days['pb'] - $days['leave'] - $days['weekend'];
+
+        return $days;
+    }
     // Get Total Number of Demos for New, Webinar and others
-    private function getNumberOfDemos()
+    private function getNumberOfDemos($salesPerson)
     {
         $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
-        $this->totalDemos["ALL"] = DB::table('appointments')->count();
-        $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->count();
-        $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->count();
-        $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->count();
+        $this->totalDemos["ALL"] = DB::table('appointments')->where('salesperson',$salesPerson['id'])->whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])
+        ->count();
+        $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->where('salesperson',$salesPerson['id'])->whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])
+        ->count();
+        $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->where('salesperson',$salesPerson['id'])->whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])
+        ->count();
+        $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->where('salesperson',$salesPerson['id'])->whereBetween('date',[$this->currentDate->copy()->startOfMonth()->format("Y-m-d"),$this->currentDate->copy()->endOfMonth()->format("Y-m-d")])
+        ->count();
     }
 
     private function getNumberOfDays(Carbon $date){
@@ -40,7 +67,7 @@ class CalendarMonthlyCalendar extends Component
     }
 
     public function selectUser($id){
-        $this->selectedSalesPerson = User::where("id",$id)->get()->toArray();
+        $this->selectedSalesPerson = User::where('id',$id)->first()->toArray();
     }
 
     private function getDemosForSalesPerson(){
@@ -54,6 +81,7 @@ class CalendarMonthlyCalendar extends Component
         ->get()
         ->map(function ($item){
             $item->formattedStartTime = Carbon::parse($item->start_time)->format('H:i');
+            $item->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($item->lead_id)]);    
             return $item;
         })
         ->groupBy(function ($item){
@@ -64,7 +92,6 @@ class CalendarMonthlyCalendar extends Component
 
     public function render()
     {
-        $this->selectUser(5);
         // $this->currentDate = Carbon::now();
         $this->currentDate = Carbon::parse("2025-01-15");
         $this->firstDay = $this->currentDate->copy()->startOfMonth()->dayOfWeekIso;
@@ -73,8 +100,9 @@ class CalendarMonthlyCalendar extends Component
 
         if(isset($this->selectedSalesPerson)){
             $this->getDemosForSalesPerson();
+            $this->getNumberOfDemos($this->selectedSalesPerson);
+            $this->days=$this->getSalespersonDays($this->selectedSalesPerson['id']);
         }
-        $this->getNumberOfDemos();
 
         return view('livewire.calendar-monthly-calendar');
     }
