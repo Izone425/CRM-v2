@@ -46,13 +46,16 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
 
         return Lead::query()
             ->where('salesperson', $salespersonId) // Filter by salesperson
-            ->whereDate('follow_up_date', today());
+            ->whereDate('follow_up_date', '>=', today())
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
+            ->where('follow_up_counter', true);
+
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->query($this->getTodayProspects())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -77,8 +80,9 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
                     ->limit(30)
                     ->wrap()
                     ->formatStateUsing(fn ($record) => $record->activityLogs->sortByDesc('created_at')->first()?->description ?? 'No activity'),
-                TextColumn::make('remark')
-                    ->label('Remark'),
+                TextColumn::make('follow_up_date')
+                    ->label('Next Follow Up Date')
+                    ->date('d M Y'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -87,7 +91,7 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
                     // LeadActions::getAddFollowUp(),
                     // LeadActions::getAddAutomation(),
                     // LeadActions::getArchiveAction(),
-                    LeadActions::getDemoViewAction(),
+                    LeadActions::getViewAction(),
                     // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()

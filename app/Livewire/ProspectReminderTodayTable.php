@@ -50,14 +50,16 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
             : auth()->user()->name;
         return Lead::query()
             ->whereDate('follow_up_date', today())
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
             ->where('lead_owner', $leadOwner)
+            ->where('follow_up_counter', true)
             ->whereNull('salesperson');
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->query($this->getProspectTodayQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

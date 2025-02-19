@@ -368,7 +368,7 @@ class QuotationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->recordUrl(null)
             // ->modifyQueryUsing(function(Quotation $quotation) {
             //     $currentUser = auth('web')->user();

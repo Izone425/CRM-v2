@@ -57,7 +57,7 @@ class DemoAppointmentRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5')
+            ->poll('5s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([
@@ -254,11 +254,9 @@ class DemoAppointmentRelationManager extends RelationManager
 
                             // Update Lead stage and status
                             $lead->update([
-                                'salesperson' => null,
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
                                 'remark' => $data['remark'],
-                                'follow_up_date' => null,
                             ]);
 
                             $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
