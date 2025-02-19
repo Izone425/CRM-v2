@@ -644,7 +644,8 @@ class LeadActions
                         'follow_up_date' => $data['date'],
                         'demo_appointment' => $appointment->id,
                         'remark' => $data['remarks'],
-                        'salesperson' => $data['salesperson'] ?? auth()->user()->id
+                        'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'follow_up_counter' => true,
                     ]);
 
                     $appointment = $lead->demoAppointment()->latest()->first(); // Assuming a relation exists
