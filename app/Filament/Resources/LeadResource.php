@@ -112,14 +112,17 @@ class LeadResource extends Resource
                                                                     ->label('Total Days from Lead Created')
                                                                     ->content(function ($record) {
                                                                         $createdDate = $record->created_at;
-                                                                        if ($createdDate) {
-                                                                            return $createdDate->diffInDays(now()) . ' days';
-                                                                        }
-                                                                        return '-';
+                                                                        return $createdDate ? $createdDate->diffInDays(now()) . ' days' : '-';
                                                                     }),
+
                                                                 Forms\Components\Placeholder::make('days_from_new_demo')
                                                                     ->label('Total Days from New Demo')
                                                                     ->content(fn ($record) => $record->calculateDaysFromNewDemo() . ' days'),
+
+                                                                // Empty placeholders to extend section height
+                                                                Forms\Components\Placeholder::make('empty1')->label('')->content(''),
+                                                                Forms\Components\Placeholder::make('empty2')->label('')->content(''),
+                                                                Forms\Components\Placeholder::make('empty3')->label('')->content(''),
                                                             ]),
                                                     ]),
                                             ])
@@ -353,21 +356,21 @@ class LeadResource extends Resource
                                                             Forms\Components\Placeholder::make('company_name')
                                                                 ->label('Company Name')
                                                                ->content(fn ($record) => $record->companyDetail->company_name ?? '-'),
+                                                            Forms\Components\Placeholder::make('postcode')
+                                                               ->label('Postcode')
+                                                               ->content(fn ($record) => $record->companyDetail->postcode ?? '-'),
                                                             Forms\Components\Placeholder::make('company_address1')
                                                                 ->label('Company Address 1')
                                                                 ->content(fn ($record) => $record->companyDetail->company_address1 ?? '-'),
-                                                            Forms\Components\Placeholder::make('company_address2')
-                                                                ->label('Company Address 2')
-                                                                ->content(fn ($record) => $record->companyDetail->company_address2 ?? '-'),
-                                                            Forms\Components\Placeholder::make('postcode')
-                                                                ->label('Postcode')
-                                                                ->content(fn ($record) => $record->companyDetail->postcode ?? '-'),
-                                                            Forms\Components\Placeholder::make('industry')
-                                                                ->label('Industry')
-                                                                ->content(fn ($record) => $record->companyDetail->industry ?? '-'),
                                                             Forms\Components\Placeholder::make('state')
                                                                 ->label('State')
                                                                 ->content(fn ($record) => $record->companyDetail->state ?? '-'),
+                                                            Forms\Components\Placeholder::make('company_address2')
+                                                                ->label('Company Address 2')
+                                                                ->content(fn ($record) => $record->companyDetail->company_address2 ?? '-'),
+                                                            Forms\Components\Placeholder::make('industry')
+                                                                ->label('Industry')
+                                                                ->content(fn ($record) => $record->companyDetail->industry ?? '-'),
                                                         ]),
                                                 ]),
                                         ])
