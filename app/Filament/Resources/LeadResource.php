@@ -151,7 +151,7 @@ class LeadResource extends Resource
                                                                     Actions\Action::make('edit_sales_in_charge')
                                                                         ->label('Edit')
                                                                         ->visible(function ($record) {
-                                                                            return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner)
+                                                                            return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner) && !is_null($record->salesperson)
                                                                             || auth()->user()?->role_id === 3);
                                                                         })
                                                                         ->form(array_merge(
@@ -967,6 +967,7 @@ class LeadResource extends Resource
                                                     ->label('Edit') // Button label
                                                     ->modalHeading('Edit Information') // Modal heading
                                                     ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                                    ->hidden()
                                                     ->form([ // Define the form fields to show in the modal
                                                         Forms\Components\TextInput::make('full_name')
                                                             ->label('FULL NAME')

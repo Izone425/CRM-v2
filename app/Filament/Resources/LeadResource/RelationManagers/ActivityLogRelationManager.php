@@ -38,7 +38,9 @@ use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\MaxWidth;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Layout\View;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
@@ -125,11 +127,40 @@ class ActivityLogRelationManager extends RelationManager
                 TextColumn::make('description')->label('SUBJECT'),
                 TextColumn::make('remark')->label('REMARK')
                     ->wrap()
+                    ->limit(30)
                     ->getStateUsing(function ($record) {
                         $properties = json_decode($record->properties, true);
                         $remark = isset($properties['attributes']['remark']) ? $properties['attributes']['remark'] : '-';
                         return $remark;
                     }),
+
+                IconColumn::make('view_remark')
+                    ->label('View Remark') // Hide label
+                    ->alignCenter()
+                    ->getStateUsing(fn() => true) // the column requires a state to be passed to it
+                    ->icon('heroicon-o-magnifying-glass-plus') // Ensure the icon is dynamically set
+                    ->color(fn () => 'blue') // Set icon color
+                    ->tooltip('View Remark') // Show tooltip
+                    ->extraAttributes(['class' => 'cursor-pointer']) // Make it clickable
+                    ->action(
+                        Action::make('view_remark_action')
+                            ->label('View Remark')
+                            ->modalHeading('Lead Remarks')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalDescription('Here is the remark for this lead.')
+                            ->modalContent(function (ActivityLog $record) {
+                                // Decode JSON properties safely
+                                $properties = json_decode($record->properties, true);
+
+                                // Extract remark from 'attributes' key, fallback to '-'
+                                $remark = $properties['attributes']['remark'] ?? '-';
+
+                                // Preserve line breaks and return as an HTML-safe string
+                                return new HtmlString(nl2br(e($remark)));
+                            })
+                        ),
+
                 // TextColumn::make('status')->label('LEAD STATUS')
                 //     ->getStateUsing(function ($record) {
                 //         // Decode the 'properties' JSON field first
@@ -155,58 +186,58 @@ class ActivityLogRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                Tables\Actions\Action::make('updateLeadOwner')
-                        ->label(__('Assign to Me'))
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                            ->content(__('Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.'))
-                        ])
-                        ->color('success')
-                        ->size(ActionSize::Small)
-                        ->button()
-                        ->icon('heroicon-o-pencil-square')
-                        ->visible(function (ActivityLog $record) {
-                            $lead = $record->lead;
+                Action::make('updateLeadOwner')
+                    ->label(__('Assign to Me'))
+                    ->form([
+                        Forms\Components\Placeholder::make('')
+                        ->content(__('Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.'))
+                    ])
+                    ->color('success')
+                    ->size(ActionSize::Small)
+                    ->button()
+                    ->icon('heroicon-o-pencil-square')
+                    ->visible(function (ActivityLog $record) {
+                        $lead = $record->lead;
 
-                            // Get the latest activity log for the given lead
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                        // Get the latest activity log for the given lead
+                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                            ->orderByDesc('created_at')
+                            ->first();
+
+                        if ($latestActivityLog) {
+                            // Check if the latest activity log description needs updating
+                            if (str_contains($latestActivityLog->description, 'New lead created')){
+                                return true; // Show button
+                            }
+                        }
+                    })
+                    ->action(function (ActivityLog $record, array $data) {
+                        // $original = $record->getOriginal();
+
+                        $record->lead->update([
+                                'lead_owner' => auth()->user()->name,
+                                'categories' => 'Active',
+                                'stage' => 'Transfer',
+                                'lead_status' => 'New',
+                            ]);
+
+                            $latestActivityLog = ActivityLog::where('subject_id', $record->lead->id)
                                 ->orderByDesc('created_at')
                                 ->first();
-
-                            if ($latestActivityLog) {
-                                // Check if the latest activity log description needs updating
-                                if (str_contains($latestActivityLog->description, 'New lead created')){
-                                    return true; // Show button
-                                }
-                            }
-                        })
-                        ->action(function (ActivityLog $record, array $data) {
-                            // $original = $record->getOriginal();
-
-                            $record->lead->update([
-                                    'lead_owner' => auth()->user()->name,
-                                    'categories' => 'Active',
-                                    'stage' => 'Transfer',
-                                    'lead_status' => 'New',
+                            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+                                // Update the latest activity log description if it doesn't match
+                                $latestActivityLog->update([
+                                    'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
                                 ]);
-
-                                $latestActivityLog = ActivityLog::where('subject_id', $record->lead->id)
-                                    ->orderByDesc('created_at')
-                                    ->first();
-                                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
-                                    // Update the latest activity log description if it doesn't match
-                                    $latestActivityLog->update([
-                                        'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-                                    ]);
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($record);
-                                }
-                                Notification::make()
-                                    ->title('Lead Owner Assigned Successfully')
-                                    ->success()
-                                    ->send();
-                        }),
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($record);
+                            }
+                            Notification::make()
+                                ->title('Lead Owner Assigned Successfully')
+                                ->success()
+                                ->send();
+                    }),
                 ActionGroup::make([
                     Tables\Actions\Action::make('addDemo')
                         ->label(__('Add Demo'))
@@ -884,6 +915,9 @@ class ActivityLogRelationManager extends RelationManager
                         }),
                     Tables\Actions\Action::make('addFollowUp')
                         ->label(__('Add Follow Up'))
+                        ->visible(function (ActivityLog $record) {
+                            return is_null($record->lead->salesperson);
+                        })
                         ->form([
                             Forms\Components\Placeholder::make('')
                                 ->content(__('Fill out the following section to add a follow-up for this lead.
@@ -1539,79 +1573,6 @@ class ActivityLogRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('demo_done')
-                        ->visible(function (ActivityLog $record) {
-                            // Ensure only non-admin users (role_id != 1) can see this
-                            if (auth()->user()->role_id == 1) {
-                                return false;
-                            }
-
-                            // Extract 'stage' attribute from the 'properties' JSON
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
-
-                            return data_get($attributes, 'stage') === 'Demo';
-                        })
-                        ->label(__('Demo Done'))
-                        ->modalHeading('Demo Completed Confirmation')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                                ->content(__('You are marking this demo as completed. Confirm?')),
-
-                            Forms\Components\TextInput::make('remark')
-                                ->label('Remarks')
-                                ->required()
-                                ->placeholder('Enter remarks here...')
-                                ->maxLength(500)
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                        ])
-                        ->color('success')
-                        ->icon($icon = 'heroicon-o-pencil-square')
-                        ->action(function (ActivityLog $activityLog, array $data) {
-                            // Retrieve the related Lead model from ActivityLog
-                            $lead = $activityLog->lead; // Ensure this relation exists
-
-                            // Retrieve the latest demo appointment for the lead
-                            $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
-                                ->latest('created_at') // Retrieve the most recent demo
-                                ->first();
-
-                            if ($latestDemoAppointment) {
-                                $latestDemoAppointment->update([
-                                    'status' => 'Done', // Or whatever status you need to set
-                                ]);
-                            }
-
-                            // Update the Lead model
-                            $lead->update([
-                                'stage' => 'Follow Up',
-                                'lead_status' => 'RFQ-Follow Up',
-                                'remark' => $data['remark'],
-                                'follow_up_date' => null,
-                            ]);
-
-                            // Update the latest ActivityLog related to the lead
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Demo Completed',
-                                ]);
-                            }
-
-                            // Log activity
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead);
-
-                            // Send success notification
-                            Notification::make()
-                                ->title('Demo completed successfully')
-                                ->success()
-                                ->send();
-                        }),
-
                     Tables\Actions\Action::make('demo_cancel')
                         ->visible(function (ActivityLog $record) {
                             // Decode the properties from the activity log
@@ -1638,8 +1599,8 @@ class ActivityLogRelationManager extends RelationManager
                             ->maxLength(500)
                             ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                         ])
-                        ->color('warning')
-                        ->icon('heroicon-o-pencil-square')
+                        ->color('danger')
+                        ->icon('heroicon-o-x-circle')
                         ->action(function (ActivityLog $activityLog, array $data) {
                             // Retrieve the related Lead model from ActivityLog
                             $lead = $activityLog->lead;
@@ -2014,28 +1975,6 @@ class ActivityLogRelationManager extends RelationManager
                                 ->body('The action has been successfully approved.')
                                 ->success()
                                 ->send();
-                        }),
-                        Tables\Actions\Action::make('view_remark')
-                        ->label('View Remark')
-                        ->icon('heroicon-o-eye')
-                        ->modalHeading('Lead Remark')
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->modalContent(function (ActivityLog $record) {
-                            // Decode JSON properties safely
-                            $properties = json_decode($record->properties, true);
-
-                            // Extract the remark, fallback to '-'
-                            $remark = isset($properties['attributes']['remark']) ? $properties['attributes']['remark'] : '-';
-
-                            // Preserve line breaks and return as HTML-safe string
-                            return new HtmlString(nl2br(e($remark)));
-                        })
-                        ->color('primary')
-                        ->visible(function (ActivityLog $record) {
-                            $remark = $record->lead->remark;
-
-                            return !empty($remark);
                         }),
                     Tables\Actions\Action::make('edit_remark')
                         ->label('Edit Remark')
