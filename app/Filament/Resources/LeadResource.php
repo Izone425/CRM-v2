@@ -1428,7 +1428,7 @@ class LeadResource extends Resource
                         ->color('warning')
                         ->size(ActionSize::Small)
                         ->button()
-                        ->visible(fn (Lead $record) => !is_null($record->lead_owner) && in_array(auth()->id(), [12, 11, 4, 5]))
+                        ->visible(fn (Lead $record) => !is_null($record->lead_owner))
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([
