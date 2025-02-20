@@ -100,67 +100,11 @@
         OTHERS {{ $totalDemos['OTHERS'] ?? '' }}
     </div> --}}
 
-    <div x-data="monthPicker()" class="p-4">
-        <input type="text" x-ref="monthInput" @change="month = $refs.monthInput.value" placeholder="Select Month" class="border p-2 rounded" wire:model="month">
+    <div x-data="monthPicker()">
+        <input type="text" x-ref="monthInput" @change="month = $refs.monthInput.value" placeholder="Select Month" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm border rounded px-3 py-2" wire:model.change='month'>
     </div>
 
-    <!-- Total Days Badge -->
-    <div class="badge">
-        Total Days: {{ $days['totalDays'] ?? '' }}
-        <div class="badge-dropdown">
-            <div>📅 Public Holiday: {{ $days['pb'] ?? '' }}</div>
-            <div>🛌 Weekend: {{ $days['weekend'] ?? '' }}</div>
-            <div>🏖️ On Leave: {{ $days['leave'] ?? '' }}</div>
-            <div>💼 Working Days: {{ $days['working'] ?? '' }}</div>
-        </div>
-    </div>
-
-    <!-- Total Session Badge -->
-    <div class="badge">
-        Total Session: {{ $totalSessions ?? '' }}
-        <div class="badge-dropdown">
-            <div>🆕 New Demo: {{ $newDemos ?? '' }}</div>
-            <div>📹 Webinar Demo: {{ $webinarDemos ?? '' }}</div>
-            <div>💻 HRMS Demo: {{ $hrmsDemos ?? '' }}</div>
-            <div>🛠️ System Discussion: {{ $systemDiscussion ?? '' }}</div>
-            <div>📜 HRDF Discussion: {{ $hrdfDiscussion ?? '' }}</div>
-        </div>
-    </div>
-
-    <!-- Total New Demo Badge -->
-    <div class="badge">
-        Total New Demo: {{ $totalNewDemo ?? '' }}
-        <div class="badge-dropdown">
-            <div>📏 Small: {{ $smallDemos ?? '' }}</div>
-            <div>📦 Medium: {{ $mediumDemos ?? '' }}</div>
-            <div>📦 Large: {{ $largeDemos ?? '' }}</div>
-            <div>🏢 Enterprise: {{ $enterpriseDemos ?? '' }}</div>
-        </div>
-    </div>
-
-    <!-- Total Summary (New Demo) Badge -->
-    <div class="badge">
-        Total Summary (New Demo): {{ $summaryNewDemo ?? '' }}
-        <div class="badge-dropdown">
-            <div>✅ Closed: {{ $closedNewDemo ?? '' }}</div>
-            <div>❌ Lost: {{ $lostNewDemo ?? '' }}</div>
-            <div>⏳ On Hold: {{ $onHoldNewDemo ?? '' }}</div>
-            <div>📞 No Respond: {{ $noRespondNewDemo ?? '' }}</div>
-        </div>
-    </div>
-
-    <!-- Total Summary (Webinar Demo) Badge -->
-    <div class="badge">
-        Total Summary (Webinar Demo): {{ $summaryWebinarDemo ?? '' }}
-        <div class="badge-dropdown">
-            <div>✅ Closed: {{ $closedWebinarDemo ?? '' }}</div>
-            <div>❌ Lost: {{ $lostWebinarDemo ?? '' }}</div>
-            <div>⏳ On Hold: {{ $onHoldWebinarDemo ?? '' }}</div>
-            <div>📞 No Respond: {{ $noRespondWebinarDemo ?? '' }}</div>
-        </div>
-    </div>
-
-
+    @if (auth()->user()->role_id !== 2)
     <!-- Salesperson Filter -->
     <div class="relative">
         <form>
@@ -185,6 +129,69 @@
                 </div>
             </div>
         </form>
+    </div>
+    @endif
+
+    <div style="width: 30%; margin-left:auto;position:relative;background-color:pink;height:0px">
+        <div style="position:absolute;top:-100px;display: grid;
+grid-template-rows: repeat(3, 1fr);
+grid-auto-flow: column;
+" class="text-xs">
+            <!-- Total Days Badge -->
+            <div class="badge">
+                Total Days: {{ $days['totalDays'] ?? '' }}
+                <div class="badge-dropdown">
+                    <div>📅 Public Holiday: {{ $days['pb'] ?? '' }}</div>
+                    <div>🛌 Weekend: {{ $days['weekend'] ?? '' }}</div>
+                    <div>🏖️ On Leave: {{ $days['leave'] ?? '' }}</div>
+                    <div>💼 Working Days: {{ $days['working'] ?? '' }}</div>
+                </div>
+            </div>
+            <!-- Total Session Badge -->
+            <div class="badge">
+                Total Session: {{ $totalSessions ?? '' }}
+                <div class="badge-dropdown">
+                    <div>🆕 New Demo: {{ $newDemos ?? '' }}</div>
+                    <div>📹 Webinar Demo: {{ $webinarDemos ?? '' }}</div>
+                    <div>💻 HRMS Demo: {{ $hrmsDemos ?? '' }}</div>
+                    <div>🛠️ System Discussion: {{ $systemDiscussion ?? '' }}</div>
+                    <div>📜 HRDF Discussion: {{ $hrdfDiscussion ?? '' }}</div>
+                </div>
+            </div>
+
+            <!-- Total New Demo Badge -->
+            <div class="badge">
+                Total New Demo: {{ $totalNewDemo ?? '' }}
+                <div class="badge-dropdown">
+                    <div>📏 Small: {{ $smallDemos ?? '' }}</div>
+                    <div>📦 Medium: {{ $mediumDemos ?? '' }}</div>
+                    <div>📦 Large: {{ $largeDemos ?? '' }}</div>
+                    <div>🏢 Enterprise: {{ $enterpriseDemos ?? '' }}</div>
+                </div>
+            </div>
+
+            <!-- Total Summary (New Demo) Badge -->
+            <div class="badge">
+                Total Summary (New Demo): {{ $summaryNewDemo ?? '' }}
+                <div class="badge-dropdown">
+                    <div>✅ Closed: {{ $closedNewDemo ?? '' }}</div>
+                    <div>❌ Lost: {{ $lostNewDemo ?? '' }}</div>
+                    <div>⏳ On Hold: {{ $onHoldNewDemo ?? '' }}</div>
+                    <div>📞 No Respond: {{ $noRespondNewDemo ?? '' }}</div>
+                </div>
+            </div>
+
+            <!-- Total Summary (Webinar Demo) Badge -->
+            <div class="badge">
+                Total Summary (Webinar Demo): {{ $summaryWebinarDemo ?? '' }}
+                <div class="badge-dropdown">
+                    <div>✅ Closed: {{ $closedWebinarDemo ?? '' }}</div>
+                    <div>❌ Lost: {{ $lostWebinarDemo ?? '' }}</div>
+                    <div>⏳ On Hold: {{ $onHoldWebinarDemo ?? '' }}</div>
+                    <div>📞 No Respond: {{ $noRespondWebinarDemo ?? '' }}</div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -232,10 +239,10 @@
             month: ""
             , init() {
                 flatpickr(this.$refs.monthInput, {
-                    dateFormat: "M Y"
+                    dateFormat: "F Y"
                     , plugins: [new monthSelectPlugin({
                         shorthand: true
-                        , dateFormat: "M Y"
+                        , dateFormat: "F Y"
                     })]
                     , onChange: (selectedDates, dateStr) => {
                         this.month = dateStr;

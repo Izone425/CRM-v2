@@ -38,9 +38,12 @@ class UserLeave extends Model
         return $newArray;
     }
 
-    public static function getWeeklyLeavesByDateRange($startDate,$endDate){
+    public static function getWeeklyLeavesByDateRange($startDate,$endDate, array $selectedSalesPeople = null){
         $temp = UserLeave::with('user')
         ->whereBetween('date', [$startDate, $endDate])
+        ->when(!empty($selectedSalesPeople), function ($query) use ($selectedSalesPeople) {
+            return $query->whereIn('user_ID', $selectedSalesPeople);
+        })
         ->get();
 
         foreach($temp as &$row){
