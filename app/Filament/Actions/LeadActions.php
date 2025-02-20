@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Services\MicrosoftGraphService;
 use Beta\Microsoft\Graph\Model\Event;
 use Exception;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
 use Microsoft\Graph\Graph;
 use Illuminate\Support\Str;
+use Livewire\Component;
 
 class LeadActions
 {
@@ -1005,9 +1007,9 @@ class LeadActions
                         ],
                     ];
 
-                    Mail::mailer('secondary')
-                        ->to($lead->companyDetail->email ?? $lead->email)
-                        ->send(new FollowUpNotification($emailContent, $viewName));
+                    // Mail::mailer('secondary')
+                    //     ->to($lead->companyDetail->email ?? $lead->email)
+                    //     ->send(new FollowUpNotification($emailContent, $viewName));
                 } catch (\Exception $e) {
                     // Handle email sending failure
                     Log::error("Error: {$e->getMessage()}");
@@ -1020,7 +1022,6 @@ class LeadActions
                     'lead_status' => 'Demo Cancelled',
                     'remark' => $data['remark'],
                     'follow_up_date' => $followUpDate,
-                    'follow_up_needed' => $data['follow_up_needed'] ?? false,
                     'follow_up_count' => $lead->demo_follow_up_count + 1,
                 ]);
 
@@ -1299,5 +1300,360 @@ class LeadActions
             ->color('warning') // Orange color
             ->url(fn (Lead $record) => url('admin/leads/' . Encryptor::encrypt($record->id)))
             ->openUrlInNewTab(); // Opens in a new tab
+    }
+
+    public static function getAddQuotationAction(): Action
+    {
+        return Action::make('quotation')
+            ->label(__('Add Quotation'))
+            ->color('success')
+            ->icon('heroicon-o-pencil-square')
+            ->url(fn (Lead $record) => route('filament.admin.resources.quotations.create', [
+                'lead_id' => Encryptor::encrypt($record->id),
+            ]), true);
+    }
+
+    public static function getDoneDemoAction(): Action
+    {
+        return Action::make('demo_done')
+            ->label(__('Demo Done'))
+            ->modalHeading('Demo Completed Confirmation')
+            ->form([
+                Placeholder::make('')
+                    ->content(__('You are marking this demo as completed. Confirm?')),
+
+            TextInput::make('remark')
+                    ->label('Remarks')
+                    ->required()
+                    ->placeholder('Enter remarks here...')
+                    ->maxLength(500)
+                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+            ])
+            ->color('success')
+            ->icon('heroicon-o-pencil-square')
+            ->action(function (Lead $lead, array $data) {
+
+                // Retrieve the latest demo appointment for the lead
+                $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
+                    ->latest('created_at') // Retrieve the most recent demo
+                    ->first();
+
+                if ($latestDemoAppointment) {
+                    $latestDemoAppointment->update([
+                        'status' => 'Done', // Or whatever status you need to set
+                    ]);
+                }
+
+                // Update the Lead model
+                $lead->update([
+                    'stage' => 'Follow Up',
+                    'lead_status' => 'RFQ-Follow Up',
+                    'remark' => $data['remark'],
+                ]);
+
+                // Update the latest ActivityLog related to the lead
+                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                if ($latestActivityLog) {
+                    $latestActivityLog->update([
+                        'description' => 'Demo Completed',
+                    ]);
+                }
+
+                // Log activity
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($lead);
+
+                // Send success notification
+                Notification::make()
+                    ->title('Demo completed successfully')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public static function getCancelDemoAction(): Action
+    {
+        return Action::make('demo_cancel')
+            ->label(__('Cancel Demo'))
+            ->modalHeading('Cancel Demo')
+            ->form([
+                Placeholder::make('')
+                ->content(__('You are cancelling this appointment. Confirm?')),
+
+                TextInput::make('remark')
+                ->label('Remarks')
+                ->required()
+                ->placeholder('Enter remarks here...')
+                ->maxLength(500)
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+            ])
+            ->color('warning')
+            ->icon('heroicon-o-pencil-square')
+            ->action(function (Lead $lead, array $data) {
+                $accessToken = MicrosoftGraphService::getAccessToken();
+
+                $graph = new Graph();
+                $graph->setAccessToken($accessToken);
+
+                $appointment = $lead->demoAppointment()->latest('created_at')->first();
+                $eventId = $appointment->event_id;
+                $salespersonId = $appointment->salesperson;
+                $salesperson = User::find($salespersonId);
+
+                if (!$salesperson || !$salesperson->email) {
+                    Notification::make()
+                        ->title('Salesperson Not Found')
+                        ->danger()
+                        ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
+                        ->send();
+                    return; // Exit if no valid email is found
+                }
+
+                $organizerEmail = $salesperson->email;
+
+                try {
+                    if ($eventId) {
+                        $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
+                            ->execute();
+
+                        $appointment->update([
+                            'status' => 'Cancelled',
+                        ]);
+
+                        Notification::make()
+                            ->title('Teams Meeting Cancelled Successfully')
+                            ->warning()
+                            ->body('The meeting has been cancelled successfully.')
+                            ->send();
+                    } else {
+                        // Log missing event ID
+                        Log::warning('No event ID found for appointment', [
+                            'appointment_id' => $appointment->id,
+                        ]);
+
+                        Notification::make()
+                            ->title('No Meeting Found')
+                            ->danger()
+                            ->body('The appointment does not have an associated Teams meeting.')
+                            ->send();
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                        'event_id' => $eventId,
+                        'organizer' => $organizerEmail,
+                    ]);
+
+                    Notification::make()
+                        ->title('Failed to Cancel Teams Meeting')
+                        ->danger()
+                        ->body('Error: ' . $e->getMessage())
+                        ->send();
+                }
+
+                $lead->update([
+                    'stage' => 'Transfer',
+                    'lead_status' => 'Demo Cancelled',
+                    'remark' => $data['remark'],
+                ]);
+
+                $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                        ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
+                        ->count();
+
+                // Increment the follow-up count for the new description
+                $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
+                if ($cancelfollowUpCount == 2) {
+                    $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
+                } elseif ($cancelfollowUpCount == 3) {
+                    $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
+                } elseif ($cancelfollowUpCount >= 4) {
+                    $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
+                }
+
+                // Update or create the latest activity log description
+                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                if ($latestActivityLog) {
+                    $latestActivityLog->update([
+                        'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
+                    ]);
+                } else {
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->performedOn($lead)
+                        ->withProperties(['description' => $cancelFollowUpDescription]);
+                }
+
+                $appointment = $lead->demoAppointment(); // Assuming a relation exists
+
+                if ($appointment) {
+                    $appointment->update([
+                        'status' => 'Cancelled', // Or whatever status you need to set
+                    ]);
+                }
+
+                Notification::make()
+                    ->title('You had cancelled a demo')
+                    ->warning()
+                    ->send();
+            });
+    }
+
+    public static function getQuotationFollowUpAction(): Action
+    {
+        return Action::make('quotationFollowUp')
+            ->label(__('Add RFQ Follow Up (QF)'))
+            ->color('success')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Determine Lead Status')
+            ->form([
+                Placeholder::make('')
+                    ->content(__('Fill out the following section to add a follow-up for this lead.
+                                Select a follow-up date if the lead requests to be contacted on a specific date.
+                                Otherwise, the system will default to sending the follow-up on the next Tuesday.')),
+
+                TextInput::make('remark')
+                    ->label('Remarks')
+                    ->required()
+                    ->placeholder('Enter remarks here...')
+                    ->maxLength(500)
+                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                Select::make('follow_up_choice')
+                    ->label('NEXT FOLLOW UP DATE')
+                    ->options(['custom' => 'Custom'])
+                    ->required()
+                    ->default('custom')
+                    ->disabled(fn (Get $get) => $get('follow_up_needed')), // Disable if checkbox is checked
+
+                DatePicker::make('follow_up_date')
+                    ->label('')
+                    ->required()
+                    ->placeholder('Select a follow-up date')
+                    ->default(now())
+                    ->disabled(fn (Get $get) => $get('follow_up_needed'))
+                    ->reactive()
+                    ->afterStateUpdated(function (Set $set, Get $get) {
+                        if ($get('follow_up_needed')) {
+                            $set('follow_up_date', now()->next(Carbon::TUESDAY)); // Set to next Tuesday if checked
+                        }
+                    }),
+                Placeholder::make('')
+                    ->content(__('What status do you feel for this lead at this moment?')),
+
+                Select::make('status')
+                    ->label('STATUS')
+                    ->options(['hot' => 'Hot',
+                                'warm' => 'Warm',
+                                'cold' => 'Cold'])
+                    ->default('hot')
+                    ->required(),
+            ])
+            ->action(function (Lead $lead, array $data, Component $livewire) {
+                // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
+                $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
+
+                $lead->update([
+                    'lead_status' => $data['status'],
+                    'follow_up_date' => $followUpDate,
+                    'remark' => $data['remark'],
+                    'follow_up_count' => $lead->follow_up_count + 1,
+                ]);
+
+                $followUpCount = max(1, ActivityLog::where('subject_id', $lead->id)
+                    ->where(function ($query) {
+                        $query->whereJsonContains('properties->attributes->lead_status', 'Hot')
+                            ->orWhereJsonContains('properties->attributes->lead_status', 'Warm')
+                            ->orWhereJsonContains('properties->attributes->lead_status', 'Cold');
+                    })
+                    ->count() - 1);
+
+                // Increment the follow-up count for the new description
+                $followUpDescription = ($followUpCount) . 'st Quotation Transfer Follow Up';
+                if ($followUpCount == 2) {
+                    $followUpDescription = '2nd Quotation Transfer Follow Up';
+                } elseif ($followUpCount == 3) {
+                    $followUpDescription = '3rd Quotation Transfer Follow Up';
+                } elseif ($followUpCount >= 4) {
+                    $followUpDescription = $followUpCount . 'th Quotation Transfer Follow Up';
+                }
+                // Update or create the latest activity log description
+                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                if ($latestActivityLog) {
+                    $latestActivityLog->update([
+                        'description' => $followUpDescription,
+                    ]);
+                } else {
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->performedOn($lead)
+                        ->withProperties(['description' => $followUpDescription]);
+                }
+
+                // Send a notification
+                Notification::make()
+                    ->title('Follow Up Added Successfully')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public static function getNoResponseAction(): Action
+    {
+        return Action::make('noResponse')
+            ->label(__('No Response'))
+            ->modalHeading('Mark Lead as No Response')
+            ->form([
+                Placeholder::make('')
+                ->content(__('You are making this lead as No Response after multiple follow-ups. Confirm?')),
+
+                TextInput::make('remark')
+                ->label('Remarks')
+                ->required()
+                ->placeholder('Enter remarks here...')
+                ->maxLength(500)
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+            ])
+            ->color('danger')
+            ->icon('heroicon-o-pencil-square')
+            ->action(function (Lead $lead, array $data) {
+                // Update the Lead model for role_id = 1
+                $lead->update([
+                    'categories' => 'Inactive',
+                    'stage' => null,
+                    'lead_status' => 'No Response',
+                    'remark' => $data['remark'],
+                    'follow_up_date' => null,
+                ]);
+
+                // Update the latest ActivityLog for role_id = 1
+                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                $latestActivityLog->update([
+                    'description' => 'Marked as No Response',
+                ]);
+
+                // Send notification for role_id = 1
+                Notification::make()
+                    ->title('You have marked No Response to a lead')
+                    ->success()
+                    ->send();
+
+                // Log the activity (for both roles)
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($lead);
+            });
     }
 }

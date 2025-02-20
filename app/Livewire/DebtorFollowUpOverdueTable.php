@@ -90,7 +90,7 @@ class DebtorFollowUpOverdueTable extends Component implements HasForms, HasTable
                     // LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color('warning'),
             ]);
     }
 
