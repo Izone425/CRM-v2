@@ -155,7 +155,7 @@ class ReferralDemoRequest extends Component
 
         try {
             $viewName = 'emails.new_lead'; // Replace with a valid default view
-            $recipients = User::where('role_id', 2)->get(['email', 'name']);
+            $recipients = User::whereIn('role_id', [1, 3])->get(['email', 'name']);
             foreach ($recipients as $recipient) {
                 $emailContent = [
                     'leadOwnerName' => $recipient->name ?? 'Unknown Person', // Lead Owner/Manager Name
