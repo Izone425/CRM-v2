@@ -332,8 +332,8 @@ class DemoAppointmentRelationManager extends RelationManager
                                 'remark' => $data['remark'],
                             ]);
 
-                            // Retrieve the latest `remark` after the update
-                            $lead->refresh(); // Ensures the latest `remark` is fetched from the database
+                            // Refresh the lead to get the latest remark
+                            $lead->refresh();
 
                             // Get event details
                             $eventId = $appointment->event_id;
@@ -350,6 +350,38 @@ class DemoAppointmentRelationManager extends RelationManager
 
                             $organizerEmail = $salesperson->email;
 
+                            // ✅ Get all recipients for cancellation email
+                            $email = $lead->companyDetails->email ?? $lead->email;
+                            $demoAppointment = $lead->demoAppointment()->latest()->first();
+
+                            // Extract required attendees
+                            $requiredAttendees = $demoAppointment->required_attendees ?? null;
+                            $attendeeEmails = [];
+                            if (!empty($requiredAttendees)) {
+                                $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
+                            }
+
+                            // Get Salesperson Email
+                            $salespersonId = $lead->salesperson;
+                            $salesperson = User::find($salespersonId);
+                            $salespersonEmail = $salesperson->email ?? null;
+
+                            // Get Lead Owner Email
+                            $leadownerName = $lead->lead_owner;
+                            $leadowner = User::where('name', $leadownerName)->first();
+                            $leadOwnerEmail = $leadowner->email ?? null;
+
+                            // Combine all recipients
+                            $allEmails = array_unique(array_merge([$email], $attendeeEmails, [$salespersonEmail, $leadOwnerEmail]));
+
+                            // Remove empty/null values and ensure valid emails
+                            $allEmails = array_filter($allEmails, function ($email) {
+                                return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                            });
+
+                            info($allEmails); // Debugging: log emails
+
                             try {
                                 if ($eventId) {
                                     $accessToken = MicrosoftGraphService::getAccessToken();
@@ -359,9 +391,9 @@ class DemoAppointmentRelationManager extends RelationManager
                                     // Cancel the Teams meeting
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
 
-                                    // Send an email notification manually with the updated remark
-                                    Mail::send([], [], function ($message) use ($salesperson, $lead) {
-                                        $message->to($salesperson->email)
+                                    // Send an email notification manually to all recipients
+                                    Mail::send([], [], function ($message) use ($allEmails, $lead) {
+                                        $message->to($allEmails)
                                             ->subject('Teams Meeting Cancelled')
                                             ->html("
                                                 <p>Hello,</p>
@@ -370,7 +402,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                                 <p>If you have any questions, please contact support.</p>
                                                 <br>
                                                 <p>Best regards,</p>
-                                                <p>TimeTec</p>
+                                                <p>Your Company Name</p>
                                             ");
                                     });
 
