@@ -26,6 +26,12 @@ class ChatRoom extends Page
     public string $message = ''; // ✅ Ensure it's a string
     public $file;
     public $selectedChat = null;
+    public bool $filterUnreplied = false; // ✅ Default: Show all chats
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '2';
+    }
 
     public function selectChat($user1, $user2)
     {
@@ -80,7 +86,7 @@ class ChatRoom extends Page
 
     public function fetchContacts()
     {
-        return ChatMessage::selectRaw('
+        $contacts = ChatMessage::selectRaw('
                     LEAST(sender, receiver) AS user1,
                     GREATEST(sender, receiver) AS user2,
                     MAX(created_at) as last_message_time
@@ -105,6 +111,16 @@ class ChatRoom extends Page
                     $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
                     $chat->is_read = $lastMessage->is_read ?? null;
 
+                    // ✅ Check if the last message is from the customer AND has no reply yet
+                    $hasNoReply = ChatMessage::where(function ($query) use ($chat) {
+                            $query->where('sender', $chat->user2)
+                                ->where('receiver', $chat->user1)
+                                ->where('is_from_customer', true); // Look for replies from system user
+                        })
+                        ->doesntExist(); // Ensure no system reply exists
+
+                    $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
+
                     // Determine chat participant's name
                     $chatParticipant = ($chat->user1 === env('TWILIO_WHATSAPP_FROM')) ? $chat->user2 : $chat->user1;
 
@@ -120,7 +136,16 @@ class ChatRoom extends Page
 
                     return $chat;
                 });
+
+        // ✅ Apply the filter only when the checkbox is checked
+        if ($this->filterUnreplied) {
+            $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
+        }
+
+        return $contacts;
     }
+
+
 
     public function fetchParticipantDetails()
     {

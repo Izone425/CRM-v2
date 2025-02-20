@@ -72,13 +72,13 @@ class CreateQuotation extends CreateRecord
                     $lead->update([
                         'lead_status' => 'Pending Demo',
                         'remark' => null,
-                        'follow_up_date' => null,
+                        'follow_up_date' => today(),
                     ]);
                 }else if($lead->lead_status === 'RFQ-Follow Up'){
                     $lead->update([
                         'lead_status' => 'Hot',
                         'remark' => null,
-                        'follow_up_date' => null,
+                        'follow_up_date' => today(),
                     ]);
                 }
             }
