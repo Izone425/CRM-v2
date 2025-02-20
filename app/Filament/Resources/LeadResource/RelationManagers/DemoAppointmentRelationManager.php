@@ -12,7 +12,6 @@ use App\Services\MicrosoftGraphService;
 use Carbon\Carbon;
 use Filament\Actions\EditAction;
 use Filament\Forms;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Repeater;
@@ -28,14 +27,18 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\HtmlString;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Event;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -93,6 +96,64 @@ class DemoAppointmentRelationManager extends RelationManager
 
                         return "{$date} | {$startTime} - {$endTime}";
                     }),
+                IconColumn::make('view_remark')
+                    ->label('View Remark') // Hide label
+                    ->alignCenter()
+                    ->getStateUsing(fn() => true) // the column requires a state to be passed to it
+                    ->icon(fn () => 'heroicon-o-magnifying-glass-plus') // Ensure the icon is dynamically set
+                    ->color(fn () => 'blue') // Set icon color
+                    ->tooltip('View Remark') // Show tooltip
+                    ->extraAttributes(['class' => 'cursor-pointer']) // Make it clickable
+                    ->action(
+                        Action::make('view_remarks')
+                            ->label('View Remark')
+                            ->modalHeading('Appointment Remarks')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalDescription('Here are the remarks for this specific appointment.')
+                            ->modalContent(function (Appointment $record) {
+                                // Retrieve activity logs that match the lead of this appointment
+                                $activityLogs = \App\Models\ActivityLog::where('subject_id', $record->lead->id)
+                                    ->where('subject_type', 'App\Models\Lead') // Ensure we are filtering only Lead-related logs
+                                    ->orderBy('created_at', 'asc')
+                                    ->get();
+
+                                if ($activityLogs->isEmpty()) {
+                                    return new HtmlString('<p>No remarks available for this appointment.</p>');
+                                }
+
+                                // Filter logs based on `demo_appointment` value matching the current appointment ID
+                                $filteredLogs = $activityLogs->filter(function ($log) use ($record) {
+                                    $properties = json_decode($log->properties, true);
+                                    return isset($properties['attributes']['demo_appointment']) &&
+                                        $properties['attributes']['demo_appointment'] == $record->id;
+                                });
+
+                                if ($filteredLogs->isEmpty()) {
+                                    return new HtmlString('<p>No remarks found for this appointment.</p>');
+                                }
+
+                                // Format remarks for display, ensuring line breaks are preserved
+                                $remarksHtml = '<ul class="mt-2">';
+                                foreach ($filteredLogs as $log) {
+                                    $properties = json_decode($log->properties, true);
+
+                                    // Extract lead status and remark, with fallbacks
+                                    $leadStatus = $properties['attributes']['lead_status'] ?? 'No status';
+                                    $remark = $properties['attributes']['remark'] ?? 'No remark available';
+                                    $timestamp = $log->created_at->format('Y-m-d H:i:s');
+
+                                    // Preserve line breaks using nl2br() to convert new lines into <br>
+                                    $formattedRemark = nl2br(e($remark));
+
+                                    // Display Lead Status before the remark
+                                    $remarksHtml .= "<li><strong>{$timestamp}</strong> - <span class='font-bold text-blue-600'>{$leadStatus}</span>: {$formattedRemark}</li>";
+                                }
+                                $remarksHtml .= '</ul>';
+
+                                return new HtmlString($remarksHtml);
+                            }),
+                        ),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->sortable()
@@ -175,7 +236,75 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->disabled(),
                             ];
                         }),
+                    Tables\Actions\Action::make('demo_done')
+                        ->visible(function (Appointment $record) {
+                            // Ensure only non-admin users (role_id != 1) can see this
+                            if (auth()->user()->role_id == 1) {
+                                return false;
+                            }
 
+                            return $record->status == 'New';
+                        })
+                        ->label(__('Demo Done'))
+                        ->modalHeading('Demo Completed Confirmation')
+                        ->form([
+                            Forms\Components\Placeholder::make('')
+                                ->content(__('You are marking this demo as completed. Confirm?')),
+
+                            Forms\Components\TextInput::make('remark')
+                                ->label('Remarks')
+                                ->required()
+                                ->placeholder('Enter remarks here...')
+                                ->maxLength(500)
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        ])
+                        ->color('success')
+                        ->icon($icon = 'heroicon-o-pencil-square')
+                        ->action(function (Appointment $appointment, array $data) {
+                            // Retrieve the related Lead model from ActivityLog
+                            $lead = $appointment->lead; // Ensure this relation exists
+
+                            // Retrieve the latest demo appointment for the lead
+                            $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
+                                ->latest('created_at') // Retrieve the most recent demo
+                                ->first();
+
+                            if ($latestDemoAppointment) {
+                                $latestDemoAppointment->update([
+                                    'status' => 'Done', // Or whatever status you need to set
+                                ]);
+                            }
+
+                            // Update the Lead model
+                            $lead->update([
+                                'stage' => 'Follow Up',
+                                'lead_status' => 'RFQ-Follow Up',
+                                'remark' => $data['remark'],
+                                'follow_up_date' => null,
+                            ]);
+
+                            // Update the latest ActivityLog related to the lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Demo Completed',
+                                ]);
+                            }
+
+                            // Log activity
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead);
+
+                            // Send success notification
+                            Notification::make()
+                                ->title('Demo completed successfully')
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('demo_cancel')
                         ->visible(fn (Appointment $appointment) => $appointment->status === 'New')
                         ->label(__('Cancel Demo'))
@@ -184,12 +313,10 @@ class DemoAppointmentRelationManager extends RelationManager
                             Forms\Components\Placeholder::make('')
                                 ->content(__('You are cancelling this appointment. Confirm?')),
 
-                            Forms\Components\TextInput::make('remark')
+                            Textarea::make('remark')
                                 ->label('Remarks')
-                                ->required()
-                                ->placeholder('Enter remarks here...')
-                                ->maxLength(500)
-                                ->reactive()
+                                ->rows(3)
+                                ->autosize()
                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                             ])
                         ->color('danger')
@@ -197,6 +324,16 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->action(function (array $data, $record) {
                             $appointment = $record;
                             $lead = $appointment->lead;
+
+                            // Update Lead Stage & Status
+                            $lead->update([
+                                'stage' => 'Transfer',
+                                'lead_status' => 'Demo Cancelled',
+                                'remark' => $data['remark'],
+                            ]);
+
+                            // Retrieve the latest `remark` after the update
+                            $lead->refresh(); // Ensures the latest `remark` is fetched from the database
 
                             // Get event details
                             $eventId = $appointment->event_id;
@@ -220,8 +357,22 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $graph->setAccessToken($accessToken);
 
                                     // Cancel the Teams meeting
-                                    $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
-                                          ->execute();
+                                    $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
+
+                                    // Send an email notification manually with the updated remark
+                                    Mail::send([], [], function ($message) use ($salesperson, $lead) {
+                                        $message->to($salesperson->email)
+                                            ->subject('Teams Meeting Cancelled')
+                                            ->html("
+                                                <p>Hello,</p>
+                                                <p>The Teams meeting has been <strong>cancelled</strong>.</p>
+                                                <p><strong>Reason:</strong> " . nl2br(e($lead->remark)) . "</p>
+                                                <p>If you have any questions, please contact support.</p>
+                                                <br>
+                                                <p>Best regards,</p>
+                                                <p>TimeTec</p>
+                                            ");
+                                    });
 
                                     Notification::make()
                                         ->title('Teams Meeting Cancelled Successfully')
@@ -252,44 +403,38 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->send();
                             }
 
-                            // Update Lead stage and status
-                            $lead->update([
-                                'stage' => 'Transfer',
-                                'lead_status' => 'Demo Cancelled',
-                                'remark' => $data['remark'],
-                            ]);
+                            // Count how many times Demo was Cancelled
+                            $cancelFollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                                ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled')
+                                ->count();
 
-                            $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
-                                    ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
-                                    ->count();
+                            // Generate Follow-up Description
+                            $cancelFollowUpDescription = match ($cancelFollowUpCount) {
+                                1 => '1st Demo Cancelled Follow Up',
+                                2 => '2nd Demo Cancelled Follow Up',
+                                3 => '3rd Demo Cancelled Follow Up',
+                                default => "{$cancelFollowUpCount}th Demo Cancelled Follow Up",
+                            };
 
-                            // Increment the follow-up count for the new description
-                            $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
-                            if ($cancelfollowUpCount == 2) {
-                                $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
-                            } elseif ($cancelfollowUpCount == 3) {
-                                $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
-                            } elseif ($cancelfollowUpCount >= 4) {
-                                $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
-                            }
-
-                            // Update or create the latest activity log description
+                            // Update or Create the Latest Activity Log
                             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                                 ->orderByDesc('created_at')
                                 ->first();
 
                             if ($latestActivityLog) {
                                 $latestActivityLog->update([
-                                    'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
+                                    'description' => 'Demo Cancelled. ' . $cancelFollowUpDescription,
                                 ]);
                             } else {
                                 activity()
                                     ->causedBy(auth()->user())
                                     ->performedOn($lead)
-                                    ->withProperties(['description' => $cancelFollowUpDescription]);
+                                    ->withProperties(['description' => $cancelFollowUpDescription])
+                                    ->log('Demo Cancelled');
                             }
 
-                            $appointment->updateQuietly([
+                            // Update the Appointment status
+                            $appointment->update([
                                 'status' => 'Cancelled',
                                 'remarks' => $data['remark'],
                             ]);
@@ -404,35 +549,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                     if ($hasOverlap) {
                                         return true;
                                     }
-
-                                    // Morning or afternoon validation
-                                    // $isMorning = strtotime($startTime) < strtotime('12:00:00');
-
-                                    // if ($isMorning) {
-                                    //     $morningCount = Appointment::where('salesperson', $value)
-                                    //         ->whereNot('status', 'Cancelled')
-                                    //         ->whereDate('date', $date)
-                                    //         ->whereTime('start_time', '<', '12:00:00')
-                                    //         ->count();
-
-                                    //     if ($morningCount >= 1) {
-                                    //         return true; // Morning slot already filled
-                                    //     }
-                                    // } else {
-                                    //     $afternoonCount = Appointment::where('salesperson', $value)
-                                    //         ->whereNot('status', 'Cancelled')
-                                    //         ->whereDate('date', $date)
-                                    //         ->whereTime('start_time', '>=', '12:00:00')
-                                    //         ->count();
-
-                                    //     if ($afternoonCount >= 1) {
-                                    //         return true; // Afternoon slot already filled
-                                    //     }
-                                    // }
-                                // }
-
-
-                                // return false;
                             })
                             ->required()
                             ->hidden(fn () => auth()->user()->role_id === 2)
@@ -730,6 +846,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $allEmails = array_filter($allEmails, function ($email) {
                                 return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                             });
+                            info($allEmails);
 
                             // Check if we have valid recipients before sending emails
                             if (!empty($allEmails)) {
