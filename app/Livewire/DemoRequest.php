@@ -153,9 +153,9 @@ class DemoRequest extends Component
                     'formatted_products' => $lead->formatted_products, // Add formatted products
                 ];
                 if (!empty($recipients)) {
-                    Mail::mailer('smtp')
-                        ->to($recipient->email)
-                        ->send(new NewLeadNotification($emailContent, $viewName));
+                    // Mail::mailer('smtp')
+                    //     ->to($recipient->email)
+                    //     ->send(new NewLeadNotification($emailContent, $viewName));
                 } else {
                     Log::info('No recipients with role_id = 2 found.');
                 }
