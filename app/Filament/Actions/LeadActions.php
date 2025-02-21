@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
+use App\Enums\QuotationStatusEnum;
 use App\Mail\DemoNotification;
 use App\Mail\FollowUpNotification;
 use App\Mail\SalespersonNotification;
@@ -20,10 +21,12 @@ use App\Models\Appointment;
 use App\Models\InvalidLeadReason;
 use App\Models\User;
 use App\Services\MicrosoftGraphService;
+use App\Services\QuotationService;
 use Beta\Microsoft\Graph\Model\Event;
 use Exception;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -151,11 +154,14 @@ class LeadActions
             // Find duplicate leads based on company name or email
             $duplicateLeads = Lead::query()
                 ->where(function ($query) use ($record) {
-                    $query->where('company_name', $record->companyDetail->company_name)
-                          ->orWhere('email', $record->email);
+                    if ($record->companyDetail) {
+                        $query->where('company_name', $record->companyDetail->company_name);
+                    }
+
+                    $query->orWhere('email', $record->email);
                 })
                 ->where('id', '!=', $record->id) // Exclude the current lead
-                ->get(['id']); // Fetch only the 'id' field
+                ->get(['id']);
 
             // Check if duplicates exist
             $isDuplicate = $duplicateLeads->isNotEmpty();
@@ -617,7 +623,7 @@ class LeadActions
                             $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
 
                             // Combine all recipients
-                            $allEmails = array_unique(array_merge([$email], $attendeeEmails, [$salespersonEmail, $leadOwnerEmail]));
+                            $allEmails = array_unique(array_merge([$email], [$salespersonEmail, $leadOwnerEmail], $attendeeEmails));
 
                             // Remove empty/null values and ensure valid emails
                             $allEmails = array_filter($allEmails, function ($email) {
@@ -1525,46 +1531,44 @@ class LeadActions
                     ->maxLength(500)
                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
-                Select::make('follow_up_choice')
-                    ->label('NEXT FOLLOW UP DATE')
-                    ->options(['custom' => 'Custom'])
-                    ->required()
-                    ->default('custom')
-                    ->disabled(fn (Get $get) => $get('follow_up_needed')), // Disable if checkbox is checked
-
                 DatePicker::make('follow_up_date')
                     ->label('')
                     ->required()
                     ->placeholder('Select a follow-up date')
                     ->default(now())
                     ->disabled(fn (Get $get) => $get('follow_up_needed'))
-                    ->reactive()
-                    ->afterStateUpdated(function (Set $set, Get $get) {
-                        if ($get('follow_up_needed')) {
-                            $set('follow_up_date', now()->next(Carbon::TUESDAY)); // Set to next Tuesday if checked
-                        }
-                    }),
+                    ->reactive(),
                 Placeholder::make('')
-                    ->content(__('What status do you feel for this lead at this moment?')),
+                    ->content(__('What status do you feel for this lead at this moment?'))
+                    ->hidden(fn (Lead $record) => in_array($record->lead_status, ['Hot', 'Warm', 'Cold'])),
 
                 Select::make('status')
                     ->label('STATUS')
-                    ->options(['hot' => 'Hot',
-                                'warm' => 'Warm',
-                                'cold' => 'Cold'])
+                    ->options([
+                        'hot' => 'Hot',
+                        'warm' => 'Warm',
+                        'cold' => 'Cold',
+                    ])
                     ->default('hot')
-                    ->required(),
+                    ->required()
+                    ->hidden(fn (Lead $record) => in_array($record->lead_status, ['Hot', 'Warm', 'Cold'])),
             ])
             ->action(function (Lead $lead, array $data, Component $livewire) {
                 // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                 $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
 
-                $lead->update([
-                    'lead_status' => $data['status'],
+                $updateData = [
                     'follow_up_date' => $followUpDate,
                     'remark' => $data['remark'],
                     'follow_up_count' => $lead->follow_up_count + 1,
-                ]);
+                ];
+
+                if (!empty($data['status'])) {
+                    $updateData['lead_status'] = $data['status'];
+                }
+
+                $lead->update($updateData);
+
 
                 $followUpCount = max(1, ActivityLog::where('subject_id', $lead->id)
                     ->where(function ($query) {
@@ -1655,5 +1659,68 @@ class LeadActions
                     ->causedBy(auth()->user())
                     ->performedOn($lead);
             });
+    }
+
+    public static function getConfirmOrderAction(): Action
+    {
+        return Action::make('Confirm Order')
+        ->label('Confirm Order')
+        ->icon('heroicon-o-clipboard-document-check')
+        ->form([
+            FileUpload::make('attachment')
+                ->label('Upload Confirmation Order Document')
+                ->acceptedFileTypes(['application/pdf','image/jpg','image/jpeg'])
+                ->uploadingMessage('Uploading document...')
+                ->previewable(false)
+                ->preserveFilenames()
+                ->disk('public')
+                ->directory('confirmation_orders')
+        ])
+        ->action(function (Lead $lead, array $data) {
+            $quotation = $lead->quotations()->latest('created_at')->first();
+
+            if (!$quotation) {
+                Notification::make()
+                    ->title('Quotation Not Found')
+                    ->body('No quotation is associated with this lead.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $quotationService = app(QuotationService::class);
+            $quotation->confirmation_order_document = $data['attachment'];
+            $quotation->pi_reference_no = $quotationService->update_pi_reference_no($quotation);
+            $quotation->status = QuotationStatusEnum::accepted;
+            $quotation->save();
+
+            $notifyUsers = User::whereIn('role_id', ['2'])->get();
+            $currentUser = auth()->user();
+            $notifyUsers = $notifyUsers->push($currentUser);
+
+            $lead = $quotation->lead;
+
+            ActivityLog::create([
+                'subject_id' => $lead->id,
+                'description' => 'Order Uploaded. Pending Approval to close lead.',
+                'causer_id' => auth()->id(),
+                'causer_type' => get_class(auth()->user()),
+                'properties' => json_encode([
+                    'attributes' => [
+                        'quotation_reference_no' => $quotation->quotation_reference_no,
+                        'lead_status' => $lead->lead_status,
+                        'stage' => $lead->stage,
+                    ],
+                ]),
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title('Confirmation Order Document Uploaded!')
+                ->body('Confirmation order document for quotation ' . $quotation->quotation_reference_no . ' has been uploaded successfully!')
+                ->sendToDatabase($notifyUsers)
+                ->send();
+            }
+        );
     }
 }

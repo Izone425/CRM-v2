@@ -21,7 +21,7 @@
                                 {{ $contact->participant_name }}
                             </div>
                             @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
-                                <span class="text-xl font-bold text-red-600">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
+                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
                             @endif
                         </div>
 

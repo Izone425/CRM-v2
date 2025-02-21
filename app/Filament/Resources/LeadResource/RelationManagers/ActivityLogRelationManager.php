@@ -125,14 +125,14 @@ class ActivityLogRelationManager extends RelationManager
                     ->label('DATE & TIME')
                     ->dateTime('j M Y, H:i:s'),
                 TextColumn::make('description')->label('SUBJECT'),
-                TextColumn::make('remark')->label('REMARK')
-                    ->wrap()
-                    ->limit(30)
-                    ->getStateUsing(function ($record) {
-                        $properties = json_decode($record->properties, true);
-                        $remark = isset($properties['attributes']['remark']) ? $properties['attributes']['remark'] : '-';
-                        return $remark;
-                    }),
+                // TextColumn::make('remark')->label('REMARK')
+                //     ->wrap()
+                //     ->limit(30)
+                //     ->getStateUsing(function ($record) {
+                //         $properties = json_decode($record->properties, true);
+                //         $remark = isset($properties['attributes']['remark']) ? $properties['attributes']['remark'] : '-';
+                //         return $remark;
+                //     }),
 
                 IconColumn::make('view_remark')
                     ->label('View Remark') // Hide label
@@ -178,12 +178,12 @@ class ActivityLogRelationManager extends RelationManager
                 //             return "{$stage}: {$leadStatus}";
                 //         }
                 //     }),
-                TextColumn::make('follow_up_date')->label('NEXT FOLLOW UP')
-                    ->getStateUsing(function ($record) {
-                        $properties = json_decode($record->properties, true);
-                        $followUpDate = isset($properties['attributes']['follow_up_date']) ? $properties['attributes']['follow_up_date'] : '-';
-                        return $followUpDate;
-                    }),
+                // TextColumn::make('follow_up_date')->label('NEXT FOLLOW UP')
+                //     ->getStateUsing(function ($record) {
+                //         $properties = json_decode($record->properties, true);
+                //         $followUpDate = isset($properties['attributes']['follow_up_date']) ? $properties['attributes']['follow_up_date'] : '-';
+                //         return $followUpDate;
+                //     }),
             ])
             ->actions([
                 Action::make('updateLeadOwner')
@@ -691,7 +691,7 @@ class ActivityLogRelationManager extends RelationManager
                                 $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
 
                                 // Combine all recipients
-                                $allEmails = array_unique(array_merge([$email], $attendeeEmails, [$salespersonUser->email, $leadOwnerEmail]));
+                                $allEmails = array_unique(array_merge([$email], [$salespersonUser->email, $leadOwnerEmail], $attendeeEmails));
 
                                 // Remove empty/null values and ensure valid emails
                                 $allEmails = array_filter($allEmails, function ($email) {
@@ -1896,10 +1896,6 @@ class ActivityLogRelationManager extends RelationManager
                             $notifyUsers = $notifyUsers->push($currentUser);
 
                             $lead = $quotation->lead;
-
-                            $lead->update([
-                                'follow_up_date' => null,
-                            ]);
 
                             ActivityLog::create([
                                 'subject_id' => $lead->id,

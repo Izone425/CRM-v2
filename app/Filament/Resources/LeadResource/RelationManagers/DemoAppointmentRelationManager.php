@@ -402,7 +402,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                                 <p>If you have any questions, please contact support.</p>
                                                 <br>
                                                 <p>Best regards,</p>
-                                                <p>Your Company Name</p>
+                                                <p>" .auth()->user()->name. "</p>
                                             ");
                                     });
 
@@ -872,7 +872,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
 
                             // Combine all recipients
-                            $allEmails = array_unique(array_merge([$email], $attendeeEmails, [$salespersonEmail, $leadOwnerEmail]));
+                            $allEmails = array_unique(array_merge([$email], [$salespersonEmail, $leadOwnerEmail], $attendeeEmails));
 
                             // Remove empty/null values and ensure valid emails
                             $allEmails = array_filter($allEmails, function ($email) {
