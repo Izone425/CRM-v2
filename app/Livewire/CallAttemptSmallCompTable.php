@@ -31,6 +31,7 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
             ->where('done_call', '=', '1')
             ->whereNull('salesperson') // Salesperson is NULL
             ->where('company_size', '=', '1-24') // Only small companies (1-24)
+            ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
     }
 
@@ -70,14 +71,14 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                // TextColumn::make('call_attempt')
-                //     ->label('Call Attempt')
-                //     ->sortable(),
-                TextColumn::make('pending_time')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                TextColumn::make('call_attempt')
+                    ->label('Call Attempt')
+                    ->sortable(),
+                // TextColumn::make('pending_time')
+                //     ->label('Pending Days')
+                //     ->sortable()
+                //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
+                //     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
             ->headerActions($this->headerActions())
             ->actions([
@@ -91,7 +92,7 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
                     LeadActions::getViewRemark(),
                 ])
                 ->button()
-                ->color('warning'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger')
             ]);
     }
 

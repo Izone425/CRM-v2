@@ -325,14 +325,19 @@ class DemoAppointmentRelationManager extends RelationManager
                             $appointment = $record;
                             $lead = $appointment->lead;
 
-                            // Update Lead Stage & Status
-                            $lead->update([
+                            $updateData = [
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
                                 'remark' => $data['remark'],
-                            ]);
+                                'follow_up_date' => null
+                            ];
 
-                            // Refresh the lead to get the latest remark
+                            if (in_array(auth()->user()->role_id, [1, 3])) {
+                                $updateData['salesperson'] = null;
+                            }
+
+                            $lead->update($updateData);
+
                             $lead->refresh();
 
                             // Get event details

@@ -96,7 +96,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'primary' : 'danger')
             ]);
     }
 

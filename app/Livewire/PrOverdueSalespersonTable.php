@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Classes\Encryptor;
+use App\Enums\LeadStatusEnum;
 use App\Filament\Actions\LeadActions;
 use App\Models\ActivityLog;
 use App\Models\Appointment;
@@ -95,8 +96,35 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                     LeadActions::getCancelDemoAction()
                         ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
                     LeadActions::getQuotationFollowUpAction()
-                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'RFQ-Follow Up' ||
-                        $lead->lead_status === 'Hot' || $lead->lead_status === 'Warm' || $lead->lead_status === 'Cold'),
+                        ->visible(function (Lead $lead) {
+                            $latestActivityLog = $lead->activityLogs()->latest()->first();
+
+                            if (!$latestActivityLog) {
+                                return false;
+                            }
+
+                            $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
+
+                            $leadStatus = data_get($attributes, 'lead_status');
+
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if($leadStatus == LeadStatusEnum::PENDING_DEMO->value){
+                                return false;
+                            }
+
+                            if(str_contains($latestActivityLog->description, 'Quotation Sent.')){
+                                return true;
+                            }
+
+                            return ($leadStatus === LeadStatusEnum::HOT->value ||
+                                $leadStatus === LeadStatusEnum::WARM->value ||
+                                $leadStatus === LeadStatusEnum::COLD->value) &&
+                                $latestActivityLog->description !== '4th Quotation Transfer Follow Up' &&
+                                $latestActivityLog->description !== 'Order Uploaded. Pending Approval to close lead.';
+                        }),
                     LeadActions::getNoResponseAction()
                         ->visible(function (Lead $lead) {
                             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -124,7 +152,7 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                             if ($latestActivityLog) {
                                 // Check if the latest activity log description needs updating
                                 if ($lead->call_attempt >= 4 || $lead->lead_status =='Hot' || $lead->lead_status =='Warm' ||
-                                    $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' ||
+                                    $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' || $lead->lead_status =='RFQ-Follow Up' ||
                                     $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
                                     $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
                                     $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
@@ -133,6 +161,23 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                             }
 
                             return true; // Default: Hide button
+                        }),
+                    LeadActions::getConfirmOrderAction()
+                        ->visible(function (Lead $lead) {
+                            $latestActivityLog = $lead->activityLogs()->latest()->first();
+
+                            if (!$latestActivityLog) {
+                                return false;
+                            }
+
+                            $description = $latestActivityLog->description;
+                            $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
+                            $leadStatus = data_get($attributes, 'lead_status');
+
+                            return (
+                                (str_contains($description, 'Quotation Sent.') && $leadStatus !== LeadStatusEnum::PENDING_DEMO->value)
+                                || str_contains($description, 'Quotation Transfer')
+                            );
                         }),
                     LeadActions::getViewAction(),
                     LeadActions::getViewRemark(),

@@ -81,11 +81,9 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getAddDemoAction(),
-                    LeadActions::getAddRFQ(),
-                    LeadActions::getAddFollowUp(),
-                    LeadActions::getAddAutomation(),
-                    LeadActions::getArchiveAction(),
+                    LeadActions::getCancelDemoAction()
+                        ->visible(fn (Lead $record) => $record->lead_status == 'Demo-Assigned' && $record->lead_owner == auth()->user()->name),
+                    LeadActions::getLeadDetailAction(),
                     LeadActions::getViewAction(),
                 ])
                 ->button()

@@ -31,6 +31,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
             ->where('done_call', '=', '1')
             ->whereNull('salesperson') // Salesperson is NULL
             ->whereBetween('call_attempt', [1, 10])
+            ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
     }
@@ -71,14 +72,14 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
-                // TextColumn::make('call_attempt')
-                //     ->label('Call Attempt')
-                //     ->sortable(),
-                TextColumn::make('pending_time')
-                    ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                TextColumn::make('call_attempt')
+                    ->label('Call Attempt')
+                    ->sortable(),
+                // TextColumn::make('pending_time')
+                //     ->label('Pending Days')
+                //     ->sortable()
+                //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
+                //     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
             ->headerActions($this->headerActions())
             ->actions([
@@ -92,7 +93,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getViewRemark(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'primary' : 'danger')
             ]);
     }
 

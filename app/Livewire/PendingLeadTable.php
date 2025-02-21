@@ -51,7 +51,9 @@ class PendingLeadTable extends Component implements HasForms, HasTable
         return Lead::query()
             ->where('stage', 'Transfer')
             ->where('lead_owner', $leadOwner)
-            ->where('lead_status', 'New')
+            ->whereNull('salesperson') // Salesperson must be NULL
+            ->where('follow_up_date', null)
+            ->whereIn('lead_status', ['New','Demo Cancelled'])
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
     }
 
