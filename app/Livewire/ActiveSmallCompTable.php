@@ -96,7 +96,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                     LeadActions::getTransferCallAttempt(),
                 ])
                 ->button()
-                ->color('warning'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger')
             ]);
     }
 

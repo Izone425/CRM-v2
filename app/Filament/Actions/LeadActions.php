@@ -654,6 +654,7 @@ class LeadActions
                         'remark' => $data['remarks'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
                         'follow_up_counter' => true,
+                        'follow_up_needed' => false,
                     ]);
 
                     $appointment = $lead->demoAppointment()->latest()->first(); // Assuming a relation exists
@@ -682,25 +683,6 @@ class LeadActions
                         ->title('Demo Added Successfully')
                         ->success()
                         ->send();
-
-                    $phoneNumber = $lead->phone; // Recipient's WhatsApp number
-                    $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
-
-                    $variables = [
-                        $lead->name,
-                        $lead->companyDetail->company_name,
-                        $contactNo,
-                        $picName,
-                        $email,
-                        $appointment->appointment_type,
-                        "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
-                        $onlineMeeting->getOnlineMeeting()->getJoinUrl()
-                    ];
-
-                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
-                    return $response;
                 });
     }
 
@@ -776,6 +758,7 @@ class LeadActions
                     'follow_up_date' => today(),
                     'rfq_transfer_at' => now(),
                     'follow_up_counter' => true,
+                    'follow_up_needed' => false,
                 ]);
 
                 // Fetch the salesperson's name
@@ -891,6 +874,7 @@ class LeadActions
             }),
         ])
         ->color('success')
+        ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
         ->icon('heroicon-o-pencil-square')
         ->action(function (Lead $record, array $data) {
             // Retrieve the related Lead model from ActivityLog
@@ -1075,6 +1059,7 @@ class LeadActions
         ->label(__('Add Automation'))
         ->color('primary')
         ->icon('heroicon-o-cog-8-tooth')
+        ->requiresConfirmation()
         ->form([
             Placeholder::make('confirmation')
                 ->label('Are you sure you want to start the automation to follow up the lead by sending automation email to lead?'),
@@ -1082,6 +1067,7 @@ class LeadActions
         ->modalHeading('Confirm Automation Action')
         ->modalSubmitActionLabel('Confirm')
         ->modalCancelActionLabel('Cancel')
+        ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
         ->action(function (Lead $record, array $data) {
             $lead = $record;
 
@@ -1229,6 +1215,7 @@ class LeadActions
                 'remark' => $data['remark'],
                 'stage' => null,
                 'follow_up_date' => null,
+                'follow_up_needed' => false,
             ]);
 
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -1460,11 +1447,18 @@ class LeadActions
                         ->send();
                 }
 
-                $lead->update([
+                $updateData = [
                     'stage' => 'Transfer',
                     'lead_status' => 'Demo Cancelled',
                     'remark' => $data['remark'],
-                ]);
+                    'follow_up_date' => null
+                ];
+
+                if (in_array(auth()->user()->role_id, [1, 3])) {
+                    $updateData['salesperson'] = null;
+                }
+
+                $lead->update($updateData);
 
                 $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
                         ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
