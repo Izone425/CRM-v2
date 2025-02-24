@@ -122,7 +122,16 @@ class ChatRoom extends Page
                     $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
 
                     // Determine chat participant's name
-                    $chatParticipant = ($chat->user1 === env('TWILIO_WHATSAPP_FROM')) ? $chat->user2 : $chat->user1;
+
+                    // Remove "whatsapp:" and "+" from the Twilio number
+                    $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+
+                    // Remove "+" from user1 (in case it's stored differently)
+                    $user1 = preg_replace('/^\+/', '', $chat->user1);
+                    $user2 = preg_replace('/^\+/', '', $chat->user2);
+
+                    // Now compare properly
+                    $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
                     // Check in Leads table
                     $lead = Lead::where('phone', $chatParticipant)->first();
@@ -160,9 +169,15 @@ class ChatRoom extends Page
             ];
         }
 
-        $chatParticipant = ($this->selectedChat['user1'] === env('TWILIO_WHATSAPP_FROM'))
-            ? $this->selectedChat['user2']
-            : $this->selectedChat['user1'];
+        // Clean Twilio WhatsApp number (remove "whatsapp:" and "+")
+        $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+
+        // Clean user1 and user2 (remove "+" if present)
+        $user1 = preg_replace('/^\+/', '', $this->selectedChat['user1']);
+        $user2 = preg_replace('/^\+/', '', $this->selectedChat['user2']);
+
+        // Compare properly and assign chat participant
+        $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
         // Check in Leads table
         $lead = \App\Models\Lead::where('phone', $chatParticipant)->with('companyDetail')->first();
@@ -181,7 +196,7 @@ class ChatRoom extends Page
         $company = \App\Models\CompanyDetail::where('contact_no', $chatParticipant)->first();
         if ($company) {
             return [
-                'name' => 'N/A',
+                'name' => $company->name,
                 'email' => $company->email ?? 'N/A',
                 'phone' => $company->contact_no ?? 'N/A',
                 'company' => $company->company_name ?? 'N/A',
@@ -203,9 +218,15 @@ class ChatRoom extends Page
     public function sendMessage()
     {
         if ($this->selectedChat) {
-            $recipient = ($this->selectedChat['user1'] === env('TWILIO_WHATSAPP_FROM'))
-                ? $this->selectedChat['user2']
-                : $this->selectedChat['user1'];
+            // Clean Twilio WhatsApp number (remove "whatsapp:" and "+")
+            $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+
+            // Clean user1 and user2 (remove "+" if present)
+            $user1 = preg_replace('/^\+/', '', $this->selectedChat['user1']);
+            $user2 = preg_replace('/^\+/', '', $this->selectedChat['user2']);
+
+            // Compare properly and assign recipient
+            $recipient = ($user1 === $twilioNumber) ? $user2 : $user1;
         } else {
             $recipient = $this->to;
         }
