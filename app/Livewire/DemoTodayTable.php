@@ -92,7 +92,6 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                     ->label('Time')
                     ->sortable()
                     ->formatStateUsing(fn ($record) =>
-                        Carbon::parse($record->date)->format('d M Y') . ', ' . // Format date
                         Carbon::parse($record->start_time)->format('h:i A') .
                         ' - ' .
                         Carbon::parse($record->end_time)->format('h:i A')
@@ -100,13 +99,8 @@ class DemoTodayTable extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    // LeadActions::getAddDemoAction(),
-                    // LeadActions::getAddRFQ(),
-                    // LeadActions::getAddFollowUp(),
-                    // LeadActions::getAddAutomation(),
-                    // LeadActions::getArchiveAction(),
-                    LeadActions::getDemoViewAction(),
-                    // LeadActions::getTransferCallAttempt(),
+                    LeadActions::getLeadDetailActionInDemo(),
+                    LeadActions::getWhatsappAction(),
                 ])
                 ->button()
                 ->color('primary'),

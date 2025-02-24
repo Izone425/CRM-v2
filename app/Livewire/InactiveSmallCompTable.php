@@ -84,7 +84,7 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
                     LeadActions::getViewAction(),
                 ])
                 ->button()
-                ->color('warning'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger')
             ]);
     }
 

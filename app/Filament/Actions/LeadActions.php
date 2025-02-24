@@ -144,6 +144,47 @@ class LeadActions
             ]));
     }
 
+    public static function getWhatsappAction(): Action
+    {
+        return Action::make('send_whatsapp')
+            ->icon('heroicon-o-chat-bubble-oval-left-ellipsis')
+            ->label('Send WhatsApp')
+            ->color('success')
+            ->url(fn (Appointment $record) => self::generateWhatsappUrl($record))
+            ->openUrlInNewTab();
+    }
+
+    private static function generateWhatsappUrl(Appointment $record): string
+    {
+        $contactNo = $record->lead->companyDetails->contact_no ?? $record->lead->phone ?? null;
+
+        if (!$contactNo) {
+            return 'javascript:void(0);';
+        }
+
+        $formattedDate = Carbon::parse($record->date)->format('d F Y, l');
+        $startTime = Carbon::parse($record->start_time)->format('h:i A');
+
+        $authUserName = Auth::user()->name ?? 'Your Name';
+
+        $appointment_type = $record->type;
+
+        $message = "Dear " . ($record->lead->companyDetails->name ?? $record->lead->name ?? '') . ",\n\n";
+        $message .= "Good day to you.\n";
+        $message .= "My name is {$authUserName}. I'm from TimeTec Cloud Sdn Bhd @ " . ($appointment_type) . ".\n";
+        $message .= "Just to follow up, we will have an online demo about our Human Resource Management System as per below date and time.\n\n";
+        $message .= "🗓: {$formattedDate}\n";
+        $message .= "⏰: {$startTime}\n\n";
+        $message .= "🔗 Microsoft Teams Meeting Link:\n";
+        $message .= "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjJlZTllZmEtOGUxZi00NTA3LThmMGQtZGQ1YzFkYTQ0MGQ0%40thread.v2/0?context=%7b%22Tid%22%3a%22db45ae30-3921-4816-bd84-98cf14d5a17b%22%2c%22Oid%22%3a%22309b2b2b-7cf9-41d5-bb79-53e29d0e79fc%22%7d\n\n";
+        $message .= "📄 TimeTec HR Brochure:\n";
+        $message .= "https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n\n";
+        $message .= "Appreciate your feedback.";
+
+        // Return formatted WhatsApp link
+        return "https://wa.me/{$contactNo}?text=" . urlencode($message);
+    }
+
     public static function getAssignToMeAction(): Action
     {
         return Action::make('updateLeadOwner')
@@ -1294,6 +1335,17 @@ class LeadActions
             ->url(fn (Lead $record) => url('admin/leads/' . Encryptor::encrypt($record->id)))
             ->openUrlInNewTab(); // Opens in a new tab
     }
+
+    public static function getLeadDetailActionInDemo(): Action
+    {
+        return Action::make('view_lead_detail')
+            ->label('Lead Detail')
+            ->icon('heroicon-o-arrow-top-right-on-square')
+            ->color('warning') // Orange color
+            ->url(fn (Appointment $record) => url('admin/leads/' . Encryptor::encrypt($record->lead->id)))
+            ->openUrlInNewTab(); // Opens in a new tab
+    }
+
 
     public static function getAddQuotationAction(): Action
     {

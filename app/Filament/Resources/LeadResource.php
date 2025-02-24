@@ -28,11 +28,14 @@ use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
 
@@ -461,142 +464,137 @@ class LeadResource extends Resource
                                                                     ->content(fn ($record) => ($record->stage ?? $record->categories)
                                                                     ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
                                                                     : '-'),
-                                                                // Actions::make([
-                                                                //     Actions\Action::make('edit_status')
-                                                                //         ->label('Edit')
-                                                                //         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
-                                                                //         ->action(function ($record, $data) {
-                                                                //             // Extract selected values
-                                                                //             $newStage = $data['new_stage'];
-                                                                //             $newLeadStatus = $data['new_lead_status'];
+                                                                Actions::make([
+                                                                    Actions\Action::make('edit_status')
+                                                                        ->label('Edit')
+                                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
+                                                                        ->form([
+                                                                            Grid::make() // Three columns layout
+                                                                            ->schema([
+                                                                                Forms\Components\Placeholder::make('current_status')
+                                                                                    ->label('Current Status')
+                                                                                    ->content(fn ($record) => ($record->stage ?? $record->categories)
+                                                                                    ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
+                                                                                    : '-'),
+                                                                                Forms\Components\Placeholder::make('arrow') // Arrow in the middle column
+                                                                                    ->content('----------->') // Unicode arrow or any arrow symbol
+                                                                                    ->columnSpan(1)
+                                                                                    ->label(''),
+                                                                                Forms\Components\Select::make('new_stage')
+                                                                                    ->label('New Stage')
+                                                                                    ->options([
+                                                                                        'Inactive' => 'Inactive',
+                                                                                    ])
+                                                                                    ->default('Inactive')
+                                                                                    ->disabled()
+                                                                                    ->reactive(),
 
-                                                                //             // Update the record based on the selected values
-                                                                //             $record->update([
-                                                                //                 'stage' => $newStage === 'Inactive' ? null : $newStage, // Set stage to null if $newStage is 'Inactive'
-                                                                //                 'lead_status' => $newLeadStatus,
-                                                                //                 'categories' => $newStage === 'Inactive' ? $newStage : $record->categories, // Update categories to newStage if it is 'Inactive'
-                                                                //             ]);
+                                                                                Forms\Components\Select::make('new_lead_status')
+                                                                                    ->label('New Lead Status')
+                                                                                    ->options(fn ($get) => match ($get('new_stage')) {
+                                                                                        'New' => [
+                                                                                            'None' => 'None',
+                                                                                        ],
+                                                                                        'Transfer' => [
+                                                                                            'New' => 'New',
+                                                                                            'Under Review' => 'Under Review',
+                                                                                            'RFQ-Transfer' => 'RFQ-Transfer',
+                                                                                            'Pending Demo' => 'Pending Demo',
+                                                                                            'Demo Cancelled' => 'Demo Cancelled',
+                                                                                        ],
+                                                                                        'Demo' => [
+                                                                                            'Demo-Assigned' => 'Demo-Assigned',
+                                                                                        ],
+                                                                                        'Follow Up' => [
+                                                                                            'RFQ-Follow Up' => 'RFQ-Follow Up',
+                                                                                            'Hot' => 'Hot',
+                                                                                            'Warm' => 'Warm',
+                                                                                            'Cold' => 'Cold',
+                                                                                        ],
+                                                                                        'Inactive' => [
+                                                                                            'On Hold' => 'On Hold',
+                                                                                            'Lost' => 'Lost',
+                                                                                            'Closed' => 'Closed',
+                                                                                        ],
+                                                                                        default => [
+                                                                                            'None' => 'None',
+                                                                                            'New' => 'New',
+                                                                                            'RFQ-Transfer' => 'RFQ-Transfer',
+                                                                                            'Pending Demo' => 'Pending Demo',
+                                                                                            'Under Review' => 'Under Review',
+                                                                                            'Demo Cancelled' => 'Demo Cancelled',
+                                                                                            'Demo-Assigned' => 'Demo-Assigned',
+                                                                                            'RFQ-Follow Up' => 'RFQ-Follow Up',
+                                                                                            'Hot' => 'Hot',
+                                                                                            'Warm' => 'Warm',
+                                                                                            'Cold' => 'Cold',
+                                                                                            'Junk' => 'Junk',
+                                                                                            'On Hold' => 'On Hold',
+                                                                                            'Lost' => 'Lost',
+                                                                                            'No Response' => 'No Response',
+                                                                                            'Closed' => 'Closed',
+                                                                                        ],
+                                                                                    })
+                                                                                    ->required(),
+                                                                            ])->columns(4),
 
-                                                                //             // Fetch latest activity logs
-                                                                //             $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
-                                                                //                 ->orderByDesc('created_at')
-                                                                //                 ->take(2)
-                                                                //                 ->get();
+                                                                        ])
+                                                                        ->action(function ($record, $data) {
+                                                                            // Extract selected values
+                                                                            $newStage = $data['new_stage'] ?? null;
+                                                                            $newLeadStatus = $data['new_lead_status'];
 
-                                                                //             if ($latestActivityLogs->count() >= 2) {
-                                                                //                 // Update the first activity log
-                                                                //                 $latestActivityLogs[0]->update([
-                                                                //                     'description' => 'Lead Stage updated to: ' . $newStage,
-                                                                //                 ]);
+                                                                            // Update the record based on the selected values
+                                                                            $record->update([
+                                                                                'stage' => $newStage === 'Inactive' ? null : $newStage, // Set stage to null if $newStage is 'Inactive'
+                                                                                'lead_status' => $newLeadStatus,
+                                                                                'categories' => $newStage === 'Inactive' ? $newStage : $record->categories, // Update categories to newStage if it is 'Inactive'
+                                                                            ]);
 
-                                                                //                 // Update the second activity log
-                                                                //                 $latestActivityLogs[1]->update([
-                                                                //                     'description' => 'Lead Status updated to: ' . $newLeadStatus,
-                                                                //                 ]);
-                                                                //             } elseif ($latestActivityLogs->count() === 1) {
-                                                                //                 // Update the single existing log if only one exists
-                                                                //                 $latestActivityLogs[0]->update([
-                                                                //                     'description' => 'Lead Stage updated to: ' . $newStage . ' and Lead Status updated to: ' . $newLeadStatus,
-                                                                //                 ]);
-                                                                //             }
+                                                                            // Fetch latest activity logs
+                                                                            $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
+                                                                                ->orderByDesc('created_at')
+                                                                                ->take(2)
+                                                                                ->get();
 
-                                                                //             activity()
-                                                                //                 ->causedBy(auth()->user())
-                                                                //                 ->performedOn($record);
+                                                                            if ($latestActivityLogs->count() >= 2) {
+                                                                                // Update the first activity log
+                                                                                $latestActivityLogs[0]->update([
+                                                                                    'description' => 'Lead Stage updated to: ' . $newStage,
+                                                                                ]);
 
-                                                                //             // Notify the user of successful update
-                                                                //             Notification::make()
-                                                                //                 ->title('Sales In-Charge Edited Successfully')
-                                                                //                 ->success()
-                                                                //                 ->send();
-                                                                //         })
-                                                                //         ->form([
-                                                                //             Grid::make() // Three columns layout
-                                                                //             ->schema([
-                                                                //                 Forms\Components\Placeholder::make('current_status')
-                                                                //                     ->label('Current Status')
-                                                                //                     ->content(fn ($record) => ($record->stage ?? $record->categories)
-                                                                //                     ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
-                                                                //                     : '-'),
-                                                                //                 Forms\Components\Placeholder::make('arrow') // Arrow in the middle column
-                                                                //                     ->content('----------->') // Unicode arrow or any arrow symbol
-                                                                //                     ->columnSpan(1)
-                                                                //                     ->label(''),
-                                                                //                 Forms\Components\Select::make('new_stage')
-                                                                //                     ->label('New Stage')
-                                                                //                     ->options([
-                                                                //                         'New' => 'New',
-                                                                //                         'Transfer' => 'Transfer',
-                                                                //                         'Demo' => 'Demo',
-                                                                //                         'Follow Up' => 'Follow Up',
-                                                                //                         'Inactive' => 'Inactive',
-                                                                //                     ])
-                                                                //                     ->required()
-                                                                //                     ->reactive(), // Make this field reactive
+                                                                                // Update the second activity log
+                                                                                $latestActivityLogs[1]->update([
+                                                                                    'description' => 'Lead Status updated to: ' . $newLeadStatus,
+                                                                                ]);
+                                                                            } elseif ($latestActivityLogs->count() === 1) {
+                                                                                // Update the single existing log if only one exists
+                                                                                $latestActivityLogs[0]->update([
+                                                                                    'description' => 'Lead Stage updated to: ' . $newStage . ' and Lead Status updated to: ' . $newLeadStatus,
+                                                                                ]);
+                                                                            }
 
-                                                                //                 Forms\Components\Select::make('new_lead_status')
-                                                                //                     ->label('New Lead Status')
-                                                                //                     ->options(fn ($get) => match ($get('new_stage')) {
-                                                                //                         'New' => [
-                                                                //                             'None' => 'None',
-                                                                //                         ],
-                                                                //                         'Transfer' => [
-                                                                //                             'New' => 'New',
-                                                                //                             'Under Review' => 'Under Review',
-                                                                //                             'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                //                             'Pending Demo' => 'Pending Demo',
-                                                                //                             'Demo Cancelled' => 'Demo Cancelled',
-                                                                //                         ],
-                                                                //                         'Demo' => [
-                                                                //                             'Demo-Assigned' => 'Demo-Assigned',
-                                                                //                         ],
-                                                                //                         'Follow Up' => [
-                                                                //                             'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                //                             'Hot' => 'Hot',
-                                                                //                             'Warm' => 'Warm',
-                                                                //                             'Cold' => 'Cold',
-                                                                //                         ],
-                                                                //                         'Inactive' => [
-                                                                //                             'Junk' => 'Junk',
-                                                                //                             'On Hold' => 'On Hold',
-                                                                //                             'Lost' => 'Lost',
-                                                                //                             'No Response' => 'No Response',
-                                                                //                             'Closed' => 'Closed',
-                                                                //                         ],
-                                                                //                         default => [
-                                                                //                             'None' => 'None',
-                                                                //                             'New' => 'New',
-                                                                //                             'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                //                             'Pending Demo' => 'Pending Demo',
-                                                                //                             'Under Review' => 'Under Review',
-                                                                //                             'Demo Cancelled' => 'Demo Cancelled',
-                                                                //                             'Demo-Assigned' => 'Demo-Assigned',
-                                                                //                             'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                //                             'Hot' => 'Hot',
-                                                                //                             'Warm' => 'Warm',
-                                                                //                             'Cold' => 'Cold',
-                                                                //                             'Junk' => 'Junk',
-                                                                //                             'On Hold' => 'On Hold',
-                                                                //                             'Lost' => 'Lost',
-                                                                //                             'No Response' => 'No Response',
-                                                                //                             'Closed' => 'Closed',
-                                                                //                         ],
-                                                                //                     })
-                                                                //                     ->required(),
-                                                                //             ])->columns(4),
+                                                                            activity()
+                                                                                ->causedBy(auth()->user())
+                                                                                ->performedOn($record);
 
-                                                                //         ])
-                                                                //         ->modalHeading('Edit Status')
-                                                                //         ->modalDescription('You are about to change the status of this lead. Changing the lead
-                                                                //                             status may trigger automated actions based on the new status.')
-                                                                //         ->modalSubmitActionLabel('Confirm')
-                                                                //         ->extraAttributes(function () {
-                                                                //             // Hide the action by applying a CSS class when the user's role_id is 1 or 2
-                                                                //             return auth()->user()->role_id === 2
-                                                                //                 ? ['class' => 'hidden']
-                                                                //                 : [];
-                                                                //         }),
-                                                                //     ]),
+                                                                            // Notify the user of successful update
+                                                                            Notification::make()
+                                                                                ->title('Sales In-Charge Edited Successfully')
+                                                                                ->success()
+                                                                                ->send();
+                                                                        })
+                                                                        ->modalHeading('Edit Status')
+                                                                        ->modalDescription('You are about to change the status of this lead. Changing the lead
+                                                                                            status may trigger automated actions based on the new status.')
+                                                                        ->modalSubmitActionLabel('Confirm')
+                                                                        ->extraAttributes(function () {
+                                                                            // Hide the action by applying a CSS class when the user's role_id is 1 or 2
+                                                                            return auth()->user()->role_id === 2
+                                                                                ? ['class' => 'hidden']
+                                                                                : [];
+                                                                        }),
+                                                                    ]),
                                                             ]),
                                                     ])
                                             ])->columnSpan(1),
@@ -616,17 +614,39 @@ class LeadResource extends Resource
                                                                 : null
                                                         )
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('modules')
+                                                            Placeholder::make('modules')
                                                                 ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->modules ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->modules ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('existing_system')
                                                                 ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->existing_system ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->existing_system ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('usage_duration')
                                                                 ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?')
                                                                 ->content(fn ($record) => $record?->systemQuestion?->usage_duration ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->existing_system ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('expired_date')
                                                                 ->label('4. WHEN IS THE EXPIRED DATE?')
@@ -636,15 +656,47 @@ class LeadResource extends Resource
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('reason_for_change')
                                                                 ->label('5. WHAT MAKES YOU LOOK FOR A NEW SYSTEM?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->reason_for_change ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->reason_for_change ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('staff_count')
                                                                 ->label('6. HOW MANY STAFF DO YOU HAVE?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->staff_count ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->staff_count ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('hrdf_contribution')
                                                                 ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->hrdf_contribution ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->hrdf_contribution ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('additional')
+                                                                ->label('8. ADDITIONAL QUESTIONS?')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestion?->additional ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
@@ -652,39 +704,54 @@ class LeadResource extends Resource
                                                                 ->label('Update')
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
-                                                                ->visible(function ($record) {
-                                                                    $demoAppointment = $record->demoAppointment()
-                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
-                                                                        ->latest() // Get the latest 'Done' demo
-                                                                        ->first();
+                                                                // ->visible(function ($record) {
+                                                                //     $demoAppointment = $record->demoAppointment()
+                                                                //         ->latest()
+                                                                //         ->first();
 
-                                                                    if (!$demoAppointment) {
-                                                                        return false; // If no 'Done' demo is found, hide the field
-                                                                    }
+                                                                //     if (!$demoAppointment) {
+                                                                //         return false;
+                                                                //     }
 
-                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
-                                                                    return $demoAppointment->updated_at->diffInHours(now()) <= 48;
-                                                                })
+                                                                //     if ($demoAppointment->status !== 'Done') {
+                                                                //         return true;
+                                                                //     }
+
+                                                                //     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
+                                                                // })
                                                                 ->form([
-                                                                    Forms\Components\TextInput::make('modules')
+                                                                    Textarea::make('modules')
                                                                         ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->modules),
-                                                                    Forms\Components\TextInput::make('existing_system')
+                                                                    Textarea::make('existing_system')
                                                                         ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->existing_system),
-                                                                    Forms\Components\TextInput::make('usage_duration')
+                                                                    Textarea::make('usage_duration')
                                                                         ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->usage_duration),
                                                                     Forms\Components\DatePicker::make('expired_date')
                                                                         ->label('4. WHEN IS THE EXPIRED DATE?')
                                                                         ->default(fn ($record) => $record?->systemQuestion?->expired_date),
-                                                                    Forms\Components\Textarea::make('reason_for_change')
+                                                                    Textarea::make('reason_for_change')
                                                                         ->label('5. WHAT MAKES YOU LOOK FOR A NEW SYSTEM?')
+                                                                        ->autosize()
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->reason_for_change)
                                                                         ->rows(3),
-                                                                    Forms\Components\TextInput::make('staff_count')
+                                                                    Textarea::make('staff_count')
                                                                         ->label('6. HOW MANY STAFF DO YOU HAVE?')
-                                                                        ->numeric()
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->staff_count),
                                                                     Forms\Components\Select::make('hrdf_contribution')
                                                                         ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
@@ -693,6 +760,12 @@ class LeadResource extends Resource
                                                                             'No' => 'No',
                                                                         ])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->hrdf_contribution),
+                                                                    Textarea::make('additional')
+                                                                        ->label('8. ADDITIONAL QUESTIONS?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->default(fn ($record) => $record?->systemQuestion?->additional),
                                                                 ])
                                                                 ->action(function (Lead $lead, array $data) {
                                                                     // Retrieve the current lead's systemQuestion
@@ -728,20 +801,47 @@ class LeadResource extends Resource
                                             Forms\Components\Tabs\Tab::make('Phase 2')
                                                 ->schema([
                                                     Forms\Components\Section::make('Phase 2')
-                                                        ->description(fn ($record) =>
-                                                            $record && $record->systemQuestion
-                                                                ? 'Updated by ' . ($record->systemQuestion->causer_name ?? 'Unknown') . ' on ' .
-                                                                ($record->systemQuestion->updated_at?->format('F j, Y, g:i A') ?? 'N/A')
-                                                                : null
-                                                        )
+                                                        ->description(function ($record) {
+                                                            if ($record && $record->systemQuestionPhase2 && !empty($record->systemQuestionPhase2->updated_at)) {
+                                                                return 'Updated by ' . ($record->systemQuestionPhase2->causer_name ?? 'Unknown') . ' on ' .
+                                                                    \Carbon\Carbon::parse($record->systemQuestionPhase2->updated_at)->format('F j, Y, g:i A');
+                                                            }
+
+                                                            return null; // Return null if no update exists
+                                                        })
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('modules')
+                                                            Forms\Components\Placeholder::make('support')
                                                                 ->label('1.  PROSPECT QUESTION – NEED TO REFER SUPPORT TEAM.')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->modules ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase2?->support ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('existing_system')
+                                                            Forms\Components\Placeholder::make('product')
                                                                 ->label('2. PROSPECT CUSTOMIZATION – NEED TO REFER PRODUCT TEAM.')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->existing_system ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase2?->product ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('additional')
+                                                                ->label('3. ADDITIONAL QUESTIONS?')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase2?->additional ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
@@ -763,32 +863,46 @@ class LeadResource extends Resource
                                                                     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
-                                                                    Forms\Components\TextInput::make('modules')
-                                                                        ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
-                                                                        ->default(fn ($record) => $record?->systemQuestion?->modules),
+                                                                    Textarea::make('support')
+                                                                        ->label('1.  PROSPECT QUESTION – NEED TO REFER SUPPORT TEAM.')
+                                                                        ->autosize()
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase2?->support)
+                                                                        ->rows(3),
+                                                                    Textarea::make('product')
+                                                                        ->label('2. PROSPECT CUSTOMIZATION – NEED TO REFER PRODUCT TEAM.')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase2?->product),
+                                                                    Textarea::make('additional')
+                                                                        ->label('3. ADDITIONAL QUESTIONS?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase2?->additional),
                                                                 ])
                                                                 ->action(function (Lead $lead, array $data) {
                                                                     // Retrieve the current lead's systemQuestion
-                                                                    $record = $lead->systemQuestion;
+                                                                    $record = $lead->systemQuestionPhase2;
 
                                                                     if ($record) {
-                                                                        // // Include causer_id in the data
-                                                                        // $data['causer_name'] = auth()->user()->name;
-                                                                        // $record->causer_name_phase3 = auth()->user()->name;
-                                                                        // $record->updated_at_phase_3 = now();
-                                                                        // // Update the existing SystemQuestion record
-                                                                        // $record->update($data);
+                                                                        // Include causer_id in the data
+                                                                        $data['causer_name'] = auth()->user()->name;
+
+                                                                        // Update the existing SystemQuestion record
+                                                                        $record->update($data);
 
                                                                         Notification::make()
                                                                             ->title('Updated Successfully')
                                                                             ->success()
                                                                             ->send();
                                                                     } else {
-                                                                        // // Add causer_id to the data for the new record
-                                                                        // $data['causer_name'] = auth()->user()->name;
+                                                                        // Add causer_id to the data for the new record
+                                                                        $data['causer_name'] = auth()->user()->name;
 
-                                                                        // // Create a new SystemQuestion record via the relation
-                                                                        // $lead->systemQuestion()->create($data);
+                                                                        // Create a new SystemQuestion record via the relation
+                                                                        $lead->systemQuestionPhase2()->create($data);
 
                                                                         Notification::make()
                                                                             ->title('Created Successfully')
@@ -812,19 +926,58 @@ class LeadResource extends Resource
                                                         ->schema([
                                                             Forms\Components\Placeholder::make('percentage')
                                                                 ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
-                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->percentage ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase3?->percentage ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('vendor')
                                                                 ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
-                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->vendor ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase3?->vendor ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('plan')
                                                                 ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
-                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->plan ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase3?->plan ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                             Forms\Components\Placeholder::make('finalise')
                                                                 ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
-                                                                ->content(fn ($record) => $record?->systemQuestionPhase3?->finalise ?? '-')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase3?->finalise ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
+                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            Forms\Components\Placeholder::make('additional')
+                                                                ->label('5. ADDITIONAL QUESTIONS?')
+                                                                ->content(function ($record) {
+                                                                    $content = $record?->systemQuestionPhase3?->additional ?? '-';
+                                                                    return new HtmlString(
+                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
+                                                                        . nl2br(e($content))
+                                                                        . '</div>'
+                                                                    );
+                                                                })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
@@ -846,29 +999,47 @@ class LeadResource extends Resource
                                                                     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
-                                                                    Forms\Components\TextInput::make('percentage')
+                                                                    Textarea::make('percentage')
                                                                         ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->autosize()
+                                                                        ->rows(3)
                                                                         ->default(fn ($record) => $record?->systemQuestionPhase3?->percentage),
-                                                                    Forms\Components\TextInput::make('vendor')
+                                                                    Textarea::make('vendor')
                                                                         ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestionPhase3?->vendor),
-                                                                    Forms\Components\TextInput::make('plan')
+                                                                    Textarea::make('plan')
                                                                         ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestionPhase3?->plan),
-                                                                    Forms\Components\TextInput::make('finalise')
+                                                                    Textarea::make('finalise')
                                                                         ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestionPhase3?->finalise),
+                                                                    Textarea::make('additional')
+                                                                        ->label('5. ADDITIONAL QUESTIONS?')
+                                                                        ->autosize()
+                                                                        ->rows(3)
+                                                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                        ->default(fn ($record) => $record?->systemQuestionPhase3?->additional),
                                                                 ])
                                                                 ->action(function (Lead $lead, array $data) {
-                                                                    // Retrieve the current lead's systemQuestion
+                                                                    // Retrieve the current record's systemQuestionPhase3 relation
                                                                     $record = $lead->systemQuestionPhase3;
 
                                                                     if ($record) {
-                                                                        // Include causer_id in the data
-                                                                        $record->systemQuestionPhase3->causer_name = auth()->user()->name;
-                                                                        $record->systemQuestionPhase3->updated_at = now();
+                                                                        // Add causer_name and updated_at to the data array
+                                                                        $data['causer_name'] = auth()->user()->name;
+                                                                        $data['updated_at'] = now();
 
-                                                                        // Update the existing SystemQuestion record
+                                                                        // Update the existing record properly
                                                                         $record->update($data);
 
                                                                         Notification::make()
@@ -876,10 +1047,10 @@ class LeadResource extends Resource
                                                                             ->success()
                                                                             ->send();
                                                                     } else {
-                                                                        // Add causer_id to the data for the new record
+                                                                        // If no record exists, add causer_name to the data array
                                                                         $data['causer_name'] = auth()->user()->name;
 
-                                                                        // Create a new SystemQuestion record via the relation
+                                                                        // Create a new record via the relationship
                                                                         $lead->systemQuestionPhase3()->create($data);
 
                                                                         Notification::make()
@@ -1160,19 +1331,50 @@ class LeadResource extends Resource
                 SelectFilter::make('stage')
                     ->label('')
                     ->multiple()
-                    ->options(
-                        collect(LeadStageEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
-                    )
+                    ->options(function ($livewire) {
+                        // Default options from Enum
+                        $defaultOptions = collect(LeadStageEnum::cases())
+                            ->mapWithKeys(fn ($case) => [$case->value => $case->name])
+                            ->toArray();
+
+                        // If activeTab is "transfer", set specific options
+                        if ($livewire->activeTab === 'active') {
+                            return [
+                                'Transfer' => 'TRANSFER',
+                                'Demo' => 'DEMO',
+                                'Follow Up' => 'FOLLOW UP',
+                            ];
+                        }
+
+                        return $defaultOptions;
+                    })
                     ->placeholder('Select Stage')
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'follow_up', 'inactive'])),
+
 
                 // Filter for Lead Status
                 SelectFilter::make('lead_status')
                     ->label('')
                     ->multiple()
-                    ->options(
-                        collect(LeadStatusEnum::cases())->mapWithKeys(fn ($case) => [$case->value => $case->name])->toArray()
-                    )
+                    ->options(function ($livewire) {
+                        // Default options from Enum
+                        $defaultOptions = collect(LeadStatusEnum::cases())
+                            ->mapWithKeys(fn ($case) => [$case->value => $case->name])
+                            ->toArray();
+
+                        // If activeTab is "transfer", use specific options
+                        if ($livewire->activeTab === 'transfer') {
+                            return [
+                                'New' => 'NEW',
+                                'RFQ-TRANSFER' => 'RFQ TRANSFER',
+                                'Pending Demo' => 'PENDING DEMO',
+                                'Demo Cancelled' => 'DEMO CANCELLED',
+                                'Under Review' => 'UNDER REVIEW',
+                            ];
+                        }
+
+                        return $defaultOptions;
+                    })
                     ->placeholder('Select Lead Status')
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'demo'])),
 

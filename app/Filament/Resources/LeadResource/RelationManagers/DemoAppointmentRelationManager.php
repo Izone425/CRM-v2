@@ -306,7 +306,9 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->send();
                         }),
                     Tables\Actions\Action::make('demo_cancel')
-                        ->visible(fn (Appointment $appointment) => $appointment->status === 'New')
+                        ->visible(fn (Appointment $appointment) =>
+                            now()->lte(Carbon::parse($appointment->appointment_date)->addHours(48))
+                        )
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
                         ->form([
@@ -937,25 +939,6 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->title('Demo Added Successfully')
                         ->success()
                         ->send();
-
-                    $phoneNumber = $lead->phone; // Recipient's WhatsApp number
-                    $contentTemplateSid = 'HXb472dfadcc08d3dcc012b694fff20f96'; // Your Content Template SID
-
-                    $variables = [
-                        $lead->name,
-                        $lead->companyDetail->company_name,
-                        $contactNo,
-                        $picName,
-                        $email,
-                        $appointment->appointment_type,
-                        "{$formattedDate} {$startTime->format('h:iA')} - {$endTime->format('h:iA')}",
-                        $onlineMeeting->getOnlineMeeting()->getJoinUrl()
-                    ];
-
-                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
-                    return $response;
                 }),
         ];
     }

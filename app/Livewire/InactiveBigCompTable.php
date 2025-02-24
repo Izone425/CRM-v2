@@ -84,7 +84,7 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getViewAction(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'primary')
             ]);
     }
 
