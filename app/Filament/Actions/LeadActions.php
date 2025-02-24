@@ -1054,7 +1054,7 @@ class LeadActions
                 ->body('Will auto send email to lead every Tuesday 10am in 3 times')
                 ->send();
 
-            $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
             $variables = [$lead->name, $lead->lead_owner];
             $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
 
