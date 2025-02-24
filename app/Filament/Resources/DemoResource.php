@@ -21,10 +21,10 @@ class DemoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-microphone';
 
-    public static function canAccess(): bool
-    {
-        return auth()->user()->role_id != '2';
-    }
+    // public static function canAccess(): bool
+    // {
+    //     return auth()->user()->role_id != '2';
+    // }
 
     public static function form(Form $form): Form
     {

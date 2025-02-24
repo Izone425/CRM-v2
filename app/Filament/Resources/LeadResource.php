@@ -704,21 +704,21 @@ class LeadResource extends Resource
                                                                 ->label('Update')
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
-                                                                // ->visible(function ($record) {
-                                                                //     $demoAppointment = $record->demoAppointment()
-                                                                //         ->latest()
-                                                                //         ->first();
+                                                                ->visible(function ($record) {
+                                                                    $demoAppointment = $record->demoAppointment()
+                                                                        ->latest()
+                                                                        ->first();
 
-                                                                //     if (!$demoAppointment) {
-                                                                //         return false;
-                                                                //     }
+                                                                    if (!$demoAppointment) {
+                                                                        return false;
+                                                                    }
 
-                                                                //     if ($demoAppointment->status !== 'Done') {
-                                                                //         return true;
-                                                                //     }
+                                                                    if ($demoAppointment->status !== 'Done') {
+                                                                        return true;
+                                                                    }
 
-                                                                //     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
-                                                                // })
+                                                                    return $demoAppointment->updated_at->diffInHours(now()) <= 48;
+                                                                })
                                                                 ->form([
                                                                     Textarea::make('modules')
                                                                         ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
@@ -851,15 +851,17 @@ class LeadResource extends Resource
                                                                 ->modalHeading('Update Data')
                                                                 ->visible(function ($record) {
                                                                     $demoAppointment = $record->demoAppointment()
-                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
-                                                                        ->latest() // Get the latest 'Done' demo
+                                                                        ->latest()
                                                                         ->first();
 
                                                                     if (!$demoAppointment) {
-                                                                        return false; // If no 'Done' demo is found, hide the field
+                                                                        return false;
                                                                     }
 
-                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
+                                                                    if ($demoAppointment->status !== 'Done') {
+                                                                        return true;
+                                                                    }
+
                                                                     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
@@ -987,15 +989,17 @@ class LeadResource extends Resource
                                                                 ->modalHeading('Update Data')
                                                                 ->visible(function ($record) {
                                                                     $demoAppointment = $record->demoAppointment()
-                                                                        ->where('status', 'Done') // Ensure only 'Done' demos are considered
-                                                                        ->latest() // Get the latest 'Done' demo
+                                                                        ->latest()
                                                                         ->first();
 
                                                                     if (!$demoAppointment) {
-                                                                        return false; // If no 'Done' demo is found, hide the field
+                                                                        return false;
                                                                     }
 
-                                                                    // Check if the latest 'Done' demo was updated within the last 48 hours
+                                                                    if ($demoAppointment->status !== 'Done') {
+                                                                        return true;
+                                                                    }
+
                                                                     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
@@ -1239,14 +1243,14 @@ class LeadResource extends Resource
                                 ),
                             ]),
                             Forms\Components\Tabs\Tab::make('Quotation')->schema([
-                                \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                    ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
-                                ),
+                                // \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
+                                // ),
                             ]),
                             Forms\Components\Tabs\Tab::make('Proforma Invoice')->schema([
-                                \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                    ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager::class,
-                                ),
+                                // \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager::class,
+                                // ),
                             ]),
                             Forms\Components\Tabs\Tab::make('Invoice')->schema([
 

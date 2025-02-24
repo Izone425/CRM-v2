@@ -897,9 +897,6 @@ class ActivityLogRelationManager extends RelationManager
                         }),
                     Tables\Actions\Action::make('addFollowUp')
                         ->label(__('Add Follow Up'))
-                        ->visible(function (ActivityLog $record) {
-                            return is_null($record->lead->salesperson);
-                        })
                         ->form([
                             Forms\Components\Placeholder::make('')
                                 ->content(__('Fill out the following section to add a follow-up for this lead.
@@ -915,14 +912,29 @@ class ActivityLogRelationManager extends RelationManager
                                 ->maxLength(500)
                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
-                            Forms\Components\DatePicker::make('follow_up_date')
-                                ->label('Next Follow Up Date')
-                                ->required()
-                                ->placeholder('Select a follow-up date')
-                                ->default(fn ($record) => $record->lead->follow_up_date ?? now())
-                                ->reactive(),
-                                // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
-                        ])
+                            Grid::make(2) // 2 columns grid
+                                ->schema([
+                                    Forms\Components\DatePicker::make('follow_up_date')
+                                        ->label('Next Follow Up Date')
+                                        ->required()
+                                        ->placeholder('Select a follow-up date')
+                                        ->default(fn ($record) => $record->lead->follow_up_date ?? now())
+                                        ->reactive(),
+                                        // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
+
+                                    Select::make('status')
+                                        ->label('STATUS')
+                                        ->options([
+                                            'Hot' => 'Hot',
+                                            'Warm' => 'Warm',
+                                            'Cold' => 'Cold'
+                                        ])
+                                        ->default('hot')
+                                        ->required()
+                                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
+
+                                ])
+                            ])
                         ->color('success')
                         ->icon('heroicon-o-pencil-square')
                         ->action(function (ActivityLog $activityLog, array $data, Component $livewire) {
@@ -933,12 +945,19 @@ class ActivityLogRelationManager extends RelationManager
                             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
                             // if($lead->lead_status === 'New' || $lead->lead_status === 'Under Review'){
 
-                                $lead->update([
+                                $updateData = [
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
                                     'follow_up_needed' => 0,
                                     'follow_up_counter' => true,
-                                ]);
+                                ];
+
+                                // Only update 'status' if it exists in $data
+                                if (isset($data['status'])) {
+                                    $updateData['lead_status'] = $data['status'];
+                                }
+
+                                $lead->update($updateData);
 
                                 if(auth()->user()->role_id == 1){
                                     $role = 'Lead Owner';
@@ -1197,145 +1216,32 @@ class ActivityLogRelationManager extends RelationManager
                                 ($leadStatus === LeadStatusEnum::RFQ_FOLLOW_UP->value
                                 || $leadStatus === LeadStatusEnum::RFQ_TRANSFER->value);
                         })
-                        ->url(fn (ActivityLog $record) => route('filament.admin.resources.quotations.create', [
-                            'lead_id' => Encryptor::encrypt($record->subject_id),
-                        ]), true),
-                    Tables\Actions\Action::make('quotationFollowUp')
-                        ->label(__('Add RFQ Follow Up'))
-                        ->color('success')
-                        ->icon('heroicon-o-pencil-square')
-                        ->modalHeading('Determine Lead Status')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                                ->content(__('Fill out the following section to add a follow-up for this lead.
-                                            Select a follow-up date if the lead requests to be contacted on a specific date.
-                                            Otherwise, the system will default to sending the follow-up on the next Tuesday.')),
-
-                            Forms\Components\TextInput::make('remark')
-                                ->label('Remarks')
-                                ->required()
-                                ->placeholder('Enter remarks here...')
-                                ->maxLength(500)
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-
-                            Forms\Components\Checkbox::make('follow_up_needed')
-                                ->label('Enable automatic follow-up (4 times)')
-                                ->default(false),
-
-                            Forms\Components\Select::make('follow_up_choice')
-                                ->label('NEXT FOLLOW UP DATE')
-                                ->options(['custom' => 'Custom'])
-                                ->required()
-                                ->default('custom')
-                                ->disabled(fn (Forms\Get $get) => $get('follow_up_needed')), // Disable if checkbox is checked
-
-                            Forms\Components\DatePicker::make('follow_up_date')
-                                ->label('')
-                                ->required()
-                                ->placeholder('Select a follow-up date')
-                                ->default(now())
-                                ->disabled(fn (Forms\Get $get) => $get('follow_up_needed'))
-                                ->reactive()
-                                ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
-                                    if ($get('follow_up_needed')) {
-                                        $set('follow_up_date', now()->next(Carbon::TUESDAY)); // Set to next Tuesday if checked
-                                    }
-                                }),
-                            Forms\Components\Placeholder::make('')
-                            ->content(__('What status do you feel for this lead at this moment?')),
-
-                            Forms\Components\Select::make('status')
-                            ->label('STATUS')
-                            ->options(['hot' => 'Hot',
-                                        'warm' => 'Warm',
-                                        'cold' => 'Cold'])
-                            ->default('hot')
-                            ->required(),
-                        ])
-                        ->visible(function (ActivityLog $record) {
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                        ->requiresConfirmation()
+                        ->modalDescription('Did you create the quotation under Mr Wee Quotation System?')
+                        // ->form([
+                        //     Forms\Components\Placeholder::make('')
+                        //         ->content(__('Fill out the following section to add a follow-up for this lead.
+                        //                     Select a follow-up date if the lead requests to be contacted on a specific date.
+                        //                     Otherwise, the system will default to sending the follow-up on the next Tuesday.')),
+                        // ])
+                        ->action(function (ActivityLog $record) {
                             $lead = $record->lead;
-
-                            $leadStatus = data_get($attributes, 'lead_status');
-
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            if($leadStatus == LeadStatusEnum::PENDING_DEMO->value){
-                                return false;
+                            if ($lead) {
+                                if ($lead->lead_status === 'RFQ-Transfer') {
+                                    $lead->update([
+                                        'lead_status' => 'Pending Demo',
+                                        'remark' => null,
+                                        'follow_up_date' => today(),
+                                    ]);
+                                }else if($lead->lead_status === 'RFQ-Follow Up'){
+                                    $lead->update([
+                                        'lead_status' => 'Hot',
+                                        'remark' => null,
+                                        'follow_up_date' => today(),
+                                    ]);
+                                }
                             }
-
-                            if(str_contains($latestActivityLog->description, 'Quotation Sent.')){
-                                return true;
-                            }
-
-                            return ($leadStatus === LeadStatusEnum::HOT->value ||
-                                $leadStatus === LeadStatusEnum::WARM->value ||
-                                $leadStatus === LeadStatusEnum::COLD->value) &&
-                                $latestActivityLog->description !== '4th Quotation Transfer Follow Up' &&
-                                $latestActivityLog->description !== 'Order Uploaded. Pending Approval to close lead.';
-                        })
-                        ->action(function (ActivityLog $activityLog, array $data, Component $livewire) {
-                            // Retrieve the related Lead model from ActivityLog
-                            $lead = $activityLog->lead;
-
-                            // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
-                            $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
-
-                            $lead->update([
-                                'lead_status' => $data['status'],
-                                'follow_up_date' => $followUpDate,
-                                'remark' => $data['remark'],
-                                'follow_up_needed' => $data['follow_up_needed'] ?? false,
-                                'follow_up_count' => $lead->follow_up_count + 1,
-                            ]);
-
-                            $followUpCount = max(1, ActivityLog::where('subject_id', $lead->id)
-                                ->where(function ($query) {
-                                    $query->whereJsonContains('properties->attributes->lead_status', 'Hot')
-                                        ->orWhereJsonContains('properties->attributes->lead_status', 'Warm')
-                                        ->orWhereJsonContains('properties->attributes->lead_status', 'Cold');
-                                })
-                                ->count() - 1);
-
-                            // Increment the follow-up count for the new description
-                            $followUpDescription = ($followUpCount) . 'st Quotation Transfer Follow Up';
-                            if ($followUpCount == 2) {
-                                $followUpDescription = '2nd Quotation Transfer Follow Up';
-                            } elseif ($followUpCount == 3) {
-                                $followUpDescription = '3rd Quotation Transfer Follow Up';
-                            } elseif ($followUpCount >= 4) {
-                                $followUpDescription = $followUpCount . 'th Quotation Transfer Follow Up';
-                            }
-                            // Update or create the latest activity log description
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => $followUpDescription,
-                                ]);
-                            } else {
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($lead)
-                                    ->withProperties(['description' => $followUpDescription]);
-                            }
-
-                            // Send a notification
-                            Notification::make()
-                                ->title('Follow Up Added Successfully')
-                                ->success()
-                                ->send();
-
-                            $message = urlencode("Hello {$lead->name},\nYour follow-up is scheduled for: {$followUpDate}");
-                            $phoneNumber = $lead->phone; // Ensure this includes the country code
-                            // Redirect to WhatsApp Web/App
-                            return $livewire->js("window.open('https://api.whatsapp.com/send?phone={$phoneNumber}&text={$message}', '_blank');");
-                        })
-                        ->icon('heroicon-o-pencil-square'),
+                        }),
                     Tables\Actions\Action::make('noResponse')
                         ->label(__('No Response'))
                         ->modalHeading('Mark Lead as No Response')
@@ -1570,17 +1476,18 @@ class ActivityLogRelationManager extends RelationManager
                         })
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                            ->content(__('You are cancelling this appointment. Confirm?')),
+                        ->requiresConfirmation()
+                        // ->form([
+                        //     Forms\Components\Placeholder::make('')
+                        //     ->content(__('You are cancelling this appointment. Confirm?')),
 
-                            Forms\Components\TextInput::make('remark')
-                            ->label('Remarks')
-                            ->required()
-                            ->placeholder('Enter remarks here...')
-                            ->maxLength(500)
-                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                        ])
+                        //     Forms\Components\TextInput::make('remark')
+                        //     ->label('Remarks')
+                        //     ->required()
+                        //     ->placeholder('Enter remarks here...')
+                        //     ->maxLength(500)
+                        //     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        // ])
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
                         ->action(function (ActivityLog $activityLog, array $data) {
@@ -1650,7 +1557,7 @@ class ActivityLogRelationManager extends RelationManager
                             $lead->update([
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
-                                'remark' => $data['remark'],
+                                // 'remark' => $data['remark'],
                             ]);
 
                             $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
@@ -1704,17 +1611,18 @@ class ActivityLogRelationManager extends RelationManager
                             return data_get($attributes, 'stage') === 'Demo';
                         })
                         ->label(__('Demo Done'))
+                        ->requiresConfirmation()
                         ->modalHeading('Demo Completed Confirmation')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                                ->content(__('You are marking this demo as completed. Confirm?')),
+                        // ->form([
+                        //     Forms\Components\Placeholder::make('')
+                        //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                            Forms\Components\TextInput::make('remark')
-                                ->label('Remarks')
-                                ->required()
-                                ->placeholder('Enter remarks here...')
-                                ->maxLength(500),
-                        ])
+                        //     Forms\Components\TextInput::make('remark')
+                        //         ->label('Remarks')
+                        //         ->required()
+                        //         ->placeholder('Enter remarks here...')
+                        //         ->maxLength(500),
+                        // ])
                         ->color('success')
                         ->icon($icon = 'heroicon-o-pencil-square')
                         ->action(function (ActivityLog $activityLog, array $data) {
@@ -1736,7 +1644,7 @@ class ActivityLogRelationManager extends RelationManager
                             $lead->update([
                                 'stage' => 'Follow Up',
                                 'lead_status' => 'RFQ-Follow Up',
-                                'remark' => $data['remark'],
+                                // 'remark' => $data['remark'],
                                 'follow_up_date' => null,
                             ]);
 

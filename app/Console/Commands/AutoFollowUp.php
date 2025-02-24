@@ -108,7 +108,7 @@ class AutoFollowUp extends Command
 
                     // ✅ Send WhatsApp message
                     try {
-                        $phoneNumber = $lead->phone; // Recipient's WhatsApp number
+                        $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
                         $variables = [$lead->name, $lead->lead_owner];
                         // $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
 

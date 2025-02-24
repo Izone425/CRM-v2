@@ -4,6 +4,8 @@
 <livewire:pr-overdue-salesperson-table />
 <livewire:debtor-follow-up-today-table />
 <livewire:debtor-follow-up-overdue-table />
+<livewire:hrdf-follow-up-today-table />
+<livewire:hrdf-follow-up-overdue-table />
 
 {{-- <div class="p-4 bg-white rounded-lg shadow" wire:poll.5s>
     <div class="flex items-center justify-between">
