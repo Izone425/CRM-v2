@@ -116,7 +116,7 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
                     LeadActions::getViewRemark(),
                 ])
                 ->button()
-                ->color('primary'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),
             ]);
     }
 

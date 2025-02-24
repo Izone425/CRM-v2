@@ -20,6 +20,6 @@ class ProformaInvoices extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id != '1';
+        return auth()->user()->role_id != '2';
     }
 }

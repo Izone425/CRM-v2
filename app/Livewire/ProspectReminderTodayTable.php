@@ -112,7 +112,7 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
                     LeadActions::getViewRemark(),
                 ])
                 ->button()
-                ->color('warning'),
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),
             ]);
     }
 

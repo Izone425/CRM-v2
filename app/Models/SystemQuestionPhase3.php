@@ -1,16 +1,9 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Carbon\Carbon;
 
 class SystemQuestionPhase3 extends Model
 {
@@ -22,8 +15,35 @@ class SystemQuestionPhase3 extends Model
         'finalise',
         'vendor',
         'percentage',
+        'additional',
         'causer_name',
     ];
+
+    /**
+     * Convert all attributes to uppercase when retrieving.
+     */
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+
+        if (is_string($value)) {
+            return strtoupper($value);
+        }
+
+        return $value;
+    }
+
+    /**
+     * Convert all attributes to uppercase before storing in the database.
+     */
+    public function setAttribute($key, $value)
+    {
+        if (is_string($value)) {
+            $value = strtoupper($value);
+        }
+
+        parent::setAttribute($key, $value);
+    }
 
     public function lead(): BelongsTo
     {
