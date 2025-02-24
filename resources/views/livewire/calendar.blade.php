@@ -744,7 +744,7 @@
                 <div class="appointment-card-info">
                     <div class="appointment-demo-type">{{ $appointment->type }}</div>
                     <div class="appointment-appointment-type">
-                        {{ $appointment->appointment_type }}
+                        {{ $appointment->appointment_type }} | <span style="text-transform:uppercase">{{$appointment->status}}<span>
                     </div>
                     <div class="appointment-company-name"><a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>{{ $appointment->company_name }}</a>
                     </div>
