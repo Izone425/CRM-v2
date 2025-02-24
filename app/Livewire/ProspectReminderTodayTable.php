@@ -99,7 +99,8 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
                 //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->default('0 Day'),
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days'))
             ])
             ->actions([
                 ActionGroup::make([

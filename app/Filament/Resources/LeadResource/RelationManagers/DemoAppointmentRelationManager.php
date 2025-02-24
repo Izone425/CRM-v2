@@ -246,18 +246,19 @@ class DemoAppointmentRelationManager extends RelationManager
                             return $record->status == 'New';
                         })
                         ->label(__('Demo Done'))
+                        ->requiresConfirmation()
                         ->modalHeading('Demo Completed Confirmation')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                                ->content(__('You are marking this demo as completed. Confirm?')),
+                        // ->form([
+                        //     Forms\Components\Placeholder::make('')
+                        //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                            Forms\Components\TextInput::make('remark')
-                                ->label('Remarks')
-                                ->required()
-                                ->placeholder('Enter remarks here...')
-                                ->maxLength(500)
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                        ])
+                        //     Forms\Components\TextInput::make('remark')
+                        //         ->label('Remarks')
+                        //         ->required()
+                        //         ->placeholder('Enter remarks here...')
+                        //         ->maxLength(500)
+                        //         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        // ])
                         ->color('success')
                         ->icon($icon = 'heroicon-o-pencil-square')
                         ->action(function (Appointment $appointment, array $data) {
@@ -311,16 +312,17 @@ class DemoAppointmentRelationManager extends RelationManager
                         )
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
-                        ->form([
-                            Forms\Components\Placeholder::make('')
-                                ->content(__('You are cancelling this appointment. Confirm?')),
+                        ->requiresConfirmation()
+                        // ->form([
+                        //     Forms\Components\Placeholder::make('')
+                        //         ->content(__('You are cancelling this appointment. Confirm?')),
 
-                            Textarea::make('remark')
-                                ->label('Remarks')
-                                ->rows(3)
-                                ->autosize()
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                            ])
+                        //     Textarea::make('remark')
+                        //         ->label('Remarks')
+                        //         ->rows(3)
+                        //         ->autosize()
+                        //         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        //     ])
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
                         ->action(function (array $data, $record) {

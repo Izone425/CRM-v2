@@ -48,7 +48,7 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
 
         return Lead::query()
             ->where('salesperson', $salespersonId) // Filter by salesperson
-            ->whereDate('follow_up_date', '>=', today())
+            ->whereDate('follow_up_date', '=', today())
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
             ->where('follow_up_counter', true);
 
@@ -77,75 +77,84 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
-                TextColumn::make('activityLogs.description')
-                    ->label('Latest Activity')
-                    ->limit(30)
-                    ->wrap()
-                    ->formatStateUsing(fn ($record) => $record->activityLogs->sortByDesc('created_at')->first()?->description ?? 'No activity'),
-                TextColumn::make('follow_up_date')
-                    ->label('Next Follow Up Date')
-                    ->date('d M Y'),
+                TextColumn::make('company_size_label')
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
+                TextColumn::make('pending_days')
+                    ->label('Pending Days')
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days'))
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getAddQuotationAction()
-                        ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' || $lead->lead_status === 'RFQ-Follow Up')),
-                    LeadActions::getAddDemoAction()
-                        ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' ||
-                        $lead->lead_status === 'Demo Cancelled' || $lead->lead_status === 'Pending Demo')),
+                    // LeadActions::getAddQuotationAction()
+                    //     ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' || $lead->lead_status === 'RFQ-Follow Up')),
+                    // LeadActions::getAddDemoAction()
+                    //     ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' ||
+                    //     $lead->lead_status === 'Demo Cancelled' || $lead->lead_status === 'Pending Demo')),
 
-                    LeadActions::getDoneDemoAction()
-                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
-                    LeadActions::getCancelDemoAction()
-                        ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
-                    LeadActions::getQuotationFollowUpAction()
-                        ->visible(function (Lead $lead) {
-                            $latestActivityLog = $lead->activityLogs()->latest()->first();
+                    // LeadActions::getDoneDemoAction()
+                    //     ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
+                    // LeadActions::getCancelDemoAction()
+                    //     ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
+                    // LeadActions::getQuotationFollowUpAction()
+                    //     ->visible(function (Lead $lead) {
+                    //         $latestActivityLog = $lead->activityLogs()->latest()->first();
 
-                            if (!$latestActivityLog) {
-                                return false;
-                            }
+                    //         if (!$latestActivityLog) {
+                    //             return false;
+                    //         }
 
-                            $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
+                    //         $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
 
-                            $leadStatus = data_get($attributes, 'lead_status');
+                    //         $leadStatus = data_get($attributes, 'lead_status');
 
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    //             ->orderByDesc('created_at')
+                    //             ->first();
 
-                            if($leadStatus == LeadStatusEnum::PENDING_DEMO->value){
-                                return false;
-                            }
+                    //         if($leadStatus == LeadStatusEnum::PENDING_DEMO->value){
+                    //             return false;
+                    //         }
 
-                            if(str_contains($latestActivityLog->description, 'Quotation Sent.')){
-                                return true;
-                            }
+                    //         if(str_contains($latestActivityLog->description, 'Quotation Sent.')){
+                    //             return true;
+                    //         }
 
-                            return ($leadStatus === LeadStatusEnum::HOT->value ||
-                                $leadStatus === LeadStatusEnum::WARM->value ||
-                                $leadStatus === LeadStatusEnum::COLD->value) &&
-                                $latestActivityLog->description !== '4th Quotation Transfer Follow Up' &&
-                                $latestActivityLog->description !== 'Order Uploaded. Pending Approval to close lead.';
-                        }),
-                    LeadActions::getNoResponseAction()
-                        ->visible(function (Lead $lead) {
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                    //         return ($leadStatus === LeadStatusEnum::HOT->value ||
+                    //             $leadStatus === LeadStatusEnum::WARM->value ||
+                    //             $leadStatus === LeadStatusEnum::COLD->value) &&
+                    //             $latestActivityLog->description !== '4th Quotation Transfer Follow Up' &&
+                    //             $latestActivityLog->description !== 'Order Uploaded. Pending Approval to close lead.';
+                    //     }),
+                    // LeadActions::getNoResponseAction()
+                    //     ->visible(function (Lead $lead) {
+                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    //             ->orderByDesc('created_at')
+                    //             ->first();
 
-                            if ($latestActivityLog) {
-                                // Check if the latest activity log description needs updating
-                                if ($lead->call_attempt >= 4 || $latestActivityLog->description == '4th Lead Owner Follow Up (Auto Follow Up Stop)'||
-                                    $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
-                                    $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
-                                    $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
-                                    return true; // Show button
-                                }
-                            }
+                    //         if ($latestActivityLog) {
+                    //             // Check if the latest activity log description needs updating
+                    //             if ($lead->call_attempt >= 4 || $latestActivityLog->description == '4th Lead Owner Follow Up (Auto Follow Up Stop)'||
+                    //                 $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
+                    //                 $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
+                    //                 $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
+                    //                 return true; // Show button
+                    //             }
+                    //         }
 
-                            return false; // Default: Hide button
-                        }),
+                    //         return false; // Default: Hide button
+                    //     }),
                     LeadActions::getAddFollowUp()
                         ->visible(function (Lead $lead) {
                             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -165,23 +174,24 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
 
                             return true; // Default: Hide button
                         }),
-                    LeadActions::getConfirmOrderAction()
-                        ->visible(function (Lead $lead) {
-                            $latestActivityLog = $lead->activityLogs()->latest()->first();
+                    // LeadActions::getConfirmOrderAction()
+                    //     ->visible(function (Lead $lead) {
+                    //         $latestActivityLog = $lead->activityLogs()->latest()->first();
 
-                            if (!$latestActivityLog) {
-                                return false;
-                            }
+                    //         if (!$latestActivityLog) {
+                    //             return false;
+                    //         }
 
-                            $description = $latestActivityLog->description;
-                            $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
-                            $leadStatus = data_get($attributes, 'lead_status');
+                    //         $description = $latestActivityLog->description;
+                    //         $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
+                    //         $leadStatus = data_get($attributes, 'lead_status');
 
-                            return (
-                                (str_contains($description, 'Quotation Sent.') && $leadStatus !== LeadStatusEnum::PENDING_DEMO->value)
-                                || str_contains($description, 'Quotation Transfer')
-                            );
-                        }),
+                    //         return (
+                    //             (str_contains($description, 'Quotation Sent.') && $leadStatus !== LeadStatusEnum::PENDING_DEMO->value)
+                    //             || str_contains($description, 'Quotation Transfer')
+                    //         );
+                    //     }),
+                    LeadActions::getLeadDetailAction(),
                     LeadActions::getViewAction(),
                     LeadActions::getViewRemark(),
                 ])
