@@ -155,25 +155,25 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
 
                     //         return false; // Default: Hide button
                     //     }),
-                    LeadActions::getAddFollowUp()
-                        ->visible(function (Lead $lead) {
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                    LeadActions::getAddFollowUp(),
+                        // ->visible(function (Lead $lead) {
+                        //     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                        //         ->orderByDesc('created_at')
+                        //         ->first();
 
-                            if ($latestActivityLog) {
-                                // Check if the latest activity log description needs updating
-                                if ($lead->call_attempt >= 4 || $lead->lead_status =='Hot' || $lead->lead_status =='Warm' ||
-                                    $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' || $lead->lead_status =='RFQ-Follow Up' ||
-                                    $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
-                                    $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
-                                    $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
-                                    return false; // Show button
-                                }
-                            }
+                        //     if ($latestActivityLog) {
+                        //         // Check if the latest activity log description needs updating
+                        //         if ($lead->call_attempt >= 4 || $lead->lead_status =='Hot' || $lead->lead_status =='Warm' ||
+                        //             $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' || $lead->lead_status =='RFQ-Follow Up' ||
+                        //             $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
+                        //             $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
+                        //             $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
+                        //             return false; // Show button
+                        //         }
+                        //     }
 
-                            return true; // Default: Hide button
-                        }),
+                        //     return true; // Default: Hide button
+                        // }),
                     // LeadActions::getConfirmOrderAction()
                     //     ->visible(function (Lead $lead) {
                     //         $latestActivityLog = $lead->activityLogs()->latest()->first();
