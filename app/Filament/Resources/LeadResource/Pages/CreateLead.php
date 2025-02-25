@@ -56,38 +56,26 @@ class CreateLead extends CreateRecord
             ]);
         }
 
-        // try {
-        //     $viewName = 'emails.new_lead'; // Replace with a valid default view
-        //     $recipients = User::where('email', 'zilih.ng@timeteccloud.com')->get(['email', 'name']);
-        //     foreach ($recipients as $recipient) {
-        //         $emailContent = [
-        //             'leadOwnerName' => $recipient->name ?? 'Unknown Person', // Lead Owner/Manager Name
-        //             'lead' => [
-        //                 'lead_code' => 'CRM',
-        //                 'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-        //                 'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-        //                 'companySize' => $lead->company_size ?? 'N/A', // Company Size
-        //                 'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-        //                 'email' => $lead->email ?? 'N/A', // Lead's Email
-        //                 'country' => $lead->country ?? 'N/A', // Lead's Country
-        //                 'products' => $lead->products ?? 'N/A', // Products
-        //                 // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
-        //             ],
-        //             'remark' => $data['remark'] ?? 'No remarks provided', // Custom Remark
-        //             'formatted_products' => $this->record->formatted_products, // Add formatted products
-        //         ];
-        //         if (!empty($recipients)) {
-        //             Mail::mailer('smtp')
-        //                 ->to($recipient->email)
-        //                 ->send(new NewLeadNotification($emailContent, $viewName));
-        //         } else {
-        //             info('No recipients with role_id = 2 found.');
-        //         }
-        //     }
-        // } catch (\Exception $e) {
-        //     // Handle email sending failure
-        //     Log::error("Error: {$e->getMessage()}");
-        // }
+        if (auth()->user()->role_id === 1) {
+            sleep(1);
+            $this->record->update([
+                'lead_owner' => auth()->user()->name,
+            ]);
+        } elseif (auth()->user()->role_id === 2) { // Corrected syntax
+            $this->record->updateQuietly([
+                'salesperson' => auth()->user()->id,
+            ]);
+        }
+
+        $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
+                ->orderByDesc('id')
+                ->first();
+
+        $latestActivityLog->update([
+            'subject_id' => $this->record->id,
+            'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+            'causer_id' => auth()->user()->id,
+        ]);
     }
 
     protected function getFormSchema(): array

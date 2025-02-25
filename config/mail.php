@@ -36,25 +36,13 @@ return [
     'mailers' => [
         'smtp' => [
             'transport' => 'smtp',
-            'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
+            'host' => env('MAIL_HOST', 'email-smtp.ap-southeast-1.amazonaws.com'),
             'port' => env('MAIL_PORT', 587),
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN'),
-        ],
-
-        'secondary' => [
-            'transport' => 'smtp',
-            'host' => env('SECONDARY_MAIL_HOST', 'smtp.example.com'),
-            'port' => env('SECONDARY_MAIL_PORT', 587),
-            'encryption' => env('SECONDARY_MAIL_ENCRYPTION', 'tls'),
-            'username' => env('SECONDARY_MAIL_USERNAME'),
-            'password' => env('SECONDARY_MAIL_PASSWORD'),
-            'timeout' => null,
-            'local_domain' => null,
+            'auth_mode' => null,
         ],
 
         'ses' => [

@@ -115,7 +115,7 @@ class ActivityLogRelationManager extends RelationManager
                 // Define columns here
             ])
             ->modifyQueryUsing(function ($query) {
-                return $query->orderBy('created_at', 'desc'); // Sort by created_at in descending order
+                return $query->orderBy('updated_at', 'desc'); // Sort by created_at in descending order
             })
             ->columns([
                 TextColumn::make('index')
@@ -206,7 +206,7 @@ class ActivityLogRelationManager extends RelationManager
 
                         if ($latestActivityLog) {
                             // Check if the latest activity log description needs updating
-                            if (str_contains($latestActivityLog->description, 'New lead created')){
+                            if (str_contains($latestActivityLog->description, 'New lead created') && auth()->user()->role_id !== 2 && is_null($record->lead_owner)){
                                 return true; // Show button
                             }
                         }
@@ -700,7 +700,7 @@ class ActivityLogRelationManager extends RelationManager
                                 // Check if we have valid recipients before sending emails
                                 if (!empty($allEmails)) {
                                     foreach ($allEmails as $recipient) {
-                                        Mail::mailer('secondary')->to($recipient)
+                                        Mail::to($recipient)
                                             ->send(new DemoNotification($emailContent, $viewName));
                                     }
                                 } else {
@@ -778,22 +778,33 @@ class ActivityLogRelationManager extends RelationManager
                             Forms\Components\Placeholder::make('')
                             ->content(__('You are marking this lead as "RFQ" and assigning it to a salesperson. Confirm?')),
 
-                            Forms\Components\Select::make('salesperson')
+                            Select::make('salesperson')
                                 ->label('Salesperson')
-                                ->options(function () {
-                                    if (auth()->user()->role_id == 3) {
-                                        return User::query()
-                                        ->whereIn('role_id', [2, 3]) // Filter by role_id = 2 or 3
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                    }else{
-                                        return User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+                                ->options(function ($record) {
+                                    $user = auth()->user();
+
+                                    // Ensure we have a record and get the assigned salesperson
+                                    $leadSalespersonId = $record->lead?->salesperson;
+
+                                    // If the lead has an assigned salesperson, show only that salesperson
+                                    if ($leadSalespersonId) {
+                                        return User::where('id', $leadSalespersonId)
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    }
+
+                                    // If no salesperson is assigned, return options based on the user's role
+                                    if ($user->role_id == 3) {
+                                        return User::whereIn('role_id', [2, 3])
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    } else {
+                                        return User::where('role_id', 2)
+                                            ->pluck('name', 'id')
+                                            ->toArray();
                                     }
                                 })
-                                ->required() // Make it a required field if necessary
+                                ->required()
                                 ->placeholder('Select a salesperson'),
 
                             Forms\Components\Textarea::make('remark')
@@ -875,8 +886,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'formatted_products' => $lead->formatted_products, // Add formatted products
                                     ];
                                     // Send the email with the appropriate template view
-                                    Mail::mailer('smtp')
-                                        ->to([$salespersonUser->email, $leadowner->email]) // Send to both
+                                    Mail::to([$salespersonUser->email, $leadowner->email]) // Send to both
                                         ->send(new SalespersonNotification($emailContent, $fromEmail, $fromName, $viewName));
 
                                     // Success notification
@@ -931,8 +941,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ])
                                         ->default('hot')
                                         ->required()
-                                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
-
+                                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && $record->lead->stage === 'Follow Up'),
                                 ])
                             ])
                         ->color('success')
@@ -1071,8 +1080,7 @@ class ActivityLogRelationManager extends RelationManager
                                     ],
                                 ];
 
-                                Mail::mailer('secondary')
-                                    ->to($lead->companyDetail->email ?? $lead->email)
+                                Mail::to($lead->companyDetail->email ?? $lead->email)
                                     ->send(new FollowUpNotification($emailContent, $viewName));
                             } catch (\Exception $e) {
                                 // Handle email sending failure
@@ -1218,12 +1226,6 @@ class ActivityLogRelationManager extends RelationManager
                         })
                         ->requiresConfirmation()
                         ->modalDescription('Did you create the quotation under Mr Wee Quotation System?')
-                        // ->form([
-                        //     Forms\Components\Placeholder::make('')
-                        //         ->content(__('Fill out the following section to add a follow-up for this lead.
-                        //                     Select a follow-up date if the lead requests to be contacted on a specific date.
-                        //                     Otherwise, the system will default to sending the follow-up on the next Tuesday.')),
-                        // ])
                         ->action(function (ActivityLog $record) {
                             $lead = $record->lead;
                             if ($lead) {
@@ -1241,6 +1243,19 @@ class ActivityLogRelationManager extends RelationManager
                                     ]);
                                 }
                             }
+
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            $latestActivityLog->update([
+                                'description' => 'Quotation Added',
+                            ]);
+
+                            Notification::make()
+                                ->title('Quotation Added')
+                                ->success()
+                                ->send();
                         }),
                     Tables\Actions\Action::make('noResponse')
                         ->label(__('No Response'))

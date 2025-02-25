@@ -1258,6 +1258,12 @@ class LeadResource extends Resource
                             Forms\Components\Tabs\Tab::make('Debtor Follow Up')->schema([
 
                             ]),
+                            Forms\Components\Tabs\Tab::make('Software Handover')->schema([
+
+                            ]),
+                            Forms\Components\Tabs\Tab::make('Hardware Handover')->schema([
+
+                            ]),
                         ]),
                     ]),
             ]);
@@ -1599,7 +1605,7 @@ class LeadResource extends Resource
                     ->size(ActionSize::Small)
                     ->button()
                     ->icon('heroicon-o-pencil-square')
-                    ->visible(fn (Lead $record) => is_null($record->lead_owner)) // Show only if lead_owner is NULL
+                    ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2) // Show only if lead_owner is NULL
                     ->action(function (Lead $record, array $data) {
                         // Update the lead owner and related fields
                         $record->update([
@@ -1683,11 +1689,10 @@ class LeadResource extends Resource
 
                 // Check if the user is an admin (role_id = 1)
                 if ($roleId === 2) {
-                    $query->where(function ($query) use ($userId) {
-                        $query->where('salesperson', $userId)
-                              ->orWhere('categories', 'Inactive');
-                    });
+                    $query->where('salesperson', $userId)
+                          ->whereIn('categories', ['Inactive', 'Active', 'New']); // Add more statuses if needed
                 }
+
                 // elseif ($roleId === 1) {
                 //     // Salespeople (role_id = 2) can see only their records or those without a lead owner
                 //     $query->where(function ($query) use ($userName) {
@@ -1755,8 +1760,8 @@ class LeadResource extends Resource
             ]);
     }
 
-    public static function canCreate(): bool
-    {
-        return auth()->user()->role_id !== 2;
-    }
+    // public static function canCreate(): bool
+    // {
+    //     return auth()->user()->role_id !== 2;
+    // }
 }

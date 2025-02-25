@@ -19,7 +19,8 @@ class FollowUpNotification extends Mailable
 
     public function build()
     {
-        return $this->view($this->viewName) // Use the selected template dynamically
+        return $this->from($this->content['leadOwnerEmail'], $this->content['leadOwnerName'])
+                    ->view($this->viewName) // Use the selected template dynamically
                     ->subject("Human Resource Management System | ". $this->content['lead']['companyName'])
                     ->with([
                         'lead' => $this->content['lead'],

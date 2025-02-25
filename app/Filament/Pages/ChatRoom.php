@@ -21,6 +21,8 @@ class ChatRoom extends Page
     protected static string $view = 'filament.pages.chat-room';
     protected ?string $heading = '';
     protected static ?int $navigationSort = 7;
+    protected static ?string $navigationLabel = 'Whatsapp';
+
 
     public string $to = ''; // ✅ Ensure it's a string
     public string $message = ''; // ✅ Ensure it's a string

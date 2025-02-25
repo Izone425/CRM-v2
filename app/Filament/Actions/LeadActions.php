@@ -228,7 +228,7 @@ class LeadActions
         })
         ->color('success')
         ->icon('heroicon-o-pencil-square')
-        ->visible(fn (?Lead $record) => $record && is_null($record->lead_owner))
+        ->visible(fn (?Lead $record) => $record && is_null($record->lead_owner) && auth()->user()->role_id !== 2)
         ->action(function (Lead $record) {
             // Update the lead owner and related fields
             $record->update([
@@ -623,6 +623,7 @@ class LeadActions
 
                             $emailContent = [
                                 'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                'leadOwnerEMail' => $leadowmer->email ?? 'Unknown Email', // Lead Owner/Manager Name
                                 'lead' => [
                                     'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
                                     'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
@@ -674,7 +675,7 @@ class LeadActions
                             // Check if we have valid recipients before sending emails
                             if (!empty($allEmails)) {
                                 foreach ($allEmails as $recipient) {
-                                    Mail::mailer('secondary')->to($recipient)
+                                    Mail::to($recipient)
                                         ->send(new DemoNotification($emailContent, $viewName));
                                 }
                             } else {
@@ -859,8 +860,7 @@ class LeadActions
                         ];
 
                         // Send email notification
-                        Mail::mailer('smtp')
-                            ->to([$salespersonUser->email, $leadOwner->email])
+                        Mail::to([$salespersonUser->email, $leadOwner->email])
                             ->send(new SalespersonNotification($emailContent, $fromEmail, $fromName, 'emails.salesperson_notification2'));
 
                         // Success notification
@@ -1033,8 +1033,7 @@ class LeadActions
                     ],
                 ];
 
-                Mail::mailer('secondary')
-                    ->to($lead->companyDetail->email ?? $lead->email)
+                Mail::to($lead->companyDetail->email ?? $lead->email)
                     ->send(new FollowUpNotification($emailContent, $viewName));
             } catch (\Exception $e) {
                 // Handle email sending failure
