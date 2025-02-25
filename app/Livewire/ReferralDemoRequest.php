@@ -174,8 +174,7 @@ class ReferralDemoRequest extends Component
                     'formatted_products' => $lead->formatted_products, // Add formatted products
                 ];
                 if (!empty($recipients)) {
-                    Mail::mailer('smtp')
-                        ->to($recipient->email)
+                    Mail::to($recipient->email)
                         ->send(new NewLeadNotification($emailContent, $viewName));
                 } else {
                     Log::info('No recipients with role_id = 2 found.');
@@ -185,41 +184,6 @@ class ReferralDemoRequest extends Component
             // Handle email sending failure
             Log::error("Error: {$e->getMessage()}");
         }
-        // try {
-        //     // Decode products from JSON
-        //     $decodedProducts = json_decode($lead->products, true);
-
-        //     // Get recipients based on products
-        //     $recipients = $this->getRecipientsBasedOnProducts($decodedProducts, $lead->country);
-
-        //     // Send email notifications to recipients
-        //     foreach ($recipients as $recipient) {
-        //         // Send different email content based on products
-        //         if ($lead->country !== 'MYS') {
-        //             // Send international email
-        //             Mail::to($recipient)->send(new \App\Mail\InternationalLeadNotification($lead));
-        //         } else {
-        //             if (in_array('hr', $decodedProducts)) {
-        //                 Mail::to($recipient)->send(new \App\Mail\HRLeadNotification($lead));
-        //             }
-        //             if (in_array('property_management', $decodedProducts) && !in_array('hr', $decodedProducts)) {
-        //                 Mail::to($recipient)->send(new \App\Mail\PropertyManagementLeadNotification($lead));
-        //             }
-        //             if (in_array('smart_parking', $decodedProducts) && !in_array('hr', $decodedProducts) && !in_array('property_management', $decodedProducts)) {
-        //                 Mail::to($recipient)->send(new \App\Mail\SmartParkingLeadNotification($lead));
-        //             }
-        //             if (in_array('security_people_flow', $decodedProducts) && !in_array('hr', $decodedProducts) && !in_array('property_management', $decodedProducts)) {
-        //                 Mail::to($recipient)->send(new \App\Mail\SecurityPeopleFlowNotification($lead));
-        //             }
-        //             if (in_array('smart_city', $decodedProducts) && !in_array('hr', $decodedProducts)) {
-        //                 Mail::to($recipient)->send(new \App\Mail\SmartCityLeadNotification($lead));
-        //             }
-        //         }
-        //     }
-        // } catch (\Exception $e) {
-        //     Log::error('Failed to send lead notification email: ' . $e->getMessage());
-        // }
-
         $this->reset();  // Clear fields after submission
         return redirect()->to('https://www.timetecmaintenance.com/request_portal_thank');
     }

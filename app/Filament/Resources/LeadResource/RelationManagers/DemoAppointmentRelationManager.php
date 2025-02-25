@@ -382,7 +382,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $leadOwnerEmail = $leadowner->email ?? null;
 
                             // Combine all recipients
-                            $allEmails = array_unique(array_merge([$email], $attendeeEmails, [$salespersonEmail, $leadOwnerEmail]));
+                            $allEmails = array_unique(array_merge([$email], [$salespersonEmail, $leadOwnerEmail]));
 
                             // Remove empty/null values and ensure valid emails
                             $allEmails = array_filter($allEmails, function ($email) {
@@ -401,13 +401,12 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
 
                                     // Send an email notification manually to all recipients
-                                    Mail::send([], [], function ($message) use ($allEmails, $lead) {
+                                    Mail::send([], [], function ($message) use ($allEmails) {
                                         $message->to($allEmails)
                                             ->subject('Teams Meeting Cancelled')
                                             ->html("
                                                 <p>Hello,</p>
                                                 <p>The Teams meeting has been <strong>cancelled</strong>.</p>
-                                                <p><strong>Reason:</strong> " . nl2br(e($lead->remark)) . "</p>
                                                 <p>If you have any questions, please contact support.</p>
                                                 <br>
                                                 <p>Best regards,</p>
@@ -572,20 +571,22 @@ class DemoAppointmentRelationManager extends RelationManager
                                     return false; // Allow selection without restrictions
                                 }
 
-                                // if ($date && $startTime && $endTime) {
-                                    // Check for overlapping appointments
-                                    $hasOverlap = Appointment::where('salesperson', $value)
-                                        ->where('status', 'New')
-                                        ->whereDate('date', $date)
-                                        ->where(function ($query) use ($startTime, $endTime) {
-                                            $query->whereBetween('start_time', [$startTime, $endTime])
-                                                ->orWhereBetween('end_time', [$startTime, $endTime])
-                                                ->orWhere(function ($query) use ($startTime, $endTime) {
-                                                    $query->where('start_time', '<', $startTime)
-                                                        ->where('end_time', '>', $endTime);
-                                                });
-                                        })
-                                        ->exists();
+                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
+                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
+                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                                $hasOverlap = Appointment::where('salesperson', $value)
+                                    ->where('status', 'New')
+                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
+                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                $query->where('start_time', '<', $parsedStartTime)
+                                                        ->where('end_time', '>', $parsedEndTime);
+                                            });
+                                    })
+                                    ->exists();
 
                                     if ($hasOverlap) {
                                         return true;
@@ -892,7 +893,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             // Check if we have valid recipients before sending emails
                             if (!empty($allEmails)) {
                                 foreach ($allEmails as $recipient) {
-                                    Mail::mailer('secondary')->to($recipient)
+                                    Mail::to($recipient)
                                         ->send(new DemoNotification($emailContent, $viewName));
                                 }
                             } else {
