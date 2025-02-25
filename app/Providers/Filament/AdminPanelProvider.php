@@ -6,15 +6,19 @@ use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
+use App\Filament\Pages\DemoAnalysis;
+use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
+use App\Filament\Pages\SalesForecast;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
+use App\Filament\Widgets\LeadChartWidget;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
@@ -77,11 +81,15 @@ class AdminPanelProvider extends PanelProvider
                 DashboardForm::class,
                 ProformaInvoices::class,
                 ChatRoom::class,
+                LeadAnalysis::class,
+                DemoAnalysis::class,
+                SalesForecast::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
+                // LeadChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

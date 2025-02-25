@@ -1277,7 +1277,7 @@ class LeadActions
                 $lead->update([
                     'stage' => 'Follow Up',
                     'lead_status' => 'RFQ-Follow Up',
-                    'remark' => $data['remark'],
+                    'remark' => $data['remark'] ?? null,
                 ]);
 
                 // Update the latest ActivityLog related to the lead
@@ -1386,7 +1386,7 @@ class LeadActions
                 $updateData = [
                     'stage' => 'Transfer',
                     'lead_status' => 'Demo Cancelled',
-                    'remark' => $data['remark'],
+                    'remark' => $data['remark'] ?? null,
                     'follow_up_date' => null
                 ];
 

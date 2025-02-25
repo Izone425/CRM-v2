@@ -64,7 +64,7 @@ class DashboardForm extends Page
 {
     use InteractsWithPageTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static ?string $navigationIcon = 'heroicon-o-home';
     protected static ?string $navigationLabel = 'Dashboard';
     protected static ?string $title = 'Dashboard';
     protected static string $view = 'filament.pages.dashboard-form';
