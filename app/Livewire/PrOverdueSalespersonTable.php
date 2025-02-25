@@ -74,19 +74,9 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                         </a>'
                     )
                     ->html(),
-                TextColumn::make('company_size_label')
-                    ->label('Company Size')
-                    ->sortable(query: function ($query, $direction) {
-                        return $query->orderByRaw("
-                            CASE
-                                WHEN company_size = '1-24' THEN 1
-                                WHEN company_size = '25-99' THEN 2
-                                WHEN company_size = '100-500' THEN 3
-                                WHEN company_size = '501 and Above' THEN 4
-                                ELSE 5
-                            END $direction
-                        ");
-                    }),
+                TextColumn::make('lead_status')
+                    ->label('Status')
+                    ->sortable(),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()

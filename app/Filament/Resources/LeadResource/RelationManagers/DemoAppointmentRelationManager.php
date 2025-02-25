@@ -280,7 +280,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $lead->update([
                                 'stage' => 'Follow Up',
                                 'lead_status' => 'RFQ-Follow Up',
-                                'remark' => $data['remark'],
+                                'remark' => $data['remark'] ?? null,
                                 'follow_up_date' => null,
                             ]);
 
@@ -332,7 +332,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $updateData = [
                                 'stage' => 'Transfer',
                                 'lead_status' => 'Demo Cancelled',
-                                'remark' => $data['remark'],
+                                'remark' => $data['remark'] ?? null,
                                 'follow_up_date' => null
                             ];
 

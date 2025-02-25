@@ -25,6 +25,10 @@ class DemoResource extends Resource
     // {
     //     return auth()->user()->role_id != '2';
     // }
+    public static function canAccess(): bool
+    {
+        return false; // Hides the resource from all users
+    }
 
     public static function form(Form $form): Form
     {
