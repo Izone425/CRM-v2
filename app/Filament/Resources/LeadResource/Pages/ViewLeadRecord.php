@@ -118,7 +118,7 @@ class ViewLeadRecord extends ViewRecord
                 })
                 ->color('success')
                 ->icon('heroicon-o-pencil-square')
-                ->visible(fn (Lead $record) => is_null($record->lead_owner)) // Show only if lead_owner is NULL
+                ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2) // Show only if lead_owner is NULL
                 ->action(function (Lead $record) {
                     // Update the lead owner and related fields
                     $record->update([

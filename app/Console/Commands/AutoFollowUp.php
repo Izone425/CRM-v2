@@ -85,6 +85,7 @@ class AutoFollowUp extends Command
                     try {
                         $emailContent = [
                             'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                            'leadOwnerEmail' => $leadowner->email ?? 'Unknown Email',
                             'lead' => [
                                 'lastName' => $lead->name ?? 'N/A',
                                 'company' => $lead->companyDetail->company_name ?? 'N/A',
@@ -98,9 +99,7 @@ class AutoFollowUp extends Command
                                 'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                             ],
                         ];
-
-                        Mail::mailer('secondary')
-                            ->to($lead->companyDetail->email ?? $lead->email)
+                        Mail::to($lead->companyDetail->email ?? $lead->email)
                             ->send(new FollowUpNotification($emailContent, $viewName));
                     } catch (Exception $e) {
                         Log::error("Email Error: {$e->getMessage()}");
