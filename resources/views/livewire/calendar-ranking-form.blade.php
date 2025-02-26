@@ -1,10 +1,16 @@
-<div x-data="rankingForm({{ json_encode($users) }})" class="ranking-container">
+<div style="display:flex;">
+
+<div x-data="rankingForm({{ json_encode($users) }})" class="ranking-container" style="width:70%">
     <style>
+
+    :root{
+        --bg-tt-blue: #431fa1;
+    }
         .ranking-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr); /* Four columns */
             gap: 20px;
-            max-width: 90%; /* Adjust as needed */
+            {{-- max-width: 90%; /* Adjust as needed */ --}}
             margin: 0 auto;
             padding: 20px;
             border: 1px solid #ccc;
@@ -39,7 +45,7 @@
 
         .submit-button {
             padding: 10px 20px;
-            background-color: #007bff;
+            background-color: var(--bg-tt-blue);
             border: none;
             color: white;
             font-size: 16px;
@@ -176,4 +182,5 @@
             }
         }
     </script>
+</div>
 </div>

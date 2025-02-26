@@ -11,8 +11,8 @@ class Calendar extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static string $view = 'filament.pages.calendar';
-    protected static ?int $navigationSort = 6;
-
+    protected static ?string $navigationGroup = 'Calendar';
+    protected static ?string $navigationLabel = "Weekly Calendar";
 
     public $totalDemos = 0;
     public $newDemos = 0;
