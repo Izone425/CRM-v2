@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Illuminate\Support\Str;
 
 class Calendar extends Component
 {
@@ -26,11 +27,16 @@ class Calendar extends Component
     public $monthList;
     public $currentMonth;
     public $newDemo;
+    public $weekDate;
 
     // Badge
     public $totalDemos;
 
     // Dropdown
+    public array $status = ["DONE", "NEW", "CANCELLED"];
+    public array $selectedStatus = [];
+    public bool $allStatusSelected = true;
+
     public Collection $salesPeople;
     public array $selectedSalesPeople = [];
     public bool $allSalesPeopleSelected = true;
@@ -54,11 +60,33 @@ class Calendar extends Component
         }
     }
 
+    public function updated($property)
+    {
+        if($property === "weekDate"){
+            $this->date = Carbon::parse($this->weekDate);
+        }
+
+    }
+
     // For Filter
     public function updatedAllSalesPeopleSelected()
     {
         if ($this->allSalesPeopleSelected == true)
             $this->selectedSalesPeople = [];
+    }
+
+    public function updatedSelectedStatus()
+    {
+        if (!empty($this->selectedStatus)) {
+            $this->allStatusSelected= false;
+        } else
+            $this->allStatusSelected = true;
+    }
+
+    public function updatedAllStatusSelected()
+    {
+        if ($this->allStatusSelected == true)
+            $this->selectedStatus= [];
     }
 
 
@@ -201,12 +229,12 @@ class Calendar extends Component
             $salespersonAppointments = $appointments->where('salesperson', $salesperson['id']);
 
 
-            //Demo Type and Appointment Type Condition Checking
-            if (!empty($this->selectedAppointmentType))
-                $salespersonAppointments->filter();
+            // //Demo Type and Appointment Type Condition Checking
+            // if (!empty($this->selectedAppointmentType))
+            //     $salespersonAppointments->filter();
 
-            if (!empty($this->selectedDemoType))
-                $salespersonAppointments->filter();
+            // if (!empty($this->selectedDemoType))
+            //     $salespersonAppointments->filter();
 
 
             // Group appointments by the day of the week
@@ -225,10 +253,13 @@ class Calendar extends Component
                     || $this->allDemoTypeSelected && in_array($appointment->appointment_type, $this->selectedAppointmentType)
                     || in_array($appointment->type, $this->selectedDemoType) && in_array($appointment->appointment_type, $this->selectedAppointmentType)
                 ) {
-                    $data[$dayField][] = $appointment;
-                    $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
-                    $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-                    $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+                    if($this->allStatusSelected || in_array(Str::upper($appointment->status),$this->selectedStatus)){
+                        $data[$dayField][] = $appointment;
+                        $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
+                        $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
+                        $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+                    }
+
                 }
             }
             return $data;

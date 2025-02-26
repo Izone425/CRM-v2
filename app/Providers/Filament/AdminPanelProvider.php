@@ -7,7 +7,9 @@ use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DemoAnalysis;
+use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\LeadAnalysis;
+use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
@@ -42,6 +44,7 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
+use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -78,6 +81,8 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 // Pages\Dashboard::class,
                 Calendar::class,
+                MonthlyCalendar::class,
+                DemoRanking::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
                 ChatRoom::class,
@@ -104,8 +109,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make()
-                    ->label('Settings')
-                    ->icon('heroicon-o-cog-6-tooth')
+                    ->label('Calendar')
+                    ->icon('heroicon-s-calendar-days')
                     ->collapsed(),
             ])
             ->authMiddleware([
