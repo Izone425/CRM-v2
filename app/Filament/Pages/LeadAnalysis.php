@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 use App\Models\Lead;
 use Filament\Pages\Page;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,10 @@ class LeadAnalysis extends Page
     public $selectedUser; // Selected Salesperson
     public $users; // List of Salespersons
     public $totalLeads = 0;
+    public $activeLeads = 0;
+    public $inactiveLeads = 0;
+    public $selectedMonth;
+
     public $activePercentage = 0;
     public $inactivePercentage = 0;
     public $companySizeData = [];
@@ -65,6 +70,18 @@ class LeadAnalysis extends Page
         $this->fetchFollowUpLeads();
     }
 
+    public function updatedSelectedMonth($month)
+    {
+        $this->selectedMonth = $month;
+        session(['selectedMonth' => $month]);
+
+        $this->fetchLeads();
+        $this->fetchActiveLeads();
+        $this->fetchInactiveLeads();
+        $this->fetchTransferLeads();
+        $this->fetchFollowUpLeads();
+    }
+
     /**
      * Fetches general leads and calculates percentages
      */
@@ -83,16 +100,21 @@ class LeadAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
         // Fetch filtered leads
         $leads = $query->get();
 
-        // Calculate total, active, and inactive leads
+        // ✅ Store Active and Inactive Leads as Class Properties
         $this->totalLeads = $leads->count();
-        $activeLeads = $leads->where('categories', 'Active')->count();
-        $inactiveLeads = $leads->where('categories', 'Inactive')->count();
+        $this->activeLeads = $leads->where('categories', 'Active')->count();  // Added class property
+        $this->inactiveLeads = $leads->where('categories', 'Inactive')->count();  // Added class property
 
-        $this->activePercentage = $this->totalLeads > 0 ? round(($activeLeads / $this->totalLeads) * 100, 2) : 0;
-        $this->inactivePercentage = $this->totalLeads > 0 ? round(($inactiveLeads / $this->totalLeads) * 100, 2) : 0;
+        // Calculate Active & Inactive Percentage
+        $this->activePercentage = $this->totalLeads > 0 ? round(($this->activeLeads / $this->totalLeads) * 100, 2) : 0;
+        $this->inactivePercentage = $this->totalLeads > 0 ? round(($this->inactiveLeads / $this->totalLeads) * 100, 2) : 0;
 
         // Fetch company size data
         $defaultCompanySizes = [
@@ -129,6 +151,11 @@ class LeadAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
         // Count total active leads
         $this->totalActiveLeads = $query->count();
 
@@ -160,6 +187,11 @@ class LeadAnalysis extends Page
         // If Salesperson, show only their assigned leads
         if ($user->role_id == 2) {
             $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
         }
 
         // Count total inactive leads
@@ -195,6 +227,11 @@ class LeadAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
         // Define expected statuses
         $transferStatuses = ['RFQ-Transfer', 'Pending Demo', 'Demo Cancelled'];
 
@@ -228,6 +265,11 @@ class LeadAnalysis extends Page
         // If Salesperson, show only their assigned leads
         if ($user->role_id == 2) {
             $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
         }
 
         // Define expected statuses
