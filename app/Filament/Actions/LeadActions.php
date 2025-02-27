@@ -195,13 +195,15 @@ class LeadActions
             // Find duplicate leads based on company name or email
             $duplicateLeads = Lead::query()
                 ->where(function ($query) use ($record) {
-                    if ($record->companyDetail) {
+                    if (optional($record?->companyDetail)->company_name) {
                         $query->where('company_name', $record->companyDetail->company_name);
                     }
 
-                    $query->orWhere('email', $record->email);
+                    if (!empty($record?->email)) {  // ✅ Ensures email is not null
+                        $query->orWhere('email', $record->email);
+                    }
                 })
-                ->where('id', '!=', $record->id) // Exclude the current lead
+                ->where('id', '!=', optional($record)->id)
                 ->get(['id']);
 
             // Check if duplicates exist
