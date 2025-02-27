@@ -370,8 +370,8 @@
             }
         </style>
     </head>
-    @if(auth()->user()->role_id == 1)
-        <div class="flex items-center mb-6">
+    <div class="flex items-center mb-6">
+        @if(auth()->user()->role_id == 1)
             <!-- Salesperson Filter -->
             <div>
                 <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
@@ -382,12 +382,13 @@
                 </select>
             </div>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <!-- Month Filter (Added Margin) -->
-            <div class="ml-10">  <!-- Manually added space using margin-left -->
-                <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
-            </div>
+        @endif
+
+        <!-- Month Filter (Added Margin) -->
+        <div class="ml-10">  <!-- Manually added space using margin-left -->
+            <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
         </div>
-    @endif
+    </div>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
@@ -422,9 +423,9 @@
 
                         <div class="bar-group">
                             <!-- Hover Message for Count -->
-                            <div class="hover-message">{{ $count }} Sessions</div>
+                            <div class="hover-message">{{ $percentage }}%</div>
 
-                            <p class="percentage-label">{{ $percentage }}%</p>
+                            <p class="percentage-label">{{ $count }}</p>
                             <div class="bar-wrapper">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
@@ -466,9 +467,9 @@
 
                         <div class="bar-group">
                             <!-- Hover Message for Count -->
-                            <div class="hover-message">{{ $days[$key] }} Days</div>
+                            <div class="hover-message">{{ $percentage }}%</div>
 
-                            <p class="percentage-label">{{ $percentage }}%</p>
+                            <p class="percentage-label">{{ $days[$key] }}</p>
                             <div class="bar-wrapper">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
