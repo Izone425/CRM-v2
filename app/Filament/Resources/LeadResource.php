@@ -1582,7 +1582,7 @@ class LeadResource extends Resource
                 ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
                 ->orderBy('updated_at', 'desc');
                 })
-            ->heading(fn ($livewire) => $livewire->getFilteredLeadCount() . ' Leads')
+            ->heading(self::getLeadCount() . ' Leads')
             ->actions([
                 Tables\Actions\Action::make('updateLeadOwner')
                     ->label(__('Assign to Me'))
