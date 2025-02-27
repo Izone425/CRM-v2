@@ -1,11 +1,12 @@
 <?php
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
-use Filament\Widgets\StatsOverviewWidget\Card;
 use App\Models\Lead;
+use Filament\Pages\Page;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
-use App\Filament\Widgets\LeadChartWidget;
 
 class LeadAnalysis extends Page
 {
@@ -14,4 +15,236 @@ class LeadAnalysis extends Page
     protected static ?string $navigationLabel = 'Lead Analysis';
     protected static ?string $title = 'Lead Analysis';
     protected static ?int $navigationSort = 8;
+    protected static ?string $navigationGroup = 'Analysis';
+
+    public $selectedUser; // Selected Salesperson
+    public $users; // List of Salespersons
+    public $totalLeads = 0;
+    public $activePercentage = 0;
+    public $inactivePercentage = 0;
+    public $companySizeData = [];
+
+    public $totalActiveLeads = 0;
+    public $stagesData = [];
+
+    public $totalInactiveLeads;
+    public $inactiveStatusData = [];
+
+    public $totalTransferLeads;
+    public $transferStatusData = [];
+
+    public $totalFollowUpLeads;
+    public $followUpStatusData = [];
+
+    public function mount()
+    {
+        $this->users = User::where('role_id', 2)->get(); // Fetch Salespersons
+
+        // Default to session or logged-in user
+        $this->selectedUser = session('selectedUser') ?? auth()->user()->id;
+
+        // Fetch all leads and active leads initially
+        $this->fetchLeads();
+        $this->fetchActiveLeads();
+        $this->fetchInactiveLeads();
+        $this->fetchTransferLeads();
+        $this->fetchFollowUpLeads();
+    }
+
+    #[On('selectedUserChanged')]
+    public function updatedSelectedUser($userId)
+    {
+        $this->selectedUser = $userId; // Store selected user
+        session(['selectedUser' => $userId]); // Store the selected user in session
+
+        // Fetch data when user changes
+        $this->fetchLeads();
+        $this->fetchActiveLeads();
+        $this->fetchInactiveLeads();
+        $this->fetchTransferLeads();
+        $this->fetchFollowUpLeads();
+    }
+
+    /**
+     * Fetches general leads and calculates percentages
+     */
+    public function fetchLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
+        if ($user->role_id == 1 && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Fetch filtered leads
+        $leads = $query->get();
+
+        // Calculate total, active, and inactive leads
+        $this->totalLeads = $leads->count();
+        $activeLeads = $leads->where('categories', 'Active')->count();
+        $inactiveLeads = $leads->where('categories', 'Inactive')->count();
+
+        $this->activePercentage = $this->totalLeads > 0 ? round(($activeLeads / $this->totalLeads) * 100, 2) : 0;
+        $this->inactivePercentage = $this->totalLeads > 0 ? round(($inactiveLeads / $this->totalLeads) * 100, 2) : 0;
+
+        // Fetch company size data
+        $defaultCompanySizes = [
+            'Small' => 0,
+            'Medium' => 0,
+            'Large' => 0,
+            'Enterprise' => 0,
+        ];
+
+        $companySizeCounts = $leads
+            ->whereNotNull('company_size_label')
+            ->groupBy('company_size_label')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+    }
+
+    /**
+     * Fetches active leads and their breakdown by stages
+     */
+    public function fetchActiveLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::where('categories', 'Active'); // Filter only Active leads
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
+        if ($user->role_id == 1 && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Count total active leads
+        $this->totalActiveLeads = $query->count();
+
+        // Define expected stages
+        $stages = ['Transfer', 'Demo', 'Follow Up'];
+
+        // Fetch leads grouped by their stage
+        $stagesDataRaw = $query
+            ->whereIn('stage', $stages)
+            ->select('stage', DB::raw('COUNT(*) as total'))
+            ->groupBy('stage')
+            ->pluck('total', 'stage')
+            ->toArray();
+
+        // Ensure all stages exist in the correct order (fill missing ones with 0)
+        $this->stagesData = array_merge(array_fill_keys($stages, 0), $stagesDataRaw);
+    }
+
+    public function fetchInactiveLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::where('categories', 'Inactive'); // Filter only Inactive leads
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
+        if ($user->role_id == 1 && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Count total inactive leads
+        $this->totalInactiveLeads = $query->count();
+
+        // Define expected statuses
+        $inactiveStatuses = ['Closed', 'Lost', 'On Hold', 'No Response'];
+
+        // Fetch leads grouped by their status
+        $inactiveStatusCounts = $query
+            ->whereIn('lead_status', $inactiveStatuses)
+            ->select('lead_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('lead_status')
+            ->pluck('total', 'lead_status')
+            ->toArray();
+
+        // Ensure all statuses exist in the result, even if 0
+        $this->inactiveStatusData = array_merge(array_fill_keys($inactiveStatuses, 0), $inactiveStatusCounts);
+    }
+
+    public function fetchTransferLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::where('stage', 'Transfer'); // Filter only Transfer leads
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
+        if ($user->role_id == 1 && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Define expected statuses
+        $transferStatuses = ['RFQ-Transfer', 'Pending Demo', 'Demo Cancelled'];
+
+        // Count total leads in the "Transfer" stage (excluding specific statuses)
+        $this->totalTransferLeads = $query
+            ->whereNotIn('lead_status', ['Under Review', 'New']) // Exclude these statuses
+            ->count();
+
+        // Fetch leads grouped by their "lead_status"
+        $transferStatusCounts = $query
+            ->whereIn('lead_status', $transferStatuses)
+            ->select('lead_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('lead_status')
+            ->pluck('total', 'lead_status')
+            ->toArray();
+
+        // Ensure all statuses exist in the result, even if 0
+        $this->transferStatusData = array_merge(array_fill_keys($transferStatuses, 0), $transferStatusCounts);
+    }
+
+    public function fetchFollowUpLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::where('stage', 'Follow Up'); // Filter only Follow Up leads
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
+        if ($user->role_id == 1 && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Define expected statuses
+        $followUpStatuses = ['RFQ-Follow Up', 'Hot', 'Warm', 'Cold'];
+
+        // Count total leads in the "Follow Up" stage
+        $this->totalFollowUpLeads = $query->count();
+
+        // Fetch leads grouped by their "lead_status"
+        $followUpStatusCounts = $query
+            ->whereIn('lead_status', $followUpStatuses)
+            ->select('lead_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('lead_status')
+            ->pluck('total', 'lead_status')
+            ->toArray();
+
+        // Ensure all statuses exist in the result, even if 0
+        $this->followUpStatusData = array_merge(array_fill_keys($followUpStatuses, 0), $followUpStatusCounts);
+    }
 }

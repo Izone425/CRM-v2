@@ -64,6 +64,7 @@ class CreateLead extends CreateRecord
         } elseif (auth()->user()->role_id === 2) { // Corrected syntax
             $this->record->updateQuietly([
                 'salesperson' => auth()->user()->id,
+                'salesperson_assigned_date' => now(),
             ]);
         }
 

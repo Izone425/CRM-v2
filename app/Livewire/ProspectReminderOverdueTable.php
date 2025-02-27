@@ -44,10 +44,13 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
 
     public function getProspectOverdueQuery()
     {
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
-            ? User::find($this->selectedUser)->name
+        // Fetch user safely to prevent null error
+        $selectedUser = User::find($this->selectedUser);
+
+        $leadOwner = ($selectedUser && auth()->user()->role_id == 3)
+            ? $selectedUser->name // Only access name if the user exists
             : auth()->user()->name;
 
         return Lead::query()

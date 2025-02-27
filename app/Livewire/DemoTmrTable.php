@@ -32,8 +32,6 @@ class DemoTmrTable extends Component implements HasForms, HasTable
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
     {
-        info("Received selected user ID in DemoTodayTable: " . $selectedUser); // Debugging
-
         $this->selectedUser = $selectedUser;
         session(['selectedUser' => $selectedUser]); // Store for consistency
 

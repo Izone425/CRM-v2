@@ -122,10 +122,13 @@ class LeadResource extends Resource
                                                                     ->label('Total Days from New Demo')
                                                                     ->content(fn ($record) => $record->calculateDaysFromNewDemo() . ' days'),
 
-                                                                // Empty placeholders to extend section height
-                                                                Forms\Components\Placeholder::make('empty1')->label('')->content(''),
-                                                                Forms\Components\Placeholder::make('empty2')->label('')->content(''),
-                                                                Forms\Components\Placeholder::make('empty3')->label('')->content(''),
+                                                                Forms\Components\Placeholder::make('salesperson_assigned_date')
+                                                                    ->label('Salesperson Assigned Date')
+                                                                    ->content(function ($record) {
+                                                                        return $record->salesperson_assigned_date
+                                                                            ? \Carbon\Carbon::parse($record->salesperson_assigned_date)->format('d M Y')
+                                                                            : '-';
+                                                                    }),
                                                             ]),
                                                     ]),
                                             ])
@@ -191,7 +194,9 @@ class LeadResource extends Resource
                                                                         ->action(function ($record, $data) {
                                                                             if (!empty($data['salesperson'])) {
                                                                                 $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
-                                                                                $record->update(['salesperson' => $data['salesperson']]);
+                                                                                $record->update(['salesperson' => $data['salesperson'],
+                                                                                    'salesperson_assigned_date' => now(),
+                                                                                    ]);
                                                                             }
 
                                                                             // Check and update lead_owner if it's not null
@@ -1577,7 +1582,7 @@ class LeadResource extends Resource
                 ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
                 ->orderBy('updated_at', 'desc');
                 })
-            ->heading(self::getLeadCount() . ' Leads')
+            ->heading(fn ($livewire) => $livewire->getFilteredLeadCount() . ' Leads')
             ->actions([
                 Tables\Actions\Action::make('updateLeadOwner')
                     ->label(__('Assign to Me'))
@@ -1651,6 +1656,7 @@ class LeadResource extends Resource
                                 'remark' => null,
                                 'follow_up_date' => null,
                                 'salesperson' => null,
+                                'salesperson_assigned_date' => null,
                                 'demo_appointment' => null,
                                 'rfq_followup_at' => null,
                                 'follow_up_counter' => 0,
@@ -1712,6 +1718,15 @@ class LeadResource extends Resource
             QuotationRelationManager::class,
             ProformaInvoiceRelationManager::class
         ];
+    }
+
+    public function getFilteredLeadCount()
+    {
+        // Get the query with all filters applied
+        $query = $this->getFilteredTableQuery();
+
+        // Count the filtered results
+        return $query->count();
     }
 
     public static function getLeadCount(): int
