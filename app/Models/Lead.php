@@ -41,6 +41,8 @@ class Lead extends Model
         'rfq_transfer_at',
         'call_attempt',
         'done_call',
+        'salesperson_assigned_date',
+        'deal_amount',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -71,6 +73,8 @@ class Lead extends Model
                 'rfq_followup_at',
                 'call_attempt',
                 'done_call',
+                'salesperson_assigned_date',
+                'deal_amount',
             ]);
     }
 

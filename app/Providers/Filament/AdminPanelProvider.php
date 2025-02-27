@@ -112,6 +112,10 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Calendar')
                     ->icon('heroicon-s-calendar-days')
                     ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Analysis')
+                    ->icon('heroicon-s-chart-bar')
+                    ->collapsed(),
             ])
             ->authMiddleware([
                 Authenticate::class,

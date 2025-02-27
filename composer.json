@@ -21,6 +21,7 @@
         "laravel/tinker": "^2.8",
         "laraveldaily/laravel-invoices": "^3.1",
         "league/oauth2-client": "*",
+        "livewire/livewire": "^3.5",
         "malzariey/filament-daterangepicker-filter": "^3.1",
         "microsoft/microsoft-graph": "1.42.0",
         "njxqlus/filament-relation-manager-component": "^1.0",

@@ -2,6 +2,107 @@
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         <style>
+            /* Container */
+            .session-container {
+                display: flex;
+                align-items: center;
+                padding: 20px;
+                border-radius: 8px;
+            }
+
+            /* Left Section */
+            .session-count {
+                flex: 1;
+                text-align: center;
+            }
+            .session-number {
+                font-size: 3rem;
+                font-weight: bold;
+                color: #333;
+                margin-top: 10px;
+            }
+            .session-label {
+                font-size: 0.9rem;
+                color: #777;
+            }
+
+            /* Middle Divider */
+            .session-divider {
+                flex: 0.005;
+                height: 150px;
+                background: #ccc;
+                width: 0.5px;
+            }
+
+            /* Right Section */
+            .session-bars {
+                flex: 3;
+                display: flex;
+                justify-content: center;
+                align-items: flex-end;
+                gap: 32px; /* Space between bars */
+            }
+
+            .bar-group {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 60px;
+                position: relative;
+            }
+
+            .percentage-label {
+                margin-bottom: 5px;
+                font-size: 12px;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .bar-wrapper {
+                width: 40px;
+                height: 100px;
+                background-color: #E5E7EB; /* Light gray */
+                border-radius: 8px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .bar-fill {
+                position: absolute;
+                bottom: 0;
+                width: 100%;
+                border-radius: 8px;
+                transition: height 0.5s ease-in-out;
+            }
+
+            .session-type {
+                margin-top: 8px;
+                font-size: 12px;
+                font-weight: 500;
+                text-align: center;
+                color: #374151;
+            }
+
+            /* Tooltip (Hover Message) */
+            .hover-message {
+                position: absolute;
+                bottom: 110%;
+                background-color: rgba(0, 0, 0, 0.75);
+                color: white;
+                padding: 5px 10px;
+                font-size: 12px;
+                border-radius: 5px;
+                white-space: nowrap;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            .bar-group:hover .hover-message {
+                opacity: 1;
+                visibility: visible;
+            }
+
             .wrapper-container {
                 background-color: white;
                 border-radius: 10px;
@@ -41,7 +142,7 @@
             }
 
             .lead-number {
-                font-size: 1.5rem;
+                font-size: 3rem;
                 font-weight: bold;
                 color: #1F2937;
                 margin-top: 8px;
@@ -269,160 +370,150 @@
             }
         </style>
     </head>
-
-    @if (auth()->user()->role_id == 1)
-        <div class="mb-4">
-            <label for="userFilter" class="block text-sm font-medium text-gray-700">Filter by Salesperson:</label>
-            <select
-                wire:model="selectedUser"
-                id="userFilter"
-                class="mt-1 border-gray-300 rounded-md shadow-sm"
-            >
-                <option value="">All Salespersons</option>
-
-                <optgroup label="Salesperson">
+    @if(auth()->user()->role_id == 1)
+        <div class="flex items-center mb-6">
+            <!-- Salesperson Filter -->
+            <div>
+                <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+                    <option value="">All Salespersons</option>
                     @foreach ($users as $user)
-                        <option value="{{ $user->id }}" {{ $user->id == session('selectedUser') ? 'selected' : '' }}>
-                            {{ $user->name }}
-                        </option>
+                        <option value="{{ $user->id }}">{{ $user->name }}</option>
                     @endforeach
-                </optgroup>
-            </select>
+                </select>
+            </div>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <!-- Month Filter (Added Margin) -->
+            <div class="ml-10">  <!-- Manually added space using margin-left -->
+                <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+            </div>
         </div>
     @endif
 
-    <!-- Call FetchLeads Data -->
-    <div class="wrapper-container">
-        <div class="flex items-center space-x-2">
-            <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-            <h2 class="text-lg font-bold text-gray-800">All Leads</h2>
-        </div>
-        <div class="grid-container">
-            <!-- Total Leads Box (1/4) -->
-            <div class="lead-card">
-                <div class="icon-container">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                </div>
-                <p class="lead-number">{{ $totalLeads }}</p>
-                <p class="lead-text">Total Leads</p>
-            </div>
-
-            <!-- Status Breakdown (1/4) -->
-            <div class="p-6 rounded-lg shadow bg-gray-50">
-                <h3 class="mb-4 text-sm font-semibold text-center text-gray-700 uppercase">Status</h3>
-
-                <div class="flex justify-center space-x-10"> <!-- Increased spacing between circles -->
-                    <!-- Active Leads Doughnut -->
-                    <div class="text-center">
-                        <div class="relative w-28 h-28"> <!-- Increased size -->
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="#3B82F6" stroke-width="5" fill="none"
-                                    stroke-dasharray="88"
-                                    stroke-dashoffset="{{ 88 - (88 * ($activePercentage / 100)) }}"
-                                    stroke-linecap="round"
-                                    transform="rotate(-90 18 18)">
-                            </circle>
-                            </svg>
-                            <!-- Percentage in the Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-900">
-                                {{ $activePercentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-gray-700">Active</p>
-                    </div>
-                    <div>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                    </div>
-                    <!-- Inactive Leads Doughnut -->
-                    <div class="text-center">
-                        <div class="relative w-28 h-28"> <!-- Increased size -->
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="#6B7280" stroke-width="5" fill="none"
-                                        stroke-dasharray="100, 100"
-                                        stroke-dashoffset="{{ 100 - $inactivePercentage }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)"></circle>
-                            </svg>
-                            <!-- Percentage in the Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-900">
-                                {{ $inactivePercentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-gray-700">Inactive</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Company Size Distribution (2/4) -->
-            <div class="company-size-container">
-                <h3 class="title">Company Size</h3>
-                <div class="bars-container">
-                    @foreach($companySizeData as $size => $count)
-                        @php
-                            $percentage = round(($count / max($totalLeads, 1)) * 100, 2);
-                            $barColor = match($loop->index) {
-                                0 => '#EF4444',  // Small - Red
-                                1 => '#FB923C',  // Medium - Orange
-                                2 => '#FACC15',  // Large - Yellow
-                                default => '#10B981', // Enterprise - Green
-                            };
-                        @endphp
-
-                        <div class="bar-group">
-                            <p class="percentage-label">{{ $percentage }}%</p>
-                            <div class="bar-wrapper">
-                                <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
-                            </div>
-                            <p class="size-label">{{ ucfirst($size) }}</p>
-                            <div class="hover-message">{{ $count }} Leads</div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center mb-6 space-x-2">
                 <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-                <h3 class="text-xl font-bold text-gray-800">Active</h3>
+                <h3 class="text-xl font-bold text-gray-800">Total Session</h3>
             </div>
+
+            <div class="session-container">
+                <!-- Left Section: Total Sessions -->
+                <div class="session-count">
+                    <p class="lead-number">{{ $totalAppointments }}</p>
+                    <p class="lead-label">Sessions</p>
+                </div>
+
+                <!-- Middle Divider -->
+                <div class="session-divider"></div>
+
+                <!-- Right Section: Vertical Bar Chart -->
+                <div class="session-bars">
+                    @foreach ($typeData as $type => $count)
+                        @php
+                            $percentage = $totalAppointments > 0 ? round(($count / $totalAppointments) * 100, 2) : 0;
+                            $barColor = match($loop->index) {
+                                0 => '#FACC15',   // New Demo - Yellow
+                                1 => '#FB923C',   // Webinar Demo - Orange
+                                2 => '#EF4444',   // HRMS Demo - Red
+                                3 => '#10B981',   // System Discussion - Green
+                                default => '#3B82F6', // HRDF Discussion - Blue
+                            };
+                        @endphp
+
+                        <div class="bar-group">
+                            <!-- Hover Message for Count -->
+                            <div class="hover-message">{{ $count }} Sessions</div>
+
+                            <p class="percentage-label">{{ $percentage }}%</p>
+                            <div class="bar-wrapper">
+                                <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
+                            </div>
+                            <p class="session-type">{{ $type }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center mb-6 space-x-2">
+                <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
+                <h3 class="text-xl font-bold text-gray-800">Total Days</h3>
+            </div>
+
+            <div class="session-container">
+                <!-- Left Section: Total Days -->
+                <div class="session-count">
+                    <p class="lead-number">{{ $days['totalDays'] }}</p>
+                    <p class="lead-label">Days</p>
+                </div>
+
+                <!-- Middle Divider -->
+                <div class="session-divider"></div>
+
+                <!-- Right Section: Vertical Bar Chart -->
+                <div class="session-bars">
+                    @foreach (['publicHolidays' => 'Public Holidays', 'weekends' => 'Weekend Days', 'leave' => 'TimeTec Leave', 'workingDays' => 'Working Days'] as $key => $label)
+                        @php
+                            $percentage = $days['totalDays'] > 0 ? round(($days[$key] / $days['totalDays']) * 100, 2) : 0;
+                            $barColor = match($key) {
+                                'publicHolidays' => '#93C5FD',  /* Light Blue */
+                                'weekends' => '#60A5FA',  /* Blue */
+                                'leave' => '#2563EB',  /* Dark Blue */
+                                'workingDays' => '#4F46E5', /* Purple */
+                                default => '#D1D5DB',   /* Gray */
+                            };
+                        @endphp
+
+                        <div class="bar-group">
+                            <!-- Hover Message for Count -->
+                            <div class="hover-message">{{ $days[$key] }} Days</div>
+
+                            <p class="percentage-label">{{ $percentage }}%</p>
+                            <div class="bar-wrapper">
+                                <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
+                            </div>
+                            <p class="session-type">{{ $label }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <!-- Header -->
+            <div class="flex items-center mb-6 space-x-2">
+                <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
+                <h3 class="text-xl font-bold text-gray-800">New Demo</h3>
+            </div>
+
+            <!-- Main Box -->
             <div class="lead-summary-box">
                 <!-- Left Section (30%) -->
                 <div class="lead-count">
-                    <p class="lead-number">{{ $totalActiveLeads }}</p>
-                    <p class="lead-label">Total Active Lead</p>
+                    <p class="lead-number">{{ $totalNewAppointments }}</p>
+                    <p class="lead-label">Total New Demo</p>
                 </div>
 
-                <!-- Middle Divider (5%) -->
+                <!-- Middle Divider -->
                 <div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
                 <!-- Right Section (65%) -->
                 <div class="lead-progress">
-                    <h3 class="status-title">Status</h3>
-                    @foreach ($stagesData as $stage => $count)
+                    <h3 class="status-title">Company Size</h3>
+                    @foreach ($newDemoCompanySizeData as $companySize => $count)
                         @php
-                            $percentage = $totalActiveLeads > 0 ? round(($count / $totalActiveLeads) * 100, 2) : 0;
-                            $color = match($stage) {
-                                'Transfer' => '#3B82F6',  /* Light Blue */
-                                'Demo' => '#6366F1',      /* Purple */
-                                'Follow Up' => '#1E40AF', /* Dark Blue */
-                                default => '#D1D5DB',    /* Gray */
+                            $percentage = $totalNewAppointments > 0 ? round(($count / $totalNewAppointments) * 100, 2) : 0;
+                            $color = match($companySize) {
+                                'Small' => '#EF4444',  /* Red */
+                                'Medium' => '#FB923C',  /* Orange */
+                                'Large' => '#FACC15',  /* Yellow */
+                                'Enterprise' => '#10B981', /* Green */
+                                default => '#D1D5DB',   /* Gray */
                             };
                         @endphp
 
-                        <!-- Stage Title & Count -->
+                        <!-- Company Size Title & Count -->
                         <div class="progress-info">
-                            <span>{{ ucfirst($stage) }}</span>
+                            <span>{{ ucfirst($companySize) }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
@@ -433,66 +524,23 @@
                     @endforeach
                 </div>
             </div>
-        </div>
 
-        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center mb-6 space-x-2">
-                <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-                <h3 class="text-xl font-bold text-gray-800">Inactive</h3>
-            </div>
-            <div class="lead-summary-box">
-                <div class="lead-count">
-                    <p class="lead-number">{{ $totalInactiveLeads }}</p>
-                    <p class="lead-label">Total Inactive Leads</p>
-                </div>
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
 
-                <div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary</h3>
 
-                <div class="lead-progress">
-                    <h3 class="status-title">Status</h3>
-                    @foreach ($inactiveStatusData as $status => $count)
-                        @php
-                            $percentage = $totalInactiveLeads > 0 ? round(($count / $totalInactiveLeads) * 100, 2) : 0;
-                            $color = match($status) {
-                                'Closed' => '#10B981',
-                                'Lost' => '#EF4444',
-                                'On Hold' => '#9ba2af',
-                                'No Response' => '#71797E',
-                                default => '#D1D5DB',
-                            };
-                        @endphp
-
-                        <div class="progress-info">
-                            <span>{{ ucfirst($status) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
-
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white rounded-lg shadow" wire:poll.1s>
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-2">
-                    <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-                    <h2 class="text-lg font-bold text-gray-800">Transfer</h2>
-                </div>
-                <span class="text-lg font-bold text-gray-500">Count: {{ $totalTransferLeads }}</span>
-            </div>
-
-            <div class="flex justify-center space-x-8">
-                @foreach ($transferStatusData as $status => $count)
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($newDemoLeadStatusData as $status => $count)
                     @php
-                        $percentage = $totalTransferLeads > 0 ? round(($count / $totalTransferLeads) * 100, 2) : 0;
+                        $percentage = $totalNewAppointmentsByLeadStatus > 0 ? round(($count / $totalNewAppointmentsByLeadStatus) * 100, 2) : 0;
                         $color = match($status) {
-                            'RFQ-Transfer' => '#FACC15', // Yellow
-                            'Pending Demo' => '#F59E0B', // Orange-Yellow
-                            'Demo Cancelled' => '#FB923C', // Orange
-                            default => '#D1D5DB', // Fallback Gray
+                            'Closed' => '#10B981',  /* Green */
+                            'Lost' => '#EF4444',    /* Dark Gray */
+                            'On Hold' => '#9CA3AF', /* Medium Gray */
+                            'No Response' => '#D1D5DB', /* Light Gray */
+                            default => '#D1D5DB',   /* Fallback Gray */
                         };
                     @endphp
 
@@ -519,25 +567,69 @@
                 @endforeach
             </div>
         </div>
-        <div class="p-6 bg-white rounded-lg shadow" wire:poll.1s>
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-2">
-                    <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-                    <h2 class="text-lg font-bold text-gray-800">Follow Up</h2>
-                </div>
-                <span class="text-lg font-bold text-gray-500">Count: {{ $totalFollowUpLeads }}</span>
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <!-- Header -->
+            <div class="flex items-center mb-6 space-x-2">
+                <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
+                <h3 class="text-xl font-bold text-gray-800">Webinar Demo</h3>
             </div>
 
-            <div class="flex justify-center space-x-8">
-                @foreach ($followUpStatusData as $status => $count)
+            <!-- Main Box -->
+            <div class="lead-summary-box">
+                <!-- Left Section (30%) -->
+                <div class="lead-count">
+                    <p class="lead-number">{{ $totalWebinarAppointments }}</p>
+                    <p class="lead-label">Total Webinar Demo</p>
+                </div>
+
+                <!-- Middle Divider -->
+                <div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+                <!-- Right Section (65%) -->
+                <div class="lead-progress">
+                    <h3 class="status-title">Company Size</h3>
+                    @foreach ($webinarDemoCompanySizeData as $companySize => $count)
+                        @php
+                            $percentage = $totalWebinarAppointments > 0 ? round(($count / $totalWebinarAppointments) * 100, 2) : 0;
+                            $color = match($companySize) {
+                                'Small' => '#EF4444',  /* Red */
+                                'Medium' => '#FB923C',  /* Orange */
+                                'Large' => '#FACC15',  /* Yellow */
+                                'Enterprise' => '#10B981', /* Green */
+                                default => '#D1D5DB',   /* Gray */
+                            };
+                        @endphp
+
+                        <!-- Company Size Title & Count -->
+                        <div class="progress-info">
+                            <span>{{ ucfirst($companySize) }}</span>
+                            <span>{{ $count }} ({{ $percentage }}%)</span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary</h3>
+
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($webinarDemoLeadStatusData as $status => $count)
                     @php
-                        $percentage = $totalFollowUpLeads > 0 ? round(($count / $totalFollowUpLeads) * 100, 2) : 0;
+                        $percentage = $totalWebinarAppointmentsByLeadStatus > 0 ? round(($count / $totalWebinarAppointmentsByLeadStatus) * 100, 2) : 0;
                         $color = match($status) {
-                            'RFQ-Follow Up' => '#6B7280', // Gray
-                            'Hot' => '#EF4444', // Red
-                            'Warm' => '#FB923C', // Orange
-                            'Cold' => '#3B82F6', // Blue
-                            default => '#D1D5DB', // Fallback Gray
+                            'Closed' => '#10B981',  /* Green */
+                            'Lost' => '#EF4444',    /* Dark Gray */
+                            'On Hold' => '#9CA3AF', /* Medium Gray */
+                            'No Response' => '#D1D5DB', /* Light Gray */
+                            default => '#D1D5DB',   /* Fallback Gray */
                         };
                     @endphp
 

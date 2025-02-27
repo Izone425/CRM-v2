@@ -2,64 +2,12 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Placeholder;
-
-use App\Classes\Encryptor;
-use App\Enums\LeadCategoriesEnum;
-use App\Enums\LeadStageEnum;
-use App\Enums\LeadStatusEnum;
-use App\Enums\QuotationStatusEnum;
-use App\Filament\Resources\LeadResource\Widgets\NewLeadTable;
-use App\Filament\Resources\LeadResource\Widgets\PendingLeadTable;
-use App\Mail\DemoNotification;
-use App\Mail\FollowUpNotification;
-use App\Mail\SalespersonNotification;
-use Filament\Forms;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Table;
 use App\Models\ActivityLog;
-use App\Models\Appointment;
-use App\Models\InvalidLeadReason;
 use App\Models\Lead;
-use App\Models\LeadSource;
-use App\Models\Quotation;
 use App\Models\User;
-use App\Services\MicrosoftGraphService;
-use App\Services\QuotationService;
-use Carbon\Carbon;
-use Exception;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\TimePicker;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
-use Filament\Support\Enums\ActionSize;
-use Filament\Support\Enums\MaxWidth;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Columns\Layout\View;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\HtmlString;
-use Livewire\Component;
-use Twilio\Rest\Client;
-use Microsoft\Graph\Graph;
-use Microsoft\Graph\Model as MicrosoftGraph;
-use Microsoft\Graph\Model\Event;
+
 class DashboardForm extends Page
 {
     use InteractsWithPageTable;
@@ -73,7 +21,6 @@ class DashboardForm extends Page
     public $selectedUserRole;
     public $assignToMeModalVisible = false;
     public $currentLeadId;
-    protected static string $relationship = 'activityLogs';
 
     public function mount()
     {
@@ -159,60 +106,5 @@ class DashboardForm extends Page
                 ->warning()
                 ->send();
         }
-    }
-
-    //Salesperson's Dashboard
-    public function getTodayDemos()
-    {
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Lead::whereHas('demoAppointment', function ($query) use ($salespersonId) {
-                $query->whereDate('date', today()) // Filter for today's appointment date
-                    ->where('salesperson', $salespersonId) // Filter by authenticated user's ID
-                    ->where('status', 'new'); // Filter for status 'new'
-            });
-    }
-
-    public function getTomorrowDemos()
-    {
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Lead::whereHas('demoAppointment', function ($query) use ($salespersonId) {
-            $query->whereDate('date', today()->addDay()) // Filter for today's appointment date
-                ->where('salesperson', $salespersonId) // Filter by authenticated user's ID
-                ->where('status', 'new'); // Filter for status 'new'
-        });
-    }
-
-    public function getTodayProspects()
-    {
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Lead::query()
-            ->where('salesperson', $salespersonId) // Filter by salesperson
-            ->whereDate('follow_up_date', today());
-    }
-
-    public function getOverdueProspects()
-    {
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Lead::query()
-            ->where('salesperson', $salespersonId) // Filter by salesperson
-            ->whereDate('follow_up_date', '<', today());
-    }
-
-    public function getTodayDebtors()
-    {
-        return Lead::where('lead_status', 'debtor')
-            ->whereDate('follow_up_date', today())
-            ->get();
-    }
-
-    public function getOverdueDebtors()
-    {
-        return Lead::where('lead_status', 'debtor')
-            ->whereDate('follow_up_date', '<', today())
-            ->get();
     }
 }

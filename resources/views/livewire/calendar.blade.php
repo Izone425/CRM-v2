@@ -276,7 +276,7 @@
 
         <div class="filter-row">
             <div x-data="weeklyPicker()">
-                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date" class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm border rounded px-3 py-2">
+                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date" class="block px-3 py-2 bg-white border border-gray-300 rounded rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm">
             </div>
             {{-- Status --}}
             <div class="relative w-full">
@@ -286,13 +286,13 @@
                         selected: @entangle('selectedStatus'),
                         allSelected: @entangle('allStatusSelected'),
                         get label() {
-                    
+
                             if (this.allSelected)
                                 return 'All Status'
-                    
+
                             else if (this.selected.length <= 0)
                                 return 'All Status'
-                    
+
                             else {
                                 console.log(this.selected);
                                 return this.selected.join(',');
@@ -342,13 +342,13 @@
                         selected: @entangle('selectedDemoType'),
                         allSelected: @entangle('allDemoTypeSelected'),
                         get label() {
-                    
+
                             if (this.allSelected)
                                 return 'All Demo Type'
-                    
+
                             else if (this.selected.length <= 0)
                                 return 'All Demo Type'
-                    
+
                             else {
                                 console.log(this.selected);
                                 return this.selected.join(',');
@@ -398,13 +398,13 @@
                         selected: @entangle('selectedAppointmentType'),
                         allSelected: @entangle('allAppointmentTypeSelected'),
                         get label() {
-                    
+
                             if (this.allSelected)
                                 return 'All Appointment Type'
-                    
+
                             else if (this.selected.length <= 0)
                                 return 'All Appointment Type'
-                    
+
                             else {
                                 console.log(this.selected);
                                 return this.selected.join(',');
@@ -454,13 +454,13 @@
                         selected: @entangle('selectedSalesPeople'),
                         allSelected: @entangle('allSalesPeopleSelected'),
                         get label() {
-                    
+
                             if (this.allSelected)
                                 return 'All Salesperson'
-                    
+
                             else if (this.selected.length <= 0)
                                 return 'All Salesperson'
-                    
+
                             else
                                 return this.selected.length + ' Salesperson';
                         }
@@ -557,7 +557,7 @@
                 <div class="flex">
                     <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
                     <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
-                        <div class="header-date text-center">{{ $weekDays[0]['date'] }}</div>
+                        <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
                         <div>{{ $weekDays[0]['day'] }}</div>
                     </span>
                 </div>
@@ -903,7 +903,7 @@
                     </div>
             </div>
             @elseif($loop->index === 3)
-            <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer" @click="expanded = true">
+            <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card" @click="expanded = true">
                 +{{ count($row[$day . 'Appointments']) - 3 }} more
             </div>
             @endif
@@ -935,7 +935,7 @@
                 </div>
             </div>
             @endforeach
-            <div class="card mb-2 p-2 border rounded bg-gray-200 text-center cursor-pointer" @click="expanded = false">
+            <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card" @click="expanded = false">
                 Hide
             </div>
         </div>
@@ -949,7 +949,7 @@
 </div>
 
 <!-- Global tooltip container -->
-<div x-show="showTooltip" :style="tooltipStyle" class="tooltip fixed pointer-events-none text-white text-sm px-2 py-1 rounded">
+<div x-show="showTooltip" :style="tooltipStyle" class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
     <span x-text="tooltip"></span>
 </div>
 

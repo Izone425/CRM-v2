@@ -1,3 +1,10 @@
+<style>
+    .fi-ta-ctn .py-4 {
+        padding-top: .5rem !important;
+        padding-bottom: .5rem !important;
+    }
+</style>
+
 <livewire:demo-today-table />
 <livewire:demo-tmr-table />
 <livewire:pr-today-salesperson-table />

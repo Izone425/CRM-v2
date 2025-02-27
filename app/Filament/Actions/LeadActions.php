@@ -528,6 +528,8 @@ class LeadActions
                         'remarks' => $data['remarks'],
                         'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
+                        'salesperson_assigned_date' => now(),
+
                     ]);
                     $appointment->save();
                     // Retrieve the related Lead model from ActivityLog
@@ -695,6 +697,7 @@ class LeadActions
                         'demo_appointment' => $appointment->id,
                         'remark' => $data['remarks'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'salesperson_assigned_date' => now(),
                         'follow_up_counter' => true,
                         'follow_up_needed' => false,
                     ]);
@@ -797,6 +800,7 @@ class LeadActions
                     'lead_status' => 'RFQ-Transfer',
                     'remark' => $data['remark'],
                     'salesperson' => $data['salesperson'],
+                    'salesperson_assigned_date' => now(),
                     'follow_up_date' => today(),
                     'rfq_transfer_at' => now(),
                     'follow_up_counter' => true,

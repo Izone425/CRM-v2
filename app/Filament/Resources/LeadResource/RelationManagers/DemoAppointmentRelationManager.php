@@ -236,76 +236,76 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->disabled(),
                             ];
                         }),
-                    Tables\Actions\Action::make('demo_done')
-                        ->visible(function (Appointment $record) {
-                            // Ensure only non-admin users (role_id != 1) can see this
-                            if (auth()->user()->role_id == 1) {
-                                return false;
-                            }
+                    // Tables\Actions\Action::make('demo_done')
+                    //     ->visible(function (Appointment $record) {
+                    //         // Ensure only non-admin users (role_id != 1) can see this
+                    //         if (auth()->user()->role_id == 1) {
+                    //             return false;
+                    //         }
 
-                            return $record->status == 'New';
-                        })
-                        ->label(__('Demo Done'))
-                        ->requiresConfirmation()
-                        ->modalHeading('Demo Completed Confirmation')
-                        // ->form([
-                        //     Forms\Components\Placeholder::make('')
-                        //         ->content(__('You are marking this demo as completed. Confirm?')),
+                    //         return $record->status == 'New';
+                    //     })
+                    //     ->label(__('Demo Done'))
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Demo Completed Confirmation')
+                    //     // ->form([
+                    //     //     Forms\Components\Placeholder::make('')
+                    //     //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                        //     Forms\Components\TextInput::make('remark')
-                        //         ->label('Remarks')
-                        //         ->required()
-                        //         ->placeholder('Enter remarks here...')
-                        //         ->maxLength(500)
-                        //         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                        // ])
-                        ->color('success')
-                        ->icon($icon = 'heroicon-o-pencil-square')
-                        ->action(function (Appointment $appointment, array $data) {
-                            // Retrieve the related Lead model from ActivityLog
-                            $lead = $appointment->lead; // Ensure this relation exists
+                    //     //     Forms\Components\TextInput::make('remark')
+                    //     //         ->label('Remarks')
+                    //     //         ->required()
+                    //     //         ->placeholder('Enter remarks here...')
+                    //     //         ->maxLength(500)
+                    //     //         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                    //     // ])
+                    //     ->color('success')
+                    //     ->icon($icon = 'heroicon-o-pencil-square')
+                    //     ->action(function (Appointment $appointment, array $data) {
+                    //         // Retrieve the related Lead model from ActivityLog
+                    //         $lead = $appointment->lead; // Ensure this relation exists
 
-                            // Retrieve the latest demo appointment for the lead
-                            $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
-                                ->latest('created_at') // Retrieve the most recent demo
-                                ->first();
+                    //         // Retrieve the latest demo appointment for the lead
+                    //         $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
+                    //             ->latest('created_at') // Retrieve the most recent demo
+                    //             ->first();
 
-                            if ($latestDemoAppointment) {
-                                $latestDemoAppointment->update([
-                                    'status' => 'Done', // Or whatever status you need to set
-                                ]);
-                            }
+                    //         if ($latestDemoAppointment) {
+                    //             $latestDemoAppointment->update([
+                    //                 'status' => 'Done', // Or whatever status you need to set
+                    //             ]);
+                    //         }
 
-                            // Update the Lead model
-                            $lead->update([
-                                'stage' => 'Follow Up',
-                                'lead_status' => 'RFQ-Follow Up',
-                                'remark' => $data['remark'] ?? null,
-                                'follow_up_date' => null,
-                            ]);
+                    //         // Update the Lead model
+                    //         $lead->update([
+                    //             'stage' => 'Follow Up',
+                    //             'lead_status' => 'RFQ-Follow Up',
+                    //             'remark' => $data['remark'] ?? null,
+                    //             'follow_up_date' => null,
+                    //         ]);
 
-                            // Update the latest ActivityLog related to the lead
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                    //         // Update the latest ActivityLog related to the lead
+                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    //             ->orderByDesc('created_at')
+                    //             ->first();
 
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Demo Completed',
-                                ]);
-                            }
+                    //         if ($latestActivityLog) {
+                    //             $latestActivityLog->update([
+                    //                 'description' => 'Demo Completed',
+                    //             ]);
+                    //         }
 
-                            // Log activity
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead);
+                    //         // Log activity
+                    //         activity()
+                    //             ->causedBy(auth()->user())
+                    //             ->performedOn($lead);
 
-                            // Send success notification
-                            Notification::make()
-                                ->title('Demo completed successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         // Send success notification
+                    //         Notification::make()
+                    //             ->title('Demo completed successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
                     Tables\Actions\Action::make('demo_cancel')
                         ->visible(fn (Appointment $appointment) =>
                             now()->lte(Carbon::parse($appointment->appointment_date)->addHours(48))
@@ -705,6 +705,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         'start_time' => $data['start_time'],
                         'end_time' => $data['end_time'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'salesperson_assigned_date' => now(),
                         'remarks' => $data['remarks'],
                         'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
@@ -913,6 +914,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         'demo_appointment' => $appointment->id,
                         'remark' => $data['remarks'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'salesperson_assigned_date' => now(),
                         'follow_up_counter' => true,
                     ]);
 
