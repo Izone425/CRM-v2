@@ -33,6 +33,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
     {
         return Lead::query()
             ->where('categories', 'New')
+            ->where('salesperson', null)
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
             // ->orderBy('created_at', 'desc');
     }

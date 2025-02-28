@@ -52,7 +52,7 @@ class CreateLead extends CreateRecord
         if ($latestActivityLog) {
             $latestActivityLog->update([
                 'description' => 'New lead created',
-                'causer_id' => 0, // Assuming 0 means the system created it
+                'causer_id' => auth()->user()->id, // Assuming 0 means the system created it
             ]);
         }
 
@@ -60,23 +60,29 @@ class CreateLead extends CreateRecord
             sleep(1);
             $this->record->update([
                 'lead_owner' => auth()->user()->name,
+                'stage' => 'Transfer',
+                'lead_status' => 'New',
+                'categories' => 'Active',
             ]);
-        } elseif (auth()->user()->role_id === 2) { // Corrected syntax
-            $this->record->updateQuietly([
-                'salesperson' => auth()->user()->id,
-                'salesperson_assigned_date' => now(),
-            ]);
-        }
-
-        $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
+            $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
                 ->orderByDesc('id')
                 ->first();
 
-        $latestActivityLog->update([
-            'subject_id' => $this->record->id,
-            'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-            'causer_id' => auth()->user()->id,
-        ]);
+            $latestActivityLog->update([
+                'subject_id' => $this->record->id,
+                'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+                'causer_id' => auth()->user()->id,
+            ]);
+        } elseif (auth()->user()->role_id === 2) { // Corrected syntax
+            sleep(1);
+            $this->record->updateQuietly([
+                'salesperson' => auth()->user()->id,
+                'salesperson_assigned_date' => now(),
+                'stage' => 'Transfer',
+                'lead_status' => 'RFQ-Transfer',
+                'categories' => 'Active',
+            ]);
+        }
     }
 
     protected function getFormSchema(): array

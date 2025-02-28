@@ -262,7 +262,7 @@ class LeadResource extends Resource
                                                     Action::make('edit_company_detail')
                                                         ->label('Edit') // Button label
                                                         ->modalHeading('Edit Information') // Modal heading
-                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
+                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                                         ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                         ->form([ // Define the form fields to show in the modal
                                                             Forms\Components\TextInput::make('company_name')
@@ -390,7 +390,7 @@ class LeadResource extends Resource
                                                     ->headerActions([
                                                         Action::make('edit_person_in_charge')
                                                             ->label('Edit') // Button label
-                                                            ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
+                                                            ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                                             ->modalHeading('Edit on Person In-Charge') // Modal heading
                                                             ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                             ->form([ // Define the form fields to show in the modal
@@ -1290,8 +1290,7 @@ class LeadResource extends Resource
                     ->label('')
                     ->multiple()
                     ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
-                    ->placeholder('Select Lead Owner')
-                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo', 'follow_up'])),
+                    ->placeholder('Select Lead Owner'),
 
                 // Filter for Salesperson
                 SelectFilter::make('salesperson')
@@ -1388,32 +1387,16 @@ class LeadResource extends Resource
                             ];
                         }
 
+                        if ($livewire->activeTab === 'demo') {
+                            return [
+                                'Demo-Assigned' => 'DEMO ASSIGNED',
+                                'Demo Cancelled' => 'DEMO CANCELLED',
+                            ];
+                        }
                         return $defaultOptions;
                     })
                     ->placeholder('Select Lead Status')
-                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'demo'])),
-
-                Filter::make('appointment_date')
-                    ->label('')
-                    ->form([
-                        Forms\Components\DatePicker::make('date')
-                            ->label('')
-                            ->format('Y-m-d') // Ensures compatibility with the database format
-                            ->placeholder('Select a date'),
-                    ])
-                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['date'])) {
-                            $query->whereHas('demoAppointment', function ($subQuery) use ($data) {
-                                $subQuery->whereDate('date', $data['date']);
-                            });
-                        }
-                    })
-                    ->indicateUsing(function (array $data) {
-                        return isset($data['date'])
-                            ? 'Date: ' . Carbon::parse($data['date'])->format('j M Y')
-                            : null;
-                    })
-                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'inactive', 'follow_up', 'transfer'])),
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active'])),
 
                 Filter::make('company_name')
                     ->form([
@@ -1610,7 +1593,8 @@ class LeadResource extends Resource
                     ->size(ActionSize::Small)
                     ->button()
                     ->icon('heroicon-o-pencil-square')
-                    ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2) // Show only if lead_owner is NULL
+                    ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2
+                                                     && is_null($record->salesperson))
                     ->action(function (Lead $record, array $data) {
                         // Update the lead owner and related fields
                         $record->update([
@@ -1720,15 +1704,6 @@ class LeadResource extends Resource
         ];
     }
 
-    public function getFilteredLeadCount()
-    {
-        // Get the query with all filters applied
-        $query = $this->getFilteredTableQuery();
-
-        // Count the filtered results
-        return $query->count();
-    }
-
     public static function getLeadCount(): int
     {
         // Start the Lead query
@@ -1746,12 +1721,6 @@ class LeadResource extends Resource
                 $query->where('salesperson', $user->id)
                       ->orWhere('categories', 'Inactive');
             });
-        } elseif ($roleId === 1) {
-            // Role 1: Filter by lead owner or null lead owner
-            // $query->where(function ($query) use ($userName) {
-            //     $query->where('lead_owner', $userName)
-            //           ->orWhereNull('lead_owner');
-            // });
         }
 
         // Return the count based on the modified query
