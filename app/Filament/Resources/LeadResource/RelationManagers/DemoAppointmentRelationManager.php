@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeadResource\RelationManagers;
 
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
+use App\Mail\CancelDemoNotification;
 use App\Mail\DemoNotification;
 use App\Models\ActivityLog;
 use App\Models\Appointment;
@@ -313,16 +314,6 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
                         ->requiresConfirmation()
-                        // ->form([
-                        //     Forms\Components\Placeholder::make('')
-                        //         ->content(__('You are cancelling this appointment. Confirm?')),
-
-                        //     Textarea::make('remark')
-                        //         ->label('Remarks')
-                        //         ->rows(3)
-                        //         ->autosize()
-                        //         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                        //     ])
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
                         ->action(function (array $data, $record) {
@@ -371,25 +362,14 @@ class DemoAppointmentRelationManager extends RelationManager
                                 $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
                             }
 
-                            // Get Salesperson Email
-                            $salespersonId = $lead->salesperson;
-                            $salesperson = User::find($salespersonId);
-                            $salespersonEmail = $salesperson->email ?? null;
-
-                            // Get Lead Owner Email
-                            $leadownerName = $lead->lead_owner;
-                            $leadowner = User::where('name', $leadownerName)->first();
-                            $leadOwnerEmail = $leadowner->email ?? null;
-
-                            // Combine all recipients
-                            $allEmails = array_unique(array_merge([$email], [$salespersonEmail, $leadOwnerEmail]));
-
-                            // Remove empty/null values and ensure valid emails
-                            $allEmails = array_filter($allEmails, function ($email) {
-                                return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
-                            });
-
-                            info($allEmails); // Debugging: log emails
+                            $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
+                            $demoAppointment = $lead->demoAppointment->first();
+                            $startTime = Carbon::parse($demoAppointment->start_time);
+                            $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
+                            $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
+                            $contactNo = isset($lead->companyDetail->contact_no) ? $lead->companyDetail->contact_no : $lead->phone;
+                            $picName = isset($lead->companyDetail->name) ? $lead->companyDetail->name : $lead->name;
+                            $email = isset($lead->companyDetail->email) ? $lead->companyDetail->email : $lead->email;
 
                             try {
                                 if ($eventId) {
@@ -400,19 +380,29 @@ class DemoAppointmentRelationManager extends RelationManager
                                     // Cancel the Teams meeting
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
 
-                                    // Send an email notification manually to all recipients
-                                    Mail::send([], [], function ($message) use ($allEmails) {
-                                        $message->to($allEmails)
-                                            ->subject('Teams Meeting Cancelled')
-                                            ->html("
-                                                <p>Hello,</p>
-                                                <p>The Teams meeting has been <strong>cancelled</strong>.</p>
-                                                <p>If you have any questions, please contact support.</p>
-                                                <br>
-                                                <p>Best regards,</p>
-                                                <p>" .auth()->user()->name. "</p>
-                                            ");
-                                    });
+                                    $viewName = 'emails.cancel_demo_notification';
+                                    $emailContent = [
+                                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                        'lead' => [
+                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                            'salespersonName' => $salespersonUser->name ?? 'N/A',
+                                            'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
+                                            'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                            'phone' =>$contactNo ?? 'N/A',
+                                            'pic' => $picName ?? 'N/A',
+                                            'email' => $email ?? 'N/A',
+                                            'date' => $formattedDate ?? 'N/A',
+                                            'startTime' => $startTime ?? 'N/A',
+                                            'endTime' => $endTime ?? 'N/A',
+                                            'position' => $leadowner->position ?? 'N/A', // position
+                                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                            'demo_type' => $appointment->type,
+                                            'appointment_type' => $appointment->appointment_type
+                                        ],
+                                    ];
+                                    Mail::to($lead->companyDetails->email ?? $lead->email)
+                                        ->send(new CancelDemoNotification($emailContent, $viewName));
 
                                     Notification::make()
                                         ->title('Teams Meeting Cancelled Successfully')

@@ -911,7 +911,7 @@ class LeadActions
                 ->maxLength(500)
                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
-            Grid::make(2) // 2 columns grid
+            Grid::make(3) // 2 columns grid
                 ->schema([
                     DatePicker::make('follow_up_date')
                         ->label('Next Follow Up Date')
@@ -931,6 +931,13 @@ class LeadActions
                         ->default('hot')
                         ->required()
                         ->visible(fn (Lead $record) => Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
+
+                    TextInput::make('deal_amount')
+                        ->label('Deal Amount')
+                        ->required()
+                        ->numeric()
+                        ->formatStateUsing(fn (ActivityLog $record) => optional($record->lead)->deal_amount ?? 0) // Ensures the field is always pre-filled
+                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && optional($record->lead)->stage === 'Follow Up'),
 
                 ])
         ])

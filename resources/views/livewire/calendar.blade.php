@@ -389,10 +389,6 @@
     <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
         <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl" style="width:70%;">
             <h3> Filter </h3><br>
-            <div x-data="weeklyPicker()" class="w-36"> <!-- Set a fixed width -->
-                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
-                    class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
             {{-- Status --}}
             <div class="relative w-full">
                 <form>
@@ -449,6 +445,11 @@
                 </form>
             </div>
 
+            <div x-data="weeklyPicker()" class="w-36"> <!-- Set a fixed width -->
+                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
+                    class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+
             <!-- Demo Type Filter -->
             <div class="relative w-full">
                 <form>
@@ -496,6 +497,65 @@
                                     <label for="checkbox-{{ $row }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
                                         {{ $row }}
 
+                                    </label>
+                                </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Salesperson Filter -->
+            <div class="relative w-full">
+                <form>
+                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                        @click.away="open = false"
+                        x-data="{
+                            open: false,
+                            selected: @entangle('selectedSalesPeople'),
+                            allSelected: @entangle('allSalesPeopleSelected'),
+                            get label() {
+                                if (this.allSelected)
+                                    return 'All Salesperson';
+                                else if (this.selected.length <= 0)
+                                    return 'All Salesperson';
+                                else
+                                    return this.selected.length + ' Salesperson';
+                            }
+                        }"
+                        @if(auth()->user()->role_id == 2) x-bind:class="'pointer-events-none opacity-50'" @endif>
+
+                        <!-- Trigger Button -->
+                        <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                            <span x-text="label" class="truncate"></span>
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+
+                        <!-- Dropdown List -->
+                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
+                            style="display: none; height: 30vh">
+                            <ul class="py-1">
+                                <!-- Select All Checkbox -->
+                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                    <input type="checkbox" wire:model.live="allSalesPeopleSelected"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                        @if(auth()->user()->role_id == 2) disabled @endif />
+                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                        All Salesperson
+                                    </label>
+                                </li>
+
+                                <!-- Individual Salespersons -->
+                                @foreach ($salesPeople as $row)
+                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                    <input type="checkbox" wire:model.live="selectedSalesPeople" value="{{ $row['id'] }}"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                        @if(auth()->user()->role_id == 2) disabled @endif />
+                                    <label for="checkbox-{{ $row['id'] }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                        {{ $row['name'] }}
                                     </label>
                                 </li>
                                 @endforeach
@@ -560,60 +620,6 @@
                     </div>
                 </form>
             </div>
-
-            <!-- Salesperson Filter -->
-            <div class="relative w-full">
-                <form>
-                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedSalesPeople'),
-                        allSelected: @entangle('allSalesPeopleSelected'),
-                        get label() {
-
-                            if (this.allSelected)
-                                return 'All Salesperson'
-
-                            else if (this.selected.length <= 0)
-                                return 'All Salesperson'
-
-                            else
-                                return this.selected.length + ' Salesperson';
-                        }
-                    }">
-                        <!-- Trigger Button -->
-                        <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                            <span x-text="label" class="truncate"></span>
-                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-
-                        <!-- Dropdown List -->
-                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg " style="display: none; height: 30vh">
-                            <ul class="py-1">
-                                <!-- Select All Checkbox -->
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="allSalesPeopleSelected" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        All Salesperson
-                                    </label>
-                                </li>
-
-                                <!-- Individual Salespersons -->
-                                @foreach ($salesPeople as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedSalesPeople" value="{{ $row['id'] }}" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row['id'] }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        {{ $row['name'] }}
-
-                                    </label>
-                                </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                </form>
-            </div>
         </div>
 
         <!-- Demo Columns -->
@@ -625,7 +631,7 @@
                     <h3 class="text-lg font-semibold">Demo Type</h3>
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] }}</p>
 
-                    @foreach (['NEW DEMO' => '#22C55E', 'WEBINAR DEMO' => '#93C5FD', 'OTHERS' => '#6B7280'] as $type => $color)
+                    @foreach (['NEW DEMO' => '#71eb71', 'WEBINAR DEMO' => '#ffff5cbf', 'OTHERS' => '#f86f6f'] as $type => $color)
                         @php
                             $count = $totalDemos[$type] ?? 0;
                             $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
@@ -646,7 +652,7 @@
                     <h3 class="text-lg font-semibold">Demo Status</h3>
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] ?? 0 }}</p>
 
-                    @foreach (['DONE' => '#90EE90', 'NEW' => '#edc00099', 'CANCELLED' => '#FF7F7F'] as $status => $color)
+                    @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
                         @php
                             $count = $totalDemos[$status] ?? 0;
                             $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;

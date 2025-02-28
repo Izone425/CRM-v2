@@ -456,12 +456,16 @@ class LeadResource extends Resource
                                                                 Forms\Components\Placeholder::make('deal_amount')
                                                                     ->label('Deal Amount')
                                                                     ->content(function (Lead $record) {
+                                                                        // Fetch the latest quotation for the lead
                                                                         $latestQuotation = $record->quotations()->latest('created_at')->first();
 
+                                                                        // Determine the currency, defaulting to 'USD' if none is found
                                                                         $currency = $latestQuotation->currency ?? 'USD';
 
+                                                                        // Format the deal_amount to two decimal places, defaulting to '0.00' if null
                                                                         $dealAmount = $record->deal_amount ? number_format($record->deal_amount, 2) : '0.00';
 
+                                                                        // Return the formatted deal amount with the appropriate currency symbol
                                                                         return $currency === 'MYR' ? "RM {$dealAmount}" : "$ {$dealAmount}";
                                                                     }),
                                                                 Forms\Components\Placeholder::make('status')
@@ -472,7 +476,7 @@ class LeadResource extends Resource
                                                                 Actions::make([
                                                                     Actions\Action::make('edit_status')
                                                                         ->label('Edit')
-                                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner))
+                                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                                                         ->form([
                                                                             Grid::make() // Three columns layout
                                                                             ->schema([
@@ -592,13 +596,7 @@ class LeadResource extends Resource
                                                                         ->modalHeading('Edit Status')
                                                                         ->modalDescription('You are about to change the status of this lead. Changing the lead
                                                                                             status may trigger automated actions based on the new status.')
-                                                                        ->modalSubmitActionLabel('Confirm')
-                                                                        ->extraAttributes(function () {
-                                                                            // Hide the action by applying a CSS class when the user's role_id is 1 or 2
-                                                                            return auth()->user()->role_id === 2
-                                                                                ? ['class' => 'hidden']
-                                                                                : [];
-                                                                        }),
+                                                                        ->modalSubmitActionLabel('Confirm'),
                                                                     ]),
                                                             ]),
                                                     ])
@@ -1565,7 +1563,6 @@ class LeadResource extends Resource
                 ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
                 ->orderBy('updated_at', 'desc');
                 })
-            ->heading(self::getLeadCount() . ' Leads')
             ->actions([
                 Tables\Actions\Action::make('updateLeadOwner')
                     ->label(__('Assign to Me'))
