@@ -19,8 +19,7 @@ class DemoNotification extends Mailable
         return $this->from($this->content['lead']['salespersonEmail'], $this->content['lead']['salespersonName'])
                     ->view($this->viewName)
                     ->subject(
-                        $this->content['lead']['salespersonName'] . " | " .
-                        strtoupper($this->content['lead']['demo_type']) . " | TIMETEC HR | " .
+                        strtoupper($this->content['lead']['demo_type']) . " | TIMETEC HRMS | " .
                         $this->content['lead']['company']
                     )
                     ->with([

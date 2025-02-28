@@ -554,43 +554,16 @@ class ActivityLogRelationManager extends RelationManager
 
                         $meetingPayload = [
                             'start' => [
-                                'dateTime' => $startTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                                'dateTime' => $startTime,
                                 'timeZone' => 'Asia/Kuala_Lumpur'
                             ],
                             'end' => [
-                                'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                                'dateTime' => $endTime,
                                 'timeZone' => 'Asia/Kuala_Lumpur'
                             ],
-                            // 'body'=> [
-                            //     'contentType'=> 'HTML',
-                            //     'content'=> $data['details']
-                            // ],
-                            // 'subject' => $data['title'], // Event title
-                            // 'attendees' => array_merge(
-                            //     array_map(function ($attendee) {
-                            //         return [
-                            //             'emailAddress' => [
-                            //                 'address' => $attendee['email'],
-                            //                 'name' => $attendee['name'],
-                            //             ],
-                            //             'type' => 'Required', // Set type as Required
-                            //         ];
-                            //     }, $requiredAttendees ?? []),
-                            //     array_map(function ($attendee) {
-                            //         return [
-                            //             'emailAddress' => [
-                            //                 'address' => $attendee['email'],
-                            //                 'name' => $attendee['name'],
-                            //             ],
-                            //             'type' => 'Optional', // Set type as Optional
-                            //         ];
-                            //     }, $optionalAttendees ?? [])
-                            // ),
+                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
                             'isOnlineMeeting' => true,
                             'onlineMeetingProvider' => 'teamsForBusiness',
-                            // 'location' => [
-                            //     'displayName' => $data['location'] ?? null, // Specify the location
-                            // ],
                         ];
 
                         try {
@@ -774,7 +747,7 @@ class ActivityLogRelationManager extends RelationManager
                             // Return visibility based on the conditions
                             return !in_array($leadStatus, $invalidLeadStatuses) &&
                                 $category !== LeadCategoriesEnum::INACTIVE->value &&
-                                !in_array($stage, $invalidStages);
+                                !in_array($stage, $invalidStages) && $record->lead->salesperson == null;
                         })
                         ->form([
                             Forms\Components\Placeholder::make('')
@@ -1032,7 +1005,7 @@ class ActivityLogRelationManager extends RelationManager
                             ];
 
                             // Return visibility based on the conditions
-                            return $record->lead->follow_up_needed==0 &&!in_array($leadStatus, $invalidLeadStatuses) &&
+                            return auth()->user()->role_id !== 2 && $record->lead->follow_up_needed==0 &&!in_array($leadStatus, $invalidLeadStatuses) &&
                                 $category !== LeadCategoriesEnum::INACTIVE->value &&
                                 !in_array($stage, $invalidStages);
                         })
@@ -1216,15 +1189,11 @@ class ActivityLogRelationManager extends RelationManager
                         ->color('success')
                         ->icon('heroicon-o-pencil-square')
                         ->visible(function (ActivityLog $record) {
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
-
-                            $leadStatus = data_get($attributes, 'lead_status');
-
                             $lead = $record->lead;
 
-                            return !(auth()->user()->role_id === 1 && !is_null($lead->salesperson)) &&
-                                ($leadStatus === LeadStatusEnum::RFQ_FOLLOW_UP->value
-                                || $leadStatus === LeadStatusEnum::RFQ_TRANSFER->value);
+                            return (auth()->user()->role_id !== 1 && !is_null($lead->salesperson)) &&
+                                ($lead->lead_status === LeadStatusEnum::RFQ_FOLLOW_UP->value
+                                || $lead->lead_status === LeadStatusEnum::RFQ_TRANSFER->value);
                         })
                         ->requiresConfirmation()
                         ->modalDescription('Did you create the quotation under Mr Wee Quotation System?')
@@ -2003,10 +1972,6 @@ class ActivityLogRelationManager extends RelationManager
                 ->visible(function (ActivityLog $record) {
                     $lead = $record->lead;
 
-                    if (!$lead) {
-                        return false; // No lead associated, hide the ActionGroup
-                    }
-
                     // Get the latest ActivityLog for the related Lead
                     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                         ->orderByDesc('created_at')
@@ -2022,9 +1987,14 @@ class ActivityLogRelationManager extends RelationManager
                     //     return false; // Hide for role_id = 1 if salesperson is not null
                     // }
 
+                    if(is_null($lead->lead_owner) && $lead->lead_status == 'RFQ-Transfer' && !is_null($lead->salesperson)){
+                        return true;
+                    }
+
                     if(is_null($lead->lead_owner)){
                         return false;
                     }
+
 
                     return true;
                 })

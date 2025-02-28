@@ -81,8 +81,8 @@ class SalespersonBigCompTable extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    LeadActions::getCancelDemoAction()
-                        ->visible(fn (Lead $record) => $record->lead_status == 'Demo-Assigned' && $record->lead_owner == auth()->user()->name),
+                    // LeadActions::getCancelDemoAction()
+                    //     ->visible(fn (Lead $record) => $record->lead_status == 'Demo-Assigned' && $record->lead_owner == auth()->user()->name),
                     LeadActions::getLeadDetailAction(),
                     LeadActions::getViewAction(),
                 ])

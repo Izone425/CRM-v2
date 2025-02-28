@@ -476,7 +476,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             // Update the Appointment status
                             $appointment->update([
                                 'status' => 'Cancelled',
-                                'remarks' => $data['remark'],
+                                // 'remarks' => $data['remark'],
                             ]);
 
                             Notification::make()
@@ -751,38 +751,14 @@ class DemoAppointmentRelationManager extends RelationManager
 
                     $meetingPayload = [
                         'start' => [
-                            'dateTime' => $startTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                            'dateTime' => $startTime,
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
                         'end' => [
-                            'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                            'dateTime' => $endTime,
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
-                        // 'body'=> [
-                        //     'contentType'=> 'HTML',
-                        //     'content'=> $data['details']
-                        // ],
-                        'subject' => $lead->companyDetail->company_name, // Event title
-                        // 'attendees' => array_merge(
-                        //     array_map(function ($attendee) {
-                        //         return [
-                        //             'emailAddress' => [
-                        //                 'address' => $attendee['email'],
-                        //                 'name' => $attendee['name'],
-                        //             ],
-                        //             'type' => 'Required', // Set type as Required
-                        //         ];
-                        //     }, $requiredAttendees ?? []),
-                        //     array_map(function ($attendee) {
-                        //         return [
-                        //             'emailAddress' => [
-                        //                 'address' => $attendee['email'],
-                        //                 'name' => $attendee['name'],
-                        //             ],
-                        //             'type' => 'Optional', // Set type as Optional
-                        //         ];
-                        //     }, $optionalAttendees ?? [])
-                        // ),
+                        'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
                         'isOnlineMeeting' => true,
                         'onlineMeetingProvider' => 'teamsForBusiness',
                     ];

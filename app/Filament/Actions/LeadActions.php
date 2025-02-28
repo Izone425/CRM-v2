@@ -169,17 +169,21 @@ class LeadActions
 
         $appointment_type = $record->type;
 
-        $message = "Dear " . ($record->lead->companyDetails->name ?? $record->lead->name ?? '') . ",\n\n";
-        $message .= "Good day to you.\n";
-        $message .= "My name is {$authUserName}. I'm from TimeTec Cloud Sdn Bhd @ " . ($appointment_type) . ".\n";
-        $message .= "Just to follow up, we will have an online demo about our Human Resource Management System as per below date and time.\n\n";
-        $message .= "🗓 {$formattedDate}\n";
-        $message .= "⏰ {$startTime}\n\n";
-        $message .= "🔗 Microsoft Teams Meeting Link:\n";
-        $message .= "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjJlZTllZmEtOGUxZi00NTA3LThmMGQtZGQ1YzFkYTQ0MGQ0%40thread.v2/0?context=%7b%22Tid%22%3a%22db45ae30-3921-4816-bd84-98cf14d5a17b%22%2c%22Oid%22%3a%22309b2b2b-7cf9-41d5-bb79-53e29d0e79fc%22%7d\n\n";
-        $message .= "📄 TimeTec HR Brochure:\n";
-        $message .= "https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n\n";
-        $message .= "Appreciate your feedback.";
+        $message = "Hi " . ($record->lead->companyDetails->name ?? $record->lead->name ?? '') . ",\n\n";
+        $message .= "My name is {$authUserName}. I’m from TimeTec Cloud Sdn Bhd, I hope you're doing well!\n";
+        $message .= "Just a quick reminder about our upcoming online meeting scheduled.\n";
+        $message .= "I’m looking forward to meet you.\n\n";
+        $message .= "Here are the meeting details:\n\n";
+        $message .= "*• Date & Time:* {$formattedDate} at {$startTime}\n";
+        $message .= "*• Platform:* Microsoft Teams\n";
+        $message .= "*• Link:* ";
+        $message .= "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjJlZTllZmEtOGUxZi00NTA3LThmMGQtZGQ1YzFkYTQ0MGQ0%40thread.v2/0?context=%7b%22Tid%22%3a%22db45ae30-3921-4816-bd84-98cf14d5a17b%22%2c%22Oid%22%3a%22309b2b2b-7cf9-41d5-bb79-53e29d0e79fc%22%7d\n";
+        $message .= "*• Timetec HR Brochure:*";
+        $message .= "  https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n\n";
+        $message .= "Please let me know if you need anything before the meeting or if there are any changes.\n";
+        $message .= "Looking forward to connecting with you soon!\n\n";
+        $message .= "Best regards,\n";
+        $message .= "{$authUserName}";
 
         // Return formatted WhatsApp link
         return "https://wa.me/{$contactNo}?text=" . urlencode($message);
@@ -395,20 +399,22 @@ class LeadActions
                                     return false; // Allow selection without restrictions
                                 }
 
-                                // if ($date && $startTime && $endTime) {
-                                    // Check for overlapping appointments
-                                    $hasOverlap = Appointment::where('salesperson', $value)
-                                        ->where('status', 'New')
-                                        ->whereDate('date', $date)
-                                        ->where(function ($query) use ($startTime, $endTime) {
-                                            $query->whereBetween('start_time', [$startTime, $endTime])
-                                                ->orWhereBetween('end_time', [$startTime, $endTime])
-                                                ->orWhere(function ($query) use ($startTime, $endTime) {
-                                                    $query->where('start_time', '<', $startTime)
-                                                        ->where('end_time', '>', $endTime);
-                                                });
-                                        })
-                                        ->exists();
+                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
+                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
+                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                                $hasOverlap = Appointment::where('salesperson', $value)
+                                    ->where('status', 'New')
+                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
+                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                $query->where('start_time', '<', $parsedStartTime)
+                                                        ->where('end_time', '>', $parsedEndTime);
+                                            });
+                                    })
+                                    ->exists();
 
                                     if ($hasOverlap) {
                                         return true;
@@ -562,14 +568,14 @@ class LeadActions
 
                     $meetingPayload = [
                         'start' => [
-                            'dateTime' => $startTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                            'dateTime' => $startTime,
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
                         'end' => [
-                            'dateTime' => $endTime, // ISO 8601 format: "YYYY-MM-DDTHH:mm:ss"
+                            'dateTime' => $endTime,
                             'timeZone' => 'Asia/Kuala_Lumpur'
                         ],
-                        'subject' => $lead->companyDetail->company_name,
+                        'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
                         'isOnlineMeeting' => true,
                         'onlineMeetingProvider' => 'teamsForBusiness',
                     ];

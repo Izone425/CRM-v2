@@ -267,16 +267,131 @@
                 width: 75%;
             }
         }
+        /* Container */
+        .filter-badges-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 10px;
+        }
 
+        /* Filters Section */
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end; /* Align filters to the right */
+            flex-wrap: wrap;
+        }
+
+        /* Individual Filter Boxes */
+        .filter-row div {
+            position: relative;
+            width: 180px;
+        }
+
+        .filter-row select,
+        .filter-row input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Badges Row */
+        .badges-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Individual Badge */
+        .badges {
+            flex: 1;
+            min-width: 150px;
+            background-color: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Specific Badge Colors */
+        .badges:nth-child(1) { background-color: #4F46E5; color: white; }
+        .badges:nth-child(2) { background-color: #22C55E; color: white; }
+        .badges:nth-child(3) { background-color: #FACC15; color: black; }
+        .badges:nth-child(4) { background-color: #EF4444; color: white; }
+
+        /* Demo Type & Status Columns */
+        .demo-columns {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Demo Box */
+        .demo-box {
+            flex: 1;
+            min-width: 250px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .demo-box h3 {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        /* Progress Bar */
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #E5E7EB;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .session-divider {
+            flex: 0.005;
+            height: 150px;
+            background: #ccc;
+            width: 0.5px;
+        }
     </style>
 
 
     <!-- Filter and Badges Section -->
-    <div class="filter-badges-container">
-
-        <div class="filter-row">
-            <div x-data="weeklyPicker()">
-                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date" class="block px-3 py-2 bg-white border border-gray-300 rounded rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm">
+    <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
+        <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl" style="width:70%;">
+            <h3> Filter </h3><br>
+            <div x-data="weeklyPicker()" class="w-36"> <!-- Set a fixed width -->
+                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
+                    class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
             {{-- Status --}}
             <div class="relative w-full">
@@ -501,52 +616,56 @@
             </div>
         </div>
 
-        <div class="badges-row">
-            <!-- Total Demo Badge -->
-            <div style="background-color: #4F46E5;" class="badges">
-                TOTAL DEMO TYPE: <div style="float:right">{{ $totalDemos['ALL'] }}</div>
-            </div>
+        <!-- Demo Columns -->
+        <div class="w-full max-w-6xl p-6 mx-auto bg-white shadow-md rounded-xl">
+            <div class="flex gap-6">
 
-            <!-- New Demo Badge -->
-            <div style="background-color: var(--bg-demo-green); color: var(--text-demo-green);" class="badges">
-                NEW DEMO: <div style="float:right">{{ $totalDemos['NEW DEMO'] }}</div>
-            </div>
+                <!-- Demo Type -->
+                <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                    <h3 class="text-lg font-semibold">Demo Type</h3>
+                    <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] }}</p>
 
-            <!-- Second Demo Badge -->
-            <div style="background-color: var(--bg-demo-yellow); color: var(--text-demo-yellow);" class="badges">
-                WEBINAR DEMO: <div style="margin-left:0.5rem; float:right">{{ $totalDemos['WEBINAR DEMO'] }}</div>
-            </div>
+                    @foreach (['NEW DEMO' => '#22C55E', 'WEBINAR DEMO' => '#93C5FD', 'OTHERS' => '#6B7280'] as $type => $color)
+                        @php
+                            $count = $totalDemos[$type] ?? 0;
+                            $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
+                        @endphp
 
-            <!-- Webinar Demo Badge -->
-            <div style="background-color: var(--bg-demo-red); color: var(--text-demo-red);" class="badges">
-                OTHERS: <div style="float:right">{{ $totalDemos['OTHERS'] }}</div>
+                        <div class="flex justify-between mt-2 text-sm">
+                            <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
+                            <span>{{ $count }} ({{ $percentage }}%)</span>
+                        </div>
+                        <div class="w-full h-3 bg-gray-200 rounded-md">
+                            <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Demo Status -->
+                <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                    <h3 class="text-lg font-semibold">Demo Status</h3>
+                    <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] ?? 0 }}</p>
+
+                    @foreach (['DONE' => '#90EE90', 'NEW' => '#edc00099', 'CANCELLED' => '#FF7F7F'] as $status => $color)
+                        @php
+                            $count = $totalDemos[$status] ?? 0;
+                            $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
+                        @endphp
+
+                        <div class="flex justify-between mt-2 text-sm">
+                            <span>{{ ucfirst(strtolower($status)) }}</span>
+                            <span>{{ $count }} ({{ $percentage }}%)</span>
+                        </div>
+                        <div class="w-full h-3 bg-gray-200 rounded-md">
+                            <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                        </div>
+                    @endforeach
+                </div>
+
             </div>
         </div>
-
-        <div class="badges-row">
-            <!-- Total Demo Badge -->
-            <div style="background-color: #4F46E5;" class="badges">
-                TOTAL DEMO STATUS: <div style="float:right">{{ $totalDemos['ALL'] }}</div>
-            </div>
-
-            <!-- New Demo Badge -->
-            <div style="background-color: var(--bg-demo-green); color: var(--text-demo-green);" class="badges">
-                DONE: <div style="float:right">{{ $totalDemos['NEW DEMO'] }}</div>
-            </div>
-
-            <!-- Second Demo Badge -->
-            <div style="background-color: var(--bg-demo-yellow); color: var(--text-demo-yellow);" class="badges">
-                NEW DEMO: <div style="margin-left:0.5rem; float:right">{{ $totalDemos['WEBINAR DEMO'] }}</div>
-            </div>
-
-            <!-- Webinar Demo Badge -->
-            <div style="background-color: var(--bg-demo-red); color: var(--text-demo-red);" class="badges">
-                CANCELLED: <div style="float:right">{{ $totalDemos['OTHERS'] }}</div>
-            </div>
-        </div>
-
     </div>
-
+    <br>
     <!-- Calendar Section -->
     <div class="calendar-header">
         <div class="header-row">
