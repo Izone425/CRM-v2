@@ -13,6 +13,8 @@ use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
+use App\Filament\Pages\SalesAdminAnalysisV1;
+use App\Filament\Pages\SalesAdminAnalysisV2;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
@@ -89,6 +91,8 @@ class AdminPanelProvider extends PanelProvider
                 LeadAnalysis::class,
                 DemoAnalysis::class,
                 SalesForecast::class,
+                SalesAdminAnalysisV1::class,
+                SalesAdminAnalysisV2::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
