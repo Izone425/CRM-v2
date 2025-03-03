@@ -215,12 +215,12 @@ class Lead extends Model
         return $this->hasOne(CompanyDetail::class);
     }
 
-    public function getDealAmountAttribute()
-    {
-        return $this->quotations->sum(function ($quotation) {
-            return $quotation->items->sum('total_after_tax');
-        });
-    }
+    // public function getDealAmountAttribute()
+    // {
+    //     return $this->quotations->sum(function ($quotation) {
+    //         return $quotation->items->sum('total_after_tax');
+    //     });
+    // }
 
     protected static $productMapping = [
         'smart_parking' => 'Smart Parking Management (Cashless, LPR, Valet)',
