@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Classes\Encryptor;
+use App\Enums\LeadStatusEnum;
+use App\Filament\Actions\LeadActions;
+use App\Models\ActivityLog;
+use App\Models\Appointment;
+use App\Models\Lead;
+use App\Models\User;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Table;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Illuminate\Support\Carbon;
+use Livewire\Component;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Filament\Notifications\Notification;
+use Livewire\Attributes\On;
+
+class TransferLead extends Component implements HasForms, HasTable
+{
+    use InteractsWithTable;
+    use InteractsWithForms;
+
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
+    {
+        $this->selectedUser = $selectedUser;
+        session(['selectedUser' => $selectedUser]); // Store for consistency
+
+        $this->resetTable(); // Refresh the table
+    }
+
+    public function getTransferLead()
+    {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+
+        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
+
+        return Lead::query()
+            ->where('salesperson', $salespersonId)
+            ->where('stage', 'Transfer')
+            ->where('manual_follow_up_count', '>=', 4)
+            ->whereRaw('DATEDIFF(NOW(), created_at) > 37')
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+    }
+
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->poll('5s')
+            ->query($this->getTransferLead())
+            ->defaultSort('created_at', 'desc')
+            ->emptyState(fn () => view('components.empty-state-question'))
+            // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
+            ->columns([
+                TextColumn::make('companyDetail.company_name')
+                    ->label('Company Name')
+                    ->sortable()
+                    ->formatStateUsing(fn ($state, $record) =>
+                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
+                            target="_blank"
+                            class="inline-block"
+                            style="color:#338cf0;">
+                            ' . strtoupper(Str::limit($state ?? 'N/A', 10, '...')) . '
+                        </a>'
+                    )
+                    ->html(),
+                TextColumn::make('lead_status')
+                    ->label('Status')
+                    ->sortable(),
+                TextColumn::make('pending_days')
+                    ->label('Pending Days')
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days'))
+            ])
+            ->actions([
+                ActionGroup::make([
+                    LeadActions::getNoResponseAction(),
+                    LeadActions::getLeadDetailAction(),
+                    LeadActions::getViewAction(),
+                    LeadActions::getViewRemark(),
+                ])
+                ->button()
+                ->color('primary'),
+            ]);
+    }
+
+    public function render()
+    {
+        return view('livewire.transfer-lead');
+    }
+}

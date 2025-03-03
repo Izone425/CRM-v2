@@ -309,7 +309,7 @@ class DemoAppointmentRelationManager extends RelationManager
                     //     }),
                     Tables\Actions\Action::make('demo_cancel')
                         ->visible(fn (Appointment $appointment) =>
-                            now()->lte(Carbon::parse($appointment->appointment_date)->addHours(48))
+                            now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7))
                         )
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')

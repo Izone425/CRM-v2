@@ -9,6 +9,8 @@
 <livewire:demo-tmr-table />
 <livewire:pr-today-salesperson-table />
 <livewire:pr-overdue-salesperson-table />
+<livewire:transfer-lead />
+<livewire:follow-up-lead />
 <livewire:debtor-follow-up-today-table />
 <livewire:debtor-follow-up-overdue-table />
 <livewire:hrdf-follow-up-today-table />
