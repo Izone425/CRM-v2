@@ -935,8 +935,8 @@ class LeadActions
                     TextInput::make('deal_amount')
                         ->label('Deal Amount')
                         ->required()
-                        ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
-                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
+                        ->default(fn (Lead $record) => $record->deal_amount)
+                        ->visible(fn (Lead $record) => Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
                 ])
         ])
         ->color('success')
@@ -952,6 +952,7 @@ class LeadActions
                     'remark' => $data['remark'],
                     'follow_up_needed' => 0,
                     'follow_up_counter' => true,
+                    'manual_follow_up_count' => $lead->manual_follow_up_count + 1
                 ];
 
                 // Only update 'status' if it exists in $data
@@ -972,9 +973,8 @@ class LeadActions
                 }else{
                     $role = 'Manager';
                 }
-                info($role);
                 // Increment the follow-up count for the new description
-                $followUpDescription = $role .' Follow Up';
+                $followUpDescription = $role .' Follow Up '. $lead->manual_follow_up_count;
 
                 // Update or create the latest activity log description
                 $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -1141,6 +1141,7 @@ class LeadActions
                 ->label('Remarks')
                 ->rows(3)
                 ->autosize()
+                ->required()
                 ->reactive()
                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
         ])

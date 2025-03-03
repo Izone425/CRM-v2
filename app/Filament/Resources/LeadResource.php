@@ -23,13 +23,16 @@ use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelation
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Models\ActivityLog;
+use App\Models\InvalidLeadReason;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
@@ -431,7 +434,6 @@ class LeadResource extends Resource
                                                             }),
                                                     ])
                                                     ->schema([
-
                                                         Forms\Components\Placeholder::make('name')
                                                             ->label('Name')
                                                             ->content(fn ($record) => $record->companyDetail->name ?? '-'),
@@ -462,130 +464,105 @@ class LeadResource extends Resource
                                                                     ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
                                                                     : '-'),
                                                                 Actions::make([
-                                                                    Actions\Action::make('edit_status')
-                                                                        ->label('Edit')
-                                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                                                        ->form([
-                                                                            Grid::make() // Three columns layout
-                                                                            ->schema([
-                                                                                Forms\Components\Placeholder::make('current_status')
-                                                                                    ->label('Current Status')
-                                                                                    ->content(fn ($record) => ($record->stage ?? $record->categories)
-                                                                                    ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
-                                                                                    : '-'),
-                                                                                Forms\Components\Placeholder::make('arrow') // Arrow in the middle column
-                                                                                    ->content('----------->') // Unicode arrow or any arrow symbol
-                                                                                    ->columnSpan(1)
-                                                                                    ->label(''),
-                                                                                Forms\Components\Select::make('new_stage')
-                                                                                    ->label('New Stage')
+                                                                    Action::make('archive')
+                                                                    ->label(__('Edit'))
+                                                                    ->modalHeading('Mark Lead as Inactive')
+                                                                    ->form([
+                                                                        Placeholder::make('')
+                                                                            ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
+
+                                                                            Select::make('status')
+                                                                            ->label('INACTIVE STATUS')
+                                                                            ->options([
+                                                                                'On Hold' => 'On Hold',
+                                                                                'Junk' => 'Junk',
+                                                                                'Lost' => 'Lost',
+                                                                            ])
+                                                                            ->default('On Hold')
+                                                                            ->required()
+                                                                            ->reactive(), // Make status field reactive
+
+                                                                        Select::make('reason')
+                                                                            ->label('Select a Reason')
+                                                                            ->options(fn (callable $get) =>
+                                                                                InvalidLeadReason::where('lead_stage', $get('status')) // Filter based on selected status
+                                                                                    ->pluck('reason', 'id')
+                                                                                    ->toArray()
+                                                                            )
+                                                                            ->required()
+                                                                            ->reactive() // Make reason field update dynamically
+                                                                            ->createOptionForm([
+                                                                                Select::make('lead_stage')
                                                                                     ->options([
-                                                                                        'Inactive' => 'Inactive',
+                                                                                        'On Hold' => 'On Hold',
+                                                                                        'Junk' => 'Junk',
+                                                                                        'Lost' => 'Lost',
                                                                                     ])
-                                                                                    ->default('Inactive')
-                                                                                    ->disabled()
-                                                                                    ->reactive(),
-
-                                                                                Forms\Components\Select::make('new_lead_status')
-                                                                                    ->label('New Lead Status')
-                                                                                    ->options(fn ($get) => match ($get('new_stage')) {
-                                                                                        'New' => [
-                                                                                            'None' => 'None',
-                                                                                        ],
-                                                                                        'Transfer' => [
-                                                                                            'New' => 'New',
-                                                                                            'Under Review' => 'Under Review',
-                                                                                            'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                                            'Pending Demo' => 'Pending Demo',
-                                                                                            'Demo Cancelled' => 'Demo Cancelled',
-                                                                                        ],
-                                                                                        'Demo' => [
-                                                                                            'Demo-Assigned' => 'Demo-Assigned',
-                                                                                        ],
-                                                                                        'Follow Up' => [
-                                                                                            'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                                            'Hot' => 'Hot',
-                                                                                            'Warm' => 'Warm',
-                                                                                            'Cold' => 'Cold',
-                                                                                        ],
-                                                                                        'Inactive' => [
-                                                                                            'On Hold' => 'On Hold',
-                                                                                            'Lost' => 'Lost',
-                                                                                            'Closed' => 'Closed',
-                                                                                        ],
-                                                                                        default => [
-                                                                                            'None' => 'None',
-                                                                                            'New' => 'New',
-                                                                                            'RFQ-Transfer' => 'RFQ-Transfer',
-                                                                                            'Pending Demo' => 'Pending Demo',
-                                                                                            'Under Review' => 'Under Review',
-                                                                                            'Demo Cancelled' => 'Demo Cancelled',
-                                                                                            'Demo-Assigned' => 'Demo-Assigned',
-                                                                                            'RFQ-Follow Up' => 'RFQ-Follow Up',
-                                                                                            'Hot' => 'Hot',
-                                                                                            'Warm' => 'Warm',
-                                                                                            'Cold' => 'Cold',
-                                                                                            'Junk' => 'Junk',
-                                                                                            'On Hold' => 'On Hold',
-                                                                                            'Lost' => 'Lost',
-                                                                                            'No Response' => 'No Response',
-                                                                                            'Closed' => 'Closed',
-                                                                                        ],
-                                                                                    })
+                                                                                    ->default(fn (callable $get) => $get('status')) // Default lead_stage based on selected status
                                                                                     ->required(),
-                                                                            ])->columns(4),
+                                                                                TextInput::make('reason')
+                                                                                    ->label('New Reason')
+                                                                                    ->required(),
+                                                                            ])
+                                                                            ->createOptionUsing(function (array $data) {
+                                                                                $newReason = InvalidLeadReason::create([
+                                                                                    'lead_stage' => $data['lead_stage'],
+                                                                                    'reason' => $data['reason'],
+                                                                                ]);
 
-                                                                        ])
-                                                                        ->action(function ($record, $data) {
-                                                                            // Extract selected values
-                                                                            $newStage = $data['new_stage'] ?? null;
-                                                                            $newLeadStatus = $data['new_lead_status'];
+                                                                                return $newReason->id; // Return the newly created reason ID
+                                                                            }),
+                                                                        Textarea::make('remark')
+                                                                            ->label('Remarks')
+                                                                            ->rows(3)
+                                                                            ->autosize()
+                                                                            ->reactive()
+                                                                            ->required()
+                                                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                                                    ])
+                                                                    ->action(function (Lead $record, array $data) {
+                                                                        $statusLabels = [
+                                                                            'on_hold' => 'On Hold',
+                                                                            'junk' => 'Junk',
+                                                                            'lost' => 'Lost',
+                                                                        ];
 
-                                                                            // Update the record based on the selected values
-                                                                            $record->update([
-                                                                                'stage' => $newStage === 'Inactive' ? null : $newStage, // Set stage to null if $newStage is 'Inactive'
-                                                                                'lead_status' => $newLeadStatus,
-                                                                                'categories' => $newStage === 'Inactive' ? $newStage : $record->categories, // Update categories to newStage if it is 'Inactive'
+                                                                        $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
+
+                                                                        $lead = $record;
+
+                                                                        $lead->update([
+                                                                            'categories' => 'Inactive',
+                                                                            'lead_status' => $statusLabel,
+                                                                            'remark' => $data['remark'],
+                                                                            'stage' => null,
+                                                                            'follow_up_date' => null,
+                                                                            'follow_up_needed' => false,
+                                                                        ]);
+
+                                                                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                                                            ->orderByDesc('created_at')
+                                                                            ->first();
+                                                                        $reasonText = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
+
+                                                                        if ($latestActivityLog) {
+                                                                            $latestActivityLog->update([
+                                                                                'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
                                                                             ]);
-
-                                                                            // Fetch latest activity logs
-                                                                            $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
-                                                                                ->orderByDesc('created_at')
-                                                                                ->take(2)
-                                                                                ->get();
-
-                                                                            if ($latestActivityLogs->count() >= 2) {
-                                                                                // Update the first activity log
-                                                                                $latestActivityLogs[0]->update([
-                                                                                    'description' => 'Lead Stage updated to: ' . $newStage,
-                                                                                ]);
-
-                                                                                // Update the second activity log
-                                                                                $latestActivityLogs[1]->update([
-                                                                                    'description' => 'Lead Status updated to: ' . $newLeadStatus,
-                                                                                ]);
-                                                                            } elseif ($latestActivityLogs->count() === 1) {
-                                                                                // Update the single existing log if only one exists
-                                                                                $latestActivityLogs[0]->update([
-                                                                                    'description' => 'Lead Stage updated to: ' . $newStage . ' and Lead Status updated to: ' . $newLeadStatus,
-                                                                                ]);
-                                                                            }
 
                                                                             activity()
                                                                                 ->causedBy(auth()->user())
-                                                                                ->performedOn($record);
+                                                                                ->performedOn($lead)
+                                                                                ->log('Lead marked as inactive.');
+                                                                        }
 
-                                                                            // Notify the user of successful update
-                                                                            Notification::make()
-                                                                                ->title('Sales In-Charge Edited Successfully')
-                                                                                ->success()
-                                                                                ->send();
-                                                                        })
-                                                                        ->modalHeading('Edit Status')
-                                                                        ->modalDescription('You are about to change the status of this lead. Changing the lead
-                                                                                            status may trigger automated actions based on the new status.')
-                                                                        ->modalSubmitActionLabel('Confirm'),
-                                                                    ]),
+                                                                        Notification::make()
+                                                                            ->title('Lead Archived')
+                                                                            ->success()
+                                                                            ->body('You have successfully marked the lead as inactive.')
+                                                                            ->send();
+                                                                    }),
+                                                                ]),
                                                             ]),
                                                     ])
                                             ])->columnSpan(1),

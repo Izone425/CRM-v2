@@ -37,6 +37,7 @@ class Lead extends Model
         'follow_up_needed',
         'follow_up_counter',
         'follow_up_count',
+        'manual_follow_up_count',
         'rfq_followup_at',
         'rfq_transfer_at',
         'call_attempt',
@@ -69,7 +70,7 @@ class Lead extends Model
                 'follow_up_needed',
                 'follow_up_counter',
                 'follow_up_count',
-                'demo_follow_up_count',
+                'manual_follow_up_count',
                 'rfq_followup_at',
                 'call_attempt',
                 'done_call',
@@ -130,23 +131,14 @@ class Lead extends Model
 
     public function calculateDaysFromNewDemo()
     {
-        // Get the related demo appointment
-        $appointment = $this->demoAppointment()->first(); // Assuming a single appointment is linked
+        // Get the earliest demo appointment for this lead
+        $firstAppointment = $this->demoAppointment()->orderBy('created_at', 'asc')->first();
 
-        if (!$appointment) {
-            return '-'; // No appointment linked
+        if (!$firstAppointment) {
+            return '-'; // No appointments linked
         }
 
-        // Check the status of the appointment and calculate accordingly
-        if ($appointment->status === 'New') {
-            return $appointment->created_at->diffInDays(now());
-        } elseif ($appointment->status === 'Done') {
-            return $appointment->created_at->diffInDays($appointment->updated_at);
-        } elseif ($appointment->status === 'Cancelled') {
-            return '0'; // For cancelled appointments
-        }
-
-        return '-'; // Default case
+        return $firstAppointment->created_at->diffInDays(now());
     }
 
     public function calculateDaysFromRFQTransferToInactive()
