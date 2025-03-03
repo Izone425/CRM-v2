@@ -455,19 +455,7 @@ class LeadResource extends Resource
                                                             ->schema([
                                                                 Forms\Components\Placeholder::make('deal_amount')
                                                                     ->label('Deal Amount')
-                                                                    ->content(function (Lead $record) {
-                                                                        // Fetch the latest quotation for the lead
-                                                                        $latestQuotation = $record->quotations()->latest('created_at')->first();
-
-                                                                        // Determine the currency, defaulting to 'USD' if none is found
-                                                                        $currency = $latestQuotation->currency ?? 'USD';
-
-                                                                        // Format the deal_amount to two decimal places, defaulting to '0.00' if null
-                                                                        $dealAmount = $record->deal_amount ? number_format($record->deal_amount, 2) : '0.00';
-
-                                                                        // Return the formatted deal amount with the appropriate currency symbol
-                                                                        return $currency === 'MYR' ? "RM {$dealAmount}" : "$ {$dealAmount}";
-                                                                    }),
+                                                                    ->content(fn ($record) => $record ? 'RM ' . number_format($record->deal_amount, 2) : 'RM 0.00'),
                                                                 Forms\Components\Placeholder::make('status')
                                                                     ->label('Status')
                                                                     ->content(fn ($record) => ($record->stage ?? $record->categories)

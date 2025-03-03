@@ -922,7 +922,7 @@ class ActivityLogRelationManager extends RelationManager
                                     TextInput::make('deal_amount')
                                         ->label('Deal Amount')
                                         ->required()
-                                        ->default(fn (ActivityLog $record) => dd($record->lead->deal_amount))
+                                        ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
                                         ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
                                 ])
                             ])
@@ -939,7 +939,6 @@ class ActivityLogRelationManager extends RelationManager
                                 $updateData = [
                                     'follow_up_date' => $followUpDate,
                                     'remark' => $data['remark'],
-                                    'deal_amount' => $data['deal_amount'],
                                     'follow_up_needed' => 0,
                                     'follow_up_counter' => true,
                                 ];
@@ -949,7 +948,16 @@ class ActivityLogRelationManager extends RelationManager
                                     $updateData['lead_status'] = $data['status'];
                                 }
 
+                                if (isset($data['deal_amount'])) {
+                                    $updateData['deal_amount'] = $data['deal_amount'];
+                                    info($data['deal_amount']);
+                                }
+
                                 $lead->update($updateData);
+                                info($updateData);
+                                info($lead);
+                                $actualDealAmount = DB::table('leads')->where('id', $lead->id)->value('deal_amount');
+                                info('Database Deal Amount Direct Query: ' . $actualDealAmount);
 
                                 if(auth()->user()->role_id == 1){
                                     $role = 'Lead Owner';
@@ -958,7 +966,7 @@ class ActivityLogRelationManager extends RelationManager
                                 }else{
                                     $role = 'Manager';
                                 }
-                                info($role);
+
                                 // Increment the follow-up count for the new description
                                 $followUpDescription = $role .' Follow Up';
 
