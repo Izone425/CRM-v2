@@ -950,14 +950,9 @@ class ActivityLogRelationManager extends RelationManager
 
                                 if (isset($data['deal_amount'])) {
                                     $updateData['deal_amount'] = $data['deal_amount'];
-                                    info($data['deal_amount']);
                                 }
 
                                 $lead->update($updateData);
-                                info($updateData);
-                                info($lead);
-                                $actualDealAmount = DB::table('leads')->where('id', $lead->id)->value('deal_amount');
-                                info('Database Deal Amount Direct Query: ' . $actualDealAmount);
 
                                 if(auth()->user()->role_id == 1){
                                     $role = 'Lead Owner';
