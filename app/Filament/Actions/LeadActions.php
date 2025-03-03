@@ -935,10 +935,8 @@ class LeadActions
                     TextInput::make('deal_amount')
                         ->label('Deal Amount')
                         ->required()
-                        ->numeric()
-                        ->formatStateUsing(fn (ActivityLog $record) => optional($record->lead)->deal_amount ?? 0) // Ensures the field is always pre-filled
-                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && optional($record->lead)->stage === 'Follow Up'),
-
+                        ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
+                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
                 ])
         ])
         ->color('success')
@@ -959,6 +957,10 @@ class LeadActions
                 // Only update 'status' if it exists in $data
                 if (isset($data['status'])) {
                     $updateData['lead_status'] = $data['status'];
+                }
+
+                if (isset($data['deal_amount'])) {
+                    $updateData['deal_amount'] = $data['deal_amount'];
                 }
 
                 $lead->update($updateData);
