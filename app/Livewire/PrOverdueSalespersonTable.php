@@ -46,6 +46,7 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
 
         return Lead::query()
             ->where('salesperson', $salespersonId) // Filter by salesperson
+            ->where('categories', '!=', 'Inactive')
             ->whereDate('follow_up_date', '<', today())
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
             ->where('follow_up_counter', true);

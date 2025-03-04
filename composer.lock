@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cefacc68e110126e26c33cc6c326fe28",
+    "content-hash": "a0d7c5627a9c58d4b6f24bde2a29ba1c",
     "packages": [
         {
             "name": "alexjustesen/filament-spatie-laravel-activitylog",
@@ -9201,6 +9201,53 @@
                 "source": "https://github.com/ysfkaya/filament-phone-input/tree/v3.1.4"
             },
             "time": "2024-12-17T16:54:03+00:00"
+        },
+        {
+            "name": "zohocrm/php-sdk-8.0",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zoho/zohocrm-php-sdk-8.0.git",
+                "reference": "d92e315103aaa4c941d0efcd7346605845a32772"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zoho/zohocrm-php-sdk-8.0/zipball/d92e315103aaa4c941d0efcd7346605845a32772",
+                "reference": "d92e315103aaa4c941d0efcd7346605845a32772",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=7.1"
+            },
+            "require-dev": {
+                "phpunit/phpunit": ">=5.7"
+            },
+            "type": "sdk",
+            "autoload": {
+                "psr-4": {
+                    "": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Zoho CRM API Team",
+                    "email": "support@zohocrm.com",
+                    "homepage": "https://www.zoho.com/crm/help/customer-support.html",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Zoho CRM API SDK for PHP",
+            "homepage": "https://github.com/zoho/zohocrm-php-sdk-8.0",
+            "support": {
+                "source": "https://github.com/zoho/zohocrm-php-sdk-8.0/tree/1.0.0"
+            },
+            "time": "2025-02-14T05:15:51+00:00"
         }
     ],
     "packages-dev": [

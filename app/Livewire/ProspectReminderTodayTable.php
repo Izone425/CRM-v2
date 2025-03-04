@@ -54,6 +54,7 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
 
         return Lead::query()
             ->whereDate('follow_up_date', today())
+            ->where('categories', '!=', 'Inactive')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
             ->where('lead_owner', $leadOwner)
             ->where('follow_up_counter', true)

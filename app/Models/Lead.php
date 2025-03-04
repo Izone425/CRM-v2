@@ -18,6 +18,7 @@ class Lead extends Model
 
     protected $fillable = [
         'id',
+        'zoho_id',
         'name',
         'email',
         'phone',
@@ -44,6 +45,8 @@ class Lead extends Model
         'done_call',
         'salesperson_assigned_date',
         'deal_amount',
+        'created_at',
+        'updated_at'
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -51,6 +54,7 @@ class Lead extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'id',
+                'zoho_id',
                 'name',
                 'email',
                 'phone',
@@ -76,6 +80,8 @@ class Lead extends Model
                 'done_call',
                 'salesperson_assigned_date',
                 'deal_amount',
+                'created_at',
+                'updated_at'
             ]);
     }
 
@@ -205,6 +211,11 @@ class Lead extends Model
     public function companyDetail(): HasOne
     {
         return $this->hasOne(CompanyDetail::class);
+    }
+
+    public function utmDetail(): HasOne
+    {
+        return $this->hasOne(UtmDetail::class);
     }
 
     // public function getDealAmountAttribute()
