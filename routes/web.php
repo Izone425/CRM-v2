@@ -16,6 +16,12 @@ use App\Models\ChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
+use App\Models\Lead;
+use App\Models\CompanyDetail;
+use App\Models\UtmDetail;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +120,260 @@ Route::post('/webhook/whatsapp', function (Request $request) {
         'is_from_customer' => true,
         'media_url' => $mediaUrl, // ✅ Save media URL
         'media_type' => $mediaType, // ✅ Save media type
+    ]);
+});
+
+Route::get('/zoho/auth', function (Request $request) {
+    $clientId = env('ZOHO_CLIENT_ID');
+    $clientSecret = env('ZOHO_CLIENT_SECRET');
+    $redirectUri = env('ZOHO_REDIRECT_URI');
+
+    // ✅ Check if a valid access token exists
+    if (Cache::has('zoho_access_token')) {
+        return response()->json([
+            'message' => 'Using cached Zoho access token',
+            'access_token' => Cache::get('zoho_access_token')
+        ]);
+    }
+
+    // ✅ If no access token, check if a refresh token exists to refresh it
+    if (Cache::has('zoho_refresh_token')) {
+        $refreshToken = Cache::get('zoho_refresh_token');
+        $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+            'refresh_token' => $refreshToken,
+            'client_id'     => $clientId,
+            'client_secret' => $clientSecret,
+            'grant_type'    => 'refresh_token',
+        ]);
+
+        $tokenData = $tokenResponse->json();
+        Log::info('Zoho Token Refresh Response:', $tokenData);
+
+        if (isset($tokenData['access_token'])) {
+            Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+            return response()->json([
+                'message' => 'Zoho access token refreshed',
+                'access_token' => $tokenData['access_token']
+            ]);
+        }
+    }
+
+    // ✅ If no refresh token, redirect user to Zoho authentication
+    $authUrl = "https://accounts.zoho.com/oauth/v2/auth?" . http_build_query([
+        'client_id'     => $clientId,
+        'response_type' => 'code',
+        'scope'         => 'ZohoCRM.modules.all',
+        'redirect_uri'  => $redirectUri,
+        'access_type'   => 'offline',
+        'prompt'        => 'consent',
+    ]);
+
+    return redirect()->away($authUrl);
+});
+
+Route::get('/zoho/callback', function (Request $request) {
+    Log::info('Incoming Zoho Callback Data:', $request->all());
+
+    $code = $request->query('code');
+    if (!$code) {
+        return response()->json(['error' => 'No authorization code received'], 400);
+    }
+
+    $clientId = env('ZOHO_CLIENT_ID');
+    $clientSecret = env('ZOHO_CLIENT_SECRET');
+    $redirectUri = env('ZOHO_REDIRECT_URI');
+
+    // Exchange Code for Access Token
+    $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+        'code'          => $code,
+        'client_id'     => $clientId,
+        'client_secret' => $clientSecret,
+        'redirect_uri'  => $redirectUri,
+        'grant_type'    => 'authorization_code',
+    ]);
+
+    $tokenData = $tokenResponse->json();
+    Log::info('Zoho Token Response:', $tokenData);
+
+    if (!isset($tokenData['access_token'])) {
+        return response()->json(['error' => 'Failed to get access token', 'details' => $tokenData], 400);
+    }
+
+    // ✅ Store access token & refresh token
+    Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+    if (isset($tokenData['refresh_token'])) {
+        Cache::forever('zoho_refresh_token', $tokenData['refresh_token']);
+    }
+
+    return response()->json([
+        'message' => 'Zoho authentication successful',
+        'access_token' => $tokenData['access_token'],
+        'refresh_token' => $tokenData['refresh_token'] ?? 'Already stored',
+    ]);
+});
+
+Route::get('/zoho/leads', function (Request $request) {
+    $accessToken = Cache::get('zoho_access_token');
+    $apiDomain = 'https://www.zohoapis.com';
+
+    if (!$accessToken) {
+        return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
+    }
+
+    // ✅ Get the sorting parameter from the request (default to 'id')
+    $sortBy = $request->query('sort_by', 'id'); // Possible values: id, Created_Time, Modified_Time
+
+    // Fetch Leads from Zoho with sorting
+    $response = Http::withHeaders([
+        'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+        'Content-Type'  => 'application/json',
+    ])->get($apiDomain . '/crm/v2/Leads', [
+        'page'     => 1,
+        'per_page' => 200, // ✅ Max limit is 200, not 300
+        'criteria' => '(Created_Time:after:2025-03-01)'
+    ]);
+
+    $leadsData = $response->json();
+
+    if (!isset($leadsData['data']) || empty($leadsData['data'])) {
+        return response()->json(['error' => 'No leads found'], 400);
+    }
+
+    foreach ($leadsData['data'] as $lead) {
+        // ✅ Remove "+" from phone number
+        $phoneNumber = isset($lead['Phone']) ? preg_replace('/^\+/', '', $lead['Phone']) : null;
+
+        $leadCreatedTime = isset($lead['Created_Time'])
+        ? Carbon::parse($lead['Created_Time'])->format('Y-m-d H:i:s')
+        : null;
+
+        $leadUpdatedTime = isset($lead['Modified_Time'])
+        ? Carbon::parse($lead['Modified_Time'])->format('Y-m-d H:i:s')
+        : null;
+
+        // // ✅ Convert `Created_Time` to Carbon for filtering
+        // $leadCreatedTime = isset($lead['Created_Time']) ? Carbon::parse($lead['Created_Time']) : null;
+        // $filterDate = Carbon::parse('2025-03-01');
+
+        // // ✅ Skip leads created on or before 2025-03-01 (Only process leads after 2025-03-01)
+        // if ($leadCreatedTime && $leadCreatedTime->lte($filterDate)) {
+        //     Log::info("Skipping lead '{$lead['Full_Name']}' - created at {$lead['Created_Time']}");
+        //     continue;
+        // }
+
+        // ✅ Store lead first
+        $newLead = Lead::updateOrCreate(
+            ['lead_code' => $lead['utm_campaign'] ?? null],
+            [
+                'name'         => $lead['Full_Name'] ?? null,
+                'email'        => $lead['Email'] ?? null,
+                'country'      => $lead['Country'] ?? null,
+                'phone'        => $phoneNumber,
+                'lead_code'    => $lead['Lead_Source'] ?? null,
+                'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
+                'lead_source'  => $lead['Lead_Source'] ?? null,
+                'created_at'   => $leadCreatedTime,
+                'updated_at'   => $leadUpdatedTime,
+            ]
+        );
+
+        // ✅ Store company details separately & link to lead
+        $companyDetail = null;
+        if (!empty($lead['Company'])) {
+            $companyDetail = CompanyDetail::updateOrCreate(
+                ['company_name' => $lead['Company']], // Ensure no duplicate company
+                [
+                    'company_name' => $lead['Company'],
+                    'lead_id'      => $newLead->id, // ✅ Store lead_id in CompanyDetail
+                ]
+            );
+        }
+
+        // ✅ Update Lead to include company_id
+        $newLead->update([
+            'company_name' => $companyDetail->id ?? null, // ✅ Store company ID in lead table
+        ]);
+
+        // ✅ Store UTM details separately
+        UtmDetail::updateOrCreate(
+            ['lead_id' => $newLead->id],
+            [
+                'utm_campaign'  => isset($lead['utm_campaign']) ? (int) $lead['utm_campaign'] : null,
+                'utm_adgroup'   => isset($lead['utm_adgroup']) ? (int) $lead['utm_adgroup'] : null,
+                'utm_creative'  => $lead['utm_creative'] ?? null,
+                'utm_term'      => $lead['utm_term'] ?? null,
+                'utm_matchtype' => $lead['utm_matchtype'] ?? null,
+                'device'        => $lead['device'] ?? null,
+                'social_lead_id'=> $lead['leadchain0__Social_Lead_ID'] ?? null,
+                'gclid'         => $lead['GCLID'] ?? null,
+                'referrername'  => $lead['referrername2'] ?? null,
+            ]
+        );
+    }
+
+    return response()->json([
+        'message' => 'Leads and UTM details successfully saved to database!',
+        'sort_by' => $sortBy,
+        'leads_count' => count($leadsData['data'])
+    ]);
+});
+
+Route::get('/zoho/deals', function () {
+    $accessToken = Cache::get('zoho_access_token');
+    $apiDomain = 'https://www.zohoapis.com';
+
+    if (!$accessToken) {
+        return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
+    }
+
+    $allDeals = [];
+    $perPage = 200;
+    $page = 1;
+    $pageToken = null;
+
+    while (true) {
+        // ✅ API query parameters
+        $queryParams = [
+            'per_page' => $perPage,
+            'fields'   => 'Deal_Name,Account_Name,Stage,Amount,Closing_Date,Created_Time,Modified_Time',
+            'criteria' => '(Created_Time:after:2025-03-01)',
+        ];
+
+        if ($pageToken) {
+            $queryParams['page_token'] = $pageToken; // ✅ Use page_token for large data
+        } else {
+            $queryParams['page'] = $page; // ✅ Use normal page-based pagination first
+        }
+
+        // ✅ Fetch Deals from Zoho
+        $response = Http::withHeaders([
+            'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+            'Content-Type'  => 'application/json',
+        ])->get($apiDomain . '/crm/v2/Deals', $queryParams);
+
+        $dealsData = $response->json();
+
+        if (!isset($dealsData['data']) || empty($dealsData['data'])) {
+            break; // ✅ Stop if no more deals
+        }
+
+        // ✅ Merge deals into $allDeals
+        $allDeals = array_merge($allDeals, $dealsData['data']);
+
+        // ✅ Check if next_page_token exists
+        if (isset($dealsData['info']['next_page_token'])) {
+            $pageToken = $dealsData['info']['next_page_token'];
+        } else {
+            break; // ✅ Stop if no next page
+        }
+
+        $page++;
+    }
+
+    return response()->json([
+        'message' => 'All deals retrieved successfully',
+        'total_deals' => count($allDeals),
+        'deals' => $allDeals
     ]);
 });
 

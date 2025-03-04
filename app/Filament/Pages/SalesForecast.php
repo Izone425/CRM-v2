@@ -10,7 +10,7 @@ use App\Filament\Widgets\LeadChartWidget;
 class SalesForecast extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
-    protected static string $view = 'filament.pages.lead-analysis';
+    protected static string $view = 'filament.pages.sales-forecast';
     protected static ?string $navigationLabel = 'Sales Forecast';
     protected static ?string $title = 'Sales Forecast';
     protected static ?int $navigationSort = 9;

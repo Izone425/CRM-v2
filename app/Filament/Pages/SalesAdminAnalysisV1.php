@@ -39,6 +39,11 @@ class SalesAdminAnalysisV1 extends Page
     public $totalInactiveLeads = 0;
     public $inactiveLeadData = [];
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '2';
+    }
+
     public function mount()
     {
         $this->fetchLeads();

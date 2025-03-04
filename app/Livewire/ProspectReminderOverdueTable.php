@@ -55,6 +55,7 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
 
         return Lead::query()
             ->whereDate('follow_up_date', '<', today()) // Overdue follow-ups
+            ->where('categories', '!=', 'Inactive')
             ->where('lead_owner', $leadOwner) // Filter by authenticated user's name
             ->whereNull('salesperson') // Ensure salesperson is NULL
             ->where('follow_up_counter', true)

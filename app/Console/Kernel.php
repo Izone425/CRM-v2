@@ -27,6 +27,10 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('facebook:fetch-leads')->everyMinute();  //Runs every minutes
 
+        $schedule->command('userleave:update')->everyThreeHours(); // Runs every 3 hours
+
+        $schedule->command('zoho:fetch-leads')->everyMinute(); // Runs every hour
+
     }
 
     /**
