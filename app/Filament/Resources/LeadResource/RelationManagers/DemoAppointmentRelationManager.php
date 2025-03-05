@@ -37,6 +37,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
@@ -609,66 +610,124 @@ class DemoAppointmentRelationManager extends RelationManager
                             }
                         }),
 
-                    Forms\Components\Grid::make(3) // 3 columns for Date, Start Time, End Time
-                    ->schema([
-                        DatePicker::make('date')
-                            ->required()
-                            ->label('DATE')
-                            ->default(Carbon::today()->toDateString()),
+                        Grid::make(3) // 3 columns for Date, Start Time, End Time
+                            ->schema([
+                                DatePicker::make('date')
+                                    ->required()
+                                    ->label('DATE')
+                                    ->default(Carbon::today()->toDateString())
+                                    ->reactive(),
 
-                        Forms\Components\TimePicker::make('start_time')
-                            ->label('START TIME')
-                            ->required()
-                            ->seconds(false)
-                            ->reactive()
-                            ->default(function () {
-                                // Get the current time and round up to the next 30-minute interval
-                                $now = Carbon::now();
-                                return $now->addMinutes(30 - ($now->minute % 30))->format('H:i'); // Round up
-                            })
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                if ($get('mode') === 'auto' && $state) {
-                                    $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
-                                }
-                            })
-                            ->datalist(function (callable $get) {
-                                if ($get('mode') === 'custom') {
-                                    return []; // Return an empty list to disable the datalist
-                                }
+                                TimePicker::make('start_time')
+                                    ->label('START TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->reactive()
+                                    ->default(function () {
+                                        // Round up to the next 30-minute interval
+                                        $now = Carbon::now();
+                                        return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        $user = Auth::user();
+                                        $date = $get('date');
 
-                                $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30)); // Round to next 30 min
-                                for ($i = 0; $i < 48; $i++) { // Show next 5 available slots
-                                    $times[] = $startTime->format('H:i');
-                                    $startTime->addMinutes(30); // Increment by 30 minutes
-                                }
-                                return $times;
-                            }),
+                                        if ($get('mode') === 'custom') {
+                                            return []; // Custom mode: empty list
+                                        }
 
-                        Forms\Components\TimePicker::make('end_time')
-                            ->label('END TIME')
-                            ->required()
-                            ->seconds(false)
-                            ->reactive()
-                            ->default(function (callable $get) {
-                                // Default end_time to one hour after start_time
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
-                                return $startTime->addHour()->format('H:i');
-                            })
-                            ->datalist(function (callable $get) {
-                                if ($get('mode') === 'custom') {
-                                    return []; // Return an empty list to disable the datalist
-                                }
+                                        $times = [];
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
 
-                                $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30)); // Round to next 30 min
-                                for ($i = 0; $i < 48; $i++) { // Show next 5 available slots
-                                    $times[] = $startTime->format('H:i');
-                                    $startTime->addMinutes(30); // Increment by 30 minutes
-                                }
-                                return $times;
-                            }),
-                    ]),
+                                        if ($user && $user->role_id == 2 && $date) {
+                                            // Fetch booked time slots for this salesperson on the selected date
+                                            $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                                ->whereDate('date', $date)
+                                                ->pluck('end_time', 'start_time') // Start as key, End as value
+                                                ->toArray();
+
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $formattedTime = $startTime->format('H:i');
+
+                                                // Check if time is booked
+                                                $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                                    return $formattedTime >= $start && $formattedTime <= $end;
+                                                });
+
+                                                if (!$isBooked) {
+                                                    $times[] = $formattedTime;
+                                                }
+
+                                                $startTime->addMinutes(30);
+                                            }
+                                        } else {
+                                            // Default available slots
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $times[] = $startTime->format('H:i');
+                                                $startTime->addMinutes(30);
+                                            }
+                                        }
+
+                                        return $times;
+                                    })
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        if ($get('mode') === 'auto' && $state) {
+                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                        }
+                                    }),
+
+                                TimePicker::make('end_time')
+                                    ->label('END TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->reactive()
+                                    ->default(function (callable $get) {
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                        return $startTime->addHour()->format('H:i');
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        $user = Auth::user();
+                                        $date = $get('date');
+
+                                        if ($get('mode') === 'custom') {
+                                            return []; // Custom mode: empty list
+                                        }
+
+                                        $times = [];
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                                        if ($user && $user->role_id == 2 && $date) {
+                                            // Fetch booked time slots for this salesperson on the selected date
+                                            $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                                ->whereDate('date', $date)
+                                                ->pluck('end_time', 'start_time') // Start as key, End as value
+                                                ->toArray();
+
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $formattedTime = $startTime->format('H:i');
+
+                                                // Check if time is booked
+                                                $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                                    return $formattedTime >= $start && $formattedTime <= $end;
+                                                });
+
+                                                if (!$isBooked) {
+                                                    $times[] = $formattedTime;
+                                                }
+
+                                                $startTime->addMinutes(30);
+                                            }
+                                        } else {
+                                            // Default available slots
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $times[] = $startTime->format('H:i');
+                                                $startTime->addMinutes(30);
+                                            }
+                                        }
+
+                                        return $times;
+                                    }),
+                                ]),
 
                     Textarea::make('remarks')
                         ->label('REMARKS')

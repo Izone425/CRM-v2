@@ -73,14 +73,13 @@ class FetchZohoLeads extends Command
         $latestCreatedAt = $latestLead ? Carbon::parse($latestLead->created_at)->format('Y-m-d\TH:i:sP') : '2025-03-01T00:00:00+00:00';
 
         $allLeads = [];
-        $perPage = 10;
+        $perPage = 50;
         $page = 1;
         $pageToken = null;
 
         while (true) {
             $queryParams = [
                 'per_page' => $perPage,
-                'fields'   => 'Company,Email,Full_Name,Phone,Lead_Source,Created_Time,Modified_Time',
                 'criteria' => "(Created_Time:after:$latestCreatedAt)", // ✅ Fetch leads after the latest created_at
                 //'startDateTime' => '>2025-03-04T18:07:16'
             ];
@@ -103,6 +102,10 @@ class FetchZohoLeads extends Command
             }
 
             foreach ($leadsData['data'] as $lead) {
+                if (!isset($lead['TimeTec_Products']) || !in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'])) {
+                    continue; // ✅ Skip leads that don't match
+                }
+
                 $phoneNumber = isset($lead['Phone']) ? preg_replace('/^\+/', '', $lead['Phone']) : null;
 
                 $leadCreatedTime = isset($lead['Created_Time'])
@@ -118,6 +121,7 @@ class FetchZohoLeads extends Command
                         'name'         => $lead['Full_Name'] ?? null,
                         'email'        => $lead['Email'] ?? null,
                         'country'      => $lead['Country'] ?? null,
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? null), // ✅ Normalize before storing
                         'phone'        => $phoneNumber,
                         'lead_code'    => $lead['Lead_Source'] ?? null,
                         'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
@@ -169,7 +173,43 @@ class FetchZohoLeads extends Command
 
             $page++;
         }
+    }
 
-        $this->info('Leads successfully retrieved and saved.');
+    private function normalizeCompanySize($size)
+    {
+        if (!$size) {
+            return null;
+        }
+
+        // Remove extra spaces and normalize the value
+        $normalizedSize = str_replace(' ', '', $size);
+
+        switch ($normalizedSize) {
+            case '1-24':
+            case '1- 24':
+            case '1 -24':
+            case '1 - 24':
+                return '1-24'; // ✅ Normalized as Small
+
+            case '25-99':
+            case '25- 99':
+            case '25 -99':
+            case '25 - 99':
+                return '25-99'; // ✅ Normalized as Medium
+
+            case '100-500':
+            case '100- 500':
+            case '100 -500':
+            case '100 - 500':
+                return '100-500'; // ✅ Normalized as Large
+
+            case '501andAbove':
+            case '501-and-Above':
+            case '501 and Above':
+                return '501 and Above'; // ✅ Normalized as Enterprise
+
+            default:
+                return 'Unknown'; // ✅ Fallback if not recognized
+        }
     }
 }

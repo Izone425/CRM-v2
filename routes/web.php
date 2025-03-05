@@ -335,7 +335,6 @@ Route::get('/zoho/deals', function () {
         // ✅ API query parameters
         $queryParams = [
             'per_page' => $perPage,
-            'fields'   => 'Deal_Name,Account_Name,Stage,Amount,Closing_Date,Created_Time,Modified_Time',
             'criteria' => '(Created_Time:after:2025-03-01)',
         ];
 
