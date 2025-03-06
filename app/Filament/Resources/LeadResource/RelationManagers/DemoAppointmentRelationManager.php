@@ -788,15 +788,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         return; // Exit if no valid email is found
                     }
 
-                    $organizerEmail = $salesperson->email; // Get the salesperson's email
-
-                    // $requiredAttendees = is_string($data['required_attendees'])
-                    //     ? json_decode($data['required_attendees'], true)
-                    //     : $data['required_attendees']; // Handle already-decoded data or string
-
-                    // $optionalAttendees = is_string($data['optional_attendees'])
-                    //     ? json_decode($data['optional_attendees'], true)
-                    //     : $data['optional_attendees']; // Handle already-decoded data or string
+                    $organizerEmail = $salesperson->email;
 
                     $meetingPayload = [
                         'start' => [
@@ -871,6 +863,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     'salespersonName' => $salespersonUser->name ?? 'N/A',
                                     'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
                                     'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                    'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
                                     'phone' =>$contactNo ?? 'N/A',
                                     'pic' => $picName ?? 'N/A',
                                     'email' => $email ?? 'N/A',

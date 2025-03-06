@@ -34,7 +34,12 @@
             {{ \Carbon\Carbon::parse($lead['endTime'])->format('h:iA') }}
         </li>
         @if($lead['appointment_type'] === 'ONLINE' && !empty($lead['meetingLink']))
-            <li><strong>Meeting Link:</strong> <a href="{{ $lead['meetingLink'] }}" target="_blank">{{ $lead['meetingLink'] }}</a></li>
+            <li>
+                <strong>Meeting Link:</strong>
+                <a href="{{ $lead['demo_type'] === 'WEBINAR DEMO' ? $lead['salespersonMeetingLink'] : $lead['meetingLink'] }}" target="_blank">
+                    {{ $lead['demo_type'] === 'WEBINAR DEMO' ? $lead['salespersonMeetingLink'] : $lead['meetingLink'] }}
+                </a>
+            </li>
         @elseif($lead['appointment_type'] === 'ONSITE')
             <li><strong>Demo Location:</strong> ONSITE DEMO AT PROSPECT OFFICE</li>
         @endif

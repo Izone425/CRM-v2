@@ -633,6 +633,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'salespersonName' => $salespersonUser->name ?? 'N/A',
                                         'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
                                         'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                        'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
                                         'phone' =>$contactNo ?? 'N/A',
                                         'pic' => $picName ?? 'N/A',
                                         'email' => $email ?? 'N/A',
