@@ -128,6 +128,7 @@ class FetchZohoLeads extends Command
                         'lead_source'  => $lead['Lead_Source'] ?? null,
                         'created_at'   => $leadCreatedTime,
                         'updated_at'   => $leadUpdatedTime,
+                        'lead_owner'   => '[ADMIN] JAJA',
                     ]
                 );
 
