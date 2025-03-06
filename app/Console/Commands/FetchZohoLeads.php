@@ -102,7 +102,7 @@ class FetchZohoLeads extends Command
             }
 
             foreach ($leadsData['data'] as $lead) {
-                if (!isset($lead['TimeTec_Products']) || !in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'])) {
+                if (!in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'])) {
                     continue; // ✅ Skip leads that don't match
                 }
 
@@ -128,6 +128,7 @@ class FetchZohoLeads extends Command
                         'lead_source'  => $lead['Lead_Source'] ?? null,
                         'created_at'   => $leadCreatedTime,
                         'updated_at'   => $leadUpdatedTime,
+                        'lead_owner'   => '[ADMIN] JAJA',
                     ]
                 );
 

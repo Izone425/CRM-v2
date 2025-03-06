@@ -29,8 +29,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('userleave:update')->everyThreeHours(); // Runs every 3 hours
 
-        $schedule->command('zoho:fetch-leads')->hourly(); // Runs every hour
-
+        $schedule->command('zoho:fetch-leads')->cron('*/15 6-21 * * *'); // Runs every 15 minutes between 6 AM and 9 PM
     }
 
     /**
