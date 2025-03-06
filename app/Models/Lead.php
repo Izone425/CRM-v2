@@ -45,7 +45,6 @@ class Lead extends Model
         'done_call',
         'salesperson_assigned_date',
         'deal_amount',
-        'contact_id',
         'created_at',
         'updated_at'
     ];
@@ -81,7 +80,6 @@ class Lead extends Model
                 'done_call',
                 'salesperson_assigned_date',
                 'deal_amount',
-                'contact_id',
                 'created_at',
                 'updated_at'
             ]);
