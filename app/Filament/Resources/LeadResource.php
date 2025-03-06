@@ -1467,7 +1467,7 @@ class LeadResource extends Resource
                 TextColumn::make('company_name')
                     ->label('COMPANY NAME')
                     ->weight(FontWeight::Bold)
-                    ->getStateUsing(fn (Lead $record) => \App\Models\CompanyDetail::find($record->company_name)?->company_name ?? '-'),
+                    ->getStateUsing(fn (Lead $record) => $record->companyDetail?->company_name ?? '-'),
                 TextColumn::make('from_lead_created')
                     ->label('FROM LEAD CREATED')
                     ->getStateUsing(fn (Lead $record) =>
