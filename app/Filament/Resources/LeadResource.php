@@ -436,13 +436,13 @@ class LeadResource extends Resource
                                                     ->schema([
                                                         Forms\Components\Placeholder::make('name')
                                                             ->label('Name')
-                                                            ->content(fn ($record) => $record->companyDetail->name ?? '-'),
+                                                            ->content(fn ($record) => $record->companyDetail->name ?? $record->name),
                                                         Forms\Components\Placeholder::make('contact_no')
                                                             ->label('Contact No.')
-                                                            ->content(fn ($record) => $record->companyDetail->contact_no ?? '-'),
+                                                            ->content(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
                                                         Forms\Components\Placeholder::make('email')
                                                             ->label('Email Address')
-                                                            ->content(fn ($record) => $record->companyDetail->email ?? '-'),
+                                                            ->content(fn ($record) => $record->companyDetail->email ?? $record->email),
                                                     ]),
                                                 ])->columnSpan(1),
                                         Forms\Components\Grid::make(1) // Nested grid for left side (single column)
