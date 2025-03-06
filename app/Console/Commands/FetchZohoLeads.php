@@ -10,6 +10,8 @@ use Carbon\Carbon;
 use App\Models\Lead;
 use App\Models\CompanyDetail;
 use App\Models\UtmDetail;
+use App\Models\ActivityLog;
+use App\Models\ReferralDetail;
 
 class FetchZohoLeads extends Command
 {
@@ -18,8 +20,8 @@ class FetchZohoLeads extends Command
 
     public function handle()
     {
-        $this->refreshZohoAccessToken(); // ✅ Ensure token is valid before fetching leads
-        $this->fetchZohoLeads(); // ✅ Fetch and store leads
+        $this->refreshZohoAccessToken();
+        $this->fetchZohoLeads();
     }
 
     private function refreshZohoAccessToken()
@@ -102,8 +104,29 @@ class FetchZohoLeads extends Command
             }
 
             foreach ($leadsData['data'] as $lead) {
-                if (!in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'])) {
-                    continue; // ✅ Skip leads that don't match
+                // ✅ Skip leads that don't have the required product
+                // if (!in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'] ?? [])) {
+                //     continue;
+                // }
+
+                // ✅ Skip leads if 'Status_Division' is NOT NULL
+                if (!empty($lead['Status_Division'])) {
+                    continue;
+                }
+
+                // ✅ Skip leads if 'Tag' does NOT contain "HR Malaysia"
+                $hasHRMalaysiaTag = false;
+                if (!empty($lead['Tag']) && is_array($lead['Tag'])) {
+                    foreach ($lead['Tag'] as $tag) {
+                        if (isset($tag['name']) && $tag['name'] === 'HR Malaysia') {
+                            $hasHRMalaysiaTag = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$hasHRMalaysiaTag) {
+                    continue; // ✅ Skip if "HR Malaysia" tag is not found
                 }
 
                 $phoneNumber = isset($lead['Phone']) ? preg_replace('/^\+/', '', $lead['Phone']) : null;
@@ -111,58 +134,75 @@ class FetchZohoLeads extends Command
                 $leadCreatedTime = isset($lead['Created_Time'])
                     ? Carbon::parse($lead['Created_Time'])->format('Y-m-d H:i:s')
                     : null;
-                $leadUpdatedTime = isset($lead['Modified_Time'])
-                    ? Carbon::parse($lead['Modified_Time'])->format('Y-m-d H:i:s')
-                    : null;
 
-                $newLead = Lead::updateOrCreate(
-                    ['zoho_id' => $lead['id'] ?? null],
-                    [
-                        'name'         => $lead['Full_Name'] ?? null,
-                        'email'        => $lead['Email'] ?? null,
-                        'country'      => $lead['Country'] ?? null,
-                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? null), // ✅ Normalize before storing
-                        'phone'        => $phoneNumber,
-                        'lead_code'    => $lead['Lead_Source'] ?? null,
-                        'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
-                        'lead_source'  => $lead['Lead_Source'] ?? null,
-                        'created_at'   => $leadCreatedTime,
-                        'updated_at'   => $leadUpdatedTime,
-                    ]
-                );
+                // ✅ Check if lead already exists; if so, skip creation
+                $existingLead = Lead::where('zoho_id', $lead['id'] ?? null)->exists();
+                if ($existingLead) {
+                    continue; // ✅ Skip if lead exists
+                }
 
+                // ✅ Create a new lead (no updates for existing ones)
+                $newLead = Lead::create([
+                    'zoho_id'      => $lead['id'] ?? null,
+                    'name'         => $lead['Full_Name'] ?? null,
+                    'email'        => $lead['Email'] ?? null,
+                    'country'      => $lead['Country'] ?? null,
+                    'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? null), // ✅ Normalize before storing
+                    'phone'        => $phoneNumber,
+                    'lead_code'    => $lead['Lead_Source'] ?? null,
+                    'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
+                    'lead_source'  => $lead['Lead_Source'] ?? null,
+                    'created_at'   => $leadCreatedTime,
+                ]);
+
+                $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                // ✅ Update the latest activity log description
+                if ($latestActivityLog) {
+                    $latestActivityLog->update([
+                        'description' => 'New lead created',
+                    ]);
+                }
+
+                // ✅ Only create company if a new lead was inserted
                 if (!empty($lead['Company'])) {
-                    $companyDetail = CompanyDetail::updateOrCreate(
-                        ['company_name' => $lead['Company']],
-                        [
-                            'company_name' => $lead['Company'],
-                            'lead_id'      => $newLead->id,
-                        ]
-                    );
+                    $companyDetail = CompanyDetail::create([
+                        'company_name' => $lead['Company'],
+                        'lead_id'      => $newLead->id,
+                    ]);
 
                     $newLead->update([
                         'company_id' => $companyDetail->id ?? null,
                     ]);
                 }
 
-                $newLead->update([
-                    'company_name' => $companyDetail->id ?? null, // ✅ Store company ID in lead table
+                // ✅ Only create UTM details if a new lead was inserted
+                UtmDetail::create([
+                    'lead_id'       => $newLead->id,
+                    'utm_campaign'  => $lead['utm_campaign'] ?? null,
+                    'utm_adgroup'   => $lead['utm_adgroup'] ?? null,
+                    'utm_creative'  => $lead['utm_creative'] ?? null,
+                    'utm_term'      => $lead['utm_term'] ?? null,
+                    'utm_matchtype' => $lead['utm_matchtype'] ?? null,
+                    'device'        => $lead['device'] ?? null,
+                    'social_lead_id'=> $lead['leadchain0__Social_Lead_ID'] ?? null,
+                    'gclid'         => $lead['GCLID'] ?? null,
+                    'referrername'  => $lead['referrername2'] ?? null,
                 ]);
 
-                UtmDetail::updateOrCreate(
-                    ['lead_id' => $newLead->id],
-                    [
-                        'utm_campaign'  => $lead['utm_campaign'] ?? null,
-                        'utm_adgroup'   => $lead['utm_adgroup'] ?? null,
-                        'utm_creative'  => $lead['utm_creative'] ?? null,
-                        'utm_term'      => $lead['utm_term'] ?? null,
-                        'utm_matchtype' => $lead['utm_matchtype'] ?? null,
-                        'device'        => $lead['device'] ?? null,
-                        'social_lead_id'=> $lead['leadchain0__Social_Lead_ID'] ?? null,
-                        'gclid'         => $lead['GCLID'] ?? null,
-                        'referrername'  => $lead['referrername2'] ?? null,
-                    ]
-                );
+                if (isset($lead['Lead_Source']) && $lead['Lead_Source'] === 'Refer & Earn') {
+                    ReferralDetail::create([
+                        'lead_id'     => $newLead->id,
+                        'company'     => $lead['Referee_Company_Name'] ?? null,
+                        'name'        => $lead['Referee_Name'] ?? null,
+                        'email'       => $lead['Referee_Email'] ?? null,
+                        'contact_no'  => $lead['Referee_Phone'] ?? null,
+                        'created_at'  => $leadCreatedTime ?? now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
             }
 
             if (isset($leadsData['info']['next_page_token'])) {
@@ -173,6 +213,7 @@ class FetchZohoLeads extends Command
 
             $page++;
         }
+        $this->info('Zoho Leads Fetched Successfully');
     }
 
     private function normalizeCompanySize($size)
