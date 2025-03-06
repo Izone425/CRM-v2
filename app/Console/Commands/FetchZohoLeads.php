@@ -11,6 +11,7 @@ use App\Models\Lead;
 use App\Models\CompanyDetail;
 use App\Models\UtmDetail;
 use App\Models\ActivityLog;
+use App\Models\ReferralDetail;
 
 class FetchZohoLeads extends Command
 {
@@ -190,6 +191,18 @@ class FetchZohoLeads extends Command
                     'gclid'         => $lead['GCLID'] ?? null,
                     'referrername'  => $lead['referrername2'] ?? null,
                 ]);
+
+                if (isset($lead['Lead_Source']) && $lead['Lead_Source'] === 'Refer & Earn') {
+                    ReferralDetail::create([
+                        'lead_id'     => $newLead->id,
+                        'company'     => $lead['Referee_Company_Name'] ?? null,
+                        'name'        => $lead['Referee_Name'] ?? null,
+                        'email'       => $lead['Referee_Email'] ?? null,
+                        'contact_no'  => $lead['Referee_Phone'] ?? null,
+                        'created_at'  => $leadCreatedTime ?? now(),
+                        'updated_at'  => now(),
+                    ]);
+                }
             }
 
             if (isset($leadsData['info']['next_page_token'])) {
