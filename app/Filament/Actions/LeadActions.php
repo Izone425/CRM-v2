@@ -85,7 +85,7 @@ class LeadActions
 
                         TextInput::make('name')
                             ->label('PIC Name')
-                            ->default($record->companyDetail->name ?? $record->companyDetail->company_name)
+                            ->default($record->companyDetail->name ?? $record->name)
                             ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
 
                         TextInput::make('contact_no')

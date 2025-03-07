@@ -5,6 +5,8 @@ namespace App\Imports;
 use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\CompanyDetail;
+use App\Models\ReferralDetail;
+use App\Models\UtmDetail;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithStartRow;
@@ -33,22 +35,26 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                 if (isset($row['status_division'])) {
                     $status = trim($row['status_division']);
 
-                    if ($status === '(2) Active - 24 Below' || $status === '(1) Active - 25 Above') {
+                    if ($status === '(1) Active - 25 Above' || $status === '(2) Active - 24 Below') {
                         $categories = 'Active';
                         $stage = 'Transfer';
                         $lead_status = 'Under Review';
-                    } elseif ($status === '[02] QUOTATION B4 DEMO') {
+                    } elseif ($status === '(3) Follow Up - 25 Above' || $status === '(3) Follow Up - 24 Below') {
                         $categories = 'Active';
                         $stage = 'Transfer';
-                        $lead_status = 'RFQ-Transfer';
-                    } elseif ($status === '[03] DEMO - PENDING') { // Duplicate condition, might need correction
-                        $categories = 'Active';
-                        $stage = 'Follow Up';
-                        $lead_status = 'Hot';
-                    } elseif ($status === '[07] LEADS - WARM') {
-                        $categories = 'Active';
-                        $stage = 'Follow Up';
-                        $lead_status = 'Warm';
+                        $lead_status = 'Under Review';
+                    } elseif ($status === '(5) No Response - 25 Above' || $status === '(6) No Response - 24 Below') {
+                        $categories = 'Inactive';
+                        $stage = null;
+                        $lead_status = 'No Response';
+                    } elseif ($status === '(7) Leads - Junk') {
+                        $categories = 'Inactive';
+                        $stage = null;
+                        $lead_status = 'Junk';
+                    } elseif ($status === '(8) Leads - On Hold') {
+                        $categories = 'Inactive';
+                        $stage = null;
+                        $lead_status = 'On Hold';
                     } else {
                         // Default values if no conditions match
                         $categories = null;
@@ -65,6 +71,7 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                         ['company_name' => $row['company']]  // If not found, create it
                     );
                 }
+                $leadOwner = ($this->normalizeCompanySize($lead['company_size'] ?? null) === '1-24') ? 'Siti Afifah' : 'Nurul Najaa Nadiah';
 
                 // ✅ Insert or update lead, storing company_id instead of company_name
                 $newLead = Lead::updateOrCreate(
@@ -80,6 +87,7 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                         'categories'   => $categories,  // ✅ Set to 'Active' if condition met
                         'stage'        => $stage,       // ✅ Set to 'Transfer' if condition met
                         'lead_status'  => $lead_status, // ✅ Set to 'Under Review' if condition met
+                        'lead_owner'   => $leadOwner,
                         'created_at'   => $createdTime,
                         'updated_at'   => now(),
                     ]
@@ -88,6 +96,27 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                 if ($company && empty($company->lead_id)) {
                     $company->update(['lead_id' => $newLead->id]);
                 }
+
+                ReferralDetail::create([
+                    'lead_id'     => $newLead->id,
+                    'company'     => $row['Referee_Company_Name'] ?? null,
+                    'name'        => $row['referrername'] ?? null,
+                    'email'       => $row['Referee_Email'] ?? null,
+                    'contact_no'  => $row['Referee_Phone'] ?? null,
+                    'created_at'  => $leadCreatedTime ?? now(),
+                    'updated_at'  => now(),
+                ]);
+
+                UtmDetail::create([
+                    'lead_id'       => $newLead->id,
+                    'utm_campaign'  => $row['utm_campaign'] ?? null,
+                    'utm_adgroup'   => $row['utm_adgroup'] ?? null,
+                    'utm_creative'  => $row['utm_creative'] ?? null,
+                    'utm_term'      => $row['utm_term'] ?? null,
+                    'utm_matchtype' => $row['utm_matchtype'] ?? null,
+                    'device'        => $row['device'] ?? null,
+                    'social_lead_id'=> $row['social_lead_id'] ?? null,
+                ]);
 
                 $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
                     ->orderByDesc('created_at')
@@ -107,7 +136,7 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
 
     public function startRow(): int
     {
-        return 2; // ✅ Skip headers
+        return 1001; // ✅ Skip headers
     }
 
     private function normalizeCompanySize($size)
