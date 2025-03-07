@@ -1586,45 +1586,45 @@ class LeadResource extends Resource
                             ->success()
                             ->send();
                     }),
-                    Tables\Actions\Action::make('resetLead')
-                        ->label(__('Reset Lead'))
-                        ->color('warning')
-                        ->size(ActionSize::Small)
-                        ->button()
-                        ->visible(fn (Lead $record) => !is_null($record->lead_owner))
-                        ->action(function (Lead $record) {
-                            // Reset the specific lead record
-                            $record->update([
-                                'categories' => 'New',
-                                'stage' => 'New',
-                                'lead_status' => 'None',
-                                'lead_owner' => null,
-                                'remark' => null,
-                                'follow_up_date' => null,
-                                'salesperson' => null,
-                                'salesperson_assigned_date' => null,
-                                'demo_appointment' => null,
-                                'rfq_followup_at' => null,
-                                'follow_up_counter' => 0,
-                                'follow_up_needed' => 0,
-                                'follow_up_count' => 0,
-                                'call_attempt' => 0,
-                                'done_call' => 0
-                            ]);
+                    // Tables\Actions\Action::make('resetLead')
+                    //     ->label(__('Reset Lead'))
+                    //     ->color('warning')
+                    //     ->size(ActionSize::Small)
+                    //     ->button()
+                    //     ->visible(fn (Lead $record) => !is_null($record->lead_owner))
+                    //     ->action(function (Lead $record) {
+                    //         // Reset the specific lead record
+                    //         $record->update([
+                    //             'categories' => 'New',
+                    //             'stage' => 'New',
+                    //             'lead_status' => 'None',
+                    //             'lead_owner' => null,
+                    //             'remark' => null,
+                    //             'follow_up_date' => null,
+                    //             'salesperson' => null,
+                    //             'salesperson_assigned_date' => null,
+                    //             'demo_appointment' => null,
+                    //             'rfq_followup_at' => null,
+                    //             'follow_up_counter' => 0,
+                    //             'follow_up_needed' => 0,
+                    //             'follow_up_count' => 0,
+                    //             'call_attempt' => 0,
+                    //             'done_call' => 0
+                    //         ]);
 
-                            // Delete all related data
-                            DB::table('appointments')->where('lead_id', $record->id)->delete();
-                            DB::table('system_questions')->where('lead_id', $record->id)->delete();
-                            DB::table('bank_details')->where('lead_id', $record->id)->delete();
-                            DB::table('activity_logs')->where('subject_id', $record->id)->delete();
-                            DB::table('quotations')->where('lead_id', $record->id)->delete();
+                    //         // Delete all related data
+                    //         DB::table('appointments')->where('lead_id', $record->id)->delete();
+                    //         DB::table('system_questions')->where('lead_id', $record->id)->delete();
+                    //         DB::table('bank_details')->where('lead_id', $record->id)->delete();
+                    //         DB::table('activity_logs')->where('subject_id', $record->id)->delete();
+                    //         DB::table('quotations')->where('lead_id', $record->id)->delete();
 
-                            // Send a notification after resetting the lead
-                            Notification::make()
-                                ->title('Lead Reset Successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         // Send a notification after resetting the lead
+                    //         Notification::make()
+                    //             ->title('Lead Reset Successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
                     Tables\Actions\ViewAction::make()
                         ->url(fn ($record) => route('filament.admin.resources.leads.view', [
                             'record' => Encryptor::encrypt($record->id),

@@ -79,8 +79,8 @@ class SalesAdminAnalysisV1 extends Page
         $leads = $query->get();
         $this->totalLeads = $leads->count();
         $this->newLeads = $leads->where('categories', 'New')->count();
-        $this->jajaLeads = $leads->where('lead_owner', '[ADMIN] JAJA')->count();
-        $this->afifahLeads = $leads->where('lead_owner', '[ADMIN] AFIFAH')->count();
+        $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
+        $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
 
         $this->newPercentage = $this->totalLeads > 0 ? round(($this->newLeads / $this->totalLeads) * 100, 2) : 0;
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;

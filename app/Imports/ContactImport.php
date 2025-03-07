@@ -18,7 +18,7 @@ class ContactImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithH
 {
     public function collection(Collection $collection)
     {
-        Log::info("Importing " . count($collection) . " leads.");
+        // Log::info("Importing " . count($collection) . " leads.");
 
         foreach ($collection as $row) {
             Log::info("Processing lead: " . json_encode($row));
