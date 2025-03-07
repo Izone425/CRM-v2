@@ -24,8 +24,6 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
             if (!empty($row['created_time'])) {
                 $createdTime = Carbon::parse($row['created_time'])->toDateTimeString();
 
-                Log::info("Processing lead: " . json_encode($row));
-
                 // ✅ Default values
                 $categories = null;
                 $stage = null;
@@ -65,13 +63,12 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
 
                 // ✅ Check if company exists in CompanyDetail table, otherwise create it
                 $company = null;
-                if (!empty($row['company'])) {
-                    $company = CompanyDetail::firstOrCreate(
-                        ['company_name' => $row['company']], // Find by company name
-                        ['company_name' => $row['company']]  // If not found, create it
-                    );
-                }
-                $leadOwner = ($this->normalizeCompanySize($lead['company_size'] ?? null) === '1-24') ? 'Siti Afifah' : 'Nurul Najaa Nadiah';
+                $company = CompanyDetail::firstOrCreate(
+                    ['company_name' => $row['company']], // Find by company name
+                    ['company_name' => $row['company']]  // If not found, create it
+                );
+
+                $leadOwner = ($this->normalizeCompanySize($row['company_size'] ?? null) === '1-24') ? 'Siti Afifah' : 'Nurul Najaa Nadiah';
 
                 // ✅ Insert or update lead, storing company_id instead of company_name
                 $newLead = Lead::updateOrCreate(
@@ -136,7 +133,7 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
 
     public function startRow(): int
     {
-        return 1001; // ✅ Skip headers
+        return 2; // ✅ Skip headers
     }
 
     private function normalizeCompanySize($size)

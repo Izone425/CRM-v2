@@ -12,7 +12,6 @@ use App\Models\CompanyDetail;
 use App\Models\UtmDetail;
 use App\Models\ActivityLog;
 use App\Models\ReferralDetail;
-use App\Models\ZohoToken;
 
 class FetchZohoLeads extends Command
 {
@@ -27,65 +26,43 @@ class FetchZohoLeads extends Command
 
     private function refreshZohoAccessToken()
     {
-        info('Refreshing Zoho Access Token...');
+        info('Token Get ' . now());
 
         $clientId = env('ZOHO_CLIENT_ID');
         $clientSecret = env('ZOHO_CLIENT_SECRET');
 
-        $tokenData = ZohoToken::latest()->first();
-
-        if ($tokenData && now()->lt($tokenData->expires_at)) {
-            info('Using stored Zoho access token.');
-            return $tokenData->access_token;
+        if (Cache::has('zoho_access_token')) {
+            $this->info('Using cached Zoho access token.');
+            return;
         }
 
-        if ($tokenData && $tokenData->refresh_token) {
-            $response = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
-                'refresh_token' => $tokenData->refresh_token,
+        if (Cache::has('zoho_refresh_token')) {
+            $refreshToken = Cache::get('zoho_refresh_token');
+            $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+                'refresh_token' => $refreshToken,
                 'client_id'     => $clientId,
                 'client_secret' => $clientSecret,
                 'grant_type'    => 'refresh_token',
             ]);
 
-            $responseData = $response->json();
-            Log::info('Zoho Token Refresh Response:', $responseData);
+            $tokenData = $tokenResponse->json();
+            Log::info('Zoho Token Refresh Response:', $tokenData);
 
-            if (isset($responseData['access_token'])) {
-                ZohoToken::updateOrCreate(
-                    ['id' => $tokenData->id],
-                    [
-                        'access_token' => $responseData['access_token'],
-                        'expires_at'   => now()->addSeconds($responseData['expires_in']),
-                    ]
-                );
-
-                info('Zoho access token refreshed.');
-                return $responseData['access_token'];
+            if (isset($tokenData['access_token'])) {
+                Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+                $this->info('Zoho access token refreshed.');
+                return;
             }
-        }
 
-        Log::error('Failed to refresh Zoho access token.');
-        return null;
+            $this->error('Failed to refresh Zoho access token.');
+        }
     }
 
     private function fetchZohoLeads()
     {
         info('Zoho Lead Fetched ' . now());
 
-        $tokenData = ZohoToken::latest()->first();
-
-        if (!$tokenData || now()->gt($tokenData->expires_at)) {
-            $this->error('No valid access token available. Refreshing...');
-            $accessToken = $this->refreshZohoAccessToken();
-
-            if (!$accessToken) {
-                $this->error('Failed to refresh Zoho access token.');
-                return;
-            }
-        } else {
-            $accessToken = $tokenData->access_token;
-        }
-
+        $accessToken = Cache::get('zoho_access_token');
         $apiDomain = 'https://www.zohoapis.com';
 
         if (!$accessToken) {
@@ -197,23 +174,9 @@ class FetchZohoLeads extends Command
                     ]);
 
                     $newLead->update([
-                        'company_id' => $companyDetail->id ?? null,
+                        'company_name' => $companyDetail->id ?? null,
                     ]);
                 }
-
-                // ✅ Only create UTM details if a new lead was inserted
-                UtmDetail::create([
-                    'lead_id'       => $newLead->id,
-                    'utm_campaign'  => $lead['utm_campaign'] ?? null,
-                    'utm_adgroup'   => $lead['utm_adgroup'] ?? null,
-                    'utm_creative'  => $lead['utm_creative'] ?? null,
-                    'utm_term'      => $lead['utm_term'] ?? null,
-                    'utm_matchtype' => $lead['utm_matchtype'] ?? null,
-                    'device'        => $lead['device'] ?? null,
-                    'social_lead_id'=> $lead['leadchain0__Social_Lead_ID'] ?? null,
-                    'gclid'         => $lead['GCLID'] ?? null,
-                    'referrername'  => $lead['referrername2'] ?? null,
-                ]);
 
                 if (isset($lead['Lead_Source']) && $lead['Lead_Source'] === 'Refer & Earn') {
                     ReferralDetail::create([
@@ -224,6 +187,20 @@ class FetchZohoLeads extends Command
                         'contact_no'  => $lead['Referee_Phone'] ?? null,
                         'created_at'  => $leadCreatedTime ?? now(),
                         'updated_at'  => now(),
+                    ]);
+                }else{
+                    // ✅ Only create UTM details if a new lead was inserted
+                    UtmDetail::create([
+                        'lead_id'       => $newLead->id,
+                        'utm_campaign'  => $lead['utm_campaign'] ?? null,
+                        'utm_adgroup'   => $lead['utm_adgroup'] ?? null,
+                        'utm_creative'  => $lead['utm_creative'] ?? null,
+                        'utm_term'      => $lead['utm_term'] ?? null,
+                        'utm_matchtype' => $lead['utm_matchtype'] ?? null,
+                        'device'        => $lead['device'] ?? null,
+                        'social_lead_id'=> $lead['leadchain0__Social_Lead_ID'] ?? null,
+                        'gclid'         => $lead['GCLID'] ?? null,
+                        'referrername'  => $lead['referrername2'] ?? null,
                     ]);
                 }
             }

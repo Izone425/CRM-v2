@@ -22,12 +22,11 @@ class DealImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
         foreach ($collection as $row) {
             $createdTime = Carbon::parse($row['lead_created'] ?? now())->toDateTimeString();
 
-            Log::info("Processing lead: " . json_encode($row));
-
             // ✅ Default values
             $categories = null;
             $stage = null;
             $lead_status = null;
+            $salesperson = $row['deal_owner'] ?? null; // Set salesperson initially
 
             // ✅ Check if Status Division is exactly "(2) Active - 24 Below"
             if (isset($row['stage'])) {
@@ -64,23 +63,27 @@ class DealImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                 } elseif ($status === '[08] LEADS - COLD') {
                     $categories = 'Active';
                     $stage = 'Follow Up';
-                    $lead_status = 'Hot';
+                    $lead_status = 'Cold';
                 } elseif ($status === '[09] CLOSED') {
-                    $categories = 'Active';
-                    $stage = 'Follow Up';
-                    $lead_status = 'Hot';
+                    $categories = 'Inactive';
+                    $stage = null;
+                    $lead_status = 'Closed';
+                    $salesperson = null;
                 } elseif ($status === '[10] LOST') {
-                    $categories = 'Active';
-                    $stage = 'Follow Up';
-                    $lead_status = 'Hot';
+                    $categories = 'Inactive';
+                    $stage = null;
+                    $lead_status = 'Lost';
+                    $salesperson = null;
                 } elseif ($status === '[11] ON-HOLD') {
-                    $categories = 'Active';
-                    $stage = 'Follow Up';
-                    $lead_status = 'Hot';
+                    $categories = 'Inactive';
+                    $stage = null;
+                    $lead_status = 'On Hold';
+                    $salesperson = null;
                 } elseif ($status === '[12] NO RESPOND') {
-                    $categories = 'Active';
-                    $stage = 'Follow Up';
-                    $lead_status = 'Hot';
+                    $categories = 'Inactive';
+                    $stage = null;
+                    $lead_status = 'No Response';
+                    $salesperson = null;
                 } else {
                     // Default values if no conditions match
                     $categories = null;
@@ -102,7 +105,7 @@ class DealImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                 [
                     'name'         => $row['contact_name'] ?? null,
                     'lead_owner'   => $row['created_by'] ?? null,
-                    'salesperson'  => $row['deal_owner'] ?? null,
+                    'salesperson'  => $salesperson,
                     'company_name' => $company->id ?? null, // ✅ Store the company ID in Lead table
                     'company_size' => $this->normalizeCompanySize($row['company_size'] ?? null), // ✅ Normalize company size
                     'country'      => $row['country'] ?? null,
