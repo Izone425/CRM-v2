@@ -553,19 +553,47 @@ class ActivityLogRelationManager extends RelationManager
                         //     ? json_decode($data['optional_attendees'], true)
                         //     : $data['optional_attendees']; // Handle already-decoded data or string
 
-                        $meetingPayload = [
-                            'start' => [
-                                'dateTime' => $startTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'end' => [
-                                'dateTime' => $endTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                            'isOnlineMeeting' => true,
-                            'onlineMeetingProvider' => 'teamsForBusiness',
-                        ];
+                        if ($appointment->type !== 'WEBINAR DEMO') {
+                            $meetingPayload = [
+                                'start' => [
+                                    'dateTime' => $startTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'end' => [
+                                    'dateTime' => $endTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                'isOnlineMeeting' => true,
+                                'onlineMeetingProvider' => 'teamsForBusiness',
+
+                                // ✅ Add attendees only if it's NOT a WEBINAR DEMO
+                                'attendees' => [
+                                    [
+                                        'emailAddress' => [
+                                            'address' => $lead->email, // Lead's email as required attendee
+                                            'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
+                                        ],
+                                        'type' => 'required' // Required attendee
+                                    ]
+                                ]
+                            ];
+                        } else {
+                            $meetingPayload = [
+                                'start' => [
+                                    'dateTime' => $startTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'end' => [
+                                    'dateTime' => $endTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                'isOnlineMeeting' => true,
+                                'onlineMeetingProvider' => 'teamsForBusiness',
+                            ];
+                        }
+
 
                         try {
                             // Use the correct endpoint for app-only authentication
@@ -1504,7 +1532,7 @@ class ActivityLogRelationManager extends RelationManager
                             }
 
                             $organizerEmail = $salesperson->email;
-                            $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
+                            $salespersonUser = \App\Models\User::find($appointment->salesperson ?? auth()->user()->id);
                             $demoAppointment = $lead->demoAppointment->first();
                             $startTime = Carbon::parse($demoAppointment->start_time);
                             $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
