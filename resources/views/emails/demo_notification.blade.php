@@ -47,11 +47,11 @@
 
     <p>Best regards,</p>
     <p>
-        {{ $leadOwnerName }}<br>
+        {{ $lead['salespersonName'] }}<br>
         {{ $lead['position'] }}<br>
         TimeTec Cloud Sdn Bhd<br>
         Office Number: +603-8070 9933<br>
-        HP Number: {{ $lead['leadOwnerMobileNumber'] }}
+        HP Number: {{ $lead['salespersonPhone'] }}
     </p>
     <p>
         <img src="{{ asset('img/refer-earn.png') }}" alt="Refer & Earn"

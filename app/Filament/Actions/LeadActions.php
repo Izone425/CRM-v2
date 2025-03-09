@@ -566,19 +566,46 @@ class LeadActions
 
                     $organizerEmail = $salesperson->email;
 
-                    $meetingPayload = [
-                        'start' => [
-                            'dateTime' => $startTime,
-                            'timeZone' => 'Asia/Kuala_Lumpur'
-                        ],
-                        'end' => [
-                            'dateTime' => $endTime,
-                            'timeZone' => 'Asia/Kuala_Lumpur'
-                        ],
-                        'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                        'isOnlineMeeting' => true,
-                        'onlineMeetingProvider' => 'teamsForBusiness',
-                    ];
+                    if ($appointment->type !== 'WEBINAR DEMO') {
+                        $meetingPayload = [
+                            'start' => [
+                                'dateTime' => $startTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'end' => [
+                                'dateTime' => $endTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                            'isOnlineMeeting' => true,
+                            'onlineMeetingProvider' => 'teamsForBusiness',
+
+                            // ✅ Add attendees only if it's NOT a WEBINAR DEMO
+                            'attendees' => [
+                                [
+                                    'emailAddress' => [
+                                        'address' => $lead->email, // Lead's email as required attendee
+                                        'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
+                                    ],
+                                    'type' => 'required' // Required attendee
+                                ]
+                            ]
+                        ];
+                    } else {
+                        $meetingPayload = [
+                            'start' => [
+                                'dateTime' => $startTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'end' => [
+                                'dateTime' => $endTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                            'isOnlineMeeting' => true,
+                            'onlineMeetingProvider' => 'teamsForBusiness',
+                        ];
+                    }
 
                     try {
                         // Use the correct endpoint for app-only authentication
