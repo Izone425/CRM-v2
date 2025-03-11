@@ -43,7 +43,7 @@ class SalesAdminAnalysisV2 extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id != '2';
+        return auth()->user()->role_id == '4';
     }
 
     public function mount()
