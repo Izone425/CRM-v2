@@ -26,8 +26,6 @@ class FetchZohoLeads extends Command
 
     private function refreshZohoAccessToken()
     {
-        info('Token Get ' . now());
-
         $clientId = env('ZOHO_CLIENT_ID');
         $clientSecret = env('ZOHO_CLIENT_SECRET');
 
@@ -60,8 +58,6 @@ class FetchZohoLeads extends Command
 
     private function fetchZohoLeads()
     {
-        info('Zoho Lead Fetched ' . now());
-
         $accessToken = Cache::get('zoho_access_token');
         $apiDomain = 'https://www.zohoapis.com';
 
@@ -173,7 +169,7 @@ class FetchZohoLeads extends Command
                         'lead_id'      => $newLead->id,
                     ]);
 
-                    $newLead->update([
+                    $newLead->updateQuietly([
                         'company_name' => $companyDetail->id ?? null,
                     ]);
                 }

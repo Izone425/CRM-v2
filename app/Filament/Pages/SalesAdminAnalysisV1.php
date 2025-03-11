@@ -89,48 +89,53 @@ class SalesAdminAnalysisV1 extends Page
 
     public function fetchLeadsByCategory()
     {
-        $query = Lead::query();
+        $dateRange = null;
 
+        // Apply date range filter if a month is selected
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+            $dateRange = [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')];
         }
 
-        $categories = ['New', 'Active', 'Sales', 'Inactive'];
+        // Define category counts with month filter applied
+        $this->categoriesData = [
+            'New' => Lead::query()
+                ->where('categories', 'New')
+                ->whereNull('lead_owner')
+                ->whereNull('salesperson')
+                ->when($dateRange, function ($query) use ($dateRange) {
+                    return $query->whereBetween('created_at', $dateRange);
+                })
+                ->count(),
 
-        // Count New Leads (Only leads where categories = 'New')
-        $newCount = Lead::where('categories', 'New')
-            ->where('lead_owner', null)
-            ->where('salesperson', null)->count();
+            'Active' => Lead::query()
+                ->whereNull('salesperson')
+                ->whereNotNull('lead_owner')
+                ->where('categories', '!=', 'Inactive')
+                ->where(function ($query) {
+                    $query->whereNull('done_call')
+                        ->orWhere('done_call', 0);
+                })
+                ->when($dateRange, function ($query) use ($dateRange) {
+                    return $query->whereBetween('created_at', $dateRange);
+                })
+                ->count(),
 
-        // Define Active Leads (Salesperson must be NULL, lead_owner must be NOT NULL, and done_call must be NULL or 0)
-        $activeCount = Lead::whereNull('salesperson')
-            ->whereNotNull('lead_owner')
-            ->where('categories', '!=', 'Inactive')
-            ->where(function ($query) {
-                $query->whereNull('done_call')
-                    ->orWhere('done_call', 0);
-            })
-            ->count();
+            'Sales' => Lead::query()
+                ->whereNotNull('salesperson')
+                ->where('categories', '!=', 'Inactive')
+                ->when($dateRange, function ($query) use ($dateRange) {
+                    return $query->whereBetween('created_at', $dateRange);
+                })
+                ->count(),
 
-        // Define Sales Leads (Salesperson must be NOT NULL and categories must not be Inactive)
-        $salesCount = Lead::whereNotNull('salesperson')
-            ->where('categories', '!=', 'Inactive')
-            ->count();
-
-        // Define Inactive Leads (Only leads where categories = 'Inactive')
-        $inactiveCount = Lead::where('categories', 'Inactive')->count();
-
-        // Ensure all categories exist, even if zero
-        $this->categoriesData = array_merge(
-            array_fill_keys($categories, 0),
-            [
-                'New' => $newCount,
-                'Active' => $activeCount,
-                'Sales' => $salesCount,
-                'Inactive' => $inactiveCount,
-            ]
-        );
+            'Inactive' => Lead::query()
+                ->where('categories', 'Inactive')
+                ->when($dateRange, function ($query) use ($dateRange) {
+                    return $query->whereBetween('created_at', $dateRange);
+                })
+                ->count(),
+        ];
     }
 
     public function fetchLeadsByCompanySize()
