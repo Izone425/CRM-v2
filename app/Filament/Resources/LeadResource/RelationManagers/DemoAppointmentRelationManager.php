@@ -352,7 +352,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $organizerEmail = $salesperson->email;
 
                             // ✅ Get all recipients for cancellation email
-                            $email = $lead->companyDetails->email ?? $lead->email;
+                            $email = $lead->companyDetail->email ?? $lead->email;
                             $demoAppointment = $lead->demoAppointment()->latest()->first();
 
                             // Extract required attendees
@@ -368,9 +368,9 @@ class DemoAppointmentRelationManager extends RelationManager
                             $startTime = Carbon::parse($demoAppointment->start_time);
                             $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
                             $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
-                            $contactNo = isset($lead->companyDetail->contact_no) ? $lead->companyDetail->contact_no : $lead->phone;
-                            $picName = isset($lead->companyDetail->name) ? $lead->companyDetail->name : $lead->name;
-                            $email = isset($lead->companyDetail->email) ? $lead->companyDetail->email : $lead->email;
+                            $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
+                            $picName = optional($lead->companyDetail)->name ?? $lead->name;
+                            $email = optional($lead->companyDetail)->email ?? $lead->email;
 
                             try {
                                 if ($eventId) {
@@ -380,6 +380,7 @@ class DemoAppointmentRelationManager extends RelationManager
 
                                     // Cancel the Teams meeting
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
+                                    $leadowner = User::where('name', $lead->lead_owner)->first();
 
                                     $viewName = 'emails.cancel_demo_notification';
                                     $emailContent = [
@@ -402,8 +403,31 @@ class DemoAppointmentRelationManager extends RelationManager
                                             'appointment_type' => $appointment->appointment_type
                                         ],
                                     ];
-                                    Mail::to($lead->companyDetails->email ?? $lead->email)
-                                        ->send(new CancelDemoNotification($emailContent, $viewName));
+                                    // ✅ Extract CC Recipients
+                                    $ccEmails = array_filter(array_merge([$salespersonUser->email, $leadowner->email], $attendeeEmails), function ($email) {
+                                        return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                                    });
+
+                                    // ✅ Debugging: Log the final recipient list
+                                    info([
+                                        'To (Lead Email)' => $email,
+                                        'CC (Salesperson, Lead Owner, Attendees)' => $ccEmails
+                                    ]);
+
+                                    // ✅ Send email with CC recipients
+                                    if (!empty($email)) {
+                                        $mail = Mail::to($email); // Send to Lead
+
+                                        if (!empty($ccEmails)) {
+                                            $mail->cc($ccEmails); // Add CC recipients
+                                        }
+
+                                        $mail->send(new CancelDemoNotification($emailContent, $viewName));
+
+                                        info("Email sent successfully to: " . $email . " and CC to: " . implode(', ', $ccEmails));
+                                    } else {
+                                        Log::error("No valid lead email found for sending CancelDemoNotification.");
+                                    }
 
                                     Notification::make()
                                         ->title('Teams Meeting Cancelled Successfully')
@@ -803,8 +827,8 @@ class DemoAppointmentRelationManager extends RelationManager
                             'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
                             'isOnlineMeeting' => true,
                             'onlineMeetingProvider' => 'teamsForBusiness',
-
-                            // ✅ Add attendees only if it's NOT a WEBINAR DEMO
+                            'allowNewTimeProposals' => false,
+                            'responseRequested' => true ,
                             'attendees' => [
                                 [
                                     'emailAddress' => [
@@ -838,17 +862,12 @@ class DemoAppointmentRelationManager extends RelationManager
                             ->setReturnType(Event::class)
                             ->execute();
 
-                        // Update the appointment with meeting details
-                        if($data['appointment_type'] == 'Online Demo'){
-                            $appointment->update([
-                                'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
-                                'event_id' => $onlineMeeting->getId(),
-                            ]);
-                        }else{
-                            $appointment->update([
-                                'event_id' => $onlineMeeting->getId(),
-                            ]);
-                        }
+                        info('Meeting Created:', (array) $onlineMeeting); // ✅ Check Graph API response
+
+                        $appointment->update([
+                            'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
+                            'event_id' => $onlineMeeting->getId(),
+                        ]);
 
                         Notification::make()
                             ->title('Teams Meeting Created Successfully')
@@ -869,14 +888,14 @@ class DemoAppointmentRelationManager extends RelationManager
                     }
 
                     $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
-                    $demoAppointment = $lead->demoAppointment->first();
+                    $demoAppointment = $lead->demoAppointment()->latest('created_at')->first();
                     $startTime = Carbon::parse($demoAppointment->start_time);
                     $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
                     $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
-                    $contactNo = isset($lead->companyDetail->contact_no) ? $lead->companyDetail->contact_no : $lead->phone;
-                    $picName = isset($lead->companyDetail->name) ? $lead->companyDetail->name : $lead->name;
-                    $email = isset($lead->companyDetail->email) ? $lead->companyDetail->email : $lead->email;
-
+                    $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
+                    $picName = optional($lead->companyDetail)->name ?? $lead->name;
+                    $email = optional($lead->companyDetail)->email ?? $lead->email;
+                    info($email);
                     if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                         try {
                             $viewName = 'emails.demo_notification';
@@ -905,7 +924,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ],
                             ];
 
-                            $email = $lead->companyDetails->email ?? $lead->email;
                             $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
 
                             $requiredAttendees = $demoAppointment->required_attendees ?? null;
@@ -917,33 +935,44 @@ class DemoAppointmentRelationManager extends RelationManager
                                 $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
                             }
 
+                            // Get Lead's Email (Primary recipient)
+                            $leadEmail = $lead->companyDetail->email ?? $lead->email;
+
                             // Get Salesperson Email
                             $salespersonId = $lead->salesperson;
                             $salesperson = User::find($salespersonId);
-                            $salespersonEmail = $salesperson->email ?? null; // Prevent null errors
+                            $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
+                            info($salespersonEmail);
 
                             // Get Lead Owner Email
                             $leadownerName = $lead->lead_owner;
                             $leadowner = User::where('name', $leadownerName)->first();
                             $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
 
-                            // Combine all recipients
-                            $allEmails = array_unique(array_merge([$email], [$salespersonEmail, $leadOwnerEmail], $attendeeEmails));
-
-                            // Remove empty/null values and ensure valid emails
-                            $allEmails = array_filter($allEmails, function ($email) {
+                            // Combine CC recipients
+                            $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
                                 return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                             });
-                            info($allEmails);
 
-                            // Check if we have valid recipients before sending emails
-                            if (!empty($allEmails)) {
-                                foreach ($allEmails as $recipient) {
-                                    Mail::to($recipient)
-                                        ->send(new DemoNotification($emailContent, $viewName));
+                            // Debugging emails before sending
+                            info([
+                                'To (Lead Email)' => $leadEmail,
+                                'CC (Others)' => $ccEmails
+                            ]);
+
+                            // Send email only if valid
+                            if (!empty($leadEmail)) {
+                                $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
+
+                                if (!empty($ccEmails)) {
+                                    $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
                                 }
+
+                                $mail->send(new DemoNotification($emailContent, $viewName));
+
+                                info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
                             } else {
-                                Log::error("No valid email addresses found for sending DemoNotification.");
+                                Log::error("No valid lead email found for sending DemoNotification.");
                             }
                         } catch (\Exception $e) {
                             // Handle email sending failure

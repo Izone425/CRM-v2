@@ -1010,8 +1010,8 @@
             <div>
                 {{-- If higher than 3 --}}
                 @foreach ($row[$day . 'Appointments'] as $appointment)
-                @if ($loop->index < 3) <div class="appointment-card" @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                    @elseif ($appointment->type == 'WEBINAR DEMO')
+                @if ($loop->index < 3) <div class="appointment-card" @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
+                    @elseif ($appointment->status == 'New')
                     style="background-color: var(--bg-demo-yellow)"
                     @else
                     style="background-color: var(--bg-demo-red)" @endif>
@@ -1042,8 +1042,8 @@
         <div>
             {{-- When expanded, display all cards --}}
             @foreach ($row[$day . 'Appointments'] as $appointment)
-            <div class="appointment-card" @if ($appointment->type === 'NEW DEMO') style="background-color: var(--bg-demo-green)"
-                @elseif ($appointment->type == 'WEBINAR DEMO')
+            <div class="appointment-card" @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
+                @elseif ($appointment->status == 'New')
                 style="background-color: var(--bg-demo-yellow)"
                 @else
                 style="background-color: var(--bg-demo-red)" @endif>

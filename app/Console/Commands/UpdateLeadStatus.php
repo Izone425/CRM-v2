@@ -17,9 +17,8 @@ class UpdateLeadStatus extends Command
         info('Demo-Assigned status update to RFQ-Follow Up command executed at ' . now());
 
         // Fetch leads with status 'Demo-Assigned' and stage 'Demo' where today is the day after the appointment date
-        $leads = Lead::where('lead_status', 'Demo-Assigned')
-            ->whereHas('demoAppointment', function ($query) {
-                $query->whereDate('date', Carbon::yesterday()); // Check if the appointment date is yesterday
+        $leads = Lead::whereHas('demoAppointment', function ($query) {
+                $query->whereDate('date', Carbon::yesterday());
             })
             ->get();
 
@@ -34,11 +33,10 @@ class UpdateLeadStatus extends Command
                 ->orderByDesc('date') // Get the latest appointment based on the date
                 ->first();
 
-            if ($latestAppointment) {
-                $latestAppointment->update([
-                    'status' => 'Done',
-                ]);
-            }
+            $lead->demoAppointment()
+                ->whereDate('date', Carbon::yesterday())
+                ->where('status', 'New')
+                ->update(['status' => 'Done']);
 
             // Fetch the latest activity log for the lead
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)

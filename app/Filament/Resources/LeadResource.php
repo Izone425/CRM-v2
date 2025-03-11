@@ -400,17 +400,17 @@ class LeadResource extends Resource
                                                                 Forms\Components\TextInput::make('name')
                                                                     ->label('Name')
                                                                     ->required()
-                                                                    ->default(fn ($record) => $record->companyDetail->name ?? null)
+                                                                    ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
                                                                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                     ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
                                                                 Forms\Components\TextInput::make('email')
                                                                     ->label('Email')
                                                                     ->required()
-                                                                    ->default(fn ($record) => $record->companyDetail->email ?? null),
+                                                                    ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
                                                                 Forms\Components\TextInput::make('contact_no')
                                                                     ->label('Contact No.')
                                                                     ->required()
-                                                                    ->default(fn ($record) => $record->companyDetail->contact_no ?? null),
+                                                                    ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
                                                             ])
                                                             ->action(function (Lead $lead, array $data) {
                                                                 $record = $lead->companyDetail;
