@@ -371,7 +371,7 @@
         </style>
     </head>
     <div class="flex items-center mb-6">
-        @if(auth()->user()->role_id == 1)
+        @if(in_array(auth()->user()->role_id, [1, 3]))
             <!-- Salesperson Filter -->
             <div>
                 <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">

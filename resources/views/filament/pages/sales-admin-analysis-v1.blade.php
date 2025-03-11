@@ -327,8 +327,8 @@
                             <div class="flex justify-center space-x-10">
                                 @foreach ([
                                     ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#3B82F6'],
-                                    ['label' => 'JAJA', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#EF4444'],
-                                    ['label' => 'AFIFAH', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#10B981']
+                                    ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#EF4444'],
+                                    ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#10B981']
                                 ] as $data)
                                     <div class="relative text-center group">
                                         <div class="relative w-28 h-28">
