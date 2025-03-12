@@ -121,19 +121,19 @@ class Calendar extends Component
     {
         if (!empty($selectedSalesPeople)) {
             $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
-            $this->totalDemos["ALL"] = DB::table('appointments')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
         } else {
             $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
-            $this->totalDemos["ALL"] = DB::table('appointments')->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNot('status','Cancelled')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereBetween('date', [$this->startDate, $this->endDate])->count();
@@ -249,7 +249,9 @@ class Calendar extends Component
                 $dayField = "{$dayOfWeek}Appointments";
                 // For new demo summary which shows no,1,2 new demo
                 if ($appointment->type === "NEW DEMO" || $appointment->type === "WEBINAR DEMO") {
-                    $data['newDemo'][$dayOfWeek]++;
+                    if($appointment->status !== "Cancelled"){
+                        $data['newDemo'][$dayOfWeek]++;
+                    }
                 }
 
                 // Filtering Demo Type and Appointment Type
@@ -340,6 +342,7 @@ class Calendar extends Component
         $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $this->selectedSalesPeople);
         // $this->setSelectedMonthToCurrentMonth(); //Not used
         $this->currentMonth = $this->date->startOfWeek()->format('F Y');
+        // dd($this->rows);
         return view('livewire.calendar');
     }
 }
