@@ -664,7 +664,7 @@ class LeadActions
                                 'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                 'leadOwnerEMail' => $leadowmer->email ?? 'Unknown Email', // Lead Owner/Manager Name
                                 'lead' => [
-                                    'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                                    'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
                                     'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
                                     'salespersonName' => $salespersonUser->name ?? 'N/A',
                                     'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
