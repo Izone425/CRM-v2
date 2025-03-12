@@ -57,6 +57,6 @@ class UpdateLeadStatus extends Command
             }
         }
 
-        info('Status update completed for ' . $leads->count() . ' leads.');
+        info('Status update completed for ' . $leads->count() . ' appointments.');
     }
 }
