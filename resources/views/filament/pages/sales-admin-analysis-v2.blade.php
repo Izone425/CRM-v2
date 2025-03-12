@@ -551,11 +551,11 @@
                     @php
                         $percentage = $totalActiveLeadsJaja > 0 ? round(($count / $totalActiveLeadsJaja) * 100, 2) : 0;
                         $color = match($status) {
-                            'Active 24 Below' => '#36A2EB',  /* Blue */
-                            'Active 25 Above' => '#FF6384',  /* Red */
-                            'Call Attempt 24 Below' => '#FFCE56',  /* Yellow */
-                            'Call Attempt 25 Above' => '#4BC0C0',  /* Teal */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Active 24 Below' => '#3B82F6',  // Blue
+                            'Active 25 Above' => '#10B981',  // Green
+                            'Call Attempt 24 Below' => '#FACC15',  // Yellow
+                            'Call Attempt 25 Above' => '#EF4444', // Red
+                            default => '#D1D5DB',  // Gray (fallback)
                         };
                     @endphp
 
@@ -598,10 +598,10 @@
                     @php
                         $percentage = $totalTransferLeadsJaja > 0 ? round(($count / $totalTransferLeadsJaja) * 100, 2) : 0;
                         $color = match($stage) {
-                            'Transfer' => '#36A2EB',  /* Blue */
-                            'Demo' => '#FF6384',  /* Red */
-                            'Follow Up' => '#FFCE56',  /* Yellow */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Transfer' => '#3B82F6',  /* Light Blue */
+                            'Demo' => '#6366F1',      /* Purple */
+                            'Follow Up' => '#1E40AF', /* Dark Blue */
+                            default => '#D1D5DB',     // Gray
                         };
                     @endphp
 
@@ -644,11 +644,11 @@
                     @php
                         $percentage = $totalInactiveLeadsJaja > 0 ? round(($count / $totalInactiveLeadsJaja) * 100, 2) : 0;
                         $color = match($status) {
-                            'Junk' => '#FF6384',  /* Red */
-                            'On Hold' => '#FFCE56',  /* Yellow */
-                            'Lost' => '#4BC0C0',  /* Teal */
-                            'No Response' => '#36A2EB',  /* Blue */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Junk' => '#BBBCB6',
+                            'Lost' => '#cccccc',
+                            'On Hold' => '#bbbbbb',
+                            'No Response' => '#aaaaaa',
+                            default => '#D1D5DB',
                         };
                     @endphp
 
@@ -734,11 +734,11 @@
                     @php
                         $percentage = $totalActiveLeadsAfifah > 0 ? round(($count / $totalActiveLeadsAfifah) * 100, 2) : 0;
                         $color = match($status) {
-                            'Active 24 Below' => '#36A2EB',  /* Blue */
-                            'Active 25 Above' => '#FF6384',  /* Red */
-                            'Call Attempt 24 Below' => '#FFCE56',  /* Yellow */
-                            'Call Attempt 25 Above' => '#4BC0C0',  /* Teal */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Active 24 Below' => '#3B82F6',  // Blue
+                            'Active 25 Above' => '#10B981',  // Green
+                            'Call Attempt 24 Below' => '#FACC15',  // Yellow
+                            'Call Attempt 25 Above' => '#EF4444', // Red
+                            default => '#D1D5DB',  // Gray (fallback)
                         };
                     @endphp
 
@@ -782,10 +782,10 @@
                     @php
                         $percentage = $totalTransferLeadsAfifah > 0 ? round(($count / $totalTransferLeadsAfifah) * 100, 2) : 0;
                         $color = match($stage) {
-                            'Transfer' => '#36A2EB',  /* Blue */
-                            'Demo' => '#FF6384',  /* Red */
-                            'Follow Up' => '#FFCE56',  /* Yellow */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Transfer' => '#3B82F6',  /* Light Blue */
+                            'Demo' => '#6366F1',      /* Purple */
+                            'Follow Up' => '#1E40AF', /* Dark Blue */
+                            default => '#D1D5DB',     // Gray
                         };
                     @endphp
 
@@ -828,11 +828,11 @@
                     @php
                         $percentage = $totalInactiveLeadsAfifah > 0 ? round(($count / $totalInactiveLeadsAfifah) * 100, 2) : 0;
                         $color = match($status) {
-                            'Junk' => '#FF6384',  /* Red */
-                            'On Hold' => '#FFCE56',  /* Yellow */
-                            'Lost' => '#4BC0C0',  /* Teal */
-                            'No Response' => '#36A2EB',  /* Blue */
-                            default => '#D1D5DB',  /* Light Gray */
+                            'Junk' => '#BBBCB6',
+                            'Lost' => '#cccccc',
+                            'On Hold' => '#bbbbbb',
+                            'No Response' => '#aaaaaa',
+                            default => '#D1D5DB',
                         };
                     @endphp
 

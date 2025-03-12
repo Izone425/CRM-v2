@@ -575,7 +575,7 @@
                         @php
                             $percentage = $totalInactiveLeads > 0 ? round(($count / $totalInactiveLeads) * 100, 2) : 0;
                             $color = match($status) {
-                                'Closed' => '#10B981',
+                                'Junk' => '#10B981',
                                 'Lost' => '#EF4444',
                                 'On Hold' => '#9ba2af',
                                 'No Response' => '#71797E',
