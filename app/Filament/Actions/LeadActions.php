@@ -623,8 +623,6 @@ class LeadActions
                             ->setReturnType(Event::class)
                             ->execute();
 
-                        info('Meeting Created:', (array) $onlineMeeting); // ✅ Check Graph API response
-
                         $appointment->update([
                             'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
                             'event_id' => $onlineMeeting->getId(),
@@ -715,12 +713,6 @@ class LeadActions
                             $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
                                 return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                             });
-
-                            // Debugging emails before sending
-                            info([
-                                'To (Lead Email)' => $leadEmail,
-                                'CC (Others)' => $ccEmails
-                            ]);
 
                             // Send email only if valid
                             if (!empty($leadEmail)) {

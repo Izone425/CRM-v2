@@ -446,9 +446,8 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2" wire:poll.1s>
-            <div class="wrapper-container">
-                <div class="grid-container">
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="lead-summary-box">
                     <!-- Total Leads Box -->
                     <div class="lead-card">
                         <div class="icon-container">
@@ -495,7 +494,6 @@
                             @endforeach
                         </div>
                     </div>
-                </div>
             </div>
         </div>
 
@@ -504,7 +502,7 @@
                 <!-- Left Section (30%) -->
                 <div class="lead-count">
                     <p class="lead-number">{{ array_sum($adminJajaLeadStats) }}</p>
-                    <p class="lead-label">Total Leads <br> (Admin JAJA)</p>
+                    <p class="lead-label">Total Leads <br> (Admin Jaja)</p>
                 </div>
 
                 <!-- Middle Divider -->
@@ -512,7 +510,7 @@
 
                 <!-- Right Section (65%) -->
                 <div class="lead-progress">
-                    <h3 class="status-title">Lead Categories (Admin JAJA)</h3>
+                    <h3 class="status-title">Lead Categories (Admin Jaja)</h3>
 
                     @foreach ($adminJajaLeadStats as $category => $count)
                         @php
@@ -521,8 +519,8 @@
 
                             // Define category colors
                             $categoryColors = [
-                                'New' => '#3B82F6',        // Blue
                                 'Active' => '#10B981',     // Green
+                                'Sales' => '#3B82F6',        // Blue
                                 'Inactive' => '#9CA3AF',   // Gray
                             ];
                             $color = $categoryColors[$category] ?? '#6B7280'; // Default fallback color
@@ -542,26 +540,72 @@
                 </div>
             </div>
 
-            {{-- <!-- Separator Line -->
+            <!-- Separator Line -->
             <div class="mt-6 mb-6 border-t border-gray-300"></div>
 
             <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary</h3>
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
             <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($newDemoLeadStatusData as $status => $count)
+                @foreach ($activeLeadsDataJaja as $status => $count)
                     @php
-                        $percentage = $totalNewAppointmentsByLeadStatus > 0 ? round(($count / $totalNewAppointmentsByLeadStatus) * 100, 2) : 0;
+                        $percentage = $totalActiveLeadsJaja > 0 ? round(($count / $totalActiveLeadsJaja) * 100, 2) : 0;
                         $color = match($status) {
-                            'Closed' => '#10B981',  /* Green */
-                            'Lost' => '#EF4444',    /* Dark Gray */
-                            'On Hold' => '#9CA3AF', /* Medium Gray */
-                            'No Response' => '#D1D5DB', /* Light Gray */
-                            default => '#D1D5DB',   /* Fallback Gray */
+                            'Active 24 Below' => '#36A2EB',  /* Blue */
+                            'Active 25 Above' => '#FF6384',  /* Red */
+                            'Call Attempt 24 Below' => '#FFCE56',  /* Yellow */
+                            'Call Attempt 25 Above' => '#4BC0C0',  /* Teal */
+                            default => '#D1D5DB',  /* Light Gray */
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="relative text-center group">
+                        <div class="relative w-28 h-28">
+                            <svg width="130" height="130" viewBox="0 0 36 36">
+                                <!-- Background Circle -->
+                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <!-- Progress Indicator -->
+                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                        stroke-dasharray="88"
+                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                        stroke-linecap="round"
+                                        transform="rotate(-90 18 18)">
+                                </circle>
+                            </svg>
+
+                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                {{ $count }}
+                            </div>
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $status }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($transferStagesDataJaja as $stage => $count)
+                    @php
+                        $percentage = $totalTransferLeadsJaja > 0 ? round(($count / $totalTransferLeadsJaja) * 100, 2) : 0;
+                        $color = match($stage) {
+                            'Transfer' => '#36A2EB',  /* Blue */
+                            'Demo' => '#FF6384',  /* Red */
+                            'Follow Up' => '#FFCE56',  /* Yellow */
+                            default => '#D1D5DB',  /* Light Gray */
+                        };
+                    @endphp
+
+                    <div class="relative text-center group">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -578,26 +622,71 @@
                             <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
                                 {{ $count }}
                             </div>
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
                         </div>
-                        <p class="mt-2 text-sm text-gray-700">{{ $status }}</p>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $stage }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
+
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($inactiveLeadDataJaja as $status => $count)
+                    @php
+                        $percentage = $totalInactiveLeadsJaja > 0 ? round(($count / $totalInactiveLeadsJaja) * 100, 2) : 0;
+                        $color = match($status) {
+                            'Junk' => '#FF6384',  /* Red */
+                            'On Hold' => '#FFCE56',  /* Yellow */
+                            'Lost' => '#4BC0C0',  /* Teal */
+                            'No Response' => '#36A2EB',  /* Blue */
+                            default => '#D1D5DB',  /* Light Gray */
+                        };
+                    @endphp
+
+                    <div class="relative text-center group">
+                        <div class="relative w-28 h-28">
+                            <svg width="130" height="130" viewBox="0 0 36 36">
+                                <!-- Background Circle -->
+                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <!-- Progress Indicator -->
+                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                        stroke-dasharray="88"
+                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                        stroke-linecap="round"
+                                        transform="rotate(-90 18 18)">
+                                </circle>
+                            </svg>
+                            <!-- Number in Center -->
+                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                {{ $count }}
+                            </div>
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $status }}
+                        </p>
                     </div>
                 @endforeach
             </div>
         </div>
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <!-- Header -->
-            <div class="flex items-center mb-6 space-x-2">
-                <i class="text-lg text-gray-500 fa fa-bookmark"></i>&nbsp;&nbsp;
-                <h3 class="text-xl font-bold text-gray-800">New Demo</h3>
-            </div>
-
-            <!-- Main Box -->
             <div class="lead-summary-box">
                 <!-- Left Section (30%) -->
                 <div class="lead-count">
-                    <p class="lead-number">{{ $categoriesData['New'] ?? 0 }}</p>
-                    <p class="lead-label">Total New Leads</p>
+                    <p class="lead-number">{{ array_sum($adminAfifahLeadStats) }}</p>
+                    <p class="lead-label">Total Leads <br> (Admin Afifah)</p>
                 </div>
 
                 <!-- Middle Divider -->
@@ -605,20 +694,20 @@
 
                 <!-- Right Section (65%) -->
                 <div class="lead-progress">
-                    <h3 class="status-title">Lead Categories</h3>
+                    <h3 class="status-title">Lead Categories (Admin Afifah)</h3>
 
-                    @foreach ($categoriesData as $category => $count)
+                    @foreach ($adminAfifahLeadStats as $category => $count)
                         @php
-                            $totalLeads = array_sum($categoriesData); // Calculate total leads
+                            $totalLeads = array_sum($adminAfifahLeadStats); // Calculate total leads
                             $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
 
-                            // Define colors for categories
-                            $color = match($category) {
-                                'New' => '#EF4444',        // Red
-                                'Active' => '#FB923C',     // Orange
-                                'Inactive' => '#D1D5DB',   // Gray
-                                default => '#6B7280',      // Dark Gray (fallback)
-                            };
+                            // Define category colors
+                            $categoryColors = [
+                                'Active' => '#10B981',     // Green
+                                'Sales' => '#3B82F6',        // Blue
+                                'Inactive' => '#9CA3AF',   // Gray
+                            ];
+                            $color = $categoryColors[$category] ?? '#6B7280'; // Default fallback color
                         @endphp
 
                         <!-- Category Name & Count -->
@@ -633,28 +722,27 @@
                         </div>
                     @endforeach
                 </div>
-            </div> --}}
+            </div>
 
-            {{-- <!-- Separator Line -->
             <div class="mt-6 mb-6 border-t border-gray-300"></div>
 
             <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary</h3>
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
             <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($newDemoLeadStatusData as $status => $count)
+                @foreach ($activeLeadsDataAfifah as $status => $count)
                     @php
-                        $percentage = $totalNewAppointmentsByLeadStatus > 0 ? round(($count / $totalNewAppointmentsByLeadStatus) * 100, 2) : 0;
+                        $percentage = $totalActiveLeadsAfifah > 0 ? round(($count / $totalActiveLeadsAfifah) * 100, 2) : 0;
                         $color = match($status) {
-                            'Closed' => '#10B981',  /* Green */
-                            'Lost' => '#EF4444',    /* Dark Gray */
-                            'On Hold' => '#9CA3AF', /* Medium Gray */
-                            'No Response' => '#D1D5DB', /* Light Gray */
-                            default => '#D1D5DB',   /* Fallback Gray */
+                            'Active 24 Below' => '#36A2EB',  /* Blue */
+                            'Active 25 Above' => '#FF6384',  /* Red */
+                            'Call Attempt 24 Below' => '#FFCE56',  /* Yellow */
+                            'Call Attempt 25 Above' => '#4BC0C0',  /* Teal */
+                            default => '#D1D5DB',  /* Light Gray */
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="relative text-center group">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -671,11 +759,110 @@
                             <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
                                 {{ $count }}
                             </div>
+                            <!-- Hover Message (Styled & Positioned Properly) -->
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
                         </div>
-                        <p class="mt-2 text-sm text-gray-700">{{ $status }}</p>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $status }}
+                        </p>
                     </div>
                 @endforeach
-            </div> --}}
+            </div>
+
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($transferStagesDataAfifah as $stage => $count)
+                    @php
+                        $percentage = $totalTransferLeadsAfifah > 0 ? round(($count / $totalTransferLeadsAfifah) * 100, 2) : 0;
+                        $color = match($stage) {
+                            'Transfer' => '#36A2EB',  /* Blue */
+                            'Demo' => '#FF6384',  /* Red */
+                            'Follow Up' => '#FFCE56',  /* Yellow */
+                            default => '#D1D5DB',  /* Light Gray */
+                        };
+                    @endphp
+
+                    <div class="relative text-center group">
+                        <div class="relative w-28 h-28">
+                            <svg width="130" height="130" viewBox="0 0 36 36">
+                                <!-- Background Circle -->
+                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <!-- Progress Indicator -->
+                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                        stroke-dasharray="88"
+                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                        stroke-linecap="round"
+                                        transform="rotate(-90 18 18)">
+                                </circle>
+                            </svg>
+                            <!-- Number in Center -->
+                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                {{ $count }}
+                            </div>
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $stage }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Separator Line -->
+            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+
+            <!-- Lead Status Summary -->
+            <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
+
+            <div class="flex justify-center mt-4 space-x-6">
+                @foreach ($inactiveLeadDataAfifah as $status => $count)
+                    @php
+                        $percentage = $totalInactiveLeadsAfifah > 0 ? round(($count / $totalInactiveLeadsAfifah) * 100, 2) : 0;
+                        $color = match($status) {
+                            'Junk' => '#FF6384',  /* Red */
+                            'On Hold' => '#FFCE56',  /* Yellow */
+                            'Lost' => '#4BC0C0',  /* Teal */
+                            'No Response' => '#36A2EB',  /* Blue */
+                            default => '#D1D5DB',  /* Light Gray */
+                        };
+                    @endphp
+
+                    <div class="relative text-center group">
+                        <div class="relative w-28 h-28">
+                            <svg width="130" height="130" viewBox="0 0 36 36">
+                                <!-- Background Circle -->
+                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <!-- Progress Indicator -->
+                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                        stroke-dasharray="88"
+                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                        stroke-linecap="round"
+                                        transform="rotate(-90 18 18)">
+                                </circle>
+                            </svg>
+                            <!-- Number in Center -->
+                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                {{ $count }}
+                            </div>
+                            <div class=" hover-message">
+                                {{ $percentage }}%
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
+                            {{ $status }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 </x-filament::page>

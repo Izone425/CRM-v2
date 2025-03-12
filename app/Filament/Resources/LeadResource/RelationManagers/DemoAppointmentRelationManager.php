@@ -408,12 +408,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                         return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                                     });
 
-                                    // ✅ Debugging: Log the final recipient list
-                                    info([
-                                        'To (Lead Email)' => $email,
-                                        'CC (Salesperson, Lead Owner, Attendees)' => $ccEmails
-                                    ]);
-
                                     // ✅ Send email with CC recipients
                                     if (!empty($email)) {
                                         $mail = Mail::to($email); // Send to Lead
@@ -862,8 +856,6 @@ class DemoAppointmentRelationManager extends RelationManager
                             ->setReturnType(Event::class)
                             ->execute();
 
-                        info('Meeting Created:', (array) $onlineMeeting); // ✅ Check Graph API response
-
                         $appointment->update([
                             'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
                             'event_id' => $onlineMeeting->getId(),
@@ -953,12 +945,6 @@ class DemoAppointmentRelationManager extends RelationManager
                             $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
                                 return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
                             });
-
-                            // Debugging emails before sending
-                            info([
-                                'To (Lead Email)' => $leadEmail,
-                                'CC (Others)' => $ccEmails
-                            ]);
 
                             // Send email only if valid
                             if (!empty($leadEmail)) {

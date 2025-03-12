@@ -477,6 +477,7 @@ class LeadResource extends Resource
                                                                                 'On Hold' => 'On Hold',
                                                                                 'Junk' => 'Junk',
                                                                                 'Lost' => 'Lost',
+                                                                                'Closed' => 'Closed',
                                                                             ])
                                                                             ->default('On Hold')
                                                                             ->required()
