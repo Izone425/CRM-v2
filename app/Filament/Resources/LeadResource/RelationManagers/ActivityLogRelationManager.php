@@ -649,7 +649,7 @@ class ActivityLogRelationManager extends RelationManager
                                 $emailContent = [
                                     'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                     'lead' => [
-                                        'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                                        'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
                                         'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
                                         'salespersonName' => $salespersonUser->name ?? 'N/A',
                                         'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
@@ -877,7 +877,7 @@ class ActivityLogRelationManager extends RelationManager
                                     $viewName = 'emails.salesperson_notification2'; // Replace with a valid default view
 
                                     $emailContent = [
-                                        'salespersonName' => $salespersonUser, // Salesperson's Name
+                                        'salespersonName' => $salespersonUser->name, // Salesperson's Name
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [
                                             'lead_code' => isset($lead->lead_code) ? 'https://crm.timeteccloud.com:8082/demo-request/' . $lead->lead_code : 'N/A',
@@ -953,6 +953,7 @@ class ActivityLogRelationManager extends RelationManager
 
                                     TextInput::make('deal_amount')
                                         ->label('Deal Amount')
+                                        ->numeric()
                                         ->required()
                                         ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
                                         ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
@@ -1557,7 +1558,7 @@ class ActivityLogRelationManager extends RelationManager
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [
-                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
+                                            'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
                                             'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
                                             'salespersonName' => $salespersonUser->name ?? 'N/A',
                                             'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',

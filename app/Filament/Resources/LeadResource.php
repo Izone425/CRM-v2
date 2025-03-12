@@ -498,6 +498,7 @@ class LeadResource extends Resource
                                                                                         'On Hold' => 'On Hold',
                                                                                         'Junk' => 'Junk',
                                                                                         'Lost' => 'Lost',
+                                                                                        'Closed' => 'Closed',
                                                                                     ])
                                                                                     ->default(fn (callable $get) => $get('status')) // Default lead_stage based on selected status
                                                                                     ->required(),

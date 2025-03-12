@@ -29,10 +29,6 @@ class UpdateLeadStatus extends Command
                 'stage' => 'Follow Up',
             ]);
 
-            $latestAppointment = $lead->demoAppointment()
-                ->orderByDesc('date') // Get the latest appointment based on the date
-                ->first();
-
             $lead->demoAppointment()
                 ->whereDate('date', Carbon::yesterday())
                 ->where('status', 'New')
