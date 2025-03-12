@@ -953,6 +953,7 @@ class ActivityLogRelationManager extends RelationManager
 
                                     TextInput::make('deal_amount')
                                         ->label('Deal Amount')
+                                        ->numeric()
                                         ->required()
                                         ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
                                         ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
