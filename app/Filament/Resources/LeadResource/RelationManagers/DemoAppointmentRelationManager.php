@@ -397,7 +397,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                             'date' => $formattedDate ?? 'N/A',
                                             'startTime' => $startTime ?? 'N/A',
                                             'endTime' => $endTime ?? 'N/A',
-                                            'position' => $leadowner->position ?? 'N/A', // position
+                                            'position' => $salespersonUser->position ?? 'N/A', // position
                                             'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                             'demo_type' => $appointment->type,
                                             'appointment_type' => $appointment->appointment_type
@@ -909,7 +909,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     'startTime' => $startTime ?? 'N/A',
                                     'endTime' => $endTime ?? 'N/A',
                                     'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
-                                    'position' => $leadowner->position ?? 'N/A', // position
+                                    'position' => $salespersonUser->position ?? 'N/A', // position
                                     'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                     'demo_type' => $appointment->type,
                                     'appointment_type' => $appointment->appointment_type
