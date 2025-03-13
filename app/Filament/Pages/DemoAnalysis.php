@@ -17,7 +17,7 @@ class DemoAnalysis extends Page
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static string $view = 'filament.pages.demo-analysis';
     protected static ?string $navigationLabel = 'Demo Analysis';
-    protected static ?string $title = 'Demo Analysis';
+    protected static ?string $title = '';
     protected static ?int $navigationSort = 8;
     protected static ?string $navigationGroup = 'Analysis';
 

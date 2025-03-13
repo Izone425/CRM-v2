@@ -370,23 +370,27 @@
             }
         </style>
     </head>
-    <div class="flex items-center mb-6">
-        @if(in_array(auth()->user()->role_id, [1, 3]))
-            <!-- Salesperson Filter -->
-            <div>
-                <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
-                    <option value="">All Salespersons</option>
-                    @foreach ($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        @endif
+    <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
+            <!-- Title -->
+        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Demo Analysis</h1>
+        <div class="flex items-center mb-6">
+            @if(in_array(auth()->user()->role_id, [1, 3]))
+                <!-- Salesperson Filter -->
+                <div>
+                    <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+                        <option value="">All Salespersons</option>
+                        @foreach ($users as $user)
+                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            @endif
 
-        <!-- Month Filter (Added Margin) -->
-        <div class="ml-10">  <!-- Manually added space using margin-left -->
-            <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+            <!-- Month Filter (Added Margin) -->
+            <div class="ml-10">  <!-- Manually added space using margin-left -->
+                <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+            </div>
         </div>
     </div>
 

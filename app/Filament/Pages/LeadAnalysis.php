@@ -14,7 +14,7 @@ class LeadAnalysis extends Page
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
     protected static string $view = 'filament.pages.lead-analysis';
     protected static ?string $navigationLabel = 'Lead Analysis';
-    protected static ?string $title = 'Lead Analysis';
+    protected static ?string $title = '';
     protected static ?int $navigationSort = 8;
     protected static ?string $navigationGroup = 'Analysis';
 
