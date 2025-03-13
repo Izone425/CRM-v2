@@ -107,7 +107,7 @@ class DemoAnalysis extends Page
         $query = Appointment::where('status', '!=', 'Cancelled');
 
         // Role-based filtering
-        if ($authUser->role_id == 1 && !empty($this->selectedUser)) {
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
             $query->where('salesperson', $this->selectedUser);
         }
         if ($authUser->role_id == 2) {
