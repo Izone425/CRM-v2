@@ -677,7 +677,7 @@ class LeadActions
                                     'startTime' => $startTime ?? 'N/A',
                                     'endTime' => $endTime ?? 'N/A',
                                     'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
-                                    'position' => $leadowner->position ?? 'N/A', // position
+                                    'position' => $salespersonUser->position ?? 'N/A', // position
                                     'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                     'demo_type' => $appointment->type,
                                     'appointment_type' => $appointment->appointment_type
@@ -967,13 +967,14 @@ class LeadActions
                         ])
                         ->default(fn ($record) => $record->lead->lead_status ?? 'Hot')
                         ->required()
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
+                        ->visible(fn (?Lead $record) => $record && Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
 
                     TextInput::make('deal_amount')
                         ->label('Deal Amount')
+                        ->numeric()
                         ->required()
-                        ->default(fn (Lead $record) => $record->deal_amount)
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
+                        ->default(fn (?Lead $record) => $record ? $record->deal_amount : null)
+                        ->visible(fn (?Lead $record) => $record && Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up')
                 ])
         ])
         ->color('success')
