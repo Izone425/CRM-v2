@@ -251,10 +251,10 @@ class DemoAppointmentRelationManager extends RelationManager
                     //     ->requiresConfirmation()
                     //     ->modalHeading('Demo Completed Confirmation')
                     //     // ->form([
-                    //     //     Forms\Components\Placeholder::make('')
+                    //     //     Placeholder::make('')
                     //     //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                    //     //     Forms\Components\TextInput::make('remark')
+                    //     //     TextInput::make('remark')
                     //     //         ->label('Remarks')
                     //     //         ->required()
                     //     //         ->placeholder('Enter remarks here...')
@@ -506,7 +506,7 @@ class DemoAppointmentRelationManager extends RelationManager
             Tables\Actions\Action::make('Add Appointment')
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Appointment')
-                ->hidden(is_null($this->getOwnerRecord()->lead_owner))
+                ->hidden(auth()->user()->role_id != 2 && is_null($this->getOwnerRecord()->lead_owner))
                 ->form([
                     Grid::make(3) // 3 columns for 3 Select fields
                     ->schema([
@@ -606,7 +606,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             ->placeholder('Select a salesperson'),
                         ]),
                     // Schedule
-                    Forms\Components\ToggleButtons::make('mode')
+                    ToggleButtons::make('mode')
                         ->label('')
                         ->options([
                             'auto' => 'Auto',

@@ -28,12 +28,14 @@ use Exception;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
@@ -190,7 +192,7 @@ class ActivityLogRelationManager extends RelationManager
                 Action::make('updateLeadOwner')
                     ->label(__('Assign to Me'))
                     ->form([
-                        Forms\Components\Placeholder::make('')
+                        Placeholder::make('')
                         ->content(__('Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.'))
                     ])
                     ->color('success')
@@ -369,7 +371,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ->placeholder('Select a salesperson'),
                                     ]),
                                 // Schedule
-                                Forms\Components\ToggleButtons::make('mode')
+                                ToggleButtons::make('mode')
                                     ->label('')
                                     ->options([
                                         'auto' => 'Auto',
@@ -391,14 +393,14 @@ class ActivityLogRelationManager extends RelationManager
                                         }
                                     }),
 
-                                Forms\Components\Grid::make(3) // 3 columns for Date, Start Time, End Time
+                                Grid::make(3) // 3 columns for Date, Start Time, End Time
                                 ->schema([
                                     DatePicker::make('date')
                                         ->required()
                                         ->label('DATE')
                                         ->default(Carbon::today()->toDateString()),
 
-                                    Forms\Components\TimePicker::make('start_time')
+                                    TimePicker::make('start_time')
                                         ->label('START TIME')
                                         ->required()
                                         ->seconds(false)
@@ -427,7 +429,7 @@ class ActivityLogRelationManager extends RelationManager
                                             return $times;
                                         }),
 
-                                    Forms\Components\TimePicker::make('end_time')
+                                    TimePicker::make('end_time')
                                         ->label('END TIME')
                                         ->required()
                                         ->seconds(false)
@@ -783,7 +785,7 @@ class ActivityLogRelationManager extends RelationManager
                                 !in_array($stage, $invalidStages) && $record->lead->salesperson == null;
                         })
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                             ->content(__('You are marking this lead as "RFQ" and assigning it to a salesperson. Confirm?')),
 
                             Select::make('salesperson')
@@ -815,7 +817,7 @@ class ActivityLogRelationManager extends RelationManager
                                 ->required()
                                 ->placeholder('Select a salesperson'),
 
-                            Forms\Components\Textarea::make('remark')
+                            Textarea::make('remark')
                                 ->label('Remarks')
                                 ->rows(4)
                                 ->autosize()
@@ -916,12 +918,12 @@ class ActivityLogRelationManager extends RelationManager
                     Tables\Actions\Action::make('addFollowUp')
                         ->label(__('Add Follow Up'))
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                                 ->content(__('Fill out the following section to add a follow-up for this lead.
                                             Select a follow-up date if the lead requests to be contacted on a specific date.
                                             Otherwise, the system will default to sending the follow-up on the next Tuesday.')),
 
-                            Forms\Components\Textarea::make('remark')
+                            Textarea::make('remark')
                                 ->label('Remarks')
                                 ->rows(3)
                                 ->autosize()
@@ -932,7 +934,7 @@ class ActivityLogRelationManager extends RelationManager
 
                             Grid::make(3) // 2 columns grid
                                 ->schema([
-                                    Forms\Components\DatePicker::make('follow_up_date')
+                                    DatePicker::make('follow_up_date')
                                         ->label('Next Follow Up Date')
                                         ->required()
                                         ->placeholder('Select a follow-up date')
@@ -1055,7 +1057,7 @@ class ActivityLogRelationManager extends RelationManager
                                 !in_array($stage, $invalidStages);
                         })
                         ->form([
-                            Forms\Components\Placeholder::make('confirmation')
+                            Placeholder::make('confirmation')
                                 ->label('Are you sure you want to start the automation to follow up the lead by sending automation email to lead?'),
                         ])
                         ->modalHeading('Confirm Automation Action')
@@ -1136,7 +1138,7 @@ class ActivityLogRelationManager extends RelationManager
                                     $categories !== LeadCategoriesEnum::INACTIVE->value;
                         })
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                                 ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
 
                                 Select::make('status')
@@ -1277,10 +1279,10 @@ class ActivityLogRelationManager extends RelationManager
                         ->label(__('No Response'))
                         ->modalHeading('Mark Lead as No Response')
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                             ->content(__('You are making this lead as No Response after multiple follow-ups. Confirm?')),
 
-                            Forms\Components\TextInput::make('remark')
+                            TextInput::make('remark')
                             ->label('Remarks')
                             ->required()
                             ->placeholder('Enter remarks here...')
@@ -1345,10 +1347,10 @@ class ActivityLogRelationManager extends RelationManager
                         ->label(__('Reactive'))
                         ->modalHeading('Reactive Lead')
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                             ->content(__('Are you sure you want to reactive this lead? This action will move the lead back to active status for further follow-ups and actions.')),
 
-                            Forms\Components\TextInput::make('remark')
+                            TextInput::make('remark')
                             ->label('Remarks')
                             ->required()
                             ->placeholder('Enter remarks here...')
@@ -1370,7 +1372,7 @@ class ActivityLogRelationManager extends RelationManager
                                     'lead_status' => 'RFQ-Transfer',
                                     'remark' => $data['remark'],
                                     'follow_up_date' => null,
-                                    'salesperson' => auth()->user()->name,
+                                    'salesperson' => auth()->user()->id,
                                     'salesperson_assigned_date' => now(),
                                 ]);
 
@@ -1436,10 +1438,10 @@ class ActivityLogRelationManager extends RelationManager
                         ->label(__('Rearchive'))
                         ->modalHeading('Reactive Lead')
                         ->form([
-                            Forms\Components\Placeholder::make('')
+                            Placeholder::make('')
                             ->content(__('Are you sure you want to reactive this lead? This action will move the lead back to active status for further follow-ups and actions.')),
 
-                            Forms\Components\TextInput::make('remark')
+                            TextInput::make('remark')
                             ->label('Remarks')
                             ->required()
                             ->placeholder('Enter remarks here...')
@@ -1472,7 +1474,13 @@ class ActivityLogRelationManager extends RelationManager
 
                             } elseif (auth()->user()->role_id == 2) {
                                 $lead->update([
-                                    'lead_status' => 'New',
+                                    'categories' => 'Active',
+                                    'stage' => 'Transfer',
+                                    'lead_status' => 'RFQ-Transfer',
+                                    'remark' => $data['remark'],
+                                    'follow_up_date' => null,
+                                    'salesperson' => auth()->user()->id,
+                                    'salesperson_assigned_date' => now(),
                                 ]);
 
                                 $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
@@ -1695,10 +1703,10 @@ class ActivityLogRelationManager extends RelationManager
                         ->requiresConfirmation()
                         ->modalHeading('Demo Completed Confirmation')
                         // ->form([
-                        //     Forms\Components\Placeholder::make('')
+                        //     Placeholder::make('')
                         //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                        //     Forms\Components\TextInput::make('remark')
+                        //     TextInput::make('remark')
                         //         ->label('Remarks')
                         //         ->required()
                         //         ->placeholder('Enter remarks here...')
@@ -1972,7 +1980,7 @@ class ActivityLogRelationManager extends RelationManager
                         ->modalHeading(__('Approve Order Confirmation'))
                         ->modalDescription('You are approving the order confirmation for this sale. One approved, the lead status will change to closed.')
                         ->form([
-                            Forms\Components\TextInput::make('remark')
+                            TextInput::make('remark')
                             ->label('Remarks')
                             ->required()
                             ->placeholder('Enter remarks here...')
@@ -2019,7 +2027,7 @@ class ActivityLogRelationManager extends RelationManager
                             $remark = data_get($properties, 'attributes.remark', '');
 
                             return [
-                                Forms\Components\Textarea::make('remark')
+                                Textarea::make('remark')
                                     ->label('Remarks')
                                     ->default($remark)
                                     ->autosize() // Auto-expand based on content

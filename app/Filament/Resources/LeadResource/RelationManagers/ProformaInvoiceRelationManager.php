@@ -137,7 +137,7 @@ class ProformaInvoiceRelationManager extends RelationManager
                     ]),
                 Filter::make('company_name')
                     ->form([
-                        Forms\Components\TextInput::make('company_name')
+                        TextInput::make('company_name')
                             ->label('Company')
                             ->placeholder('Enter company name'),
                     ])

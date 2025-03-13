@@ -29,8 +29,11 @@ use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\ActionSize;
@@ -56,14 +59,14 @@ class LeadResource extends Resource
             ->schema([
                 Grid::make(1) // Define a single-column grid layout
                     ->schema([
-                        Forms\Components\Tabs::make()->tabs([
-                            Forms\Components\Tabs\Tab::make('Lead')->schema([
-                                Forms\Components\Grid::make(4) // A three-column grid for overall layout
+                        Tabs::make()->tabs([
+                            Tabs\Tab::make('Lead')->schema([
+                                Grid::make(4) // A three-column grid for overall layout
                                 ->schema([
                                     // Left-side layout
-                                    Forms\Components\Grid::make(2) // Nested grid for left side (single column)
+                                    Grid::make(2) // Nested grid for left side (single column)
                                         ->schema([
-                                            Forms\Components\Section::make('Lead Details')
+                                            Section::make('Lead Details')
                                                 ->icon('heroicon-o-briefcase')
                                                 ->headerActions([
                                                     Action::make('edit_person_in_charge')
@@ -96,15 +99,15 @@ class LeadResource extends Resource
                                                         }),
                                                 ])
                                                 ->schema([
-                                                    Forms\Components\Grid::make(2) // Two columns layout for Lead Details
+                                                    Grid::make(2) // Two columns layout for Lead Details
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('lead_id')
+                                                            Placeholder::make('lead_id_placeholder')
                                                                 ->label('Lead ID')
                                                                 ->content(fn ($record) => $record ? str_pad($record->id, 5, '0', STR_PAD_LEFT) : '-'),
-                                                            Forms\Components\Placeholder::make('lead_source')
+                                                            Placeholder::make('lead_source')
                                                                 ->label('Lead Source')
                                                                 ->content(fn ($record) => $record->leadSource?->platform ?? '-'),
-                                                            Forms\Components\Placeholder::make('lead_created_by')
+                                                            Placeholder::make('lead_created_by')
                                                                 ->label('Lead Created By')
                                                                 ->content(function ($record) {
                                                                     if (!$record) {
@@ -125,38 +128,38 @@ class LeadResource extends Resource
 
                                                                     return '-';
                                                                 }),
-                                                            Forms\Components\Placeholder::make('lead_created_on')
+                                                            Placeholder::make('lead_created_on')
                                                                 ->label('Lead Created On')
                                                                 ->content(fn ($record) => $record->created_at?->format('d M Y, H:i') ?? '-'),
-                                                            Forms\Components\Placeholder::make('company_size')
+                                                            Placeholder::make('company_size')
                                                                 ->label('Company Size')
                                                                 ->content(fn ($record) => $record->getCompanySizeLabelAttribute() ?? '-'),
-                                                            Forms\Components\Placeholder::make('headcount')
+                                                            Placeholder::make('headcount')
                                                                 ->label('Headcount')
                                                                 ->content(fn ($record) => $record->company_size ?? '-'),
                                                         ]),
                                                 ]),
                                         ])
                                         ->columnSpan(2),
-                                        Forms\Components\Grid::make(1)
+                                        Grid::make(1)
                                             ->schema([
-                                                Forms\Components\Section::make('Progress')
+                                                Section::make('Progress')
                                                     ->icon('heroicon-o-calendar-days')
                                                     ->schema([
-                                                        Forms\Components\Grid::make(1) // Single-column layout for progress
+                                                        Grid::make(1) // Single-column layout for progress
                                                             ->schema([
-                                                                Forms\Components\Placeholder::make('days_from_lead_created')
+                                                                Placeholder::make('days_from_lead_created')
                                                                     ->label('Total Days from Lead Created')
                                                                     ->content(function ($record) {
                                                                         $createdDate = $record->created_at;
                                                                         return $createdDate ? $createdDate->diffInDays(now()) . ' days' : '-';
                                                                     }),
 
-                                                                Forms\Components\Placeholder::make('days_from_new_demo')
+                                                                Placeholder::make('days_from_new_demo')
                                                                     ->label('Total Days from New Demo')
                                                                     ->content(fn ($record) => $record->calculateDaysFromNewDemo() . ' days'),
 
-                                                                Forms\Components\Placeholder::make('salesperson_assigned_date')
+                                                                Placeholder::make('salesperson_assigned_date')
                                                                     ->label('Salesperson Assigned Date')
                                                                     ->content(function ($record) {
                                                                         return $record->salesperson_assigned_date
@@ -167,20 +170,20 @@ class LeadResource extends Resource
                                                     ]),
                                             ])
                                             ->columnSpan(1),
-                                        Forms\Components\Grid::make(1)
+                                        Grid::make(1)
                                             ->schema([
-                                                Forms\Components\Section::make('Sales In-Charge')
+                                                Section::make('Sales In-Charge')
                                                     ->extraAttributes([
                                                         'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                                     ])
                                                     ->icon('heroicon-o-user')
                                                     ->schema([
-                                                        Forms\Components\Grid::make(1) // Single column in the right-side section
+                                                        Grid::make(1) // Single column in the right-side section
                                                             ->schema([
-                                                                Forms\Components\Placeholder::make('lead Owner')
+                                                                Placeholder::make('lead Owner')
                                                                     ->label('Lead Owner')
                                                                     ->content(fn ($record) =>  $record->lead_owner ?? 'No Lead Owner'),
-                                                                Forms\Components\Placeholder::make('salesperson')
+                                                                Placeholder::make('salesperson')
                                                                     ->label('Salesperson')
                                                                     ->content(function ($record) {
                                                                         $salespersonId = $record->salesperson; // Get the salesperson ID
@@ -199,12 +202,12 @@ class LeadResource extends Resource
                                                                                 ? [
                                                                                     Grid::make()
                                                                                         ->schema([
-                                                                                            Forms\Components\Select::make('position')
+                                                                                            Select::make('position')
                                                                                                 ->label('Lead Owner Role')
                                                                                                 ->options([
                                                                                                     'sale_admin' => 'Sales Admin',
                                                                                                 ]),
-                                                                                            Forms\Components\Select::make('lead_owner')
+                                                                                            Select::make('lead_owner')
                                                                                                 ->label('Lead Owner')
                                                                                                 ->options(
                                                                                                     \App\Models\User::where('role_id', 1)
@@ -215,7 +218,7 @@ class LeadResource extends Resource
                                                                                 ]
                                                                                 : [],
                                                                             [
-                                                                                Forms\Components\Select::make('salesperson')
+                                                                                Select::make('salesperson')
                                                                                     ->label('Salesperson')
                                                                                     ->options(
                                                                                         \App\Models\User::where('role_id', 2)
@@ -285,12 +288,12 @@ class LeadResource extends Resource
                                             ])->columnSpan(1),
                                 ]),
                             ]),
-                            Forms\Components\Tabs\Tab::make('Company')->schema([
-                                Forms\Components\Grid::make(4)
+                            Tabs\Tab::make('Company')->schema([
+                                Grid::make(4)
                                 ->schema([
-                                    Forms\Components\Grid::make(2)
+                                    Grid::make(2)
                                         ->schema([
-                                            Forms\Components\Section::make('Company Details')
+                                            Section::make('Company Details')
                                                 ->icon('heroicon-o-briefcase')
                                                 ->headerActions([
                                                     Action::make('edit_company_detail')
@@ -299,25 +302,25 @@ class LeadResource extends Resource
                                                         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                                         ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                         ->form([ // Define the form fields to show in the modal
-                                                            Forms\Components\TextInput::make('company_name')
+                                                            TextInput::make('company_name')
                                                                 ->label('Company Name')
                                                                 ->default(fn ($record) => strtoupper($record->companyDetail->company_name ?? '-'))
                                                                 ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
-                                                            Forms\Components\TextInput::make('company_address1')
+                                                            TextInput::make('company_address1')
                                                                 ->label('Company Address 1')
                                                                 ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-')
                                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                                            Forms\Components\TextInput::make('company_address2')
+                                                            TextInput::make('company_address2')
                                                                 ->label('Company Address 2')
                                                                 ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
                                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                                            Forms\Components\Grid::make(3) // Create a 3-column grid
+                                                            Grid::make(3) // Create a 3-column grid
                                                                 ->schema([
-                                                                    Forms\Components\TextInput::make('postcode')
+                                                                    TextInput::make('postcode')
                                                                         ->label('Postcode')
                                                                         ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
 
-                                                                    Forms\Components\Select::make('state')
+                                                                    Select::make('state')
                                                                         ->label('State')
                                                                         ->options(function () {
                                                                             $filePath = storage_path('app/public/json/StateCodes.json');
@@ -355,7 +358,7 @@ class LeadResource extends Resource
                                                                         ->searchable()
                                                                         ->preload(),
 
-                                                                    Forms\Components\Select::make('industry')
+                                                                    Select::make('industry')
                                                                         ->label('Industry')
                                                                         ->options([
                                                                             'Manufacturing' => 'Manufacturing',
@@ -393,33 +396,33 @@ class LeadResource extends Resource
                                                         }),
                                                 ])
                                                 ->schema([
-                                                    Forms\Components\Grid::make(2) // Two columns layout for Lead Details
+                                                    Grid::make(2) // Two columns layout for Lead Details
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('company_name')
+                                                            Placeholder::make('company_name')
                                                                 ->label('Company Name')
                                                                ->content(fn ($record) => $record->companyDetail->company_name ?? '-'),
-                                                            Forms\Components\Placeholder::make('postcode')
+                                                            Placeholder::make('postcode')
                                                                ->label('Postcode')
                                                                ->content(fn ($record) => $record->companyDetail->postcode ?? '-'),
-                                                            Forms\Components\Placeholder::make('company_address1')
+                                                            Placeholder::make('company_address1')
                                                                 ->label('Company Address 1')
                                                                 ->content(fn ($record) => $record->companyDetail->company_address1 ?? '-'),
-                                                            Forms\Components\Placeholder::make('state')
+                                                            Placeholder::make('state')
                                                                 ->label('State')
                                                                 ->content(fn ($record) => $record->companyDetail->state ?? '-'),
-                                                            Forms\Components\Placeholder::make('company_address2')
+                                                            Placeholder::make('company_address2')
                                                                 ->label('Company Address 2')
                                                                 ->content(fn ($record) => $record->companyDetail->company_address2 ?? '-'),
-                                                            Forms\Components\Placeholder::make('industry')
+                                                            Placeholder::make('industry')
                                                                 ->label('Industry')
                                                                 ->content(fn ($record) => $record->companyDetail->industry ?? '-'),
                                                         ]),
                                                 ]),
                                         ])
                                         ->columnSpan(2),
-                                        Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                        Grid::make(1) // Nested grid for left side (single column)
                                             ->schema([
-                                                Forms\Components\Section::make('Person In-Charge')
+                                                Section::make('Person In-Charge')
                                                     ->icon('heroicon-o-user')
                                                     ->headerActions([
                                                         Action::make('edit_person_in_charge')
@@ -428,17 +431,17 @@ class LeadResource extends Resource
                                                             ->modalHeading('Edit on Person In-Charge') // Modal heading
                                                             ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                             ->form([ // Define the form fields to show in the modal
-                                                                Forms\Components\TextInput::make('name')
+                                                                TextInput::make('name')
                                                                     ->label('Name')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
                                                                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                     ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
-                                                                Forms\Components\TextInput::make('email')
+                                                                TextInput::make('email')
                                                                     ->label('Email')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
-                                                                Forms\Components\TextInput::make('contact_no')
+                                                                TextInput::make('contact_no')
                                                                     ->label('Contact No.')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
@@ -465,31 +468,31 @@ class LeadResource extends Resource
                                                             }),
                                                     ])
                                                     ->schema([
-                                                        Forms\Components\Placeholder::make('name')
+                                                        Placeholder::make('name')
                                                             ->label('Name')
                                                             ->content(fn ($record) => $record->companyDetail->name ?? $record->name),
-                                                        Forms\Components\Placeholder::make('contact_no')
+                                                        Placeholder::make('contact_no')
                                                             ->label('Contact No.')
                                                             ->content(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
-                                                        Forms\Components\Placeholder::make('email')
+                                                        Placeholder::make('email')
                                                             ->label('Email Address')
                                                             ->content(fn ($record) => $record->companyDetail->email ?? $record->email),
                                                     ]),
                                                 ])->columnSpan(1),
-                                        Forms\Components\Grid::make(1) // Nested grid for left side (single column)
+                                        Grid::make(1) // Nested grid for left side (single column)
                                             ->schema([
-                                                Forms\Components\Section::make('Status')
+                                                Section::make('Status')
                                                     ->icon('heroicon-o-information-circle')
                                                     ->extraAttributes([
                                                         'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                                     ])
                                                     ->schema([
-                                                        Forms\Components\Grid::make(1) // Single column in the right-side section
+                                                        Grid::make(1) // Single column in the right-side section
                                                             ->schema([
-                                                                Forms\Components\Placeholder::make('deal_amount')
+                                                                Placeholder::make('deal_amount')
                                                                     ->label('Deal Amount')
                                                                     ->content(fn ($record) => $record ? 'RM ' . number_format($record->deal_amount, 2) : 'RM 0.00'),
-                                                                Forms\Components\Placeholder::make('status')
+                                                                Placeholder::make('status')
                                                                     ->label('Status')
                                                                     ->content(fn ($record) => ($record->stage ?? $record->categories)
                                                                     ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
@@ -603,11 +606,11 @@ class LeadResource extends Resource
                             ]),
                             Tab::make('System')
                                 ->schema([
-                                    Forms\Components\Tabs::make('Phases')
+                                    Tabs::make('Phases')
                                         ->tabs([
-                                            Forms\Components\Tabs\Tab::make('Phase 1')
+                                            Tabs\Tab::make('Phase 1')
                                                 ->schema([
-                                                    Forms\Components\Section::make('Phase 1')
+                                                    Section::make('Phase 1')
                                                         ->description(fn ($record) =>
                                                             $record && $record->systemQuestion
                                                                 ? 'Updated by ' . ($record->systemQuestion->causer_name ?? 'Unknown') . ' on ' .
@@ -626,7 +629,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('existing_system')
+                                                            Placeholder::make('existing_system')
                                                                 ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestion?->existing_system ?? '-';
@@ -637,7 +640,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('usage_duration')
+                                                            Placeholder::make('usage_duration')
                                                                 ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?')
                                                                 ->content(fn ($record) => $record?->systemQuestion?->usage_duration ?? '-')
                                                                 ->content(function ($record) {
@@ -649,13 +652,13 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('expired_date')
+                                                            Placeholder::make('expired_date')
                                                                 ->label('4. WHEN IS THE EXPIRED DATE?')
                                                                 ->content(fn ($record) => $record?->systemQuestion?->expired_date
                                                                     ? \Carbon\Carbon::createFromFormat('Y-m-d', $record->systemQuestion->expired_date)->format('d/m/Y')
                                                                     : '-')
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('reason_for_change')
+                                                            Placeholder::make('reason_for_change')
                                                                 ->label('5. WHAT MAKES YOU LOOK FOR A NEW SYSTEM?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestion?->reason_for_change ?? '-';
@@ -666,7 +669,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('staff_count')
+                                                            Placeholder::make('staff_count')
                                                                 ->label('6. HOW MANY STAFF DO YOU HAVE?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestion?->staff_count ?? '-';
@@ -677,7 +680,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('hrdf_contribution')
+                                                            Placeholder::make('hrdf_contribution')
                                                                 ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestion?->hrdf_contribution ?? '-';
@@ -688,7 +691,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('additional')
+                                                            Placeholder::make('additional')
                                                                 ->label('8. ADDITIONAL QUESTIONS?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestion?->additional ?? '-';
@@ -701,7 +704,7 @@ class LeadResource extends Resource
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
-                                                            Forms\Components\Actions\Action::make('update')
+                                                            Actions\Action::make('update')
                                                                 ->label('Update')
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
@@ -739,7 +742,7 @@ class LeadResource extends Resource
                                                                         ->rows(3)
                                                                         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->usage_duration),
-                                                                    Forms\Components\DatePicker::make('expired_date')
+                                                                    DatePicker::make('expired_date')
                                                                         ->label('4. WHEN IS THE EXPIRED DATE?')
                                                                         ->default(fn ($record) => $record?->systemQuestion?->expired_date),
                                                                     Textarea::make('reason_for_change')
@@ -754,7 +757,7 @@ class LeadResource extends Resource
                                                                         ->rows(3)
                                                                         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                                         ->default(fn ($record) => $record?->systemQuestion?->staff_count),
-                                                                    Forms\Components\Select::make('hrdf_contribution')
+                                                                    Select::make('hrdf_contribution')
                                                                         ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
                                                                         ->options([
                                                                             'Yes' => 'Yes',
@@ -799,9 +802,9 @@ class LeadResource extends Resource
                                                                 }),
                                                         ])
                                                 ]),
-                                            Forms\Components\Tabs\Tab::make('Phase 2')
+                                            Tabs\Tab::make('Phase 2')
                                                 ->schema([
-                                                    Forms\Components\Section::make('Phase 2')
+                                                    Section::make('Phase 2')
                                                         ->description(function ($record) {
                                                             if ($record && $record->systemQuestionPhase2 && !empty($record->systemQuestionPhase2->updated_at)) {
                                                                 return 'Updated by ' . ($record->systemQuestionPhase2->causer_name ?? 'Unknown') . ' on ' .
@@ -811,7 +814,7 @@ class LeadResource extends Resource
                                                             return null; // Return null if no update exists
                                                         })
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('support')
+                                                            Placeholder::make('support')
                                                                 ->label('1.  PROSPECT QUESTION – NEED TO REFER SUPPORT TEAM.')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase2?->support ?? '-';
@@ -822,7 +825,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('product')
+                                                            Placeholder::make('product')
                                                                 ->label('2. PROSPECT CUSTOMIZATION – NEED TO REFER PRODUCT TEAM.')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase2?->product ?? '-';
@@ -833,7 +836,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('additional')
+                                                            Placeholder::make('additional')
                                                                 ->label('3. ADDITIONAL QUESTIONS?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase2?->additional ?? '-';
@@ -846,7 +849,7 @@ class LeadResource extends Resource
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
-                                                            Forms\Components\Actions\Action::make('update_phase2')
+                                                            Actions\Action::make('update_phase2')
                                                                 ->label('Update')
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
@@ -915,9 +918,9 @@ class LeadResource extends Resource
                                                                 }),
                                                         ])
                                                 ]),
-                                            Forms\Components\Tabs\Tab::make('Phase 3')
+                                            Tabs\Tab::make('Phase 3')
                                                 ->schema([
-                                                    Forms\Components\Section::make('Phase 3')
+                                                    Section::make('Phase 3')
                                                         ->description(function ($record) {
                                                             if ($record && $record->systemQuestionPhase3 && !empty($record->systemQuestionPhase3->updated_at)) {
                                                                 return 'Updated by ' . ($record->systemQuestionPhase3->causer_name ?? 'Unknown') . ' on ' .
@@ -927,7 +930,7 @@ class LeadResource extends Resource
                                                             return null; // Return null if no update exists
                                                         })
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('percentage')
+                                                            Placeholder::make('percentage')
                                                                 ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase3?->percentage ?? '-';
@@ -938,7 +941,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('vendor')
+                                                            Placeholder::make('vendor')
                                                                 ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase3?->vendor ?? '-';
@@ -949,7 +952,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('plan')
+                                                            Placeholder::make('plan')
                                                                 ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase3?->plan ?? '-';
@@ -960,7 +963,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('finalise')
+                                                            Placeholder::make('finalise')
                                                                 ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase3?->finalise ?? '-';
@@ -971,7 +974,7 @@ class LeadResource extends Resource
                                                                     );
                                                                 })
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Forms\Components\Placeholder::make('additional')
+                                                            Placeholder::make('additional')
                                                                 ->label('5. ADDITIONAL QUESTIONS?')
                                                                 ->content(function ($record) {
                                                                     $content = $record?->systemQuestionPhase3?->additional ?? '-';
@@ -984,7 +987,7 @@ class LeadResource extends Resource
                                                                 ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
                                                         ])
                                                         ->headerActions([
-                                                            Forms\Components\Actions\Action::make('update_phase3')
+                                                            Actions\Action::make('update_phase3')
                                                                 ->label('Update')
                                                                 ->color('primary')
                                                                 ->modalHeading('Update Data')
@@ -1068,33 +1071,33 @@ class LeadResource extends Resource
                                                 ]),
                                     ])
                                 ]),
-                            Forms\Components\Tabs\Tab::make('Refer & Earn')
+                            Tabs\Tab::make('Refer & Earn')
                             ->schema([
-                                Forms\Components\Grid::make(1) // Main grid for all sections
+                                Grid::make(1) // Main grid for all sections
                                     ->schema([
                                         // First row: Referral Details (From and Refer To)
-                                        Forms\Components\Grid::make(2) // Three columns layout: From, Arrow, Refer To
+                                        Grid::make(2) // Three columns layout: From, Arrow, Refer To
                                             ->schema([
                                                 // From Section
-                                                Forms\Components\Section::make('From')
+                                                Section::make('From')
                                                     ->icon('heroicon-o-arrow-right-start-on-rectangle')
                                                     ->schema([
-                                                        Forms\Components\Grid::make(2) // Create a grid with two columns
+                                                        Grid::make(2) // Create a grid with two columns
                                                         ->schema([
-                                                            Forms\Components\Placeholder::make('from_company')
+                                                            Placeholder::make('from_company')
                                                                 ->label('COMPANY')
                                                                 ->content(fn ($record) => $record?->referralDetail?->company ?? '-'),
-                                                            Forms\Components\Placeholder::make('from_remark')
+                                                            Placeholder::make('from_remark')
                                                                 ->label('REMARK')
                                                                 ->content(fn ($record) => $record?->referralDetail?->remark ?? '-'),
                                                         ]),
-                                                        Forms\Components\Placeholder::make('from_name')
+                                                        Placeholder::make('from_name')
                                                             ->label('NAME')
                                                             ->content(fn ($record) => $record?->referralDetail?->name ?? '-'),
-                                                        Forms\Components\Placeholder::make('from_email')
+                                                        Placeholder::make('from_email')
                                                             ->label('EMAIL ADDRESS')
                                                             ->content(fn ($record) => $record?->referralDetail?->email ?? '-'),
-                                                        Forms\Components\Placeholder::make('from_contact')
+                                                        Placeholder::make('from_contact')
                                                             ->label('CONTACT NO.')
                                                             ->content(fn ($record) => $record?->referralDetail?->contact_no ?? '-'),
                                                     ])
@@ -1103,25 +1106,25 @@ class LeadResource extends Resource
                                                         'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                                     ]),
                                                 // // Arrow in the center
-                                                // Forms\Components\Placeholder::make('arrow')
+                                                // Placeholder::make('arrow')
                                                 //     ->content('→') // Arrow symbol
                                                 //     ->columnSpan(1)
                                                 //     ->label(''),
 
                                                 // Refer To Section
-                                                Forms\Components\Section::make('Refer to')
+                                                Section::make('Refer to')
                                                     ->icon('heroicon-o-arrow-right-end-on-rectangle')
                                                     ->schema([
-                                                        Forms\Components\Placeholder::make('to_company')
+                                                        Placeholder::make('to_company')
                                                             ->label('COMPANY')
                                                             ->content(fn ($record) => $record->companyDetail->company_name ?? null),
-                                                        Forms\Components\Placeholder::make('to_name')
+                                                        Placeholder::make('to_name')
                                                             ->label('NAME')
                                                             ->content(fn ($record) => $record->name ?? null),
-                                                        Forms\Components\Placeholder::make('to_email')
+                                                        Placeholder::make('to_email')
                                                             ->label('EMAIL ADDRESS')
                                                             ->content(fn ($record) => $record->email ?? null),
-                                                        Forms\Components\Placeholder::make('to_contact')
+                                                        Placeholder::make('to_contact')
                                                             ->label('CONTACT NO.')
                                                             ->content(fn ($record) => $record->phone ?? null),
                                                     ])
@@ -1133,7 +1136,7 @@ class LeadResource extends Resource
                                             ->columns(2),
 
                                         // Second row: Bank Details
-                                        Forms\Components\Section::make('Bank Details')
+                                        Section::make('Bank Details')
                                             ->icon('heroicon-o-chat-bubble-left')
                                             ->extraAttributes([
                                                 'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
@@ -1145,28 +1148,28 @@ class LeadResource extends Resource
                                                     ->modalSubmitActionLabel('Save Changes') // Modal button text
                                                     ->hidden()
                                                     ->form([ // Define the form fields to show in the modal
-                                                        Forms\Components\TextInput::make('full_name')
+                                                        TextInput::make('full_name')
                                                             ->label('FULL NAME')
                                                             ->default(fn ($record) => $record?->bankDetail?->full_name ?? null),
-                                                        Forms\Components\TextInput::make('ic')
+                                                        TextInput::make('ic')
                                                             ->label('IC NO.')
                                                             ->default(fn ($record) => $record?->bankDetail?->ic ?? null),
-                                                        Forms\Components\TextInput::make('tin')
+                                                        TextInput::make('tin')
                                                             ->label('TIN NO.')
                                                             ->default(fn ($record) => $record?->bankDetail?->tin ?? null),
-                                                        Forms\Components\TextInput::make('bank_name')
+                                                        TextInput::make('bank_name')
                                                             ->label('BANK NAME')
                                                             ->default(fn ($record) => $record?->bankDetail?->bank_name ?? null),
-                                                        Forms\Components\TextInput::make('bank_account_no')
+                                                        TextInput::make('bank_account_no')
                                                             ->label('BANK ACCOUNT NO.')
                                                             ->default(fn ($record) => $record?->bankDetail?->bank_account_no ?? null),
-                                                        Forms\Components\TextInput::make('contact_no')
+                                                        TextInput::make('contact_no')
                                                             ->label('CONTACT NUMBER')
                                                             ->default(fn ($record) => $record?->bankDetail?->contact_no ?? null),
-                                                        Forms\Components\TextInput::make('email')
+                                                        TextInput::make('email')
                                                             ->label('EMAIL ADDRESS')
                                                             ->default(fn ($record) => $record?->bankDetail?->email ?? null),
-                                                        Forms\Components\Select::make('referral_payment_status')
+                                                        Select::make('referral_payment_status')
                                                             ->label('REFERRAL PAYMENT STATUS')
                                                             ->default(fn ($record) => $record?->bankDetail?->payment_referral_status ?? null)
                                                             ->options([
@@ -1174,7 +1177,7 @@ class LeadResource extends Resource
                                                                 'PAID' => 'Paid',
                                                                 'PROCESSING' => 'Processing',
                                                             ]),
-                                                        Forms\Components\TextInput::make('remark')
+                                                        TextInput::make('remark')
                                                             ->label('REMARK')
                                                             ->default(fn ($record) => $record?->bankDetail?->remark ?? null),
                                                     ])
@@ -1200,69 +1203,69 @@ class LeadResource extends Resource
                                                     }),
                                             ])
                                             ->schema([
-                                                Forms\Components\Grid::make(4) // Four columns layout
+                                                Grid::make(4) // Four columns layout
                                                     ->schema([
-                                                        Forms\Components\Placeholder::make('full_name')
+                                                        Placeholder::make('full_name')
                                                             ->label('FULL NAME')
                                                             ->content(fn ($record) => $record?->bankDetail?->full_name ?? '-'),
-                                                        Forms\Components\Placeholder::make('bank_name')
+                                                        Placeholder::make('bank_name')
                                                             ->label('BANK NAME')
                                                             ->content(fn ($record) => $record?->bankDetail?->bank_name ?? '-'),
-                                                        Forms\Components\Placeholder::make('contact_no')
+                                                        Placeholder::make('contact_no')
                                                             ->label('CONTACT NO.')
                                                             ->content(fn ($record) => $record?->bankDetail?->contact_no ?? '-'),
-                                                        Forms\Components\Placeholder::make('referral_payment_status')
+                                                        Placeholder::make('referral_payment_status')
                                                             ->label('REFERRAL PAYMENT STATUS')
                                                             ->content(fn ($record) => $record?->bankDetail?->referral_payment_status ?? '-'),
-                                                        Forms\Components\Placeholder::make('ic_no')
+                                                        Placeholder::make('ic_no')
                                                             ->label('IC NO.')
                                                             ->content(fn ($record) => $record?->bankDetail?->ic ?? '-'),
-                                                        Forms\Components\Placeholder::make('bank_account_no')
+                                                        Placeholder::make('bank_account_no')
                                                             ->label('BANK ACCOUNT NO.')
                                                             ->content(fn ($record) => $record?->bankDetail?->bank_account_no ?? '-'),
-                                                        Forms\Components\Placeholder::make('email')
+                                                        Placeholder::make('email')
                                                             ->label('EMAIL ADDRESS')
                                                             ->content(fn ($record) => $record?->bankDetail?->email ?? '-'),
-                                                        Forms\Components\Placeholder::make('remark')
+                                                        Placeholder::make('remark')
                                                             ->label('REMARK')
                                                             ->content(fn ($record) => $record?->bankDetail?->remark ?? '-'),
-                                                        Forms\Components\Placeholder::make('tin')
+                                                        Placeholder::make('tin')
                                                             ->label('TIN NO.')
                                                             ->content(fn ($record) => $record?->bankDetail?->tin ?? '-'),
                                                     ]),
                                             ]),
                                     ]),
                                 ]),
-                            Forms\Components\Tabs\Tab::make('Appointment')->schema([
+                            Tabs\Tab::make('Appointment')->schema([
                                 \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager::class,
                                 ),
                             ]),
-                            Forms\Components\Tabs\Tab::make('Prospect Follow Up')->schema([
+                            Tabs\Tab::make('Prospect Follow Up')->schema([
                                 \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager::class,
                                 ),
                             ]),
-                            Forms\Components\Tabs\Tab::make('Quotation')->schema([
+                            Tabs\Tab::make('Quotation')->schema([
                                 // \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
                                 // ),
                             ]),
-                            Forms\Components\Tabs\Tab::make('Proforma Invoice')->schema([
+                            Tabs\Tab::make('Proforma Invoice')->schema([
                                 // \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager::class,
                                 // ),
                             ]),
-                            Forms\Components\Tabs\Tab::make('Invoice')->schema([
+                            Tabs\Tab::make('Invoice')->schema([
 
                             ]),
-                            Forms\Components\Tabs\Tab::make('Debtor Follow Up')->schema([
+                            Tabs\Tab::make('Debtor Follow Up')->schema([
 
                             ]),
-                            Forms\Components\Tabs\Tab::make('Software Handover')->schema([
+                            Tabs\Tab::make('Software Handover')->schema([
 
                             ]),
-                            Forms\Components\Tabs\Tab::make('Hardware Handover')->schema([
+                            Tabs\Tab::make('Hardware Handover')->schema([
 
                             ]),
                         ]),
@@ -1396,7 +1399,7 @@ class LeadResource extends Resource
 
                 Filter::make('company_name')
                     ->form([
-                        Forms\Components\TextInput::make('company_name')
+                        TextInput::make('company_name')
                             ->hiddenLabel()
                             ->placeholder('Enter company name'),
                     ])
@@ -1498,6 +1501,7 @@ class LeadResource extends Resource
                     ])
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active'])),
                 TextColumn::make('company_name')
+                    ->wrap()
                     ->label('COMPANY NAME')
                     ->weight(FontWeight::Bold)
                     ->getStateUsing(fn (Lead $record) => $record->companyDetail?->company_name ?? '-'),
@@ -1576,7 +1580,7 @@ class LeadResource extends Resource
                             : 'Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.';
 
                         return [
-                            Forms\Components\Placeholder::make('warning')
+                            Placeholder::make('warning')
                                 ->content($content)
                                 ->hiddenLabel()
                                 ->extraAttributes([

@@ -14,7 +14,8 @@ class SalesAdminAnalysisV1 extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-numbered-list';
     protected static ?string $navigationGroup = 'Analysis';
-    protected static ?string $title = 'Sales Admin Analysis V1';
+    protected static ?string $navigationLabel = 'Sales Admin Analysis V1';
+    protected static ?string $title = '';
     protected static string $view = 'filament.pages.sales-admin-analysis-v1';
 
     public $selectedMonth;
