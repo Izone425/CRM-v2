@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
+use Illuminate\Support\Facades\Auth;
 
 class LeadResource extends Resource
 {
@@ -64,6 +65,36 @@ class LeadResource extends Resource
                                         ->schema([
                                             Forms\Components\Section::make('Lead Details')
                                                 ->icon('heroicon-o-briefcase')
+                                                ->headerActions([
+                                                    Action::make('edit_person_in_charge')
+                                                        ->label('Edit') // Button label
+                                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                                        ->modalHeading('Edit Lead Detail') // Modal heading
+                                                        ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                                        ->form([ // Define the form fields to show in the modal
+                                                            Select::make('company_size')
+                                                                ->label('Company Size')
+                                                                ->options([
+                                                                    '1-24' => '1-24',
+                                                                    '25-99' => '25-99',
+                                                                    '100-500' => '100-500',
+                                                                    '501 and Above' => '501 and Above',
+                                                                ])
+                                                                ->required()
+                                                                ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                                        ])
+                                                        ->action(function (Lead $lead, array $data) {
+                                                            if ($lead) {
+                                                                // Update the existing SystemQuestion record
+                                                                $lead->update($data);
+
+                                                                Notification::make()
+                                                                    ->title('Updated Successfully')
+                                                                    ->success()
+                                                                    ->send();
+                                                            }
+                                                        }),
+                                                ])
                                                 ->schema([
                                                     Forms\Components\Grid::make(2) // Two columns layout for Lead Details
                                                         ->schema([
@@ -1588,45 +1619,45 @@ class LeadResource extends Resource
                             ->success()
                             ->send();
                     }),
-                    // Tables\Actions\Action::make('resetLead')
-                    //     ->label(__('Reset Lead'))
-                    //     ->color('warning')
-                    //     ->size(ActionSize::Small)
-                    //     ->button()
-                    //     ->visible(fn (Lead $record) => !is_null($record->lead_owner))
-                    //     ->action(function (Lead $record) {
-                    //         // Reset the specific lead record
-                    //         $record->update([
-                    //             'categories' => 'New',
-                    //             'stage' => 'New',
-                    //             'lead_status' => 'None',
-                    //             'lead_owner' => null,
-                    //             'remark' => null,
-                    //             'follow_up_date' => null,
-                    //             'salesperson' => null,
-                    //             'salesperson_assigned_date' => null,
-                    //             'demo_appointment' => null,
-                    //             'rfq_followup_at' => null,
-                    //             'follow_up_counter' => 0,
-                    //             'follow_up_needed' => 0,
-                    //             'follow_up_count' => 0,
-                    //             'call_attempt' => 0,
-                    //             'done_call' => 0
-                    //         ]);
+                    Tables\Actions\Action::make('resetLead')
+                        ->label(__('Reset Lead'))
+                        ->color('warning')
+                        ->size(ActionSize::Small)
+                        ->button()
+                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7197)
+                        ->action(function (Lead $record) {
+                            // Reset the specific lead record
+                            $record->update([
+                                'categories' => 'New',
+                                'stage' => 'New',
+                                'lead_status' => 'None',
+                                'lead_owner' => null,
+                                'remark' => null,
+                                'follow_up_date' => null,
+                                'salesperson' => null,
+                                'salesperson_assigned_date' => null,
+                                'demo_appointment' => null,
+                                'rfq_followup_at' => null,
+                                'follow_up_counter' => 0,
+                                'follow_up_needed' => 0,
+                                'follow_up_count' => 0,
+                                'call_attempt' => 0,
+                                'done_call' => 0
+                            ]);
 
-                    //         // Delete all related data
-                    //         DB::table('appointments')->where('lead_id', $record->id)->delete();
-                    //         DB::table('system_questions')->where('lead_id', $record->id)->delete();
-                    //         DB::table('bank_details')->where('lead_id', $record->id)->delete();
-                    //         DB::table('activity_logs')->where('subject_id', $record->id)->delete();
-                    //         DB::table('quotations')->where('lead_id', $record->id)->delete();
+                            // Delete all related data
+                            DB::table('appointments')->where('lead_id', $record->id)->delete();
+                            DB::table('system_questions')->where('lead_id', $record->id)->delete();
+                            DB::table('bank_details')->where('lead_id', $record->id)->delete();
+                            DB::table('activity_logs')->where('subject_id', $record->id)->delete();
+                            DB::table('quotations')->where('lead_id', $record->id)->delete();
 
-                    //         // Send a notification after resetting the lead
-                    //         Notification::make()
-                    //             ->title('Lead Reset Successfully')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
+                            // Send a notification after resetting the lead
+                            Notification::make()
+                                ->title('Lead Reset Successfully')
+                                ->success()
+                                ->send();
+                        }),
                     Tables\Actions\ViewAction::make()
                         ->url(fn ($record) => route('filament.admin.resources.leads.view', [
                             'record' => Encryptor::encrypt($record->id),

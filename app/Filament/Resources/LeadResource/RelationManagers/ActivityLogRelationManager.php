@@ -662,7 +662,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'startTime' => $startTime ?? 'N/A',
                                         'endTime' => $endTime ?? 'N/A',
                                         'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
-                                        'position' => $leadowner->position ?? 'N/A', // position
+                                        'position' => $salespersonUser->position ?? 'N/A', // position
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                         'demo_type' => $appointment->type,
                                         'appointment_type' => $appointment->appointment_type
@@ -1093,7 +1093,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'email' => $lead->email ?? 'N/A', // Lead's Email
                                         'country' => $lead->country ?? 'N/A', // Lead's Country
                                         'products' => $lead->products ?? 'N/A', // Products
-                                        'position' => $leadowner->position ?? 'N/A', // position
+                                        'position' => $salespersonUser->position ?? 'N/A', // position
                                         'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                         // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
@@ -1569,7 +1569,7 @@ class ActivityLogRelationManager extends RelationManager
                                             'date' => $formattedDate ?? 'N/A',
                                             'startTime' => $startTime ?? 'N/A',
                                             'endTime' => $endTime ?? 'N/A',
-                                            'position' => $leadowner->position ?? 'N/A', // position
+                                            'position' => $salespersonUser->position ?? 'N/A', // position
                                             'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                             'demo_type' => $appointment->type,
                                             'appointment_type' => $appointment->appointment_type
