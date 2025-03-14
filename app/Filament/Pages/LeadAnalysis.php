@@ -91,7 +91,7 @@ class LeadAnalysis extends Page
         $query = Lead::query();
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($user->role_id == 1 && $this->selectedUser) {
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
