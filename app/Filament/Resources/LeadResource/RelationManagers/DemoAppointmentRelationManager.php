@@ -896,7 +896,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             $emailContent = [
                                 'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                 'lead' => [
-                                    'lastName' => $lead->companyDetails->name ?? $lead->name, // Lead's Last Name
+                                    'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
                                     'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
                                     'salespersonName' => $salespersonUser->name ?? 'N/A',
                                     'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
