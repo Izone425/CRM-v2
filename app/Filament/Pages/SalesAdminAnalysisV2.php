@@ -62,6 +62,8 @@ class SalesAdminAnalysisV2 extends Page
     public $inactiveLeadDataAfifah = [];
     public $totalInactiveLeadsAfifah = 0;
 
+    public Carbon $currentDate;
+
     public static function canAccess(): bool
     {
         return auth()->user()->role_id != '2';
@@ -69,6 +71,9 @@ class SalesAdminAnalysisV2 extends Page
 
     public function mount()
     {
+        $this->currentDate = Carbon::now();
+        $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
+
         $this->fetchLeads();
         $this->fetchLeadsByCategory();
         $this->fetchLeadsByAdminJaja();
