@@ -22,6 +22,8 @@ class SalesForecast extends Page
     public $hotDealsTotal;
     public $invoiceTotal;
     public $proformaInvoiceTotal;
+    public $users;
+    public Carbon $currentDate;
 
     // public static function canAccess(): bool
     // {
@@ -33,11 +35,24 @@ class SalesForecast extends Page
      */
     public function mount()
     {
-        $this->selectedMonth = Carbon::now();
-        $this->selectedUser = User::where('role_id', 2)->get();
+        $authUser = auth()->user();
+        $this->currentDate = Carbon::now();
 
-        $this->selectedUser = session('selectedUser');
-        $this->selectedMonth = session('selectedMonth');
+        // Fetch only Salespersons (role_id = 2)
+        $this->users = User::where('role_id', 2)->get();
+
+        // Set default selected user based on role
+        if ($authUser->role_id == 1) {
+            $this->selectedUser = session('selectedUser', null);
+        } elseif ($authUser->role_id == 2) {
+            $this->selectedUser = $authUser->id; // Salesperson can only see their data
+        }
+
+        // Set default selected month
+        $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
+
+        // Store in session
+        session(['selectedUser' => $this->selectedUser, 'selectedMonth' => $this->selectedMonth]);
         $this->calculateHotDealsTotal();
         $this->calculateInvoiceTotal();
         $this->calculateProformaInvoice();

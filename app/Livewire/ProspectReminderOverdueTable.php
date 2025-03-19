@@ -65,7 +65,7 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->query($this->getProspectOverdueQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

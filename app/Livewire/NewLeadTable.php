@@ -16,9 +16,12 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Illuminate\Support\Str;
 
@@ -41,14 +44,48 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('300s')
             ->defaultSort('created_at', 'desc')
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            // ->heading('New Leads')
-            // ->heading(fn () => 'New Leads - ' . $this->getPendingLeadsQuery()->count() . ' Records') // Display count
-            ->query($this->getPendingLeadsQuery()) // Use the new query method
+            ->query($this->getPendingLeadsQuery())
             ->emptyState(fn () => view('components.empty-state-question'))
+            ->filters([
+                SelectFilter::make('company_size_label') // Use the correct filter key
+                    ->label('')
+                    ->options([
+                        'Small' => 'Small',
+                        'Medium' => 'Medium',
+                        'Large' => 'Large',
+                        'Enterprise' => 'Enterprise',
+                    ])
+                    ->multiple() // Enables multi-selection
+                    ->placeholder('Select Company Size')
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['values'])) { // 'values' stores multiple selections
+                            $sizeMap = [
+                                'Small' => '1-24',
+                                'Medium' => '25-99',
+                                'Large' => '100-500',
+                                'Enterprise' => '501 and Above',
+                            ];
+
+                            // Convert selected sizes to DB values
+                            $dbValues = collect($data['values'])->map(fn ($size) => $sizeMap[$size] ?? null)->filter();
+
+                            if ($dbValues->isNotEmpty()) {
+                                $query->whereHas('companyDetail', function ($query) use ($dbValues) {
+                                    $query->whereIn('company_size', $dbValues);
+                                });
+                            }
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return !empty($data['values'])
+                            ? 'Company Size: ' . implode(', ', $data['values'])
+                            : null;
+                    }),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
@@ -64,27 +101,11 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     ->html(),
                 TextColumn::make('company_size_label')
                     ->label('Company Size')
-                    ->sortable(query: function ($query, $direction) {
-                        return $query->orderByRaw("
-                            CASE
-                                WHEN company_size = '1-24' THEN 1
-                                WHEN company_size = '25-99' THEN 2
-                                WHEN company_size = '100-500' THEN 3
-                                WHEN company_size = '501 and Above' THEN 4
-                                ELSE 5
-                            END $direction
-                        ");
-                    }),
-                // TextColumn::make('created_at')
-                //     ->label('Created Time')
-                //     ->sortable()
-                //     ->dateTime('d M Y, h:i A')
-                //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
-                // TextColumn::make('details')->label('Details'),
+                    ->sortable(),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->pending_days . ' days') // Use DB computed value
+                    ->formatStateUsing(fn ($record) => $record->pending_days . ' days')
                     ->color(fn ($record) => $record->pending_days == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
@@ -95,7 +116,49 @@ class NewLeadTable extends Component implements HasForms, HasTable
                 ])
                 ->button()
                 ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),
+            ])
+            ->bulkActions([
+                BulkAction::make('Assign to Me')
+                    ->label('Assign Selected Leads to Me')
+                    ->requiresConfirmation()
+                    ->action(fn ($records) => $this->bulkAssignToMe($records))
+                    ->color('primary'),
             ]);
+    }
+
+    public function bulkAssignToMe($records)
+    {
+        $user = auth()->user();
+
+        foreach ($records as $record) {
+            // Update the lead owner and related fields
+            $record->update([
+                'lead_owner' => $user->name,
+                'categories' => 'Active',
+                'stage' => 'Transfer',
+                'lead_status' => 'New',
+            ]);
+
+            // Update the latest activity log
+            $latestActivityLog = ActivityLog::where('subject_id', $record->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . $user->name) {
+                $latestActivityLog->update([
+                    'description' => 'Lead assigned to Lead Owner: ' . $user->name,
+                ]);
+
+                activity()
+                    ->causedBy($user)
+                    ->performedOn($record);
+            }
+        }
+
+        Notification::make()
+            ->title(count($records) . ' Leads Assigned Successfully')
+            ->success()
+            ->send();
     }
 
     public function render()
