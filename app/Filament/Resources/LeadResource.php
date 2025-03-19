@@ -36,6 +36,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\View;
 use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
@@ -99,45 +100,7 @@ class LeadResource extends Resource
                                                         }),
                                                 ])
                                                 ->schema([
-                                                    Grid::make(2) // Two columns layout for Lead Details
-                                                        ->schema([
-                                                            Placeholder::make('lead_id_placeholder')
-                                                                ->label('Lead ID')
-                                                                ->content(fn ($record) => $record ? str_pad($record->id, 5, '0', STR_PAD_LEFT) : '-'),
-                                                            Placeholder::make('lead_source')
-                                                                ->label('Lead Source')
-                                                                ->content(fn ($record) => $record->leadSource?->platform ?? '-'),
-                                                            Placeholder::make('lead_created_by')
-                                                                ->label('Lead Created By')
-                                                                ->content(function ($record) {
-                                                                    if (!$record) {
-                                                                        return '-';
-                                                                    }
-
-                                                                    $activityLog = $record->activityLogs()
-                                                                        ->where('description', 'New lead created')
-                                                                        ->where('subject_id', $record->id)
-                                                                        ->first();
-
-                                                                    $causerId = $activityLog?->causer_id;
-
-                                                                    if ($causerId) {
-                                                                        $user = \App\Models\User::find($causerId);
-                                                                        return $user?->name ?? '-';
-                                                                    }
-
-                                                                    return '-';
-                                                                }),
-                                                            Placeholder::make('lead_created_on')
-                                                                ->label('Lead Created On')
-                                                                ->content(fn ($record) => $record->created_at?->format('d M Y, H:i') ?? '-'),
-                                                            Placeholder::make('company_size')
-                                                                ->label('Company Size')
-                                                                ->content(fn ($record) => $record->getCompanySizeLabelAttribute() ?? '-'),
-                                                            Placeholder::make('headcount')
-                                                                ->label('Headcount')
-                                                                ->content(fn ($record) => $record->company_size ?? '-'),
-                                                        ]),
+                                                    View::make('components.lead-detail'),
                                                 ]),
                                         ])
                                         ->columnSpan(2),
@@ -146,27 +109,8 @@ class LeadResource extends Resource
                                                 Section::make('Progress')
                                                     ->icon('heroicon-o-calendar-days')
                                                     ->schema([
-                                                        Grid::make(1) // Single-column layout for progress
-                                                            ->schema([
-                                                                Placeholder::make('days_from_lead_created')
-                                                                    ->label('Total Days from Lead Created')
-                                                                    ->content(function ($record) {
-                                                                        $createdDate = $record->created_at;
-                                                                        return $createdDate ? $createdDate->diffInDays(now()) . ' days' : '-';
-                                                                    }),
-
-                                                                Placeholder::make('days_from_new_demo')
-                                                                    ->label('Total Days from New Demo')
-                                                                    ->content(fn ($record) => $record->calculateDaysFromNewDemo() . ' days'),
-
-                                                                Placeholder::make('salesperson_assigned_date')
-                                                                    ->label('Salesperson Assigned Date')
-                                                                    ->content(function ($record) {
-                                                                        return $record->salesperson_assigned_date
-                                                                            ? \Carbon\Carbon::parse($record->salesperson_assigned_date)->format('d M Y')
-                                                                            : '-';
-                                                                    }),
-                                                            ]),
+                                                        View::make('components.progress')
+                                                            ->extraAttributes(fn ($record) => ['record' => $record]), // Pass record to view
                                                     ]),
                                             ])
                                             ->columnSpan(1),
@@ -180,16 +124,7 @@ class LeadResource extends Resource
                                                     ->schema([
                                                         Grid::make(1) // Single column in the right-side section
                                                             ->schema([
-                                                                Placeholder::make('lead Owner')
-                                                                    ->label('Lead Owner')
-                                                                    ->content(fn ($record) =>  $record->lead_owner ?? 'No Lead Owner'),
-                                                                Placeholder::make('salesperson')
-                                                                    ->label('Salesperson')
-                                                                    ->content(function ($record) {
-                                                                        $salespersonId = $record->salesperson; // Get the salesperson ID
-                                                                        $user = \App\Models\User::find($salespersonId); // Find the User by ID
-                                                                        return $user->name ?? 'No Salesperson'; // Return the name or fallback to 'No Salesperson'
-                                                                    }),
+                                                                View::make('components.lead-owner'),
                                                                 Actions::make([
                                                                     Actions\Action::make('edit_sales_in_charge')
                                                                         ->label('Edit')
@@ -396,27 +331,7 @@ class LeadResource extends Resource
                                                         }),
                                                 ])
                                                 ->schema([
-                                                    Grid::make(2) // Two columns layout for Lead Details
-                                                        ->schema([
-                                                            Placeholder::make('company_name')
-                                                                ->label('Company Name')
-                                                               ->content(fn ($record) => $record->companyDetail->company_name ?? '-'),
-                                                            Placeholder::make('postcode')
-                                                               ->label('Postcode')
-                                                               ->content(fn ($record) => $record->companyDetail->postcode ?? '-'),
-                                                            Placeholder::make('company_address1')
-                                                                ->label('Company Address 1')
-                                                                ->content(fn ($record) => $record->companyDetail->company_address1 ?? '-'),
-                                                            Placeholder::make('state')
-                                                                ->label('State')
-                                                                ->content(fn ($record) => $record->companyDetail->state ?? '-'),
-                                                            Placeholder::make('company_address2')
-                                                                ->label('Company Address 2')
-                                                                ->content(fn ($record) => $record->companyDetail->company_address2 ?? '-'),
-                                                            Placeholder::make('industry')
-                                                                ->label('Industry')
-                                                                ->content(fn ($record) => $record->companyDetail->industry ?? '-'),
-                                                        ]),
+                                                    View::make('components.company-detail')
                                                 ]),
                                         ])
                                         ->columnSpan(2),
@@ -468,15 +383,7 @@ class LeadResource extends Resource
                                                             }),
                                                     ])
                                                     ->schema([
-                                                        Placeholder::make('name')
-                                                            ->label('Name')
-                                                            ->content(fn ($record) => $record->companyDetail->name ?? $record->name),
-                                                        Placeholder::make('contact_no')
-                                                            ->label('Contact No.')
-                                                            ->content(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
-                                                        Placeholder::make('email')
-                                                            ->label('Email Address')
-                                                            ->content(fn ($record) => $record->companyDetail->email ?? $record->email),
+                                                        View::make('components.person-in-charge')
                                                     ]),
                                                 ])->columnSpan(1),
                                         Grid::make(1) // Nested grid for left side (single column)
@@ -489,14 +396,7 @@ class LeadResource extends Resource
                                                     ->schema([
                                                         Grid::make(1) // Single column in the right-side section
                                                             ->schema([
-                                                                Placeholder::make('deal_amount')
-                                                                    ->label('Deal Amount')
-                                                                    ->content(fn ($record) => $record ? 'RM ' . number_format($record->deal_amount, 2) : 'RM 0.00'),
-                                                                Placeholder::make('status')
-                                                                    ->label('Status')
-                                                                    ->content(fn ($record) => ($record->stage ?? $record->categories)
-                                                                    ? ($record->stage ?? $record->categories) . ' : ' . $record->lead_status
-                                                                    : '-'),
+                                                                View::make('components.deal-information'),
                                                                 Actions::make([
                                                                     Action::make('archive')
                                                                         ->label(__('Edit'))
@@ -601,7 +501,7 @@ class LeadResource extends Resource
 
                                                                             if ($latestActivityLog) {
                                                                                 $latestActivityLog->update([
-                                                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'No reason'),
+                                                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
                                                                                 ]);
 
                                                                                 activity()
@@ -636,90 +536,7 @@ class LeadResource extends Resource
                                                                 : null
                                                         )
                                                         ->schema([
-                                                            Placeholder::make('modules')
-                                                                ->label('1. WHICH MODULE THAT YOU ARE LOOKING FOR?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->modules ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('existing_system')
-                                                                ->label('2. WHAT IS YOUR EXISTING SYSTEM FOR EACH MODULE?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->existing_system ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('usage_duration')
-                                                                ->label('3. HOW LONG HAVE YOU BEEN USING THE SYSTEM?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->usage_duration ?? '-')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->existing_system ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('expired_date')
-                                                                ->label('4. WHEN IS THE EXPIRED DATE?')
-                                                                ->content(fn ($record) => $record?->systemQuestion?->expired_date
-                                                                    ? \Carbon\Carbon::createFromFormat('Y-m-d', $record->systemQuestion->expired_date)->format('d/m/Y')
-                                                                    : '-')
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('reason_for_change')
-                                                                ->label('5. WHAT MAKES YOU LOOK FOR A NEW SYSTEM?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->reason_for_change ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('staff_count')
-                                                                ->label('6. HOW MANY STAFF DO YOU HAVE?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->staff_count ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('hrdf_contribution')
-                                                                ->label('7. DO YOU CONTRIBUTE TO HRDF FUND?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->hrdf_contribution ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('additional')
-                                                                ->label('8. ADDITIONAL QUESTIONS?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestion?->additional ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            View::make('components.system-questions-phase1')
                                                         ])
                                                         ->headerActions([
                                                             Actions\Action::make('update')
@@ -832,39 +649,7 @@ class LeadResource extends Resource
                                                             return null; // Return null if no update exists
                                                         })
                                                         ->schema([
-                                                            Placeholder::make('support')
-                                                                ->label('1.  PROSPECT QUESTION – NEED TO REFER SUPPORT TEAM.')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase2?->support ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('product')
-                                                                ->label('2. PROSPECT CUSTOMIZATION – NEED TO REFER PRODUCT TEAM.')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase2?->product ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('additional')
-                                                                ->label('3. ADDITIONAL QUESTIONS?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase2?->additional ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            View::make('components.system-questions-phase2')
                                                         ])
                                                         ->headerActions([
                                                             Actions\Action::make('update_phase2')
