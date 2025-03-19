@@ -684,7 +684,7 @@ class ActivityLogRelationManager extends RelationManager
                                 }
 
                                 // Get Lead's Email (Primary recipient)
-                                $leadEmail = $lead->companyDetails->email ?? $lead->email;
+                                $leadEmail = $lead->companyDetail->email ?? $lead->email;
 
                                 // Get Salesperson Email
                                 $salespersonId = $lead->salesperson;
@@ -1167,6 +1167,7 @@ class ActivityLogRelationManager extends RelationManager
                                             'On Hold' => 'On Hold',
                                             'Junk' => 'Junk',
                                             'Lost' => 'Lost',
+                                            'Closed' => 'Closed'
                                         ])
                                         ->default(fn (callable $get) => $get('status')) // Default lead_stage based on selected status
                                         ->required(),

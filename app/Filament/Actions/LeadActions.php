@@ -156,7 +156,7 @@ class LeadActions
 
     private static function generateWhatsappUrl(Appointment $record): string
     {
-        $contactNo = $record->lead->companyDetails->contact_no ?? $record->lead->phone ?? null;
+        $contactNo = $record->lead->companyDetail->contact_no ?? $record->lead->phone ?? null;
 
         if (!$contactNo) {
             return 'javascript:void(0);';
@@ -175,7 +175,7 @@ class LeadActions
             $meetingLink = $record->location ?? 'https://teams.microsoft.com/'; // Default to appointment link
         }
 
-        $message = "Hi " . ($record->lead->companyDetails->name ?? $record->lead->name ?? '') . ",\n\n";
+        $message = "Hi " . ($record->lead->companyDetail->name ?? $record->lead->name ?? '') . ",\n\n";
         $message .= "My name is {$authUserName}. I’m from TimeTec Cloud Sdn Bhd, I hope you're doing well!\n";
         $message .= "Just a quick reminder about our upcoming online meeting scheduled.\n";
         $message .= "I’m looking forward to meet you.\n\n";
@@ -696,7 +696,7 @@ class LeadActions
                             }
 
                             // Get Lead's Email (Primary recipient)
-                            $leadEmail = $lead->companyDetails->email ?? $lead->email;
+                            $leadEmail = $lead->companyDetail->email ?? $lead->email;
 
                             // Get Salesperson Email
                             $salespersonId = $lead->salesperson;
@@ -1160,6 +1160,7 @@ class LeadActions
                             'On Hold' => 'On Hold',
                             'Junk' => 'Junk',
                             'Lost' => 'Lost',
+                            'Closed' => 'Closed'
                         ])
                         ->default(fn (callable $get) => $get('status')) // Default lead_stage based on selected status
                         ->required(),

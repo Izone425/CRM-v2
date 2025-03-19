@@ -41,12 +41,16 @@ class LeadAnalysis extends Page
     public $totalFollowUpLeads;
     public $followUpStatusData = [];
 
+    public Carbon $currentDate;
+
     public function mount()
     {
         $this->users = User::where('role_id', 2)->get(); // Fetch Salespersons
+        $this->currentDate = Carbon::now();
 
         // Default to session or logged-in user
         $this->selectedUser = session('selectedUser') ?? auth()->user()->id;
+        $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
 
         // Fetch all leads and active leads initially
         $this->fetchLeads();
@@ -142,7 +146,7 @@ class LeadAnalysis extends Page
         $query = Lead::where('categories', 'Active'); // Filter only Active leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($user->role_id == 1 && $this->selectedUser) {
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -180,7 +184,7 @@ class LeadAnalysis extends Page
         $query = Lead::where('categories', 'Inactive'); // Filter only Inactive leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($user->role_id == 1 && $this->selectedUser) {
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -218,7 +222,7 @@ class LeadAnalysis extends Page
         $query = Lead::where('stage', 'Transfer'); // Filter only Transfer leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($user->role_id == 1 && $this->selectedUser) {
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -258,7 +262,7 @@ class LeadAnalysis extends Page
         $query = Lead::where('stage', 'Follow Up'); // Filter only Follow Up leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($user->role_id == 1 && $this->selectedUser) {
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 

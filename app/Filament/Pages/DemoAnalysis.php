@@ -150,7 +150,7 @@ class DemoAnalysis extends Page
             });
 
         // Role-based filtering
-        if ($authUser->role_id == 1 && !empty($this->selectedUser)) {
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
             $query->where('salesperson', $this->selectedUser);
         }
         if ($authUser->role_id == 2) {
@@ -195,7 +195,7 @@ class DemoAnalysis extends Page
             });
 
         // Role-based filtering
-        if ($authUser->role_id == 1 && !empty($this->selectedUser)) {
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
             $query->where('salesperson', $this->selectedUser);
         }
         if ($authUser->role_id == 2) {
@@ -240,7 +240,7 @@ class DemoAnalysis extends Page
             });
 
         // Role-based filtering
-        if ($authUser->role_id == 1 && !empty($this->selectedUser)) {
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
             $query->where('salesperson', $this->selectedUser);
         }
         if ($authUser->role_id == 2) {

@@ -499,106 +499,124 @@ class LeadResource extends Resource
                                                                     : '-'),
                                                                 Actions::make([
                                                                     Action::make('archive')
-                                                                    ->label(__('Edit'))
-                                                                    ->modalHeading('Mark Lead as Inactive')
-                                                                    ->form([
-                                                                        Placeholder::make('')
-                                                                            ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
+                                                                        ->label(__('Edit'))
+                                                                        ->modalHeading('Mark Lead as Inactive')
+                                                                        ->form([
+                                                                            Placeholder::make('')
+                                                                                ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
 
                                                                             Select::make('status')
-                                                                            ->label('INACTIVE STATUS')
-                                                                            ->options([
-                                                                                'On Hold' => 'On Hold',
-                                                                                'Junk' => 'Junk',
-                                                                                'Lost' => 'Lost',
-                                                                                'Closed' => 'Closed',
-                                                                            ])
-                                                                            ->default('On Hold')
-                                                                            ->required()
-                                                                            ->reactive(), // Make status field reactive
+                                                                                ->label('INACTIVE STATUS')
+                                                                                ->options([
+                                                                                    'On Hold' => 'On Hold',
+                                                                                    'Junk' => 'Junk',
+                                                                                    'Lost' => 'Lost',
+                                                                                    'Closed' => 'Closed',
+                                                                                ])
+                                                                                ->default('On Hold')
+                                                                                ->required()
+                                                                                ->reactive(),
 
-                                                                        Select::make('reason')
-                                                                            ->label('Select a Reason')
-                                                                            ->options(fn (callable $get) =>
-                                                                                InvalidLeadReason::where('lead_stage', $get('status')) // Filter based on selected status
-                                                                                    ->pluck('reason', 'id')
-                                                                                    ->toArray()
-                                                                            )
-                                                                            ->required()
-                                                                            ->reactive() // Make reason field update dynamically
-                                                                            ->createOptionForm([
-                                                                                Select::make('lead_stage')
-                                                                                    ->options([
-                                                                                        'On Hold' => 'On Hold',
-                                                                                        'Junk' => 'Junk',
-                                                                                        'Lost' => 'Lost',
-                                                                                        'Closed' => 'Closed',
-                                                                                    ])
-                                                                                    ->default(fn (callable $get) => $get('status')) // Default lead_stage based on selected status
-                                                                                    ->required(),
-                                                                                TextInput::make('reason')
-                                                                                    ->label('New Reason')
-                                                                                    ->required(),
-                                                                            ])
-                                                                            ->createOptionUsing(function (array $data) {
-                                                                                $newReason = InvalidLeadReason::create([
-                                                                                    'lead_stage' => $data['lead_stage'],
-                                                                                    'reason' => $data['reason'],
+                                                                            // Reason Field - Visible only when status is NOT Closed
+                                                                            Select::make('reason')
+                                                                                ->label('Select a Reason')
+                                                                                ->options(fn (callable $get) =>
+                                                                                    $get('status') !== 'Closed'
+                                                                                        ? InvalidLeadReason::where('lead_stage', $get('status'))->pluck('reason', 'id')->toArray()
+                                                                                        : [] // Hide options when Closed
+                                                                                )
+                                                                                ->hidden(fn (callable $get) => $get('status') === 'Closed')
+                                                                                ->required(fn (callable $get) => $get('status') !== 'Closed')
+                                                                                ->reactive()
+                                                                                ->createOptionForm([
+                                                                                    Select::make('lead_stage')
+                                                                                        ->options([
+                                                                                            'On Hold' => 'On Hold',
+                                                                                            'Junk' => 'Junk',
+                                                                                            'Lost' => 'Lost',
+                                                                                            'Closed' => 'Closed',
+                                                                                        ])
+                                                                                        ->default(fn (callable $get) => $get('status'))
+                                                                                        ->required(),
+                                                                                    TextInput::make('reason')
+                                                                                        ->label('New Reason')
+                                                                                        ->required(),
+                                                                                ])
+                                                                                ->createOptionUsing(function (array $data) {
+                                                                                    $newReason = InvalidLeadReason::create([
+                                                                                        'lead_stage' => $data['lead_stage'],
+                                                                                        'reason' => $data['reason'],
+                                                                                    ]);
+                                                                                    return $newReason->id;
+                                                                                }),
+
+                                                                            // Deal Amount Field - Visible only when status is Closed
+                                                                            TextInput::make('deal_amount')
+                                                                                ->label('Close Deal Amount')
+                                                                                ->numeric()
+                                                                                ->hidden(fn (callable $get) => $get('status') !== 'Closed')
+                                                                                ->required(fn (callable $get) => $get('status') === 'Closed'),
+
+                                                                            Textarea::make('remark')
+                                                                                ->label('Remarks')
+                                                                                ->rows(3)
+                                                                                ->autosize()
+                                                                                ->reactive()
+                                                                                ->required()
+                                                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                                                        ])
+                                                                        ->action(function (Lead $record, array $data) {
+                                                                            $statusLabels = [
+                                                                                'on_hold' => 'On Hold',
+                                                                                'junk' => 'Junk',
+                                                                                'lost' => 'Lost',
+                                                                                'closed' => 'Closed',
+                                                                            ];
+
+                                                                            $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
+                                                                            $lead = $record;
+
+                                                                            $updateData = [
+                                                                                'categories' => 'Inactive',
+                                                                                'lead_status' => $statusLabel,
+                                                                                'remark' => $data['remark'],
+                                                                                'stage' => null,
+                                                                                'follow_up_date' => null,
+                                                                                'follow_up_needed' => false,
+                                                                            ];
+
+                                                                            // If lead is closed, update deal amount
+                                                                            if ($data['status'] === 'Closed') {
+                                                                                $updateData['deal_amount'] = $data['deal_amount'] ?? null;
+                                                                            } else {
+                                                                                // If not closed, update reason
+                                                                                $updateData['reason'] = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
+                                                                            }
+
+                                                                            $lead->update($updateData);
+
+                                                                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                                                                ->orderByDesc('created_at')
+                                                                                ->first();
+
+                                                                            if ($latestActivityLog) {
+                                                                                $latestActivityLog->update([
+                                                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'No reason'),
                                                                                 ]);
 
-                                                                                return $newReason->id; // Return the newly created reason ID
-                                                                            }),
-                                                                        Textarea::make('remark')
-                                                                            ->label('Remarks')
-                                                                            ->rows(3)
-                                                                            ->autosize()
-                                                                            ->reactive()
-                                                                            ->required()
-                                                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                                                    ])
-                                                                    ->action(function (Lead $record, array $data) {
-                                                                        $statusLabels = [
-                                                                            'on_hold' => 'On Hold',
-                                                                            'junk' => 'Junk',
-                                                                            'lost' => 'Lost',
-                                                                        ];
+                                                                                activity()
+                                                                                    ->causedBy(auth()->user())
+                                                                                    ->performedOn($lead)
+                                                                                    ->log('Lead marked as inactive.');
+                                                                            }
 
-                                                                        $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
-
-                                                                        $lead = $record;
-
-                                                                        $lead->update([
-                                                                            'categories' => 'Inactive',
-                                                                            'lead_status' => $statusLabel,
-                                                                            'remark' => $data['remark'],
-                                                                            'stage' => null,
-                                                                            'follow_up_date' => null,
-                                                                            'follow_up_needed' => false,
-                                                                        ]);
-
-                                                                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                                                            ->orderByDesc('created_at')
-                                                                            ->first();
-                                                                        $reasonText = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
-
-                                                                        if ($latestActivityLog) {
-                                                                            $latestActivityLog->update([
-                                                                                'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
-                                                                            ]);
-
-                                                                            activity()
-                                                                                ->causedBy(auth()->user())
-                                                                                ->performedOn($lead)
-                                                                                ->log('Lead marked as inactive.');
-                                                                        }
-
-                                                                        Notification::make()
-                                                                            ->title('Lead Archived')
-                                                                            ->success()
-                                                                            ->body('You have successfully marked the lead as inactive.')
-                                                                            ->send();
-                                                                    }),
-                                                                ]),
+                                                                            Notification::make()
+                                                                                ->title('Lead Archived')
+                                                                                ->success()
+                                                                                ->body('You have successfully marked the lead as inactive.')
+                                                                                ->send();
+                                                                        }),
+                                                                ])
                                                             ]),
                                                     ])
                                             ])->columnSpan(1),
