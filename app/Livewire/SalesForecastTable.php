@@ -25,6 +25,11 @@ class SalesForecastTable extends Component implements HasForms, HasTable
         'cold' => 0,
     ];
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '2';
+    }
+
     #[On('updateTablesForUser')]
     public function updateTablesForUser($selectedUser, $selectedMonth)
     {

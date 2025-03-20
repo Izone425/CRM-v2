@@ -2093,7 +2093,7 @@ class ActivityLogRelationManager extends RelationManager
                         return true;
                     }
 
-                    if(is_null($lead->lead_owner)){
+                    if(auth()->user()->role_id == '1' && is_null($lead->lead_owner)){
                         return false;
                     }
 
