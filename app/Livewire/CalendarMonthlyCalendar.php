@@ -26,13 +26,18 @@ class CalendarMonthlyCalendar extends Component
     public $days;
     public $month;
 
-    public function mount() {
-        if(auth()->user()->role_id == 2){
-            $this->selectUser(auth()->user()->id);
-        }
+    public function mount()
+    {
         $this->currentDate = Carbon::now();
         $this->month = $this->currentDate->copy()->format('F Y');
+
+        if (auth()->user()->role_id == 2) {
+            $this->selectUser(auth()->user()->id); // Default to logged-in user (if role is 2)
+        } else {
+            $this->selectUser(null); // Default to "All Salespeople"
+        }
     }
+
     public function updated($property)
     {
         if($property === "month"){
@@ -58,7 +63,7 @@ class CalendarMonthlyCalendar extends Component
         $days['weekend'] = $this->currentDate->copy()->startOfMonth()->diffInDaysFiltered(function (Carbon $date) {
             return $date->isSaturday() || $date->isSunday();
         }, $this->currentDate->copy()->endOfMonth());
-        
+
         $days["working"] = $days['totalDays'] - $days['pb'] - $days['leave'] - $days['weekend'];
 
         return $days;
@@ -89,7 +94,34 @@ class CalendarMonthlyCalendar extends Component
 
     public function selectUser($id)
     {
-        $this->selectedSalesPerson = User::where('id', $id)->first()->toArray();
+        if ($id === null) {
+            $this->selectedSalesPerson = ['id' => null, 'name' => 'All Salespeople'];
+            $this->getDemosForAllSalesPeople(); // Retrieve all demos
+        } else {
+            $user = User::where('id', $id)->first();
+            $this->selectedSalesPerson = $user ? $user->toArray() : null;
+            $this->getDemosForSalesPerson(); // Retrieve demos for selected user
+        }
+    }
+
+    private function getDemosForAllSalesPeople()
+    {
+        $this->demos = DB::table("appointments")
+            ->join('users', 'users.id', '=', 'appointments.salesperson')
+            ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
+            ->select('appointments.*', 'users.id as user_id', 'users.name', 'company_details.company_name')
+            ->where("users.role_id", '=', '2') // Only Salespeople
+            ->whereBetween('date', [$this->currentDate->copy()->startOfMonth()->format("Y-m-d"), $this->currentDate->copy()->endOfMonth()->format("Y-m-d")])
+            ->get()
+            ->map(function ($item) {
+                $item->formattedStartTime = Carbon::parse($item->start_time)->format('H:i');
+                $item->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($item->lead_id)]);
+                return $item;
+            })
+            ->groupBy(function ($item) {
+                return Carbon::parse($item->date)->format('d'); // Group by day
+            })
+            ->toArray();
     }
 
     private function getDemosForSalesPerson()
@@ -117,12 +149,16 @@ class CalendarMonthlyCalendar extends Component
     {
         $this->firstDay = $this->currentDate->copy()->startOfMonth()->dayOfWeekIso;
         $this->numOfDays = $this->currentDate->daysInMonth;
-        $this->getAllSalesPeople();
+        $this->getAllSalesPeople(); // Load salespeople list
 
         if (isset($this->selectedSalesPerson)) {
-            $this->getDemosForSalesPerson();
-            $this->getNumberOfDemos($this->selectedSalesPerson);
-            $this->days = $this->getSalespersonDays($this->selectedSalesPerson['id']);
+            if ($this->selectedSalesPerson['id'] === null) {
+                $this->getDemosForAllSalesPeople(); // Fetch all demos
+            } else {
+                $this->getDemosForSalesPerson(); // Fetch only selected salesperson’s demos
+                $this->getNumberOfDemos($this->selectedSalesPerson);
+                $this->days = $this->getSalespersonDays($this->selectedSalesPerson['id']);
+            }
         }
 
         return view('livewire.calendar-monthly-calendar');

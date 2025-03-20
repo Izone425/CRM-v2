@@ -101,35 +101,41 @@
     </div> --}}
 
     <div x-data="monthPicker()">
-        <input type="text" x-ref="monthInput" @change="month = $refs.monthInput.value" placeholder="Select Month" class="block w-full bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm border rounded px-3 py-2" wire:model.change='month'>
+        <input type="text" x-ref="monthInput" @change="month = $refs.monthInput.value" placeholder="Select Month" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" wire:model.change='month'>
     </div>
 
     @if (auth()->user()->role_id !== 2)
     <!-- Salesperson Filter -->
-    <div class="relative">
-        <form>
-            <div class="block w-full bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{ open: false }">
-                <!-- Trigger Button -->
-                <div @click="open = !open" class="flex items-center justify-between px-3 py-2" style="width: 200px;">
-                    <span class="truncate">{{ $selectedSalesPerson['name'] ?? 'Select a Salesperson' }}</span>
-                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
+        <div class="relative">
+            <form>
+                <div class="block w-full bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{ open: false }">
+                    <!-- Trigger Button -->
+                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2" style="width: 200px;">
+                        <span class="truncate">{{ $selectedSalesPerson['name'] ?? 'Select a Salesperson' }}</span>
+                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
 
-                <!-- Dropdown Menu -->
-                <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg" style="display: none; height: 30vh;">
-                    <ul class="py-1">
-                        @foreach ($salesPeople as $salesPerson)
-                        <li class="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer" wire:click="selectUser({{ $salesPerson['id'] }})" @click="open =!open">
-                            {{ $salesPerson['name'] }}
-                        </li>
-                        @endforeach
-                    </ul>
+                    <!-- Dropdown Menu -->
+                    <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg" style="display: none; height: 30vh;">
+                        <ul class="py-1">
+                            <!-- "All Salespeople" Option -->
+                            <li class="flex items-center px-3 py-2 font-semibold text-blue-600 cursor-pointer hover:bg-gray-100" wire:click="selectUser(null)" @click="open =!open">
+                                All Salespeople
+                            </li>
+
+                            <!-- Loop through salesPeople -->
+                            @foreach ($salesPeople as $salesPerson)
+                            <li class="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100" wire:click="selectUser({{ $salesPerson['id'] }})" @click="open =!open">
+                                {{ $salesPerson['name'] }}
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 </div>
-            </div>
-        </form>
-    </div>
+            </form>
+        </div>
     @endif
 
     {{-- <div style="width: 30%; margin-left:auto;position:relative;background-color:pink;height:0px">
