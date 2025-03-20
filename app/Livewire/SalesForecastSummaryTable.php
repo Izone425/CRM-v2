@@ -34,8 +34,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
         $this->selectedYear = date('Y');
         $this->selectedMonth = date('m');
 
-        info("Sales Forecast Table Loaded for Year: $this->selectedYear, Month: $this->selectedMonth");
-
         $this->loadSalesSummary();
     }
 
@@ -178,7 +176,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->whereMonth('invoice_date', $this->selectedMonth)
             ->sum('amount');
 
-        info("Invoice Total for Salesperson ID {$salesperson->id}: " . $total);
         return $total;
     }
 
@@ -189,7 +186,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->whereMonth('created_at', $this->selectedMonth)
             ->sum('amount');
 
-        info("Proforma Invoice Total for Salesperson ID {$salesperson->id}: " . $total);
         return $total;
     }
 
@@ -201,7 +197,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->where('lead_status', 'Hot')
             ->sum('deal_amount');
 
-        info("Forecast Hot Deals for Salesperson ID {$salesperson->id}: " . $total);
         return $total;
     }
 

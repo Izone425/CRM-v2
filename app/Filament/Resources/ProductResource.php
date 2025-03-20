@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
-
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
     // public static function canAccess(): bool
@@ -37,7 +37,7 @@ class ProductResource extends Resource
     // }
     public static function canAccess(): bool
     {
-        return false; // Hides the resource from all users
+        return auth()->user()->role_id == '3'; // Hides the resource from all users
     }
 
     public static function form(Form $form): Form

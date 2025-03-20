@@ -20,6 +20,7 @@ use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
+use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
@@ -79,6 +80,7 @@ class AdminPanelProvider extends PanelProvider
                 ProductResource::class,
                 QuotationResource::class,
                 DemoResource::class,
+                IndustryResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -115,12 +117,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationGroups([
                 NavigationGroup::make()
+                    ->label('Sales Forecast')
+                    ->icon('heroicon-s-arrow-trending-up')
+                    ->collapsed(),
+                NavigationGroup::make()
                     ->label('Calendar')
                     ->icon('heroicon-s-calendar-days')
                     ->collapsed(),
                 NavigationGroup::make()
                     ->label('Analysis')
                     ->icon('heroicon-s-chart-bar')
+                    ->collapsed(),
+                NavigationGroup::make()
+                    ->label('Settings')
+                    ->icon('heroicon-s-adjustments-horizontal')
                     ->collapsed(),
             ])
             ->authMiddleware([

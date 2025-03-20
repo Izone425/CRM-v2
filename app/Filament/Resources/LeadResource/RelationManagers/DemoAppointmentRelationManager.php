@@ -310,7 +310,8 @@ class DemoAppointmentRelationManager extends RelationManager
                     //     }),
                     Tables\Actions\Action::make('demo_cancel')
                         ->visible(fn (Appointment $appointment) =>
-                            now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7))
+                            now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7)) &&
+                            !($appointment->type === 'NEW DEMO' && $this->hasOtherNewDemos($appointment->lead_id))
                         )
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
@@ -1006,5 +1007,13 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->send();
                 }),
         ];
+    }
+
+    private function hasOtherNewDemos($leadId)
+    {
+        return Appointment::where('lead_id', $leadId)
+            ->where('type', '!=', 'NEW DEMO') // Exclude "NEW DEMO"
+            ->where('status', 'New') // Only check "New" status
+            ->exists();
     }
 }
