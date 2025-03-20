@@ -23,6 +23,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelation
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Models\ActivityLog;
+use App\Models\Industry;
 use App\Models\InvalidLeadReason;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions;
@@ -295,18 +296,10 @@ class LeadResource extends Resource
 
                                                                     Select::make('industry')
                                                                         ->label('Industry')
-                                                                        ->options([
-                                                                            'Manufacturing' => 'Manufacturing',
-                                                                            'Information Technology' => 'Information Technology',
-                                                                            'Finance' => 'Finance',
-                                                                            'Healthcare' => 'Healthcare',
-                                                                            'Education' => 'Education',
-                                                                            'Retail' => 'Retail',
-                                                                            'Other' => 'Other',
-                                                                        ])
-                                                                        ->default(fn ($record) => $record->companyDetail->industry ?? null)
+                                                                        ->placeholder('Select an industry')
+                                                                        ->options(fn() => Industry::get()->pluck('name','name'))
                                                                         ->searchable()
-                                                                        ->preload(),
+                                                                        ->required(),
                                                                 ]),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
