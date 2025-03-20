@@ -190,20 +190,18 @@ class SalesAdminAnalysisV2 extends Page
 
         // Clone and count each category separately
         $salesLeadsCount = (clone $queryBase)
-            ->where('categories', '!=', 'Inactive')
+            ->where('categories', '=', 'Active')
             ->whereNotNull('salesperson')
             ->count();
 
         $activeLeadsCount = (clone $queryBase)
             ->whereNull('salesperson')
-            ->where('categories', '!=', 'Inactive')
-            ->where(function ($query) {
-                $query->whereNull('done_call')->orWhere('done_call', 0);
-            })
+            ->where('categories', '=', 'Active')
             ->count();
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
+            ->whereNull('salesperson')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -240,13 +238,11 @@ class SalesAdminAnalysisV2 extends Page
         $activeLeadsCount = (clone $queryBase)
             ->whereNull('salesperson')
             ->where('categories', '!=', 'Inactive')
-            ->where(function ($query) {
-                $query->whereNull('done_call')->orWhere('done_call', 0);
-            })
             ->count();
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
+            ->whereNull('salesperson')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -276,36 +272,29 @@ class SalesAdminAnalysisV2 extends Page
         $this->activeLeadsDataJaja = [
             'Active 24 Below' => (clone $queryBase)
                 ->where('company_size', '=', '1-24')
+                ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
-                ->where('categories', '!=', 'Inactive')
-                ->where(function ($query) {
-                    $query->whereNull('done_call')->orWhere('done_call', 0);
-                })
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
                 ->where('company_size', '!=', '1-24')
+                ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
-                ->where('categories', '!=', 'Inactive')
-                ->where(function ($query) {
-                    $query->whereNull('done_call')->orWhere('done_call', 0);
-                })
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('company_size', '=', '1-24')
-                ->where('categories', '!=', 'Inactive')
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Call Attempt 25 Above' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->whereBetween('call_attempt', [1, 10])
-                ->where('categories', '!=', 'Inactive')
+                ->where('categories', '=', 'Active')
                 ->where('company_size', '!=', '1-24')
                 ->count(),
         ];
@@ -330,36 +319,29 @@ class SalesAdminAnalysisV2 extends Page
         $this->activeLeadsDataAfifah = [
             'Active 24 Below' => (clone $queryBase)
                 ->where('company_size', '=', '1-24')
+                ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
-                ->where('categories', '!=', 'Inactive')
-                ->where(function ($query) {
-                    $query->whereNull('done_call')->orWhere('done_call', 0);
-                })
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
                 ->where('company_size', '!=', '1-24')
+                ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
-                ->where('categories', '!=', 'Inactive')
-                ->where(function ($query) {
-                    $query->whereNull('done_call')->orWhere('done_call', 0);
-                })
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('company_size', '=', '1-24')
-                ->where('categories', '!=', 'Inactive')
+                ->where('categories', '=', 'Active')
                 ->count(),
 
             'Call Attempt 25 Above' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->whereBetween('call_attempt', [1, 10])
-                ->where('categories', '!=', 'Inactive')
+                ->where('categories', '=', 'Active')
                 ->where('company_size', '!=', '1-24')
                 ->count(),
         ];
@@ -383,16 +365,19 @@ class SalesAdminAnalysisV2 extends Page
         // Fetch transfer lead counts by stage
         $this->transferStagesDataJaja = [
             'Transfer' => (clone $queryBaseJaja)
+                ->where('categories', 'Active')
                 ->whereNotNull('salesperson')
                 ->where('stage', 'Transfer')
                 ->count(),
 
             'Demo' => (clone $queryBaseJaja)
+                ->where('categories', 'Active')
                 ->whereNotNull('salesperson')
                 ->where('stage', 'Demo')
                 ->count(),
 
             'Follow Up' => (clone $queryBaseJaja)
+                ->where('categories', 'Active')
                 ->whereNotNull('salesperson')
                 ->where('stage', 'Follow Up')
                 ->count(),
@@ -449,8 +434,9 @@ class SalesAdminAnalysisV2 extends Page
         // Filter for specific lead owner
         $queryBaseJaja->where('lead_owner', 'Nurul Najaa Nadiah');
 
-        // Apply additional filters for inactive leads
+        // Apply additional filters for inactive leads where salesperson is NULL
         $queryJaja = (clone $queryBaseJaja)
+            ->whereNull('salesperson') // Ensure salesperson is NULL
             ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
 
         // Count total inactive leads for Jaja
@@ -487,6 +473,7 @@ class SalesAdminAnalysisV2 extends Page
 
         // Apply additional filters for inactive leads
         $queryAfifah = (clone $queryBaseAfifah)
+            ->whereNull('salesperson') // Ensure salesperson is NULL
             ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
 
         // Count total inactive leads for Afifah

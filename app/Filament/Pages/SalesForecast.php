@@ -26,10 +26,10 @@ class SalesForecast extends Page
     public $users;
     public Carbon $currentDate;
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id = 3;
-    // }
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != 2;
+    }
 
     /**
      * Lifecycle hook - runs when the component is initialized
