@@ -114,42 +114,13 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
                 Filter::make('selectedMonth')
                     ->form([
-                        DatePicker::make('selectedMonth')
+                        TextInput::make('selectedMonth')
+                            ->type('month')
                             ->label('Month')
-                            ->displayFormat('F Y')
                             ->default(Carbon::now()->format('Y-m'))
                             ->reactive()
                             ->afterStateUpdated(fn ($state) => $this->selectedMonth = Carbon::parse($state)->month),
                     ]),
-                Filter::make('created_at')
-                    ->form([
-                        DateRangePicker::make('date_range')
-                            ->label('')
-                            ->placeholder('Select date range'),
-                    ])
-                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['date_range'])) {
-                            // Parse the date range from the "start - end" format
-                            [$start, $end] = explode(' - ', $data['date_range']);
-
-                            // Ensure valid dates
-                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
-                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
-
-                            // Apply the filter
-                            $query->whereBetween('created_at', [$startDate, $endDate]);
-                        }
-                    })
-                    ->indicateUsing(function (array $data) {
-                        if (!empty($data['date_range'])) {
-                            // Parse the date range for display
-                            [$start, $end] = explode(' - ', $data['date_range']);
-
-                            return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
-                                ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
-                        }
-                        return null;
-                    }),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -238,7 +209,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
     {
         return SalesTarget::where('salesperson', $salesperson->id)
             // ->where('year', $this->selectedYear)
-            // ->where('month', $this->selectedMonth)
+            ->where('month', $this->selectedMonth)
             ->value('target_amount') ?? 0;
     }
 
