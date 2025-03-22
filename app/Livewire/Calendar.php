@@ -7,6 +7,7 @@ use App\Models\PublicHoliday;
 use App\Models\User;
 use App\Models\UserLeave;
 use Carbon\Carbon;
+use Illuminate\Database\Console\DumpCommand;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,8 +27,8 @@ class Calendar extends Component
     public $leaves;
     public $monthList;
     public $currentMonth;
-    public $newDemo;
     public $weekDate;
+    public $newDemoCount;
 
     // Badge
     public $totalDemos;
@@ -53,22 +54,26 @@ class Calendar extends Component
 
     public function mount()
     {
+
+        //Load all salespeople model
         $this->salesPeople = $this->getAllSalesPeople();
+
+        //Set Date to today
         $this->date = Carbon::now();
+
+        //If current user is a salesperson then only can access their own calendar
         if (auth()->user()->role_id == 2) {
             $this->selectedSalesPeople[] = auth()->user()->id;
         }
     }
 
-    public function updated($property)
+    //Update date variable when user choose another date
+    public function updatedWeekDate()
     {
-        if($property === "weekDate"){
-            $this->date = Carbon::parse($this->weekDate);
-        }
-
+        $this->date = Carbon::parse($this->weekDate);
     }
 
-    // For Filter
+    // For Filtering
     public function updatedAllSalesPeopleSelected()
     {
         if ($this->allSalesPeopleSelected == true)
@@ -78,7 +83,7 @@ class Calendar extends Component
     public function updatedSelectedStatus()
     {
         if (!empty($this->selectedStatus)) {
-            $this->allStatusSelected= false;
+            $this->allStatusSelected = false;
         } else
             $this->allStatusSelected = true;
     }
@@ -86,9 +91,8 @@ class Calendar extends Component
     public function updatedAllStatusSelected()
     {
         if ($this->allStatusSelected == true)
-            $this->selectedStatus= [];
+            $this->selectedStatus = [];
     }
-
 
     public function updatedSelectedDemoType()
     {
@@ -121,24 +125,23 @@ class Calendar extends Component
     {
         if (!empty($selectedSalesPeople)) {
             $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
-            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereNot('status','Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
         } else {
             $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
-            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status','Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNot('status','Cancelled')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereBetween('date', [$this->startDate, $this->endDate])->count();
         }
-
     }
 
     private function getWeekDateDays($date = null)
@@ -166,36 +169,23 @@ class Calendar extends Component
     private function getWeeklyAppointments($date = null)
     {
 
-        //Have to make sure weekly is weekly date. Monday to sunday
+        //Have to make sure weekly is weekly date. Monday to Friday
         $date = $date ? Carbon::parse($date) : Carbon::now();
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
         $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
+        //Retreive all appointments for each salesperson with company details between start and end date. If filter present, then filter
         $appointments = DB::table('appointments')
             ->join('users', 'users.id', '=', 'appointments.salesperson')
             ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
             ->select('users.name', "company_details.company_name", 'appointments.*')
-            // ->whereBetween("date",[$this->startDate,$this->endDate])
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
             ->when($this->selectedSalesPeople, function ($query) {
                 return $query->whereIn('users.id', $this->selectedSalesPeople);
             })
-            // ->when($this->selectedDemoType, function ($query) {
-            //     return $query->whereIn('appointments.type', $this->selectedDemoType);
-            // })
-            // ->when($this->selectedAppointmentType, function ($query) {
-            //     return $query->whereIn('appointments.appointment_type', $this->selectedAppointmentType);
-            // })
             ->get();
 
-        $this->newDemo = [
-            "monday" => [],
-            "tuesday" => [],
-            "wednesday" => [],
-            "thursday" => [],
-            "friday" => [],
-        ];
-
+        //Salespeople filtering, retrieve only selected or all
         if (!empty($this->selectedSalesPeople)) {
             $salesPeople = $this->getSelectedSalesPeople($this->selectedSalesPeople);
             $this->allSalesPeopleSelected = false;
@@ -203,7 +193,6 @@ class Calendar extends Component
             $this->allSalesPeopleSelected = true;
             $salesPeople = $this->salesPeople;
         }
-
 
         $result = $salesPeople->map(function (User $salesperson) use ($appointments) {
 
@@ -217,31 +206,18 @@ class Calendar extends Component
                 'wednesdayAppointments' => [],
                 'thursdayAppointments' => [],
                 'fridayAppointments' => [],
-                'saturdayAppointments' => [],
-                'sundayAppointments' => [],
                 'newDemo' => [
                     'monday' => 0,
                     'tuesday' => 0,
                     'wednesday' => 0,
                     'thursday' => 0,
                     'friday' => 0,
-                    'saturday' => 0,
-                    'sunday' => 0,
                 ],
                 'leave' => UserLeave::getUserLeavesByDateRange($salesperson['id'], $this->startDate, $this->endDate),
             ];
 
-            // Filter appointments for the current salesperson
+            // Retrieve from $appointments using salesperson ID 
             $salespersonAppointments = $appointments->where('salesperson', $salesperson['id']);
-
-
-            // //Demo Type and Appointment Type Condition Checking
-            // if (!empty($this->selectedAppointmentType))
-            //     $salespersonAppointments->filter();
-
-            // if (!empty($this->selectedDemoType))
-            //     $salespersonAppointments->filter();
-
 
             // Group appointments by the day of the week
             foreach ($salespersonAppointments as $appointment) {
@@ -249,7 +225,7 @@ class Calendar extends Component
                 $dayField = "{$dayOfWeek}Appointments";
                 // For new demo summary which shows no,1,2 new demo
                 if ($appointment->type === "NEW DEMO" || $appointment->type === "WEBINAR DEMO") {
-                    if($appointment->status !== "Cancelled"){
+                    if ($appointment->status !== "Cancelled") {
                         $data['newDemo'][$dayOfWeek]++;
                     }
                 }
@@ -261,19 +237,18 @@ class Calendar extends Component
                     || $this->allDemoTypeSelected && in_array($appointment->appointment_type, $this->selectedAppointmentType)
                     || in_array($appointment->type, $this->selectedDemoType) && in_array($appointment->appointment_type, $this->selectedAppointmentType)
                 ) {
-                    if($this->allStatusSelected || in_array(Str::upper($appointment->status),$this->selectedStatus)){
+                    if ($this->allStatusSelected || in_array(Str::upper($appointment->status), $this->selectedStatus)) {
                         $data[$dayField][] = $appointment;
                         $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
                         $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
                         $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
                     }
-
                 }
             }
+
+            $this->countNewDemos($data['newDemo']);
             return $data;
         });
-
-
         return $result;
     }
 
@@ -302,47 +277,43 @@ class Calendar extends Component
             ->get();
     }
 
-    // Not used
-    public function updatedSelectedMonth()
+    private function countNewDemos($data)
     {
-        $this->date = Carbon::create(null, $this->selectedMonth, 1)->startOfMonth();
-    }
 
-    // Not used
-    public function setSelectedMonthToCurrentMonth()
-    {
-        $this->selectedMonth = $this->date->month;
-    }
-
-    // Not used
-    public function getAllMonthForCurrentYear()
-    {
-        $nextYearSuffix = "'" . Carbon::now()->format('y');
-
-        $months = [];
-        for ($month = 1; $month <= 12; $month++) {
-            // Get the abbreviated month name (Jan, Feb, etc.)
-            $monthName = Carbon::create(null, $month, 1)->format('M');
-            // Format as "Jan '25"
-            $formattedMonth = $monthName . ' ' . $nextYearSuffix;
-            // Map to its decimal value (e.g., 1.0)
-            $months[$formattedMonth] = (float)$month;
+        foreach ($data as $day => $value) {
+            if ($value == 0) {
+                $this->newDemoCount[$day]["noDemo"] = ($this->newDemoCount[$day]["noDemo"] ?? 0) + 1;
+            } else if ($value == 1) {
+                $this->newDemoCount[$day]["oneDemo"] = ($this->newDemoCount[$day]["oneDemo"] ?? 0) + 1;
+            } else if ($value == 2) {
+                $this->newDemoCount[$day]["twoDemo"] = ($this->newDemoCount[$day]["twoDemo"] ?? 0) + 1;
+            }
         }
-        $this->monthList = $months;
     }
 
     public function render()
     {
+
+        //Initialize 
+        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
+            $this->newDemoCount[$day]["noDemo"] = 0;
+            $this->newDemoCount[$day]["oneDemo"] = 0;
+            $this->newDemoCount[$day]["twoDemo"] = 0;
+        }
+
         // Load Total Demos
         $this->rows = $this->getWeeklyAppointments($this->date);
+
+        //Load Date Display
         $this->weekDays = $this->getWeekDateDays($this->date);
+
+        //Count Demos
         $this->getNumberOfDemos($this->selectedSalesPeople);
-        $this->getAllMonthForCurrentYear();
+
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
         $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $this->selectedSalesPeople);
         // $this->setSelectedMonthToCurrentMonth(); //Not used
         $this->currentMonth = $this->date->startOfWeek()->format('F Y');
-        // dd($this->rows);
         return view('livewire.calendar');
     }
 }
