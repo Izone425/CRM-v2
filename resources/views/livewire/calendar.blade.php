@@ -734,49 +734,41 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if (count($rows)
-                < 6) @foreach ($rows as $salesperson) @if ($salesperson['newDemo'][$day]==0) <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                @endif
-                @endforeach
+                @if ($newDemoCount[$day]['noDemo'] < 6) 
+                    @foreach ($rows as $salesperson) 
+                        @if ($salesperson['newDemo'][$day]==0) 
+                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
+                    @endforeach
                 @else
-                @php
-                $counter = 0;
-                @endphp
-                @for ($i = 0; $i < count($rows); $i++) @if ($counter>= 5)
-                    @break
-                    @endif
-
-                    @if ($rows[$i]['newDemo'][$day] == 0)
-                    <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
                     @php
-                    $counter++;
+                        $count = 0;
+                        $i = 0;
                     @endphp
-                    @endif
-                    @endfor
-                    @if ($counter >= 5)
+                    @while ($count < 5 && $i < count($rows))
+                        @if ($rows[$i]['newDemo'][$day] == 0)
+                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                            @php $count++; @endphp
+                        @endif
+                        @php $i++; @endphp
+                    @endwhile
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                         <div class="hover-content">
-                            @php
-                            $numbering = 1;
-                            @endphp
+
                             @foreach ($rows as $salesperson)
-                            @if ($salesperson['newDemo'][$day] == 0)
-                            <div class="hover-content-flexcontainer">
-                                <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
-                            </div>
-                            @php
-                            $numbering++;
-                            @endphp
-                            @endif
+                                @if ($salesperson['newDemo'][$day] == 0)
+                                <div class="hover-content-flexcontainer">
+                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                </div>
+                                @endif
                             @endforeach
                         </div>
                     </div>
-                    @endif
-                    @endif
+                @endif
             </div>
         </div>
         @endforeach
@@ -790,50 +782,35 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if (count($rows)
-                < 6) @foreach ($rows as $salesperson) @if ($salesperson['newDemo'][$day]==1) <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                @endif
-                @endforeach
+                @if ($newDemoCount[$day]['oneDemo'] < 6) 
+                    @foreach ($rows as $salesperson) 
+                        @if ($salesperson['newDemo'][$day]==1) 
+                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
+                    @endforeach
                 @else
-                @php
-                $counter = 0;
-                @endphp
-                @for ($i = 0; $i < count($rows); $i++) @if ($counter>= 5)
-                    @break
-                    @endif
-
-                    @if ($rows[$i]['newDemo'][$day] == 1)
-                    <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                    @php
-                    $counter++;
-                    @endphp
-                    @endif
+                    @for ($i = 0; $i < 5; $i++) 
+                        @if ($rows[$i]['newDemo'][$day] == 1)
+                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
                     @endfor
-                    @if ($counter >= 5)
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                         <div class="hover-content">
-                            @php
-                            $numbering = 1;
-                            @endphp
+
                             @foreach ($rows as $salesperson)
-                            @if ($salesperson['newDemo'][$day] == 1)
-                            <div class="hover-content-flexcontainer">
-                                {{-- Image for popup --}}
-                                <img src="{{ $salesperson['salespersonAvatar'] }}" style="max-width: 40px;" alt="Salesperson Avatar" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
-                            </div>
-                            @php
-                            $numbering++;
-                            @endphp
-                            @endif
+                                @if ($salesperson['newDemo'][$day] == 1)
+                                <div class="hover-content-flexcontainer">
+                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                </div>
+                                @endif
                             @endforeach
                         </div>
                     </div>
-                    @endif
-                    @endif
+                @endif
             </div>
         </div>
         @endforeach
@@ -848,50 +825,35 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if (count($rows)
-                < 6) @foreach ($rows as $salesperson) @if ($salesperson['newDemo'][$day]==2) <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" />
-                @endif
-                @endforeach
+                @if ($newDemoCount[$day]['twoDemo'] < 6) 
+                    @foreach ($rows as $salesperson) 
+                        @if ($salesperson['newDemo'][$day]==2) 
+                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
+                    @endforeach
                 @else
-                @php
-                $counter = 0;
-                @endphp
-                @for ($i = 0; $i < count($rows); $i++) @if ($counter>= 5)
-                    @break
-                    @endif
-
-                    @if ($rows[$i]['newDemo'][$day] == 2)
-                    <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                    @php
-                    $counter++;
-                    @endphp
-                    @endif
+                    @for ($i = 0; $i < 5; $i++) 
+                        @if ($rows[$i]['newDemo'][$day] == 2)
+                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @endif
                     @endfor
-                    @if ($counter >= 5)
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
                             <i class="fa-solid fa-plus"></i>
                         </div>
                         <div class="hover-content">
-                            @php
-                            $numbering = 1;
-                            @endphp
+
                             @foreach ($rows as $salesperson)
-                            @if ($salesperson['newDemo'][$day] == 2)
-                            <div class="hover-content-flexcontainer">
-                                {{-- Image for popup --}}
-                                <img src="{{ $salesperson['salespersonAvatar'] }}" style="max-width: 40px;" alt="Salesperson Avatar" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                <span style="width: 70%">{{ $salesperson['salespersonName'] }}</span>
-                            </div>
-                            @php
-                            $numbering++;
-                            @endphp
-                            @endif
+                                @if ($salesperson['newDemo'][$day] == 2)
+                                <div class="hover-content-flexcontainer">
+                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                </div>
+                                @endif
                             @endforeach
                         </div>
                     </div>
-                    @endif
-                    @endif
+                @endif
             </div>
         </div>
         @endforeach
