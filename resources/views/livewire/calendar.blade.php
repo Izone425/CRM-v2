@@ -789,11 +789,17 @@
                         @endif
                     @endforeach
                 @else
-                    @for ($i = 0; $i < 5; $i++) 
+                    @php
+                        $count = 0;
+                        $i = 0;
+                    @endphp
+                    @while ($count < 5 && $i < count($rows))
                         @if ($rows[$i]['newDemo'][$day] == 1)
                             <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                            @php $count++; @endphp
                         @endif
-                    @endfor
+                        @php $i++; @endphp
+                    @endwhile
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
                             <i class="fa-solid fa-plus"></i>
@@ -832,11 +838,17 @@
                         @endif
                     @endforeach
                 @else
-                    @for ($i = 0; $i < 5; $i++) 
-                        @if ($rows[$i]['newDemo'][$day] == 2)
-                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endfor
+                    @php
+                        $count = 0;
+                        $i = 0;
+                    @endphp
+                @while ($count < 5 && $i < count($rows))
+                    @if ($rows[$i]['newDemo'][$day] == 2)
+                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
+                        @php $count++; @endphp
+                    @endif
+                    @php $i++; @endphp
+                @endwhile
                     <div class="hover-container" style="position: relative">
                         <div class="circle-bg">
                             <i class="fa-solid fa-plus"></i>
@@ -937,11 +949,11 @@
                     style="
                         padding-block: 1rem;
                         width: 100%;
-                        height: 100%;
                         background-color: #E9EBF0;
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        margin-block:0.5rem;
                     ">
                     <div style="flex:1; text-align: center;">
                         <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
@@ -960,7 +972,8 @@
                         </div>
                     </div>
                 </div>
-            @else
+            @endif
+            {{-- @else --}}
                 <div x-data="{ expanded: false }">
                     @if (count($row[$day . 'Appointments']) <= 4)
                         @foreach ($row[$day . 'Appointments'] as $appointment)
@@ -1060,7 +1073,7 @@
                         </template>
                     @endif
                 </div>
-            @endif
+            {{-- @endif --}}
         </div>
     @endforeach
 @endforeach
