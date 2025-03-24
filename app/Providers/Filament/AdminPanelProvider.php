@@ -9,6 +9,7 @@ use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\LeadAnalysis;
+use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\RankingForm;
@@ -85,6 +86,7 @@ class AdminPanelProvider extends PanelProvider
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 // Pages\Dashboard::class,
+                MarketingAnalysis::class,
                 Calendar::class,
                 MonthlyCalendar::class,
                 DemoRanking::class,
