@@ -35,16 +35,6 @@ class LeadSourceResource extends Resource
             TextInput::make('lead_code')
                 ->required()
                 ->maxLength(255),
-
-            Select::make('salesperson')
-                ->label('Salesperson')
-                ->options(User::where('role_id', 2)->pluck('name', 'id'))
-                ->searchable()
-                ->nullable(),
-
-            TextInput::make('platform')
-                ->maxLength(255)
-                ->nullable(),
         ]);
     }
 
@@ -53,13 +43,6 @@ class LeadSourceResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('lead_code')->sortable()->searchable(),
-                TextColumn::make('salesperson')
-                    ->label('Salesperson')
-                    ->formatStateUsing(fn ($state) => User::find($state)?->name ?? '-'),
-                TextColumn::make('platform')->sortable()->searchable(),
-                TextColumn::make('lead_count')
-                    ->label('Linked Leads')
-                    ->counts('lead'),
             ])
             ->actions([
                 EditAction::make()

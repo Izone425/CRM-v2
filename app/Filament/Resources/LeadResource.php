@@ -25,6 +25,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManage
 use App\Models\ActivityLog;
 use App\Models\Industry;
 use App\Models\InvalidLeadReason;
+use App\Models\LeadSource;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Grid;
@@ -87,6 +88,10 @@ class LeadResource extends Resource
                                                                 ])
                                                                 ->required()
                                                                 ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                                            Select::make('lead_code')
+                                                                ->label('Lead Source')
+                                                                ->options(fn () => LeadSource::pluck('lead_code')->toArray()) // Fetch existing lead sources
+                                                                ->searchable(),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             if ($lead) {
