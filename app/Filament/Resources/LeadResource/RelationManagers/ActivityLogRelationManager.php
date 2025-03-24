@@ -2097,7 +2097,6 @@ class ActivityLogRelationManager extends RelationManager
                         return false;
                     }
 
-
                     return true;
                 })
             ]);

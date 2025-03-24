@@ -136,6 +136,8 @@
             .hover-message {
                 position: absolute;
                 bottom: 110%;
+                left: 50%;
+                transform: translateX(-50%);
                 background-color: rgba(0, 0, 0, 0.75);
                 color: white;
                 padding: 5px 10px;
@@ -271,8 +273,8 @@
                 visibility: hidden;
             } */
             .group:hover .hover-message {
-                visibility: visible;
                 opacity: 1;
+                visibility: visible;
             }
         </style>
     </head>
