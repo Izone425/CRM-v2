@@ -326,18 +326,18 @@
                         </div>
 
                         <!-- Status Breakdown -->
-                        <div class="p-6 rounded-lg shadow bg-gray-50">
+                        <div class="p-6 rounded-lg shadow-lg bg-gray-50" >
                             <h3 class="mb-4 text-sm font-semibold text-center text-gray-700 uppercase">Status</h3>
                             <div class="flex justify-center space-x-10">
                                 @foreach ([
-                                    ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#3B82F6'],
-                                    ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#EF4444'],
-                                    ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#10B981']
+                                    ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
+                                    ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
+                                    ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da']
                                 ] as $data)
                                     <div class="relative text-center group">
                                         <div class="relative w-28 h-28">
                                             <svg width="130" height="130" viewBox="0 0 36 36">
-                                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                                <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
                                                 <circle cx="18" cy="18" r="14" stroke="{{ $data['color'] }}" stroke-width="5" fill="none"
                                                         stroke-dasharray="88"
                                                         stroke-dashoffset="{{ 88 - (88 * ($data['percentage'] / 100)) }}"
@@ -379,10 +379,10 @@
                             <h3 class="mb-4 text-sm font-semibold text-center text-gray-700 uppercase">Lead Categories</h3>
                             <div class="flex justify-center space-x-10">
                                 @foreach ([
-                                    ['label' => 'New', 'count' => $categoriesData['New'] ?? 0, 'color' => '#3B82F6'],
-                                    ['label' => 'Active', 'count' => $categoriesData['Active'] ?? 0, 'color' => '#10B981'],
-                                    ['label' => 'Sales', 'count' => $categoriesData['Sales'] ?? 0, 'color' => '#FACC15'],
-                                    ['label' => 'Inactive', 'count' => $categoriesData['Inactive'] ?? 0, 'color' => '#9CA3AF']
+                                    ['label' => 'New', 'count' => $categoriesData['New'] ?? 0, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
+                                    ['label' => 'Active', 'count' => $categoriesData['Active'] ?? 0, 'color' => '#00c7b1', 'bg-color' => '#c8f0eb'],
+                                    ['label' => 'Sales', 'count' => $categoriesData['Sales'] ?? 0, 'color' => '#fb8c00', 'bg-color' => '#fae4c8'],
+                                    ['label' => 'Inactive', 'count' => $categoriesData['Inactive'] ?? 0, 'color' => '#a6a6a6', 'bg-color' => '#e9e9e9']
                                 ] as $data)
                                     @php
                                         $percentage = $totalLeads > 0 ? round(($data['count'] / $totalLeads) * 100, 2) : 0;
@@ -390,7 +390,7 @@
                                     <div class="relative text-center group">
                                         <div class="relative w-28 h-28">
                                             <svg width="100" height="100" viewBox="0 0 36 36">
-                                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                                <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
                                                 <circle cx="18" cy="18" r="14" stroke="{{ $data['color'] }}" stroke-width="5" fill="none"
                                                         stroke-dasharray="88"
                                                         stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
@@ -435,17 +435,24 @@
                                     @php
                                         $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
                                         $color = match($size) {
-                                            'Small' => '#3B82F6',   // Blue
-                                            'Medium' => '#10B981',  // Green
-                                            'Large' => '#FACC15',   // Yellow
-                                            'Enterprise' => '#EF4444', // Red
+                                            'Small' => '#81c784',   // Blue
+                                            'Medium' => '#ffb400',  // Green
+                                            'Large' => '#ff9472',   // Yellow
+                                            'Enterprise' => '#ff5757', // Red
+                                            default => '#9CA3AF'   // Gray (fallback)
+                                        };
+                                        $bgcolor = match($size) {
+                                            'Small' => '#e4f1e5',   // Blue
+                                            'Medium' => '#f4e9cc',  // Green
+                                            'Large' => '#fde2d9',   // Yellow
+                                            'Enterprise' => '#fed7d7', // Red
                                             default => '#9CA3AF'   // Gray (fallback)
                                         };
                                     @endphp
                                     <div class="relative text-center group">
                                         <div class="relative w-28 h-28">
                                             <svg width="100" height="100" viewBox="0 0 36 36">
-                                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                                         stroke-dasharray="88"
                                                         stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
@@ -506,10 +513,17 @@
                         @php
                             $percentage = $totalActiveLeads > 0 ? round(($count / $totalActiveLeads) * 100, 2) : 0;
                             $color = match($stage) {
-                                'Active 24 Below' => '#3B82F6',  // Blue
-                                'Active 25 Above' => '#10B981',  // Green
-                                'Call Attempt 24 Below' => '#FACC15',  // Yellow
-                                'Call Attempt 25 Above' => '#EF4444', // Red
+                                'Active 24 Below' => '#7bbaff',  // Blue
+                                'Active 25 Above' => '#00c6ff',  // Green
+                                'Call Attempt 24 Below' => '#00ebff',  // Yellow
+                                'Call Attempt 25 Above' => '#00edd1', // Red
+                                default => '#D1D5DB',  // Gray (fallback)
+                            };
+                            $bgcolor = match($stage) {
+                                'Active 24 Below' => '#e0edfb',  // Blue
+                                'Active 25 Above' => '#c7effb',  // Green
+                                'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
+                                'Call Attempt 25 Above' => '#c7f7f1', // Red
                                 default => '#D1D5DB',  // Gray (fallback)
                             };
                         @endphp
@@ -521,7 +535,7 @@
                         </div>
 
                         <!-- Progress Bar -->
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -544,9 +558,15 @@
                         @php
                             $percentage = $totalTransferLeads > 0 ? round(($count / $totalTransferLeads) * 100, 2) : 0;
                             $color = match($stage) {
-                                'Transfer' => '#3B82F6',  /* Light Blue */
-                                'Demo' => '#6366F1',      /* Purple */
-                                'Follow Up' => '#1E40AF', /* Dark Blue */
+                                'Transfer' => '#ffde59',  /* Light Blue */
+                                'Demo' => '#ffa83c',      /* Purple */
+                                'Follow Up' => '#ff914d', /* Dark Blue */
+                                default => '#D1D5DB',     // Gray
+                            };
+                            $bgcolor = match($stage) {
+                                'Transfer' => '#fff8dd',  /* Light Blue */
+                                'Demo' => '#ffedd7',      /* Purple */
+                                'Follow Up' => '#ffe8da', /* Dark Blue */
                                 default => '#D1D5DB',     // Gray
                             };
                         @endphp
@@ -556,7 +576,7 @@
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -579,11 +599,18 @@
                         @php
                             $percentage = $totalInactiveLeads > 0 ? round(($count / $totalInactiveLeads) * 100, 2) : 0;
                             $color = match($status) {
-                                'Junk' => '#10B981',
-                                'Lost' => '#EF4444',
-                                'On Hold' => '#9ba2af',
-                                'No Response' => '#71797E',
+                                'Junk' => '#545454',
+                                'Lost' => '#737373',
+                                'On Hold' => '#99948f',
+                                'No Response' => '#c8c4bd',
                                 default => '#D1D5DB',
+                            };
+                            $bgcolor = match($status) {
+                                'Junk' => '#dcdcdc',  /* Light Blue */
+                                'Lost' => '#e2e2e2',      /* Purple */
+                                'On Hold' => '#eae9e8', /* Dark Blue */
+                                'No Response' => '#f3f3f1',
+                                default => '#f3f3f1',     // Gray
                             };
                         @endphp
 
@@ -592,7 +619,7 @@
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach

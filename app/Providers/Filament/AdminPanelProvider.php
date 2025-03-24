@@ -23,6 +23,7 @@ use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\LeadResource;
+use App\Filament\Resources\LeadSourceResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Widgets\LeadChartWidget;
@@ -82,6 +83,7 @@ class AdminPanelProvider extends PanelProvider
                 QuotationResource::class,
                 DemoResource::class,
                 IndustryResource::class,
+                LeadSourceResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

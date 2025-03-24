@@ -883,11 +883,11 @@ class ActivityLogRelationManager extends RelationManager
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [
                                             'lead_code' => isset($lead->lead_code) ? 'https://crm.timeteccloud.com:8082/demo-request/' . $lead->lead_code : 'N/A',
-                                            'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                            'lastName' => $lead->companyDetail->name ?? $lead->name,
+                                            'company' => $lead->companyDetail->company_name ?? 'N/A',
                                             'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                                            'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                                            'email' => $lead->email ?? 'N/A', // Lead's Email
+                                            'phone' => $lead->companyDetail->phone ?? $lead->phone,
+                                            'email' => $lead->companyDetail->email ?? $lead->email,
                                             'country' => $lead->country ?? 'N/A', // Lead's Country
                                             'products' => $lead->products ?? 'N/A', // Products
                                             // 'solutions' => $lead->solutions ?? 'N/A', // Solutions

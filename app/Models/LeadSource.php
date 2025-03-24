@@ -13,8 +13,6 @@ class LeadSource extends Model
 
     protected $fillable = [
         'lead_code',
-        'salesperson',
-        'platform',
     ];
 
     public function lead(): HasMany
