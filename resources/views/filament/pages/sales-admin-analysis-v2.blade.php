@@ -403,8 +403,8 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="grid-container">
+        <div class="w-full p-6 overflow-hidden bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="max-w-full overflow-x-auto lead-summary-box">
                 <!-- Total Leads Box -->
                 <div class="lead-card">
                     <div class="icon-container">
@@ -450,8 +450,8 @@
             </div>
         </div>
 
-        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="lead-summary-box">
+        <div class="w-full p-6 overflow-hidden bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="max-w-full overflow-x-auto lead-summary-box">
                     <!-- Total Leads Box -->
                     <div class="lead-card">
                         <div class="icon-container">
