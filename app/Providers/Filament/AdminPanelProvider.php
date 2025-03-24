@@ -86,7 +86,6 @@ class AdminPanelProvider extends PanelProvider
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 // Pages\Dashboard::class,
-                MarketingAnalysis::class,
                 Calendar::class,
                 MonthlyCalendar::class,
                 DemoRanking::class,
@@ -95,6 +94,7 @@ class AdminPanelProvider extends PanelProvider
                 ChatRoom::class,
                 LeadAnalysis::class,
                 DemoAnalysis::class,
+                MarketingAnalysis::class,
                 SalesForecast::class,
                 SalesAdminAnalysisV1::class,
                 SalesAdminAnalysisV2::class,

@@ -70,6 +70,11 @@ class MarketingAnalysis extends Page
     public $closedDealsCount = 0;
     public $monthlyDealAmounts = [];
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id == '3'; // Hides the resource from all users
+    }
+
     public function mount()
     {
         $authUser = auth()->user();
