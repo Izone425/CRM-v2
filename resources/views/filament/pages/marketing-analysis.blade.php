@@ -615,7 +615,7 @@
         </div>
 
         @php
-            $selectedStatuses = ['New', 'RFQ-Transfer', 'Pending Demo', 'Under Review', 'Demo Cancelled', 'Demo Assigned'];
+            $selectedStatuses = ['New', 'RFQ-Transfer', 'Pending Demo', 'Under Review', 'Demo Cancelled'];
             $totalSelected = collect($leadStatusData)
                 ->only($selectedStatuses)
                 ->sum();
@@ -646,7 +646,6 @@
                                 'Pending Demo' => '#10B981',
                                 'Under Review' => '#DC2626',
                                 'Demo Cancelled' => '#EF4444',
-                                'Demo Assigned' => '#06B6D4',
                                 default => '#D1D5DB',
                             };
                         @endphp

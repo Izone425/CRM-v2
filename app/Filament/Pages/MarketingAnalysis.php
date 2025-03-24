@@ -109,6 +109,7 @@ class MarketingAnalysis extends Page
         $this->fetchLeadStatusSummary();
         $this->fetchCloseWonAmount();
         $this->fetchMonthlyDealAmounts();
+        $this->getLeadTypeCounts();
     }
 
     public function updatedSelectedUser($userId)
@@ -121,6 +122,7 @@ class MarketingAnalysis extends Page
         $this->fetchLeadStatusSummary();
         $this->fetchCloseWonAmount();
         $this->fetchMonthlyDealAmounts();
+        $this->getLeadTypeCounts();
     }
 
     public function updatedSelectedMonth($month)
@@ -133,6 +135,7 @@ class MarketingAnalysis extends Page
         $this->fetchLeadStatusSummary();
         $this->fetchCloseWonAmount();
         $this->fetchMonthlyDealAmounts();
+        $this->getLeadTypeCounts();
     }
 
     public function updatedSelectedLeadCode($leadCode)
@@ -145,6 +148,7 @@ class MarketingAnalysis extends Page
         $this->fetchLeadStatusSummary();
         $this->fetchCloseWonAmount();
         $this->fetchMonthlyDealAmounts();
+        $this->getLeadTypeCounts();
     }
 
     public function updated($propertyName)
@@ -164,6 +168,7 @@ class MarketingAnalysis extends Page
             $this->fetchLeadStatusSummary();
             $this->fetchCloseWonAmount();
             $this->fetchMonthlyDealAmounts();
+            $this->getLeadTypeCounts();
         }
     }
 
@@ -400,6 +405,7 @@ class MarketingAnalysis extends Page
         // if (!empty($this->selectedLeadCode)) {
         //     $query->where('lead_code', $this->selectedLeadCode);
         // }
+        $query->where('categories', 'Active');
 
         // Define expected stages
         $stages = ['New', 'Transfer', 'Demo', 'Follow Up'];
@@ -456,7 +462,7 @@ class MarketingAnalysis extends Page
 
         $statuses = [
             'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
-            'Demo Cancelled', 'Demo Assigned', 'RFQ-Follow Up',
+            'Demo Cancelled', 'RFQ-Follow Up',
             'Hot', 'Warm', 'Cold', 'Junk', 'On Hold', 'Lost',
             'No Response', 'Closed',
         ];

@@ -314,8 +314,8 @@
     <div class="grid-layout">
         <div class="left-side">
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2" wire:poll.1s>
-                <div class="wrapper-container">
-                    <div class="grid-container">
+                <div class="w-full overflow-hidden wrapper-container">
+                    <div class="max-w-full overflow-x-auto grid-container">
                         <!-- Total Leads Box -->
                         <div class="lead-card">
                             <div class="icon-container">
@@ -363,8 +363,8 @@
             </div>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2" wire:poll.1s>
-                <div class="wrapper-container">
-                    <div class="grid-container">
+                <div class="w-full overflow-hidden wrapper-container">
+                    <div class="max-w-full overflow-x-auto grid-container">
                         <!-- Total Leads Box -->
                         <div class="lead-card">
                             <div class="icon-container">
@@ -416,8 +416,8 @@
             </div>
 
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2" wire:poll.1s>
-                <div class="wrapper-container">
-                    <div class="grid-container">
+                <div class="w-full overflow-hidden wrapper-container">
+                    <div class="max-w-full overflow-x-auto grid-container">
                         <!-- Total Leads Box -->
                         <div class="lead-card">
                             <div class="icon-container">
