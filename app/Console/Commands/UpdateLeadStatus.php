@@ -24,17 +24,22 @@ class UpdateLeadStatus extends Command
 
         foreach ($leads as $lead) {
             // Update the lead's status and stage
-            if ($lead->categories !== 'Inactive') {
+            $hasYesterdayDemo = $lead->demoAppointment()
+                ->whereDate('date', Carbon::yesterday())
+                ->where('status', 'New')
+                ->exists();
+
+            if ($lead->categories !== 'Inactive' && $hasYesterdayDemo) {
                 $lead->update([
                     'lead_status' => 'RFQ-Follow Up',
                     'stage' => 'Follow Up',
                 ]);
-            }
 
-            $lead->demoAppointment()
-                ->whereDate('date', Carbon::yesterday())
-                ->where('status', 'New')
-                ->update(['status' => 'Done']);
+                $lead->demoAppointment()
+                    ->whereDate('date', Carbon::yesterday())
+                    ->where('status', 'New')
+                    ->update(['status' => 'Done']);
+            }
 
             // Fetch the latest activity log for the lead
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
