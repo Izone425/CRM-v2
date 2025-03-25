@@ -58,7 +58,7 @@ class ProformaInvoiceTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->query($this->getFilteredInvoicesQuery())
             ->defaultSort('created_at', 'desc')
             ->heading('Proforma Invoice')

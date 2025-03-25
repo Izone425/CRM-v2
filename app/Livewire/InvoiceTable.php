@@ -58,7 +58,7 @@ class InvoiceTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->query($this->getFilteredInvoicesQuery())
             ->defaultSort('invoice_date', 'desc')
             ->heading('Invoice')

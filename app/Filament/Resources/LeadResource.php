@@ -731,61 +731,7 @@ class LeadResource extends Resource
                                                             return null; // Return null if no update exists
                                                         })
                                                         ->schema([
-                                                            Placeholder::make('percentage')
-                                                                ->label('1. BASED ON MY PRESENTATION, HOW MANY PERCENT OUR SYSTEM CAN MEET YOUR REQUIREMENT?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase3?->percentage ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('vendor')
-                                                                ->label('2. CURRENTLY HOW MANY VENDORS YOU EVALUATE? VENDOR NAME?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase3?->vendor ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('plan')
-                                                                ->label('3. WHEN DO YOU PLAN TO IMPLEMENT THE SYSTEM?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase3?->plan ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('finalise')
-                                                                ->label('4. WHEN DO YOU PLAN TO FINALISE WITH THE MANAGEMENT?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase3?->finalise ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
-                                                            Placeholder::make('additional')
-                                                                ->label('5. ADDITIONAL QUESTIONS?')
-                                                                ->content(function ($record) {
-                                                                    $content = $record?->systemQuestionPhase3?->additional ?? '-';
-                                                                    return new HtmlString(
-                                                                        '<div style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word; line-height: 1;">'
-                                                                        . nl2br(e($content))
-                                                                        . '</div>'
-                                                                    );
-                                                                })
-                                                                ->extraAttributes(['style' => 'padding-left: 15px; font-weight: bold;']),
+                                                            View::make('components.system-questions-phase3')
                                                         ])
                                                         ->headerActions([
                                                             Actions\Action::make('update_phase3')
@@ -883,51 +829,29 @@ class LeadResource extends Resource
                                                 Section::make('From')
                                                     ->icon('heroicon-o-arrow-right-start-on-rectangle')
                                                     ->schema([
-                                                        Grid::make(2) // Create a grid with two columns
-                                                        ->schema([
-                                                            Placeholder::make('from_company')
-                                                                ->label('COMPANY')
-                                                                ->content(fn ($record) => $record?->referralDetail?->company ?? '-'),
-                                                            Placeholder::make('from_remark')
-                                                                ->label('REMARK')
-                                                                ->content(fn ($record) => $record?->referralDetail?->remark ?? '-'),
-                                                        ]),
-                                                        Placeholder::make('from_name')
-                                                            ->label('NAME')
-                                                            ->content(fn ($record) => $record?->referralDetail?->name ?? '-'),
-                                                        Placeholder::make('from_email')
-                                                            ->label('EMAIL ADDRESS')
-                                                            ->content(fn ($record) => $record?->referralDetail?->email ?? '-'),
-                                                        Placeholder::make('from_contact')
-                                                            ->label('CONTACT NO.')
-                                                            ->content(fn ($record) => $record?->referralDetail?->contact_no ?? '-'),
+                                                        View::make('components.referral-from-section')
                                                     ])
                                                     ->columnSpan(1)
                                                     ->extraAttributes([
                                                         'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                                     ]),
-                                                // // Arrow in the center
-                                                // Placeholder::make('arrow')
-                                                //     ->content('→') // Arrow symbol
-                                                //     ->columnSpan(1)
-                                                //     ->label(''),
 
-                                                // Refer To Section
                                                 Section::make('Refer to')
                                                     ->icon('heroicon-o-arrow-right-end-on-rectangle')
                                                     ->schema([
-                                                        Placeholder::make('to_company')
-                                                            ->label('COMPANY')
-                                                            ->content(fn ($record) => $record->companyDetail->company_name ?? null),
-                                                        Placeholder::make('to_name')
-                                                            ->label('NAME')
-                                                            ->content(fn ($record) => $record->name ?? null),
-                                                        Placeholder::make('to_email')
-                                                            ->label('EMAIL ADDRESS')
-                                                            ->content(fn ($record) => $record->email ?? null),
-                                                        Placeholder::make('to_contact')
-                                                            ->label('CONTACT NO.')
-                                                            ->content(fn ($record) => $record->phone ?? null),
+                                                        View::make('components.referral-to-section')
+                                                        // Placeholder::make('to_company')
+                                                        //     ->label('COMPANY')
+                                                        //     ->content(fn ($record) => $record->companyDetail->company_name ?? null),
+                                                        // Placeholder::make('to_name')
+                                                        //     ->label('NAME')
+                                                        //     ->content(fn ($record) => $record->name ?? null),
+                                                        // Placeholder::make('to_email')
+                                                        //     ->label('EMAIL ADDRESS')
+                                                        //     ->content(fn ($record) => $record->email ?? null),
+                                                        // Placeholder::make('to_contact')
+                                                        //     ->label('CONTACT NO.')
+                                                        //     ->content(fn ($record) => $record->phone ?? null),
                                                     ])
                                                     ->columnSpan(1)
                                                     ->extraAttributes([
@@ -1004,36 +928,7 @@ class LeadResource extends Resource
                                                     }),
                                             ])
                                             ->schema([
-                                                Grid::make(4) // Four columns layout
-                                                    ->schema([
-                                                        Placeholder::make('full_name')
-                                                            ->label('FULL NAME')
-                                                            ->content(fn ($record) => $record?->bankDetail?->full_name ?? '-'),
-                                                        Placeholder::make('bank_name')
-                                                            ->label('BANK NAME')
-                                                            ->content(fn ($record) => $record?->bankDetail?->bank_name ?? '-'),
-                                                        Placeholder::make('contact_no')
-                                                            ->label('CONTACT NO.')
-                                                            ->content(fn ($record) => $record?->bankDetail?->contact_no ?? '-'),
-                                                        Placeholder::make('referral_payment_status')
-                                                            ->label('REFERRAL PAYMENT STATUS')
-                                                            ->content(fn ($record) => $record?->bankDetail?->referral_payment_status ?? '-'),
-                                                        Placeholder::make('ic_no')
-                                                            ->label('IC NO.')
-                                                            ->content(fn ($record) => $record?->bankDetail?->ic ?? '-'),
-                                                        Placeholder::make('bank_account_no')
-                                                            ->label('BANK ACCOUNT NO.')
-                                                            ->content(fn ($record) => $record?->bankDetail?->bank_account_no ?? '-'),
-                                                        Placeholder::make('email')
-                                                            ->label('EMAIL ADDRESS')
-                                                            ->content(fn ($record) => $record?->bankDetail?->email ?? '-'),
-                                                        Placeholder::make('remark')
-                                                            ->label('REMARK')
-                                                            ->content(fn ($record) => $record?->bankDetail?->remark ?? '-'),
-                                                        Placeholder::make('tin')
-                                                            ->label('TIN NO.')
-                                                            ->content(fn ($record) => $record?->bankDetail?->tin ?? '-'),
-                                                    ]),
+                                                View::make('components.bank-details')
                                             ]),
                                     ]),
                                 ]),
@@ -1077,8 +972,9 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->defaultPaginationPageOption(50)
+            ->paginated([10, 25, 50])
             ->modifyQueryUsing(function ($query) {
                 $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")
                         ->orderBy('created_at', 'desc');

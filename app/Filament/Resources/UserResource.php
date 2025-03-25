@@ -21,6 +21,11 @@ class UserResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Settings';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id == '3'; // Hides the resource from all users
+    }
+
     public static function form(Form $form): Form
     {
         return $form

@@ -111,7 +111,7 @@ class ActivityLogRelationManager extends RelationManager
         $this->totalnum = ActivityLog::where('subject_id', $this->getOwnerRecord()->id)->count();
 
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
             ->columns([
@@ -1694,72 +1694,72 @@ class ActivityLogRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('demo_done')
-                        ->visible(function (ActivityLog $record) {
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                    // Tables\Actions\Action::make('demo_done')
+                    //     ->visible(function (ActivityLog $record) {
+                    //         $attributes = json_decode($record->properties, true)['attributes'] ?? [];
 
-                            return data_get($attributes, 'stage') === 'Demo';
-                        })
-                        ->label(__('Demo Done'))
-                        ->requiresConfirmation()
-                        ->modalHeading('Demo Completed Confirmation')
-                        // ->form([
-                        //     Placeholder::make('')
-                        //         ->content(__('You are marking this demo as completed. Confirm?')),
+                    //         return data_get($attributes, 'stage') === 'Demo';
+                    //     })
+                    //     ->label(__('Demo Done'))
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Demo Completed Confirmation')
+                    //     // ->form([
+                    //     //     Placeholder::make('')
+                    //     //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                        //     TextInput::make('remark')
-                        //         ->label('Remarks')
-                        //         ->required()
-                        //         ->placeholder('Enter remarks here...')
-                        //         ->maxLength(500),
-                        // ])
-                        ->color('success')
-                        ->icon($icon = 'heroicon-o-pencil-square')
-                        ->action(function (ActivityLog $activityLog, array $data) {
-                            // Retrieve the related Lead model from ActivityLog
-                            $lead = $activityLog->lead; // Ensure this relation exists
+                    //     //     TextInput::make('remark')
+                    //     //         ->label('Remarks')
+                    //     //         ->required()
+                    //     //         ->placeholder('Enter remarks here...')
+                    //     //         ->maxLength(500),
+                    //     // ])
+                    //     ->color('success')
+                    //     ->icon($icon = 'heroicon-o-pencil-square')
+                    //     ->action(function (ActivityLog $activityLog, array $data) {
+                    //         // Retrieve the related Lead model from ActivityLog
+                    //         $lead = $activityLog->lead; // Ensure this relation exists
 
-                            // Retrieve the latest demo appointment for the lead
-                            $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
-                                ->latest('created_at') // Retrieve the most recent demo
-                                ->first();
+                    //         // Retrieve the latest demo appointment for the lead
+                    //         $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
+                    //             ->latest('created_at') // Retrieve the most recent demo
+                    //             ->first();
 
-                            if ($latestDemoAppointment) {
-                                $latestDemoAppointment->update([
-                                    'status' => 'Done', // Or whatever status you need to set
-                                ]);
-                            }
+                    //         if ($latestDemoAppointment) {
+                    //             $latestDemoAppointment->update([
+                    //                 'status' => 'Done', // Or whatever status you need to set
+                    //             ]);
+                    //         }
 
-                            // Update the Lead model
-                            $lead->update([
-                                'stage' => 'Follow Up',
-                                'lead_status' => 'RFQ-Follow Up',
-                                // 'remark' => $data['remark'],
-                                'follow_up_date' => null,
-                            ]);
+                    //         // Update the Lead model
+                    //         $lead->update([
+                    //             'stage' => 'Follow Up',
+                    //             'lead_status' => 'RFQ-Follow Up',
+                    //             // 'remark' => $data['remark'],
+                    //             'follow_up_date' => null,
+                    //         ]);
 
-                            // Update the latest ActivityLog related to the lead
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                    //         // Update the latest ActivityLog related to the lead
+                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    //             ->orderByDesc('created_at')
+                    //             ->first();
 
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Demo Completed',
-                                ]);
-                            }
+                    //         if ($latestActivityLog) {
+                    //             $latestActivityLog->update([
+                    //                 'description' => 'Demo Completed',
+                    //             ]);
+                    //         }
 
-                            // Log activity
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead);
+                    //         // Log activity
+                    //         activity()
+                    //             ->causedBy(auth()->user())
+                    //             ->performedOn($lead);
 
-                            // Send success notification
-                            Notification::make()
-                                ->title('Demo completed successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         // Send success notification
+                    //         Notification::make()
+                    //             ->title('Demo completed successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
 
                     // Tables\Actions\Action::make('view_proof')
                     //     ->visible(function (ActivityLog $record) {

@@ -1,26 +1,27 @@
 @php
-    $lead = $this->record; // Accessing Filament's record
+    $bank = $this->record?->bankDetail;
 
-    $companyDetails = [
-        ['label' => 'Company Name', 'value' => $lead->companyDetail->company_name ?? '-'],
-        ['label' => 'Postcode', 'value' => $lead->companyDetail->postcode ?? '-'],
-        ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
-        ['label' => 'State', 'value' => $lead->companyDetail->state ?? '-'],
-        ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
-        ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
+    $bankDetails = [
+        ['label' => 'FULL NAME', 'value' => $bank?->full_name ?? '-'],
+        ['label' => 'BANK NAME', 'value' => $bank?->bank_name ?? '-'],
+        ['label' => 'CONTACT NO.', 'value' => $bank?->contact_no ?? '-'],
+        ['label' => 'REFERRAL PAYMENT STATUS', 'value' => $bank?->referral_payment_status ?? '-'],
+        ['label' => 'IC NO.', 'value' => $bank?->ic ?? '-'],
+        ['label' => 'BANK ACCOUNT NO.', 'value' => $bank?->bank_account_no ?? '-'],
+        ['label' => 'EMAIL ADDRESS', 'value' => $bank?->email ?? '-'],
+        ['label' => 'REMARK', 'value' => $bank?->remark ?? '-'],
+        ['label' => 'TIN NO.', 'value' => $bank?->tin ?? '-'],
     ];
 
-    // Split into rows with a max of 2 items per row
-    $rows = array_chunk($companyDetails, 2);
+    $rows = array_chunk($bankDetails, 4); // 4 columns per row
 @endphp
 
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;"
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;"
      class="grid grid-cols-2 gap-6">
-
     @foreach ($rows as $row)
         @foreach ($row as $item)
-            <div style="--col-span-default: span 1 / span 1;" class="col-[--col-span-default]">
-                <div data-field-wrapper="" class="fi-fo-field-wrp">
+            <div>
+                <div class="fi-fo-field-wrp">
                     <div class="grid gap-y-2">
                         <div class="flex items-center justify-between gap-x-3">
                             <div class="inline-flex items-center fi-fo-field-wrp-label gap-x-3">
