@@ -37,10 +37,10 @@
     <div class="flex w-full min-h-screen gap-4">
         <!-- Sales Forecast Tables (Expands Automatically) -->
         <div class="flex-grow">
-            <livewire:invoice-table :selectedUser="$selectedUser" :selectedMonth="$selectedMonth"/>
+            {{-- <livewire:invoice-table :selectedUser="$selectedUser" :selectedMonth="$selectedMonth"/>
             <br>
             <livewire:proforma-invoice-table :selectedUser="$selectedUser" :selectedMonth="$selectedMonth"/>
-            <br>
+            <br> --}}
             <livewire:sales-forecast-table :selectedUser="$selectedUser" :selectedMonth="$selectedMonth"/>
         </div>
 

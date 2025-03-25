@@ -25,7 +25,7 @@ class MarketingAnalysis extends Page
 
     public $users;
     public $selectedUser;
-    public $selectedMonth;
+    // public $selectedMonth;
     public $selectedLeadCode;
     public $leadCodes;
 
@@ -47,6 +47,8 @@ class MarketingAnalysis extends Page
 
     public $days;
     public Carbon $currentDate;
+    public $startDate;
+    public $endDate;
 
     public $utmCampaign;
     public $utmAdgroup;
@@ -79,6 +81,8 @@ class MarketingAnalysis extends Page
     {
         $authUser = auth()->user();
         $this->currentDate = Carbon::now();
+        $this->startDate = session('startDate', $this->currentDate->copy()->startOfMonth()->toDateString());
+        $this->endDate = session('endDate', $this->currentDate->toDateString());
 
         // Fetch only Salespersons (role_id = 2)
         $this->users = User::where('role_id', 2)->get();
@@ -94,13 +98,13 @@ class MarketingAnalysis extends Page
         }
 
         // Set default selected month
-        $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
+        // $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
 
         // Set default selected lead code
         $this->selectedLeadCode = session('selectedLeadCode', null);
 
         // Store in session
-        session(['selectedUser' => $this->selectedUser, 'selectedMonth' => $this->selectedMonth, 'selectedLeadCode' => $this->selectedLeadCode]);
+        session(['selectedUser' => $this->selectedUser, 'selectedLeadCode' => $this->selectedLeadCode]);
 
         // Fetch initial appointment data
         $this->fetchLeads();
@@ -125,10 +129,37 @@ class MarketingAnalysis extends Page
         $this->getLeadTypeCounts();
     }
 
-    public function updatedSelectedMonth($month)
+    // public function updatedSelectedMonth($month)
+    // {
+    //     $this->selectedMonth = $month;
+    //     session(['selectedMonth' => $month]);
+    //     $this->fetchLeads();
+    //     $this->fetchLeadCategorySummary();
+    //     $this->fetchLeadStageSummary();
+    //     $this->fetchLeadStatusSummary();
+    //     $this->fetchCloseWonAmount();
+    //     $this->fetchMonthlyDealAmounts();
+    //     $this->getLeadTypeCounts();
+    // }
+
+    public function updatedStartDate($value)
     {
-        $this->selectedMonth = $month;
-        session(['selectedMonth' => $month]);
+        $this->startDate = $value;
+        session(['startDate' => $value]);
+        $this->refreshDashboardData();
+    }
+
+    public function updatedEndDate($value)
+    {
+        $this->endDate = $value;
+        session(['endDate' => $value]);
+        $this->refreshDashboardData();
+    }
+
+    public function updatedSelectedLeadCode($leadCode)
+    {
+        $this->selectedLeadCode = $leadCode;
+        session(['selectedLeadCode' => $leadCode]);
         $this->fetchLeads();
         $this->fetchLeadCategorySummary();
         $this->fetchLeadStageSummary();
@@ -138,10 +169,8 @@ class MarketingAnalysis extends Page
         $this->getLeadTypeCounts();
     }
 
-    public function updatedSelectedLeadCode($leadCode)
+    public function refreshDashboardData()
     {
-        $this->selectedLeadCode = $leadCode;
-        session(['selectedLeadCode' => $leadCode]);
         $this->fetchLeads();
         $this->fetchLeadCategorySummary();
         $this->fetchLeadStageSummary();
@@ -228,10 +257,11 @@ class MarketingAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         if (!empty($this->selectedLeadCode)) {
@@ -283,11 +313,11 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $this->selectedLeadCode);
         }
 
-        // Filter by selected month
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         // Get all relevant leads
@@ -333,11 +363,11 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $this->selectedLeadCode);
         }
 
-        // Month filter
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         // // Lead code filter
@@ -394,11 +424,11 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $this->selectedLeadCode);
         }
 
-        // Month filter
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         // Optional: include this if you want to allow filtering by lead code
@@ -464,10 +494,11 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $this->selectedLeadCode);
         }
 
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         // ✅ Filter with nested WHERE clause for Active + Other
@@ -516,10 +547,11 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $this->selectedLeadCode);
         }
 
-        if (!empty($this->selectedMonth)) {
-            $startDate = Carbon::parse($this->selectedMonth)->startOfMonth();
-            $endDate = Carbon::parse($this->selectedMonth)->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
 
         $this->closedDealsCount = $query

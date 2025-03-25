@@ -108,7 +108,7 @@ class SalesForecastTable extends Component implements HasForms, HasTable
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->paginated([10, 25, 50, 100, 'all'])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

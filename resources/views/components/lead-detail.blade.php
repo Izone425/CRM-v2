@@ -3,7 +3,7 @@
 
     $leadDetails = [
         ['label' => 'Lead ID', 'value' => isset($lead->id) ? str_pad($lead->id, 5, '0', STR_PAD_LEFT) : '-'],
-        ['label' => 'Lead Source', 'value' => $lead->leadSource?->platform ?? '-'],
+        ['label' => 'Lead Source', 'value' => $lead->lead_code ?? '-'],
         ['label' => 'Lead Created By', 'value' => optional(optional($lead->activityLogs()
             ->where('description', 'New lead created')
             ->where('subject_id', $lead->id ?? null)

@@ -393,9 +393,16 @@
                 </div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             @endif
-            <div class="ml-10">
-                <input wire:model="selectedMonth" type="month" id="monthFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+            <div class="ml-10 flex items-center space-x-4">
+                <div>
+                    <input wire:model="startDate" type="date" id="startDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
+                </div>
+                &nbsp;- &nbsp;
+                <div>
+                    <input wire:model="endDate" type="date" id="endDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
+                </div>
             </div>
+
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <div class="mb-4">
                 <label for="lead_code" class="block text-sm font-medium text-gray-700">Lead Code</label>
@@ -580,11 +587,18 @@
                     @php
                         $percentage = $totalStages > 0 ? round(($count / $totalStages) * 100, 2) : 0;
                         $color = match($stage) {
-                            'New' => '#3B82F6',       // Blue
-                            'Transfer' => '#F59E0B',  // Amber
-                            'Demo' => '#10B981',      // Green
-                            'Follow Up' => '#EF4444', // Red
+                            'New' => '#D2E9D2',
+                            'Transfer' => '#82CFFD',  /* Light Blue */
+                            'Demo' => '#4BA3F5',      /* Purple */
+                            'Follow Up' => '#8AE3F5', /* Dark Blue */
                             default => '#9CA3AF',     // Gray
+                        };
+                        $bgcolor = match($stage) {
+                            'New' => '#F2FAF2',
+                            'Transfer' => '#e5f1ff',  /* Light Blue */
+                            'Demo' => '#ccf4ff',      /* Purple */
+                            'Follow Up' => '#ccfbff', /* Dark Blue */
+                            default => '#D1D5DB',    /* Gray */
                         };
                     @endphp
 
@@ -592,7 +606,7 @@
                     <div class="relative w-28 h-28">
                         <svg width="130" height="130" viewBox="0 0 36 36">
                             <!-- Background Circle -->
-                            <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                            <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                             <!-- Progress -->
                             <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                     stroke-dasharray="88"
