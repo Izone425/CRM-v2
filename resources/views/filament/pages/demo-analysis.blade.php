@@ -417,11 +417,18 @@
                         @php
                             $percentage = $totalAppointments > 0 ? round(($count / $totalAppointments) * 100, 2) : 0;
                             $barColor = match($loop->index) {
-                                0 => '#FACC15',   // New Demo - Yellow
-                                1 => '#FB923C',   // Webinar Demo - Orange
-                                2 => '#EF4444',   // HRMS Demo - Red
-                                3 => '#10B981',   // System Discussion - Green
-                                default => '#3B82F6', // HRDF Discussion - Blue
+                                0 => '#ff6969',   // New Demo - Yellow
+                                1 => '#ff7b9a',   // Webinar Demo - Orange
+                                2 => '#ff944f',   // HRMS Demo - Red
+                                3 => '#ffb442',   // System Discussion - Green
+                                default => '#ffdf92', // HRDF Discussion - Blue
+                            };
+                            $barBgColor = match($loop->index) {
+                                0 => '#ffd3d5',   // New Demo - Yellow
+                                1 => '#ffc4c9',   // Webinar Demo - Orange
+                                2 => '#ffece0',   // HRMS Demo - Red
+                                3 => '#ffe59d',   // System Discussion - Green
+                                default => '#fff6dc', // HRDF Discussion - Blue
                             };
                         @endphp
 
@@ -430,7 +437,7 @@
                             <div class="hover-message">{{ $percentage }}%</div>
 
                             <p class="percentage-label">{{ $count }}</p>
-                            <div class="bar-wrapper">
+                            <div class="bar-wrapper" style="background-color: {{ $barBgColor }};">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
                             <p class="session-type">{{ $type }}</p>
@@ -461,11 +468,16 @@
                         @php
                             $percentage = $days['totalDays'] > 0 ? round(($days[$key] / $days['totalDays']) * 100, 2) : 0;
                             $barColor = match($key) {
-                                'publicHolidays' => '#93C5FD',  /* Light Blue */
-                                'weekends' => '#60A5FA',  /* Blue */
-                                'leave' => '#2563EB',  /* Dark Blue */
-                                'workingDays' => '#4F46E5', /* Purple */
-                                default => '#D1D5DB',   /* Gray */
+                                'publicHolidays' => '#B9D6F8',  /* Light Blue */
+                                'weekends' => '#91C9F7',  /* Blue */
+                                'leave' => '#65E4EA',  /* Dark Blue */
+                                'workingDays' => '#B4F7F7', /* Purple */
+                            };
+                            $barBgColor = match($key) {
+                                'publicHolidays' => '#EDF5FD',  /* Light Blue */
+                                'weekends' => '#E6F2FC',  /* Blue */
+                                'leave' => '#E0FBFC',  /* Dark Blue */
+                                'workingDays' => '#ECFFFE', /* Purple */
                             };
                         @endphp
 
@@ -474,7 +486,7 @@
                             <div class="hover-message">{{ $percentage }}%</div>
 
                             <p class="percentage-label">{{ $days[$key] }}</p>
-                            <div class="bar-wrapper">
+                            <div class="bar-wrapper" style="background-color: {{ $barBgColor }};">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
                             <p class="session-type">{{ $label }}</p>
@@ -508,11 +520,16 @@
                         @php
                             $percentage = $totalNewAppointments > 0 ? round(($count / $totalNewAppointments) * 100, 2) : 0;
                             $color = match($companySize) {
-                                'Small' => '#EF4444',  /* Red */
-                                'Medium' => '#FB923C',  /* Orange */
-                                'Large' => '#FACC15',  /* Yellow */
-                                'Enterprise' => '#10B981', /* Green */
-                                default => '#D1D5DB',   /* Gray */
+                                'Small' => '#D2E9D2',  /* Red */
+                                'Medium' => '#FFE29C',  /* Orange */
+                                'Large' => '#FFD59C',  /* Yellow */
+                                'Enterprise' => '#FF8A8A', /* Green */
+                            };
+                            $bgcolor = match($companySize) {
+                                'Small' => '#F2FAF2',  /* Red */
+                                'Medium' => '#FFF9EB',  /* Orange */
+                                'Large' => '#FFF5E9',  /* Yellow */
+                                'Enterprise' => '#FFEDED', /* Green */
                             };
                         @endphp
 
@@ -523,7 +540,7 @@
                         </div>
 
                         <!-- Progress Bar -->
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -541,11 +558,16 @@
                     @php
                         $percentage = $totalNewAppointmentsByLeadStatus > 0 ? round(($count / $totalNewAppointmentsByLeadStatus) * 100, 2) : 0;
                         $color = match($status) {
-                            'Closed' => '#10B981',  /* Green */
-                            'Lost' => '#EF4444',    /* Dark Gray */
-                            'On Hold' => '#9CA3AF', /* Medium Gray */
-                            'No Response' => '#D1D5DB', /* Light Gray */
-                            default => '#D1D5DB',   /* Fallback Gray */
+                            'Closed' => '#82CEC2',  /* Green */
+                            'Lost' => '#A0A0A0',    /* Dark Gray */
+                            'On Hold' => '#B3B3B3', /* Medium Gray */
+                            'No Response' => '#C6C6C6', /* Light Gray */
+                        };
+                        $bgcolor = match($status) {
+                            'Closed' => '#E3F7F5',  /* Green */
+                            'Lost' => '#E5E5E5',    /* Dark Gray */
+                            'On Hold' => '#ECECEC', /* Medium Gray */
+                            'No Response' => '#F7F7F7', /* Light Gray */
                         };
                     @endphp
 
@@ -553,7 +575,7 @@
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                                 <!-- Progress Indicator -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                         stroke-dasharray="88"
@@ -597,11 +619,16 @@
                         @php
                             $percentage = $totalWebinarAppointments > 0 ? round(($count / $totalWebinarAppointments) * 100, 2) : 0;
                             $color = match($companySize) {
-                                'Small' => '#EF4444',  /* Red */
-                                'Medium' => '#FB923C',  /* Orange */
-                                'Large' => '#FACC15',  /* Yellow */
-                                'Enterprise' => '#10B981', /* Green */
-                                default => '#D1D5DB',   /* Gray */
+                                'Small' => '#D2E9D2',  /* Red */
+                                'Medium' => '#FFE29C',  /* Orange */
+                                'Large' => '#FFD59C',  /* Yellow */
+                                'Enterprise' => '#FF8A8A', /* Green */
+                            };
+                            $bgcolor = match($companySize) {
+                                'Small' => '#F2FAF2',  /* Red */
+                                'Medium' => '#FFF9EB',  /* Orange */
+                                'Large' => '#FFF5E9',  /* Yellow */
+                                'Enterprise' => '#FFEDED', /* Green */
                             };
                         @endphp
 
@@ -612,7 +639,7 @@
                         </div>
 
                         <!-- Progress Bar -->
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -630,11 +657,16 @@
                     @php
                         $percentage = $totalWebinarAppointmentsByLeadStatus > 0 ? round(($count / $totalWebinarAppointmentsByLeadStatus) * 100, 2) : 0;
                         $color = match($status) {
-                            'Closed' => '#10B981',  /* Green */
-                            'Lost' => '#EF4444',    /* Dark Gray */
-                            'On Hold' => '#9CA3AF', /* Medium Gray */
-                            'No Response' => '#D1D5DB', /* Light Gray */
-                            default => '#D1D5DB',   /* Fallback Gray */
+                            'Closed' => '#82CEC2',  /* Green */
+                            'Lost' => '#A0A0A0',    /* Dark Gray */
+                            'On Hold' => '#B3B3B3', /* Medium Gray */
+                            'No Response' => '#C6C6C6', /* Light Gray */
+                        };
+                        $bgcolor = match($status) {
+                            'Closed' => '#E3F7F5',  /* Green */
+                            'Lost' => '#E5E5E5',    /* Dark Gray */
+                            'On Hold' => '#ECECEC', /* Medium Gray */
+                            'No Response' => '#F7F7F7', /* Light Gray */
                         };
                     @endphp
 
@@ -642,7 +674,7 @@
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                                 <!-- Progress Indicator -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                         stroke-dasharray="88"

@@ -24,10 +24,12 @@ class UpdateLeadStatus extends Command
 
         foreach ($leads as $lead) {
             // Update the lead's status and stage
-            $lead->update([
-                'lead_status' => 'RFQ-Follow Up',
-                'stage' => 'Follow Up',
-            ]);
+            if ($lead->categories !== 'Inactive') {
+                $lead->update([
+                    'lead_status' => 'RFQ-Follow Up',
+                    'stage' => 'Follow Up',
+                ]);
+            }
 
             $lead->demoAppointment()
                 ->whereDate('date', Carbon::yesterday())
