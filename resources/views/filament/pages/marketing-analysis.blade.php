@@ -466,18 +466,23 @@
                         @php
                             $percentage = array_sum($companySizeData) > 0 ? round(($count / array_sum($companySizeData)) * 100, 2) : 0;
                             $color = match($companySize) {
-                                'Small' => '#EF4444',
-                                'Medium' => '#FB923C',
-                                'Large' => '#FACC15',
-                                'Enterprise' => '#10B981',
-                                default => '#D1D5DB',
+                                'Small' => '#D2E9D2',
+                                'Medium' => '#FFE29C',
+                                'Large' => '#FFD59C',
+                                'Enterprise' => '#FF8A8A',
+                            };
+                            $bgcolor = match($companySize) {
+                                'Small' => '#F2FAF2',
+                                'Medium' => '#FFF9EB',
+                                'Large' => '#FFF5E9',
+                                'Enterprise' => '#FFEDED',
                             };
                         @endphp
                         <div class="progress-info">
                             <span>{{ ucfirst($companySize) }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -494,7 +499,7 @@
                 @php
                     $leadTypeCounts = $this->getLeadTypeCounts();
                     $totalLeadTypes = array_sum($leadTypeCounts);
-                    $colors = ['#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#10B981'];
+                    $colors = ['#805ba7', '#3d78f4', '#4cc5fd', '#4dd8e3', '#00a1c5', '#02bb52', '#92dc61', '#fecd1a', '#5861a9'];
                 @endphp
 
                 @foreach($leadTypeCounts as $source => $count)
@@ -505,7 +510,7 @@
 
                     <div class="bar-group">
                         <p class="percentage-label">{{ $count }}</p>
-                        <div class="bar-wrapper">
+                        <div class="bar-wrapper" style="background-color: #F7F7F7;">
                             <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                         </div>
                         <p class="size-label" style="word-wrap: break-word; white-space: normal; margin-top: 5px; min-height: 36px;">{{ $source }}</p>
@@ -526,10 +531,9 @@
                 @foreach ($categoryData as $category => $count)
                     @php
                         $bgColor = match($category) {
-                            'Active' => '#71eb71',   // green
-                            'New' => '#facc15',
-                            'Inactive' => '#f86f6f', // red
-                            default => '#9CA3AF',    // gray
+                            'Active' => '#00c7b1',   // green
+                            'New' => '#5c6bc0',
+                            'Inactive' => '#b0bec5', // red
                         };
                         $percentage = $total > 0 ? ($count / $total) * 100 : 0;
                     @endphp
@@ -641,12 +645,18 @@
                             $count = $leadStatusData[$status] ?? 0;
                             $percentage = $totalSelected > 0 ? round(($count / $totalSelected) * 100, 2) : 0;
                             $color = match($status) {
-                                'New' => '#3B82F6',
-                                'RFQ-Transfer' => '#6366F1',
-                                'Pending Demo' => '#10B981',
-                                'Under Review' => '#DC2626',
-                                'Demo Cancelled' => '#EF4444',
-                                default => '#D1D5DB',
+                                'New' => '#D2E9D2',
+                                'RFQ-Transfer' => '#FFE29C',
+                                'Pending Demo' => '#FFD59C',
+                                'Under Review' => '#FF8A8A',
+                                'Demo Cancelled' => '#D0D3D9',
+                            };
+                            $bgcolor = match($status) {
+                                'New' => '#F2FAF2',
+                                'RFQ-Transfer' => '#FFF9EB',
+                                'Pending Demo' => '#FFF5E9',
+                                'Under Review' => '#FFEDED',
+                                'Demo Cancelled' => '#F5F7F9',
                             };
                         @endphp
 
@@ -654,7 +664,7 @@
                             <span>{{ $status }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -689,11 +699,16 @@
                             $count = $leadStatusData[$status] ?? 0;
                             $percentage = $totalFollowUps > 0 ? round(($count / $totalFollowUps) * 100, 2) : 0;
                             $color = match($status) {
-                                'RFQ-Follow Up' => '#F472B6',
-                                'Hot' => '#DC2626',
-                                'Warm' => '#FB923C',
-                                'Cold' => '#A78BFA',
-                                default => '#D1D5DB',
+                                'RFQ-Follow Up' => '#B3B0F7',
+                                'Hot' => '#FFD7D7',
+                                'Warm' => '#FFB066',
+                                'Cold' => '#B3F5F5',
+                            };
+                            $bgcolor = match($status) {
+                                'RFQ-Follow Up' => '#F0EEFC',
+                                'Hot' => '#FFF1F1',
+                                'Warm' => '#FFF2E3',
+                                'Cold' => '#ECFFFF',
                             };
                         @endphp
 
@@ -701,7 +716,7 @@
                             <span>{{ $status }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -710,7 +725,7 @@
         </div>
 
         @php
-            $closedStatuses = ['Junk', 'On Hold', 'Lost', 'No Response', 'Closed'];
+            $closedStatuses = ['Closed', 'Lost', 'On Hold', 'No Response', 'Junk'];
             $totalClosed = collect($leadStatusData)
                 ->only($closedStatuses)
                 ->sum();
@@ -736,12 +751,18 @@
                             $count = $leadStatusData[$status] ?? 0;
                             $percentage = $totalClosed > 0 ? round(($count / $totalClosed) * 100, 2) : 0;
                             $color = match($status) {
-                                'Junk' => '#9CA3AF',
-                                'On Hold' => '#FCD34D',
-                                'Lost' => '#6B7280',
-                                'No Response' => '#E5E7EB',
-                                'Closed' => '#4B5563',
-                                default => '#D1D5DB',
+                                'Closed' => '#82CEC2',
+                                'Lost' => '#A0A0A0',
+                                'On Hold' => '#B3B3B3',
+                                'No Response' => '#C6C6C6',
+                                'Junk' => '#C6C6C6',
+                            };
+                            $bgcolor = match($status) {
+                                'Closed' => '#E3F7F5',
+                                'Lost' => '#E5E5E5',
+                                'On Hold' => '#ECECEC',
+                                'No Response' => '#F7F7F7',
+                                'Junk' => '#F7F7F7',
                             };
                         @endphp
 
@@ -749,7 +770,7 @@
                             <span>{{ $status }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -774,11 +795,12 @@
 
             <!-- Simple Bar Chart -->
             <div class="mt-6">
-                <h3 class="mb-2 text-sm font-semibold text-gray-600">Last 5 Months</h3>
+                <h3 class="mb-2 text-sm font-semibold text-gray-600">Last 6 Months</h3>
                 <div class="flex flex-wrap justify-center gap-8 overflow-visible">
                     @php
                         $maxAmount = count($monthlyDealAmounts) > 0 ? max($monthlyDealAmounts) : 1;
-                        $barColors = ['#10B981', '#3B82F6', '#6366F1', '#F59E0B', '#EF4444'];
+                        $barColors = ['#D7C7F4', '#B9D6F8', '#B9D6F8', '#65E4EA', '#B4F7F7', '#FFE99E'];
+                        $barBgColors = ['#F3EEFC', '#EDF5FD', '#E6F2FC', '#E0FBFC', '#ECFFFE', '#FFF8E0'];
                         $previousAmount = null;
                     @endphp
 
@@ -786,6 +808,7 @@
                         @php
                             $heightPercent = $maxAmount > 0 ? ($amount / $maxAmount) * 100 : 0;
                             $color = $barColors[$loop->index % count($barColors)];
+                            $bgcolor = $barBgColors[$loop->index % count($barBgColors)];
                             $label = Carbon\Carbon::parse($month)->format('M');
 
                             // % Change from previous month
@@ -817,7 +840,7 @@
                                 </p>
                             @endif
 
-                            <div class="w-6 bg-gray-200 rounded bar-wrapper" style="height: 140px;">
+                            <div class="w-6 bg-gray-200 rounded bar-wrapper" style="height: 140px; background-color: {{ $bgcolor }};">
                                 <div class="rounded bar-fill" style="height: {{ $heightPercent }}%; background-color: {{ $color }};"></div>
                             </div>
 

@@ -334,9 +334,9 @@
                             <div class="relative w-28 h-28 group"> <!-- Group for hover -->
                                 <svg width="130" height="130" viewBox="0 0 36 36">
                                     <!-- Background Circle -->
-                                    <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                    <circle cx="18" cy="18" r="14" stroke="#E8FCF7" stroke-width="5" fill="none"></circle>
                                     <!-- Progress Indicator -->
-                                    <circle cx="18" cy="18" r="14" stroke="#3B82F6" stroke-width="5" fill="none"
+                                    <circle cx="18" cy="18" r="14" stroke="#2CCF9C" stroke-width="5" fill="none"
                                             stroke-dasharray="88"
                                             stroke-dashoffset="{{ 88 - (88 * ($activePercentage / 100)) }}"
                                             stroke-linecap="round"
@@ -360,9 +360,9 @@
                             <div class="relative w-28 h-28 group"> <!-- Group for hover -->
                                 <svg width="130" height="130" viewBox="0 0 36 36">
                                     <!-- Background Circle -->
-                                    <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                    <circle cx="18" cy="18" r="14" stroke="#F5F7F9" stroke-width="5" fill="none"></circle>
                                     <!-- Progress Indicator -->
-                                    <circle cx="18" cy="18" r="14" stroke="#6B7280" stroke-width="5" fill="none"
+                                    <circle cx="18" cy="18" r="14" stroke="#D6DDEB" stroke-width="5" fill="none"
                                             stroke-dasharray="100, 100"
                                             stroke-dashoffset="{{ 100 - $inactivePercentage }}"
                                             stroke-linecap="round"
@@ -391,16 +391,22 @@
                         @php
                             $percentage = round(($count / max($totalLeads, 1)) * 100, 2);
                             $barColor = match($loop->index) {
-                                0 => '#EF4444',  // Small - Red
-                                1 => '#FB923C',  // Medium - Orange
-                                2 => '#FACC15',  // Large - Yellow
-                                default => '#10B981', // Enterprise - Green
+                                0 => '#D2E9D2',  // Small - Red
+                                1 => '#FFE29C',  // Medium - Orange
+                                2 => '#FFD59C',  // Large - Yellow
+                                default => '#FF8A8A', // Enterprise - Green
+                            };
+                            $barBgColor = match($loop->index) {
+                                0 => '#F2FAF2',  // Small - Red
+                                1 => '#FFF9EB',  // Medium - Orange
+                                2 => '#FFF5E9',  // Large - Yellow
+                                default => '#FFEDED', // Enterprise - Green
                             };
                         @endphp
 
                         <div class="bar-group">
                             <p class="percentage-label">{{ $count }}</p>
-                            <div class="bar-wrapper">
+                            <div class="bar-wrapper" style="background-color: {{ $barBgColor }};">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
                             <p class="size-label">{{ ucfirst($size) }}</p>
@@ -434,9 +440,15 @@
                         @php
                             $percentage = $totalActiveLeads > 0 ? round(($count / $totalActiveLeads) * 100, 2) : 0;
                             $color = match($stage) {
-                                'Transfer' => '#3B82F6',  /* Light Blue */
-                                'Demo' => '#6366F1',      /* Purple */
-                                'Follow Up' => '#1E40AF', /* Dark Blue */
+                                'Transfer' => '#82CFFD',  /* Light Blue */
+                                'Demo' => '#4BA3F5',      /* Purple */
+                                'Follow Up' => '#8AE3F5', /* Dark Blue */
+                                default => '#D1D5DB',    /* Gray */
+                            };
+                            $bgcolor = match($stage) {
+                                'Transfer' => '#e5f1ff',  /* Light Blue */
+                                'Demo' => '#ccf4ff',      /* Purple */
+                                'Follow Up' => '#ccfbff', /* Dark Blue */
                                 default => '#D1D5DB',    /* Gray */
                             };
                         @endphp
@@ -448,7 +460,7 @@
                         </div>
 
                         <!-- Progress Bar -->
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -475,10 +487,17 @@
                         @php
                             $percentage = $totalInactiveLeads > 0 ? round(($count / $totalInactiveLeads) * 100, 2) : 0;
                             $color = match($status) {
-                                'Closed' => '#10B981',
-                                'Lost' => '#EF4444',
-                                'On Hold' => '#9ba2af',
-                                'No Response' => '#71797E',
+                                'Closed' => '#82CEC2',
+                                'Lost' => '#A0A0A0',
+                                'On Hold' => '#B3B3B3',
+                                'No Response' => '#C6C6C6',
+                                default => '#D1D5DB',
+                            };
+                            $bgcolor = match($status) {
+                                'Closed' => '#E3F7F5',
+                                'Lost' => '#E5E5E5',
+                                'On Hold' => '#ECECEC',
+                                'No Response' => '#F7F7F7',
                                 default => '#D1D5DB',
                             };
                         @endphp
@@ -488,7 +507,7 @@
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
-                        <div class="progress-bar">
+                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -510,10 +529,14 @@
                     @php
                         $percentage = $totalTransferLeads > 0 ? round(($count / $totalTransferLeads) * 100, 2) : 0;
                         $color = match($status) {
-                            'RFQ-Transfer' => '#FACC15', // Yellow
-                            'Pending Demo' => '#F59E0B', // Orange-Yellow
-                            'Demo Cancelled' => '#FB923C', // Orange
-                            default => '#D1D5DB', // Fallback Gray
+                            'RFQ-Transfer' => '#B5D9B3', // Yellow
+                            'Pending Demo' => '#F6B042', // Orange-Yellow
+                            'Demo Cancelled' => '#D0D3D9', // Orange
+                        };
+                        $bgcolor = match($status) {
+                            'RFQ-Transfer' => '#F3FAF2', // Yellow
+                            'Pending Demo' => '#FFF4E4', // Orange-Yellow
+                            'Demo Cancelled' => '#F5F7F9', // Orange
                         };
                     @endphp
 
@@ -521,7 +544,7 @@
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                                 <!-- Progress Indicator -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                         stroke-dasharray="88"
@@ -554,11 +577,16 @@
                     @php
                         $percentage = $totalFollowUpLeads > 0 ? round(($count / $totalFollowUpLeads) * 100, 2) : 0;
                         $color = match($status) {
-                            'RFQ-Follow Up' => '#6B7280', // Gray
-                            'Hot' => '#EF4444', // Red
-                            'Warm' => '#FB923C', // Orange
-                            'Cold' => '#3B82F6', // Blue
-                            default => '#D1D5DB', // Fallback Gray
+                            'RFQ-Follow Up' => '#B3B0F7', // Gray
+                            'Hot' => '#FFD7D7', // Red
+                            'Warm' => '#FFB066', // Orange
+                            'Cold' => '#B3F5F5', // Blue
+                        };
+                        $bgcolor = match($status) {
+                            'RFQ-Follow Up' => '#F0EEFC', // Gray
+                            'Hot' => '#FFF1F1', // Red
+                            'Warm' => '#FFF2E3', // Orange
+                            'Cold' => '#ECFFFF', // Blue
                         };
                     @endphp
 
@@ -566,7 +594,7 @@
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
                                 <!-- Progress Indicator -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                         stroke-dasharray="88"

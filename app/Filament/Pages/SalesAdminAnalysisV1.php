@@ -264,7 +264,7 @@ class SalesAdminAnalysisV1 extends Page
     public function fetchInactiveLead()
     {
         $query = Lead::query()
-            ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
+            ->whereIn('lead_status', ['Junk', 'Lost', 'On Hold', 'No Response']); // Filter inactive statuses
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -284,8 +284,8 @@ class SalesAdminAnalysisV1 extends Page
         // Ensure all statuses exist in the correct order (fill missing ones with 0)
         $this->inactiveLeadData = array_merge([
             'Junk' => 0,
-            'On Hold' => 0,
             'Lost' => 0,
+            'On Hold' => 0,
             'No Response' => 0
         ], $leadStatusDataRaw);
     }

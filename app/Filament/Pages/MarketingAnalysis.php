@@ -405,7 +405,7 @@ class MarketingAnalysis extends Page
         // if (!empty($this->selectedLeadCode)) {
         //     $query->where('lead_code', $this->selectedLeadCode);
         // }
-        $query->where('categories', 'Active');
+        $query->whereIn('categories', ['Active', 'New']);
 
         // Define expected stages
         $stages = ['New', 'Transfer', 'Demo', 'Follow Up'];
@@ -433,10 +433,20 @@ class MarketingAnalysis extends Page
     public function fetchLeadStatusSummary()
     {
         $user = Auth::user();
-        $query = Lead::query();
 
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        $activeStatuses = [
+            'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
+            'Demo Cancelled', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold'
+        ];
+
+        $otherStatuses = ['Closed', 'No Response', 'Junk', 'On Hold', 'Lost'];
+
+        $allStatuses = array_merge($activeStatuses, $otherStatuses);
+
+        $query = Lead::query();
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -460,25 +470,26 @@ class MarketingAnalysis extends Page
             $query->whereBetween('created_at', [$startDate, $endDate]);
         }
 
-        $statuses = [
-            'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
-            'Demo Cancelled', 'RFQ-Follow Up',
-            'Hot', 'Warm', 'Cold', 'Junk', 'On Hold', 'Lost',
-            'No Response', 'Closed',
-        ];
+        // ✅ Filter with nested WHERE clause for Active + Other
+        $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
+            $q->where(function ($sub) use ($activeStatuses) {
+                $sub->where('categories', 'Active')
+                    ->whereIn('lead_status', $activeStatuses);
+            })->orWhereIn('lead_status', $otherStatuses);
+        });
 
-        $this->totalLeadStatus = (clone $query)
-            ->whereIn('lead_status', $statuses)
-            ->count();
+        // ✅ Total Count
+        $this->totalLeadStatus = (clone $query)->count();
 
+        // ✅ Status-wise count
         $statusCounts = $query
-            ->whereIn('lead_status', $statuses)
             ->select('lead_status', DB::raw('COUNT(*) as total'))
             ->groupBy('lead_status')
             ->pluck('total', 'lead_status')
             ->toArray();
 
-        $this->leadStatusData = array_merge(array_fill_keys($statuses, 0), $statusCounts);
+        // ✅ Fill missing ones with 0
+        $this->leadStatusData = array_merge(array_fill_keys($allStatuses, 0), $statusCounts);
     }
 
     public function fetchCloseWonAmount()
@@ -522,57 +533,57 @@ class MarketingAnalysis extends Page
     }
 
     public function fetchMonthlyDealAmounts()
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-    $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
-    // Use selectedMonth if available, else fallback to current month
-    $endMonth = !empty($this->selectedMonth)
-        ? Carbon::parse($this->selectedMonth)
-        : Carbon::now();
+        // Use selectedMonth if available, else fallback to current month
+        $endMonth = !empty($this->selectedMonth)
+            ? Carbon::parse($this->selectedMonth)
+            : Carbon::now();
 
-    $months = collect();
+        $months = collect();
 
-    // Get last 5 months ending at selected month
-    for ($i = 4; $i >= 0; $i--) {
-        $month = $endMonth->copy()->subMonths($i)->format('Y-m');
-        $months->push($month);
+        // Get last 5 months ending at selected month
+        for ($i = 5; $i >= 0; $i--) {
+            $month = $endMonth->copy()->subMonths($i)->format('Y-m');
+            $months->push($month);
+        }
+
+        $data = [];
+
+        foreach ($months as $month) {
+            $start = Carbon::parse($month)->startOfMonth();
+            $end = Carbon::parse($month)->endOfMonth();
+
+            $query = Lead::query();
+
+            // Apply filters...
+            if ($utmFilterApplied && !empty($utmLeadIds)) {
+                $query->whereIn('id', $utmLeadIds);
+            }
+
+            if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+                $query->where('salesperson', $this->selectedUser);
+            }
+
+            if ($user->role_id === 2) {
+                $query->where('salesperson', $user->id);
+            }
+
+            if (!empty($this->selectedLeadCode)) {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+
+            $query->whereBetween('created_at', [$start, $end]);
+
+            $amount = $query->where('lead_status', 'Closed')->sum('deal_amount');
+
+            $data[$month] = $amount;
+        }
+
+        $this->monthlyDealAmounts = $data;
     }
-
-    $data = [];
-
-    foreach ($months as $month) {
-        $start = Carbon::parse($month)->startOfMonth();
-        $end = Carbon::parse($month)->endOfMonth();
-
-        $query = Lead::query();
-
-        // Apply filters...
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
-        }
-
-        $query->whereBetween('created_at', [$start, $end]);
-
-        $amount = $query->where('lead_status', 'Closed')->sum('deal_amount');
-
-        $data[$month] = $amount;
-    }
-
-    $this->monthlyDealAmounts = $data;
-}
 }
