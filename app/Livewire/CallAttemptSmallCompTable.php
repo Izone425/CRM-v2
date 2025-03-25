@@ -19,6 +19,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 
 class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
 {
@@ -45,6 +46,14 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Call Attempt (1-24) - ' . $this->getFollowUpSmallCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                // Filter for Lead Owner
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner'),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

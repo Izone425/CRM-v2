@@ -90,7 +90,7 @@ class LeadResource extends Resource
                                                                 ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
                                                             Select::make('lead_code')
                                                                 ->label('Lead Source')
-                                                                ->options(fn () => LeadSource::pluck('lead_code')->toArray()) // Fetch existing lead sources
+                                                                ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
                                                                 ->searchable(),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {

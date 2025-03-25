@@ -11,13 +11,14 @@ use Filament\Resources\Resource;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\Pages\ManageUser;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\UserResource\RelationManagers;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
-
+    protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Settings';
 
     public static function form(Form $form): Form
@@ -25,9 +26,14 @@ class UserResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('role_id')
+                    ->label('Role')
                     ->searchable()
                     ->preload()
-                    ->relationship('role', 'name'),
+                    ->options([
+                        2 => 'Salesperson',
+                        1 => 'Lead Owner',
+                        3 => 'Manager',
+                    ]),
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -35,10 +41,12 @@ class UserResource extends Resource
                     ->email()
                     ->required()
                     ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
+                Forms\Components\TextInput::make('code')
+                    ->maxLength(2),
+                Forms\Components\TextInput::make('mobile_number')
+                    ->label('Phone Number'),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    // https://filamentphp.com/docs/3.x/forms/advanced#auto-hashing-password-field 
                     ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create')
@@ -53,6 +61,19 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('role_id')
+                    ->label('Role')
+                    ->searchable()
+                    ->formatStateUsing(function ($state) {
+                        return match ((int) $state) {
+                            1 => 'Lead Owner',
+                            2 => 'Salesperson',
+                            3 => 'Manager',
+                            default => 'Unknown',
+                        };
+                    }),
+                Tables\Columns\TextColumn::make('code')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -76,19 +97,10 @@ class UserResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ManageUser::route('/'),
         ];
     }
 }

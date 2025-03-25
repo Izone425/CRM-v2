@@ -22,10 +22,12 @@ use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\IndustryResource;
+use App\Filament\Resources\InvalidLeadReasonResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadSourceResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
+use App\Filament\Resources\UserResource;
 use App\Filament\Widgets\LeadChartWidget;
 use Filament\Pages;
 use Filament\Panel;
@@ -84,6 +86,8 @@ class AdminPanelProvider extends PanelProvider
                 DemoResource::class,
                 IndustryResource::class,
                 LeadSourceResource::class,
+                InvalidLeadReasonResource::class,
+                UserResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

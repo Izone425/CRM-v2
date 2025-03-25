@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class InvalidLeadReason extends Model {
     use HasFactory;
 
-    protected $table = 'invalid_lead_reasons'; // Custom table name
+    // protected $table = 'invalid_lead_reasons'; // Custom table name
 
     protected $fillable = ['lead_stage', 'reason'];
 }

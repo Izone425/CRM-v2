@@ -17,6 +17,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Livewire\Component;
 use Carbon\Carbon;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
@@ -31,8 +34,10 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
     public function mount()
     {
-        $this->selectedYear = date('Y');
-        $this->selectedMonth = date('m');
+        $now = now();
+
+        $this->selectedMonth ??= $now->month;
+        $this->selectedYear ??= $now->year;
 
         $this->loadSalesSummary();
     }
@@ -69,56 +74,74 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->heading('Sales Forecast Summary')
             ->headerActions([
                 \Filament\Tables\Actions\Action::make('setSalesTarget')
-                    ->label('Set Sales Target')
-                    ->form([
-                        Select::make('salesperson_id')
-                            ->label('Salesperson')
-                            ->options(User::where('role_id', 2)->pluck('name', 'id'))
-                            ->required(),
+                ->label('Set Sales Target')
+                ->modalHeading('Set Sales Target for Salespersons')
+                ->form(function () {
+                    $salespeople = User::where('role_id', 2)->get();
+                    $components = [];
 
-                        DatePicker::make('month')
-                            ->label('Month')
-                            ->format('Y-m')
-                            ->required(),
+                    foreach ($salespeople as $salesperson) {
+                        // Get the latest target record
+                        $latestTarget = \App\Models\SalesTarget::where('salesperson', $salesperson->id)
+                            ->orderByDesc('year')
+                            ->orderByDesc('month')
+                            ->first();
 
-                        TextInput::make('target_amount')
-                            ->label('Sales Target Amount')
+                        $latestAmount = optional($latestTarget)->target_amount;
+                        $latestMonth = optional($latestTarget)->month;
+                        $latestYear = optional($latestTarget)->year;
+
+                        $components[] = TextInput::make("targets.{$salesperson->id}")
+                            ->label($salesperson->name)
                             ->numeric()
-                            ->required(),
-                    ])
-                    ->action(function ($data) {
-                        SalesTarget::updateOrCreate(
+                            ->placeholder($latestAmount
+                                ? 'Latest: RM ' . number_format($latestAmount, 2) . " ({$latestMonth}/{$latestYear})"
+                                : 'No previous target set');
+                    }
+
+                    return $components;
+                })
+                ->action(function ($data) {
+                    $now = now();
+
+                    foreach ($data['targets'] as $salespersonId => $amount) {
+                        if (is_null($amount) || $amount === '') {
+                            continue; // Skip empty entries
+                        }
+
+                        \App\Models\SalesTarget::updateOrCreate(
                             [
-                                'salesperson' => $data['salesperson_id'],
-                                'year' => Carbon::parse($data['month'])->year,
-                                'month' => Carbon::parse($data['month'])->month,
+                                'salesperson' => $salespersonId,
+                                'year' => $now->year,
+                                'month' => $now->month,
                             ],
                             [
-                                'target_amount' => $data['target_amount'],
+                                'target_amount' => $amount,
                             ]
                         );
-                    })
+                    }
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Sales targets updated successfully!')
+                        ->success()
+                        ->send();
+                })
+                ->modalSubmitActionLabel('Save Targets')
             ])
             ->filters([
-                Filter::make('selectedYear')
-                    ->form([
-                        Select::make('selectedYear')
-                            ->label('Year')
-                            ->options(range(date('Y'), date('Y') - 5))
-                            ->default($this->selectedYear)
-                            ->reactive()
-                            ->afterStateUpdated(fn ($state) => $this->selectedYear = $state),
-                    ]),
-
                 Filter::make('selectedMonth')
-                    ->form([
-                        TextInput::make('selectedMonth')
-                            ->type('month')
-                            ->label('Month')
-                            ->default(Carbon::now()->format('Y-m'))
-                            ->reactive()
-                            ->afterStateUpdated(fn ($state) => $this->selectedMonth = Carbon::parse($state)->month),
-                    ]),
+                ->form([
+                    TextInput::make('selectedMonth')
+                        ->type('month')
+                        ->label('Month')
+                        ->default(Carbon::now()->format('Y-m'))
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, $livewire) {
+                            $parsed = Carbon::parse($state);
+                            $livewire->selectedMonth = $parsed->month;
+                            $livewire->selectedYear = $parsed->year;
+                        }),
+                ]),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -152,20 +175,50 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('sales_target')
                     ->label('SALES TARGET')
-                    ->getStateUsing(fn ($record) => 'RM ' . number_format($this->getSalesTarget($record), 2)),
+                    ->getStateUsing(function ($record) {
+                        $now = now(); // fallback
+                        $month = $this->selectedMonth ?? $now->month;
+                        $year = $this->selectedYear ?? $now->year;
+
+                        $target = \App\Models\SalesTarget::where('salesperson', $record->id)
+                            ->where('month', $month)
+                            ->where('year', $year)
+                            ->value('target_amount') ?? 0;
+
+                        return 'RM ' . number_format($target, 2);
+                    }),
+
 
                 TextColumn::make('difference')
                     ->label('DIFFERENCE')
-                    ->getStateUsing(fn ($record) => 'RM ' . number_format(
-                        ($this->getInvoiceTotal($record) +
-                        $this->getProformaTotal($record) +
-                        $this->getForecastHot($record)) - $this->getSalesTarget($record), 2
-                    ))
-                    ->color(fn ($record) =>
-                        ($this->getInvoiceTotal($record) +
-                        $this->getProformaTotal($record) +
-                        $this->getForecastHot($record)) >= $this->getSalesTarget($record) ? 'success' : 'danger'
-                    ),
+                    ->getStateUsing(function ($record) {
+                        $month = $this->selectedMonth ?? now()->month;
+                        $year = $this->selectedYear ?? now()->year;
+
+                        $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
+                        $proformaTotal = $this->getProformaTotal($record, $month, $year);
+                        $forecastHot = $this->getForecastHot($record, $month, $year);
+                        $target = $this->getSalesTarget($record, $month, $year);
+
+                        $difference = ($invoiceTotal + $proformaTotal + $forecastHot) - $target;
+
+                        return 'RM ' . number_format($difference, 2);
+                    })
+                    ->color(function ($record) {
+                        $month = $this->selectedMonth ?? now()->month;
+                        $year = $this->selectedYear ?? now()->year;
+
+                        $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
+                        $proformaTotal = $this->getProformaTotal($record, $month, $year);
+                        $forecastHot = $this->getForecastHot($record, $month, $year);
+                        $target = $this->getSalesTarget($record, $month, $year);
+
+                        return ($invoiceTotal + $proformaTotal + $forecastHot) >= $target
+                            ? 'success'
+                            : 'danger';
+                    })
+
+
             ]);
     }
 
@@ -200,13 +253,14 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
         return $total;
     }
 
-    private function getSalesTarget($salesperson)
+    private function getSalesTarget($record, $month, $year)
     {
-        return SalesTarget::where('salesperson', $salesperson->id)
-            // ->where('year', $this->selectedYear)
-            ->where('month', $this->selectedMonth)
+        return \App\Models\SalesTarget::where('salesperson', $record->id)
+            ->where('month', $month)
+            ->where('year', $year)
             ->value('target_amount') ?? 0;
     }
+
 
     public function render()
     {
