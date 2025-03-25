@@ -455,7 +455,6 @@ class MarketingAnalysis extends Page
             ->groupBy('stage')
             ->pluck('total', 'stage')
             ->toArray();
-        info($stageCounts);
         // Ensure all stages are present
         $this->stageData = array_merge(array_fill_keys($stages, 0), $stageCounts);
     }
@@ -565,57 +564,59 @@ class MarketingAnalysis extends Page
     }
 
     public function fetchMonthlyDealAmounts()
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
+    $query = Lead::query();
 
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+    $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+    $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
-        // Use selectedMonth if available, else fallback to current month
-        $endMonth = !empty($this->selectedMonth)
-            ? Carbon::parse($this->selectedMonth)
-            : Carbon::now();
-
-        $months = collect();
-
-        // Get last 5 months ending at selected month
-        for ($i = 5; $i >= 0; $i--) {
-            $month = $endMonth->copy()->subMonths($i)->format('Y-m');
-            $months->push($month);
-        }
-
-        $data = [];
-
-        foreach ($months as $month) {
-            $start = Carbon::parse($month)->startOfMonth();
-            $end = Carbon::parse($month)->endOfMonth();
-
-            $query = Lead::query();
-
-            // Apply filters...
-            if ($utmFilterApplied && !empty($utmLeadIds)) {
-                $query->whereIn('id', $utmLeadIds);
-            }
-
-            if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-                $query->where('salesperson', $this->selectedUser);
-            }
-
-            if ($user->role_id === 2) {
-                $query->where('salesperson', $user->id);
-            }
-
-            if (!empty($this->selectedLeadCode)) {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-
-            $query->whereBetween('created_at', [$start, $end]);
-
-            $amount = $query->where('lead_status', 'Closed')->sum('deal_amount');
-
-            $data[$month] = $amount;
-        }
-
-        $this->monthlyDealAmounts = $data;
+    if ($utmFilterApplied && !empty($utmLeadIds)) {
+        $query->whereIn('id', $utmLeadIds);
     }
+
+    if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        $query->where('salesperson', $this->selectedUser);
+    }
+
+    if ($user->role_id === 2) {
+        $query->where('salesperson', $user->id);
+    }
+
+    if (!empty($this->selectedLeadCode)) {
+        $query->where('lead_code', $this->selectedLeadCode);
+    }
+
+    if (!empty($this->startDate) && !empty($this->endDate)) {
+        $query->whereBetween('created_at', [
+            Carbon::parse($this->startDate)->startOfDay(),
+            Carbon::parse($this->endDate)->endOfDay(),
+        ]);
+    }
+
+    // ✅ Now fetch and group results by year-month
+    $results = $query
+        ->where('lead_status', 'Closed')
+        ->get()
+        ->groupBy(function ($lead) {
+            return Carbon::parse($lead->created_at)->format('Y-m');
+        })
+        ->mapWithKeys(function ($group, $month) {
+            return [$month => $group->sum('deal_amount')];
+        })
+        ->toArray();
+
+    // ✅ Make sure empty months are included
+    $start = Carbon::parse($this->startDate)->startOfMonth();
+    $end = Carbon::parse($this->endDate)->endOfMonth();
+    $period = \Carbon\CarbonPeriod::create($start, '1 month', $end);
+
+    $data = [];
+    foreach ($period as $date) {
+        $monthKey = $date->format('Y-m');
+        $data[$monthKey] = $results[$monthKey] ?? 0;
+    }
+
+    $this->monthlyDealAmounts = $data;
+}
 }

@@ -41,7 +41,7 @@ class DemoResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('5s')
+            ->poll('10s')
             ->columns([
             Tables\Columns\TextColumn::make('lead.companyDetail.company_name')
                 ->label('COMPANY NAME'),
