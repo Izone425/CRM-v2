@@ -26,22 +26,18 @@ class LeadImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHead
                 $lead = Lead::where('zoho_id', $zohoId)->first();
 
                 if ($lead) {
-                    ReferralDetail::updateOrCreate(
-                        ['lead_id' => $lead->id],
+                    Lead::updateOrCreate(
+                        ['id' => $lead->id],
                         [
-                            'company'     => $row['referrer_company_name'] ?? null,
-                            'name'        => $row['referrer_name'] ?? null,
-                            'email'       => $row['referrer_email'] ?? null,
-                            'contact_no'  => $row['referrer_phone'] ?? null,
-                            'created_at'  => now(),
-                            'updated_at'  => now(),
+                            'created_at'  => $row['created_time'] ?? null,
+                            'closing_date' => $row['closing_date'] ?? null
                         ]
                     );
                 }
             }
         });
 
-        Log::info("ReferralDetail import completed in chunks of 10.");
+        Log::info("Deal UPDATE import completed in chunks of 10.");
     }
 
     public function startRow(): int

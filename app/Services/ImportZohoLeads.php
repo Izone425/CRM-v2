@@ -11,7 +11,7 @@ class ImportZohoLeads
 {
     public static function importLeads()
     {
-        $file = public_path('storage/excel/fill_referral_details.csv');
+        $file = public_path('storage/excel/Deals_2025_03_26.csv');
         $import = new LeadImport();
         Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
     }
