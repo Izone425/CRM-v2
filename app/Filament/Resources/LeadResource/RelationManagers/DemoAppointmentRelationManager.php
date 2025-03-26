@@ -652,25 +652,30 @@ class DemoAppointmentRelationManager extends RelationManager
                                         $date = $get('date');
 
                                         if ($get('mode') === 'custom') {
-                                            return []; // Custom mode: empty list
+                                            return [];
                                         }
 
                                         $times = [];
-                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
 
                                         if ($user && $user->role_id == 2 && $date) {
-                                            // Fetch booked time slots for this salesperson on the selected date
-                                            $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                            // Fetch all booked appointments as full models
+                                            $appointments = Appointment::where('salesperson', $user->id)
                                                 ->whereDate('date', $date)
-                                                ->pluck('end_time', 'start_time') // Start as key, End as value
-                                                ->toArray();
+                                                ->whereIn('status', ['New', 'Done'])
+                                                ->get(['start_time', 'end_time']);
 
                                             for ($i = 0; $i < 48; $i++) {
-                                                $formattedTime = $startTime->format('H:i');
+                                                $slotStart = $startTime->copy();
+                                                $slotEnd = $startTime->copy()->addMinutes(30);
+                                                $formattedTime = $slotStart->format('H:i');
 
-                                                // Check if time is booked
-                                                $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
-                                                    return $formattedTime >= $start && $formattedTime <= $end;
+                                                $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                    $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                    $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                                    // Check if the slot overlaps with the appointment
+                                                    return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
                                                 });
 
                                                 if (!$isBooked) {
@@ -680,7 +685,6 @@ class DemoAppointmentRelationManager extends RelationManager
                                                 $startTime->addMinutes(30);
                                             }
                                         } else {
-                                            // Default available slots
                                             for ($i = 0; $i < 48; $i++) {
                                                 $times[] = $startTime->format('H:i');
                                                 $startTime->addMinutes(30);
@@ -773,6 +777,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         'start_time' => $data['start_time'],
                         'end_time' => $data['end_time'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'causer_id' => auth()->user()->id,
                         'salesperson_assigned_date' => now(),
                         'remarks' => $data['remarks'],
                         'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,

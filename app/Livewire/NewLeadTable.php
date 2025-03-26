@@ -101,7 +101,17 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     ->html(),
                 TextColumn::make('company_size_label')
                     ->label('Company Size')
-                    ->sortable(),
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()
@@ -137,6 +147,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
                 'categories' => 'Active',
                 'stage' => 'Transfer',
                 'lead_status' => 'New',
+                'pickup_date' => now(),
             ]);
 
             // Update the latest activity log
