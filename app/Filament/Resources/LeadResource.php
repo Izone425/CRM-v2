@@ -486,6 +486,7 @@ class LeadResource extends Resource
                                                                             // If lead is closed, update deal amount
                                                                             if ($data['status'] === 'Closed') {
                                                                                 $updateData['deal_amount'] = $data['deal_amount'] ?? null;
+                                                                                $updateData['closing_date'] = now();
                                                                             } else {
                                                                                 // If not closed, update reason
                                                                                 $updateData['reason'] = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
