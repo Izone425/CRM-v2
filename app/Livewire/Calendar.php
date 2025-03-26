@@ -224,7 +224,7 @@ class Calendar extends Component
                 $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
                 $dayField = "{$dayOfWeek}Appointments";
                 // For new demo summary which shows no,1,2 new demo
-                if ($appointment->type === "NEW DEMO" || $appointment->type === "WEBINAR DEMO") {
+                if ($appointment->type === "NEW DEMO") {
                     if ($appointment->status !== "Cancelled") {
                         $data['newDemo'][$dayOfWeek]++;
                     }
