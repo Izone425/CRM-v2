@@ -251,6 +251,7 @@ class LeadActions
                 'categories' => 'Active',
                 'stage' => 'Transfer',
                 'lead_status' => 'New',
+                'pickup_date' => now()
             ]);
 
             // Update the latest activity log
@@ -311,6 +312,7 @@ class LeadActions
                     'categories' => 'Active',
                     'stage' => 'Transfer',
                     'lead_status' => 'New',
+                    'pickup_date' => now(),
                 ]);
 
                 // Log the activity
@@ -463,33 +465,66 @@ class LeadActions
                             ->label('DATE')
                             ->default(Carbon::today()->toDateString()),
 
-                        TimePicker::make('start_time')
+                            TimePicker::make('start_time')
                             ->label('START TIME')
                             ->required()
                             ->seconds(false)
                             ->reactive()
                             ->default(function () {
-                                // Get the current time and round up to the next 30-minute interval
+                                // Round up to the next 30-minute interval
                                 $now = Carbon::now();
-                                return $now->addMinutes(30 - ($now->minute % 30))->format('H:i'); // Round up
+                                return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                            })
+                            ->datalist(function (callable $get) {
+                                $user = Auth::user();
+                                $date = $get('date');
+
+                                if ($get('mode') === 'custom') {
+                                    return [];
+                                }
+
+                                $times = [];
+                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+
+                                if ($user && $user->role_id == 2 && $date) {
+                                    // Fetch all booked appointments as full models
+                                    $appointments = Appointment::where('salesperson', $user->id)
+                                        ->whereDate('date', $date)
+                                        ->whereIn('status', ['New', 'Done'])
+                                        ->get(['start_time', 'end_time']);
+
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $slotStart = $startTime->copy();
+                                        $slotEnd = $startTime->copy()->addMinutes(30);
+                                        $formattedTime = $slotStart->format('H:i');
+
+                                        $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                            $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                            $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                            // Check if the slot overlaps with the appointment
+                                            return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                        });
+
+                                        if (!$isBooked) {
+                                            $times[] = $formattedTime;
+                                        }
+
+                                        $startTime->addMinutes(30);
+                                    }
+                                } else {
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $times[] = $startTime->format('H:i');
+                                        $startTime->addMinutes(30);
+                                    }
+                                }
+
+                                return $times;
                             })
                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                 if ($get('mode') === 'auto' && $state) {
                                     $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
                                 }
-                            })
-                            ->datalist(function (callable $get) {
-                                if ($get('mode') === 'custom') {
-                                    return []; // Return an empty list to disable the datalist
-                                }
-
-                                $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30)); // Round to next 30 min
-                                for ($i = 0; $i < 48; $i++) { // Show next 5 available slots
-                                    $times[] = $startTime->format('H:i');
-                                    $startTime->addMinutes(30); // Increment by 30 minutes
-                                }
-                                return $times;
                             }),
 
                         TimePicker::make('end_time')
@@ -498,21 +533,49 @@ class LeadActions
                             ->seconds(false)
                             ->reactive()
                             ->default(function (callable $get) {
-                                // Default end_time to one hour after start_time
                                 $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
                                 return $startTime->addHour()->format('H:i');
                             })
                             ->datalist(function (callable $get) {
+                                $user = Auth::user();
+                                $date = $get('date');
+
                                 if ($get('mode') === 'custom') {
-                                    return []; // Return an empty list to disable the datalist
+                                    return []; // Custom mode: empty list
                                 }
 
                                 $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30)); // Round to next 30 min
-                                for ($i = 0; $i < 48; $i++) { // Show next 5 available slots
-                                    $times[] = $startTime->format('H:i');
-                                    $startTime->addMinutes(30); // Increment by 30 minutes
+                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                                if ($user && $user->role_id == 2 && $date) {
+                                    // Fetch booked time slots for this salesperson on the selected date
+                                    $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                        ->whereDate('date', $date)
+                                        ->pluck('end_time', 'start_time') // Start as key, End as value
+                                        ->toArray();
+
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $formattedTime = $startTime->format('H:i');
+
+                                        // Check if time is booked
+                                        $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                            return $formattedTime >= $start && $formattedTime <= $end;
+                                        });
+
+                                        if (!$isBooked) {
+                                            $times[] = $formattedTime;
+                                        }
+
+                                        $startTime->addMinutes(30);
+                                    }
+                                } else {
+                                    // Default available slots
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $times[] = $startTime->format('H:i');
+                                        $startTime->addMinutes(30);
+                                    }
                                 }
+
                                 return $times;
                             }),
                     ]),
@@ -542,6 +605,7 @@ class LeadActions
                         'start_time' => $data['start_time'],
                         'end_time' => $data['end_time'],
                         'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                        'causer_id' => auth()->user()->id,
                         'remarks' => $data['remarks'],
                         'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON

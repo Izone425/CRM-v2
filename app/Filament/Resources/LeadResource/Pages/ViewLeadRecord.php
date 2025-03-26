@@ -127,6 +127,7 @@ class ViewLeadRecord extends ViewRecord
                         'categories' => 'Active',
                         'stage' => 'Transfer',
                         'lead_status' => 'New',
+                        'pickup_date' => now(),
                     ]);
 
                     // Update the latest activity log
