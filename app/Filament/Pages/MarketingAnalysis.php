@@ -44,6 +44,12 @@ class MarketingAnalysis extends Page
     public $totalWebinarAppointmentsByLeadStatus = 0;
     public $webinarDemoLeadStatusData = [];
     public $companySizeData = [];
+    public $demoCompanySizeData = [];
+    public $demoTypeData = [];
+    public $demoRateBySize = [];
+    public $webinarDemoAverages = [];
+    public $selectedLeadOwner;
+    public $leadOwners;
 
     public $days;
     public Carbon $currentDate;
@@ -86,6 +92,7 @@ class MarketingAnalysis extends Page
 
         // Fetch only Salespersons (role_id = 2)
         $this->users = User::where('role_id', 2)->get();
+        $this->leadOwners = User::where('role_id', 1)->get();
 
         // Fetch unique lead codes for dropdown options
         $this->leadCodes = Lead::select('lead_code')->distinct()->pluck('lead_code')->toArray();
@@ -106,41 +113,19 @@ class MarketingAnalysis extends Page
         // Store in session
         session(['selectedUser' => $this->selectedUser, 'selectedLeadCode' => $this->selectedLeadCode]);
 
+        $this->selectedLeadOwner = session('selectedLeadOwner', null);
+        session(['selectedLeadOwner' => $this->selectedLeadOwner]);
+
         // Fetch initial appointment data
-        $this->fetchLeads();
-        $this->fetchLeadCategorySummary();
-        $this->fetchLeadStageSummary();
-        $this->fetchLeadStatusSummary();
-        $this->fetchCloseWonAmount();
-        $this->fetchMonthlyDealAmounts();
-        $this->getLeadTypeCounts();
+        $this->refreshDashboardData();
     }
 
     public function updatedSelectedUser($userId)
     {
         $this->selectedUser = $userId;
         session(['selectedUser' => $userId]);
-        $this->fetchLeads();
-        $this->fetchLeadCategorySummary();
-        $this->fetchLeadStageSummary();
-        $this->fetchLeadStatusSummary();
-        $this->fetchCloseWonAmount();
-        $this->fetchMonthlyDealAmounts();
-        $this->getLeadTypeCounts();
+        $this->refreshDashboardData();
     }
-
-    // public function updatedSelectedMonth($month)
-    // {
-    //     $this->selectedMonth = $month;
-    //     session(['selectedMonth' => $month]);
-    //     $this->fetchLeads();
-    //     $this->fetchLeadCategorySummary();
-    //     $this->fetchLeadStageSummary();
-    //     $this->fetchLeadStatusSummary();
-    //     $this->fetchCloseWonAmount();
-    //     $this->fetchMonthlyDealAmounts();
-    //     $this->getLeadTypeCounts();
-    // }
 
     public function updatedStartDate($value)
     {
@@ -160,24 +145,26 @@ class MarketingAnalysis extends Page
     {
         $this->selectedLeadCode = $leadCode;
         session(['selectedLeadCode' => $leadCode]);
-        $this->fetchLeads();
-        $this->fetchLeadCategorySummary();
-        $this->fetchLeadStageSummary();
-        $this->fetchLeadStatusSummary();
-        $this->fetchCloseWonAmount();
-        $this->fetchMonthlyDealAmounts();
-        $this->getLeadTypeCounts();
+        $this->refreshDashboardData();
+    }
+
+    public function updatedSelectedLeadOwner($value)
+    {
+        session(['selectedLeadOwner' => $value]);
+        $this->refreshDashboardData();
     }
 
     public function refreshDashboardData()
     {
         $this->fetchLeads();
-        $this->fetchLeadCategorySummary();
-        $this->fetchLeadStageSummary();
-        $this->fetchLeadStatusSummary();
+        $this->fetchLeadsDemo();
+        $this->getLeadTypeCounts();
+        $this->fetchLeadsDemoType();
+        $this->calculateFilteredDemoRateByCompanySize();
         $this->fetchCloseWonAmount();
         $this->fetchMonthlyDealAmounts();
-        $this->getLeadTypeCounts();
+        $this->fetchLeadStatusSummary();
+        $this->calculateWebinarDemoAverages();
     }
 
     public function updated($propertyName)
@@ -191,13 +178,7 @@ class MarketingAnalysis extends Page
             'device',
             'utmCreative',
         ])) {
-            $this->fetchLeads();
-            $this->fetchLeadCategorySummary();
-            $this->fetchLeadStageSummary();
-            $this->fetchLeadStatusSummary();
-            $this->fetchCloseWonAmount();
-            $this->fetchMonthlyDealAmounts();
-            $this->getLeadTypeCounts();
+            $this->refreshDashboardData();
         }
     }
 
@@ -234,26 +215,38 @@ class MarketingAnalysis extends Page
         return $query->pluck('lead_id')->toArray();
     }
 
-    public function fetchLeads()
+    public function fetchLeadStatusSummary()
     {
         $user = Auth::user();
-        $query = Lead::query();
 
-        // Filter by UTM fields if any are filled
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        $activeStatuses = [
+            'None', 'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
+            'Demo Cancelled', 'Demo-Assigned', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold'
+        ];
+
+        $otherStatuses = ['Closed', 'No Response', 'Junk', 'On Hold', 'Lost'];
+
+        $allStatuses = array_merge($activeStatuses, $otherStatuses);
+
+        $query = Lead::query();
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
         if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
+        if ($user->role_id === 2) {
             $query->where('salesperson', $user->id);
         }
 
@@ -264,28 +257,25 @@ class MarketingAnalysis extends Page
             ]);
         }
 
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
-        }
+        $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
+            $q->where(function ($sub) use ($activeStatuses) {
+                $sub->where('categories', 'Active')
+                    ->whereIn('lead_status', $activeStatuses);
+            })->orWhereIn('lead_status', $otherStatuses);
+        });
 
-        // Fetch filtered leads
-        $leads = $query->get();
+        // ✅ Total Count
+        $this->totalLeadStatus = (clone $query)->count();
 
-        // Fetch company size data
-        $defaultCompanySizes = [
-            'Small' => 0,
-            'Medium' => 0,
-            'Large' => 0,
-            'Enterprise' => 0,
-        ];
-
-        $companySizeCounts = $leads
-            ->whereNotNull('company_size_label')
-            ->groupBy('company_size_label')
-            ->map(fn($group) => $group->count())
+        // ✅ Status-wise count
+        $statusCounts = $query
+            ->select('lead_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('lead_status')
+            ->pluck('total', 'lead_status')
             ->toArray();
 
-        $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+        // ✅ Fill missing ones with 0
+        $this->leadStatusData = array_merge(array_fill_keys($allStatuses, 0), $statusCounts);
     }
 
     public function getLeadTypeCounts()
@@ -309,8 +299,9 @@ class MarketingAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
         }
 
         if (!empty($this->startDate) && !empty($this->endDate)) {
@@ -337,12 +328,12 @@ class MarketingAnalysis extends Page
         ];
     }
 
-    public function fetchLeadCategorySummary()
+    public function fetchLeads()
     {
         $user = Auth::user();
         $query = Lead::query();
 
-        // Apply UTM filters
+        // Filter by UTM fields if any are filled
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
@@ -350,17 +341,19 @@ class MarketingAnalysis extends Page
             $query->whereIn('id', $utmLeadIds);
         }
 
-        // Salesperson filtering
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        // If Lead Owner selects a salesperson, filter by that salesperson
         if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
-        if ($user->role_id === 2) {
+        // If Salesperson, show only their assigned leads
+        if ($user->role_id == 2) {
             $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
         }
 
         if (!empty($this->startDate) && !empty($this->endDate)) {
@@ -370,156 +363,363 @@ class MarketingAnalysis extends Page
             ]);
         }
 
-        // // Lead code filter
-        // if (!empty($this->selectedLeadCode)) {
-        //     $query->where('lead_code', $this->selectedLeadCode);
-        // }
-
-        // Define your expected categories
-        $categories = ['New', 'Active', 'Inactive'];
-
-        // Clone query to avoid applying whereIn() twice on same builder
-        $countQuery = clone $query;
-
-        // Get total count of leads in the specified categories
-        $this->totalLeadsByCategory = $countQuery
-            ->whereIn('categories', $categories)
-            ->count();
-
-        // Grouped count by category
-        $categoryCounts = $query
-            ->whereIn('categories', $categories)
-            ->select('categories', DB::raw('COUNT(*) as total'))
-            ->groupBy('categories')
-            ->pluck('total', 'categories')
-            ->toArray();
-
-        // Ensure all categories are present
-        $this->categoryData = array_merge(array_fill_keys($categories, 0), $categoryCounts);
-    }
-
-    public function fetchLeadStageSummary()
-    {
-        $user = Auth::user();
-        $query = Lead::query();
-
-        // Apply UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        // Salesperson filtering
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        // Optional: include this if you want to allow filtering by lead code
-        // if (!empty($this->selectedLeadCode)) {
-        //     $query->where('lead_code', $this->selectedLeadCode);
-        // }
-        $query->whereIn('categories', ['Active', 'New']);
-
-        // Define expected stages
-        $stages = ['New', 'Transfer', 'Demo', 'Follow Up'];
-
-        // Clone query to avoid applying same filters twice
-        $countQuery = clone $query;
-
-        // Total count
-        $this->totalLeadsByStage = $countQuery
-            ->whereIn('stage', $stages)
-            ->count();
-
-        // Count grouped by stage
-        $stageCounts = $query
-            ->whereIn('stage', $stages)
-            ->select('stage', DB::raw('COUNT(*) as total'))
-            ->groupBy('stage')
-            ->pluck('total', 'stage')
-            ->toArray();
-        // Ensure all stages are present
-        $this->stageData = array_merge(array_fill_keys($stages, 0), $stageCounts);
-    }
-
-    public function fetchLeadStatusSummary()
-    {
-        $user = Auth::user();
-
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        $activeStatuses = [
-            'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
-            'Demo Cancelled', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold'
-        ];
-
-        $otherStatuses = ['Closed', 'No Response', 'Junk', 'On Hold', 'Lost'];
-
-        $allStatuses = array_merge($activeStatuses, $otherStatuses);
-
-        $query = Lead::query();
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        // ✅ Filter with nested WHERE clause for Active + Other
-        $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
-            $q->where(function ($sub) use ($activeStatuses) {
-                $sub->where('categories', 'Active')
-                    ->whereIn('lead_status', $activeStatuses);
-            })->orWhereIn('lead_status', $otherStatuses);
+        $query->where(function ($q) {
+            $q->whereNotIn('lead_status', ['Junk', 'On Hold']) // Exclude Junk & On Hold
+            ->orWhere(function ($sub) {
+                $sub->where('lead_status', 'Lost')
+                    ->whereNotNull('demo_appointment'); // Allow Lost only if demo is present
+            });
         });
 
-        // ✅ Total Count
-        $this->totalLeadStatus = (clone $query)->count();
+        // Fetch filtered leads
+        $leads = $query->get();
 
-        // ✅ Status-wise count
-        $statusCounts = $query
-            ->select('lead_status', DB::raw('COUNT(*) as total'))
-            ->groupBy('lead_status')
-            ->pluck('total', 'lead_status')
+        // Fetch company size data
+        $defaultCompanySizes = [
+            'Small' => 0,
+            'Medium' => 0,
+            'Large' => 0,
+            'Enterprise' => 0,
+        ];
+
+        $companySizeCounts = $leads
+            ->whereNotNull('company_size_label')
+            ->groupBy('company_size_label')
+            ->map(fn($group) => $group->count())
             ->toArray();
 
-        // ✅ Fill missing ones with 0
-        $this->leadStatusData = array_merge(array_fill_keys($allStatuses, 0), $statusCounts);
+        $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+    }
+
+    public function fetchLeadsDemo()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filter
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        // Role-based filtering
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // ✅ Custom status filtering
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
+        // Get filtered leads
+        $leads = $query->get();
+
+        // Group by company size
+        $defaultCompanySizes = [
+            'Small' => 0,
+            'Medium' => 0,
+            'Large' => 0,
+            'Enterprise' => 0,
+        ];
+
+        $companySizeCounts = $leads
+            ->whereNotNull('company_size_label')
+            ->groupBy('company_size_label')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+            $this->demoCompanySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+    }
+
+    public function fetchLeadsDemoType()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // ✅ Custom status filtering
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
+        // Fetch leads + demo data
+        $leads = $query->with('demoAppointment')->get();
+
+        // ✅ Count New Demo and Webinar Demo
+        $newDemoCount = 0;
+        $webinarKeys = [];
+
+        foreach ($leads as $lead) {
+            foreach ($lead->demoAppointment as $demo) {
+                if ($demo->status === 'Cancelled') {
+                    continue;
+                }
+
+                if ($demo->type === 'NEW DEMO') {
+                    $newDemoCount++;
+                } elseif ($demo->type === 'WEBINAR DEMO') {
+                    $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time . '|' . $lead->salesperson;
+                    $webinarKeys[$key] = true;
+                }
+            }
+        }
+
+        // ✅ Set data for Blade
+        $this->demoTypeData = [
+            'New Demo' => $newDemoCount,
+            'Webinar Demo' => count($webinarKeys),
+        ];
+    }
+
+    public function calculateFilteredDemoRateByCompanySize()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Fetch all filtered leads
+        $leads = $query->get();
+
+        // Define sizes
+        $defaultCompanySizes = [
+            'Small' => 0,
+            'Medium' => 0,
+            'Large' => 0,
+            'Enterprise' => 0,
+        ];
+
+        // 🟡 Total Leads by Company Size
+        $companySizeCounts = $leads
+            ->whereNotNull('company_size_label')
+            ->groupBy('company_size_label')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+
+        // 🔵 Demo Leads by Company Size (apply status filter)
+        $demoLeads = $leads->filter(function ($lead) {
+            return in_array($lead->lead_status, [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ]) || (
+                in_array($lead->lead_status, ['Lost', 'No Response']) &&
+                $lead->demo_appointment !== null
+            );
+        });
+
+        $demoSizeCounts = $demoLeads
+            ->whereNotNull('company_size_label')
+            ->groupBy('company_size_label')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        $this->demoCompanySizeData = array_merge($defaultCompanySizes, $demoSizeCounts);
+
+        // 🔢 Calculate Demo Rate
+        $sizes = ['Small', 'Medium', 'Large', 'Enterprise'];
+        $demoRates = [];
+
+        foreach ($sizes as $size) {
+            $total = $this->companySizeData[$size] ?? 0;
+            $demo = $this->demoCompanySizeData[$size] ?? 0;
+
+            $demoRates[$size] = $total > 0
+                ? round(($demo / $total) * 100, 2)
+                : 0;
+        }
+
+        $this->demoRateBySize = $demoRates;
+    }
+
+    public function calculateWebinarDemoAverages()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Filter status
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed', 'Demo-Assigned', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
+        // Get leads + demo appointments
+        $leads = $query->with('demoAppointment')->get();
+
+        $webinarData = [];
+
+        foreach ($leads as $lead) {
+            foreach ($lead->demoAppointment as $demo) {
+                if ($demo->status === 'Cancelled' || $demo->type !== 'WEBINAR DEMO') {
+                    continue;
+                }
+
+                $salespersonId = $lead->salesperson;
+                $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time;
+
+                if (!isset($webinarData[$salespersonId])) {
+                    $webinarData[$salespersonId] = [
+                        'webinars' => [],
+                        'total_leads' => 0,
+                    ];
+                }
+
+                // Group webinar by time block
+                $webinarData[$salespersonId]['webinars'][$key] = true;
+
+                // Count lead per webinar
+                $webinarData[$salespersonId]['total_leads']++;
+            }
+        }
+
+        // Final format
+        $this->webinarDemoAverages = [];
+
+        foreach ($webinarData as $salespersonId => $data) {
+            $webinarCount = count($data['webinars']);
+            $totalLeads = $data['total_leads'];
+            $average = $webinarCount > 0 ? round($totalLeads / $webinarCount, 2) : 0;
+
+            $salespersonName = User::find($salespersonId)?->name ?? 'Unknown';
+
+            $this->webinarDemoAverages[$salespersonName] = [
+                'webinar_count' => $webinarCount,
+                'total_leads' => $totalLeads,
+                'average_per_webinar' => $average,
+            ];
+        }
     }
 
     public function fetchCloseWonAmount()
@@ -534,6 +734,11 @@ class MarketingAnalysis extends Page
             $query->whereIn('id', $utmLeadIds);
         }
 
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
         if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
@@ -542,12 +747,8 @@ class MarketingAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        if (!empty($this->selectedLeadCode)) {
-            $query->where('lead_code', $this->selectedLeadCode);
-        }
-
         if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
+            $query->whereBetween('closing_date', [
                 Carbon::parse($this->startDate)->startOfDay(),
                 Carbon::parse($this->endDate)->endOfDay(),
             ]);
@@ -564,59 +765,60 @@ class MarketingAnalysis extends Page
     }
 
     public function fetchMonthlyDealAmounts()
-{
-    $user = Auth::user();
-    $query = Lead::query();
+    {
+        $user = Auth::user();
+        $query = Lead::query();
 
-    $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-    $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
-    if ($utmFilterApplied && !empty($utmLeadIds)) {
-        $query->whereIn('id', $utmLeadIds);
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('closing_date', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // ✅ Now fetch and group results by year-month
+        $results = $query
+            ->where('lead_status', 'Closed')
+            ->get()
+            ->groupBy(function ($lead) {
+                return Carbon::parse($lead->closing_date)->format('Y-m');
+            })
+            ->mapWithKeys(function ($group, $month) {
+                return [$month => $group->sum('deal_amount')];
+            })
+            ->toArray();
+
+        // ✅ Make sure empty months are included
+        $start = Carbon::parse($this->startDate)->startOfMonth();
+        $end = Carbon::parse($this->endDate)->endOfMonth();
+        $period = \Carbon\CarbonPeriod::create($start, '1 month', $end);
+
+        $data = [];
+        foreach ($period as $date) {
+            $monthKey = $date->format('Y-m');
+            $data[$monthKey] = $results[$monthKey] ?? 0;
+        }
+
+        $this->monthlyDealAmounts = $data;
     }
-
-    if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-        $query->where('salesperson', $this->selectedUser);
-    }
-
-    if ($user->role_id === 2) {
-        $query->where('salesperson', $user->id);
-    }
-
-    if (!empty($this->selectedLeadCode)) {
-        $query->where('lead_code', $this->selectedLeadCode);
-    }
-
-    if (!empty($this->startDate) && !empty($this->endDate)) {
-        $query->whereBetween('created_at', [
-            Carbon::parse($this->startDate)->startOfDay(),
-            Carbon::parse($this->endDate)->endOfDay(),
-        ]);
-    }
-
-    // ✅ Now fetch and group results by year-month
-    $results = $query
-        ->where('lead_status', 'Closed')
-        ->get()
-        ->groupBy(function ($lead) {
-            return Carbon::parse($lead->created_at)->format('Y-m');
-        })
-        ->mapWithKeys(function ($group, $month) {
-            return [$month => $group->sum('deal_amount')];
-        })
-        ->toArray();
-
-    // ✅ Make sure empty months are included
-    $start = Carbon::parse($this->startDate)->startOfMonth();
-    $end = Carbon::parse($this->endDate)->endOfMonth();
-    $period = \Carbon\CarbonPeriod::create($start, '1 month', $end);
-
-    $data = [];
-    foreach ($period as $date) {
-        $monthKey = $date->format('Y-m');
-        $data[$monthKey] = $results[$monthKey] ?? 0;
-    }
-
-    $this->monthlyDealAmounts = $data;
-}
 }

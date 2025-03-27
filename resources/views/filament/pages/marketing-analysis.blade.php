@@ -1,6 +1,7 @@
 <x-filament::page>
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
         <style>
             /* Container */
             .session-container {
@@ -392,8 +393,17 @@
                     </select>
                 </div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <div>
+                    <select wire:model="selectedLeadOwner" id="leadOwnerFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
+                        <option value="">All Lead Owners</option>
+                        @foreach ($leadOwners as $owner)
+                            <option value="{{ $owner->id }}">{{ $owner->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             @endif
-            <div class="ml-10 flex items-center space-x-4">
+            <div class="flex items-center ml-10 space-x-4">
                 <div>
                     <input wire:model="startDate" type="date" id="startDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
                 </div>
@@ -401,21 +411,6 @@
                 <div>
                     <input wire:model="endDate" type="date" id="endDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
                 </div>
-            </div>
-
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <div class="mb-4">
-                <label for="lead_code" class="block text-sm font-medium text-gray-700">Lead Code</label>
-                <select
-                    id="lead_code"
-                    wire:model="selectedLeadCode"
-                    class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                >
-                    <option value="">-- All --</option>
-                    @foreach ($leadCodes as $code)
-                        <option value="{{ $code }}">{{ $code }}</option>
-                    @endforeach
-                </select>
             </div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <div class="relative ml-10">
@@ -447,6 +442,16 @@
                             <input wire:model.debounce.500ms="referrername" type="text" placeholder="Referrer Name" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" />
                             <input wire:model.debounce.500ms="device" type="text" placeholder="Device" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" />
                             <input wire:model.debounce.500ms="utmCreative" type="text" placeholder="UTM Creative" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;" />
+                            <select
+                                id="lead_code"
+                                wire:model="selectedLeadCode"
+                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            >
+                                <option value="">-- All --</option>
+                                @foreach ($leadCodes as $code)
+                                    <option value="{{ $code }}">{{ $code }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 @endif
@@ -458,7 +463,111 @@
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center space-x-2">
                 <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Company Size Distribution</h2>
+                <h2 class="text-lg font-bold text-gray-800">Lead Breakdown</h2>
+            </div>
+            <div class="lead-summary-box">
+                <div class="lead-count">
+                    <p class="lead-number">{{ array_sum($leadStatusData) }}</p>
+                    <p class="lead-label">Total Leads</p>
+                </div>
+                <div class="lead-divider"></div>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <div class="lead-progress">
+                    <h3 class="status-title">Lead Status</h3>
+                    <div style="max-height: 180px; overflow-y: auto; padding-right: 10px;">
+                        @foreach ($leadStatusData as $status => $count)
+                            @php
+                                $percentage = array_sum($leadStatusData) > 0 ? round(($count / array_sum($leadStatusData)) * 100, 2) : 0;
+                                $color = match($status) {
+                                    'New' => '#D2E9D2',
+                                    'RFQ-Transfer' => '#FFE29C',
+                                    'Pending Demo' => '#FFD59C',
+                                    'Under Review' => '#FF8A8A',
+                                    'Demo Cancelled' => '#D0D3D9',
+                                    'Demo-Assigned' => '#ff7c7c',
+                                    'RFQ-Follow Up' => '#B3B0F7',
+                                    'Hot' => '#FFD7D7',
+                                    'Warm' => '#FFB066',
+                                    'Cold' => '#B3F5F5',
+                                    'Closed' => '#82CEC2',
+                                    'Lost' => '#A0A0A0',
+                                    'On Hold' => '#B3B3B3',
+                                    'No Response' => '#C6C6C6',
+                                    'Junk' => '#C6C6C6',
+                                    default => '#E2E8F0',
+                                };
+                                $bgcolor = match($status) {
+                                    'New' => '#F2FAF2',
+                                    'RFQ-Transfer' => '#FFF9EB',
+                                    'Pending Demo' => '#FFF5E9',
+                                    'Under Review' => '#FFEDED',
+                                    'Demo Cancelled' => '#F5F7F9',
+                                    'Demo-Assigned' => '#fdcccc',
+                                    'RFQ-Follow Up' => '#F0EEFC',
+                                    'Hot' => '#FFF1F1',
+                                    'Warm' => '#FFF2E3',
+                                    'Cold' => '#ECFFFF',
+                                    'Closed' => '#E3F7F5',
+                                    'Lost' => '#E5E5E5',
+                                    'On Hold' => '#ECECEC',
+                                    'No Response' => '#F7F7F7',
+                                    'Junk' => '#F7F7F7',
+                                    default => '#E2E8F0',
+                                };
+                            @endphp
+                            <div class="progress-info">
+                                <span>{{ $status }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center space-x-2">
+                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
+                <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
+            </div>
+            <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 10px; align-items: flex-end; gap: 40px;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                @php
+                    $leadTypeCounts = $this->getLeadTypeCounts();
+                    $totalLeadTypes = array_sum($leadTypeCounts);
+                    $colors = ['#805ba7', '#3d78f4', '#4cc5fd', '#4dd8e3', '#00a1c5', '#02bb52', '#92dc61', '#fecd1a', '#5861a9'];
+                @endphp
+
+                @foreach($leadTypeCounts as $source => $count)
+                    @php
+                        $percentage = round(($count / max($totalLeadTypes, 1)) * 100, 2);
+                        $barColor = $colors[$loop->index % count($colors)];
+                    @endphp
+
+                    <div class="bar-group">
+                        <p class="percentage-label">{{ $count }}</p>
+                        <div class="bar-wrapper" style="background-color: #F7F7F7;">
+                            <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
+                        </div>
+                        <p class="size-label" style="word-wrap: break-word; white-space: normal; margin-top: 5px; min-height: 36px;">{{ $source }}</p>
+                        <div class="hover-message">{{ $percentage }}%</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @php
+            $total = array_sum($categoryData);
+        @endphp
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Company Size Distribution</h2>
+                </div>
+                <i class="bi bi-question-circle" title="All Leads Breakdown without Junk (w/ & w/o demo id), On Hold (w/ & w/o demo id) & Lost (w/o demo id)"></i>
             </div>
             <div class="lead-summary-box">
                 <div class="lead-count">
@@ -496,300 +605,201 @@
                 </div>
             </div>
         </div>
+
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Company Size Distribution (Demos)</h2>
+                </div>
+                <i class="bi bi-question-circle" title="With Demo Assigned, RFQ-Follow Up, Hot, Warm, Cold, Closed, Lost (w/ demo id) & No Response (w/ demo id)"></i>
             </div>
-            <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 10px; align-items: flex-end; gap: 40px;">
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                @php
-                    $leadTypeCounts = $this->getLeadTypeCounts();
-                    $totalLeadTypes = array_sum($leadTypeCounts);
-                    $colors = ['#805ba7', '#3d78f4', '#4cc5fd', '#4dd8e3', '#00a1c5', '#02bb52', '#92dc61', '#fecd1a', '#5861a9'];
-                @endphp
-
-                @foreach($leadTypeCounts as $source => $count)
-                    @php
-                        $percentage = round(($count / max($totalLeadTypes, 1)) * 100, 2);
-                        $barColor = $colors[$loop->index % count($colors)];
-                    @endphp
-
-                    <div class="bar-group">
-                        <p class="percentage-label">{{ $count }}</p>
-                        <div class="bar-wrapper" style="background-color: #F7F7F7;">
-                            <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
-                        </div>
-                        <p class="size-label" style="word-wrap: break-word; white-space: normal; margin-top: 5px; min-height: 36px;">{{ $source }}</p>
-                        <div class="hover-message">{{ $percentage }}%</div>
+            <div class="lead-summary-box">
+                <div class="lead-count">
+                    <p class="lead-number">{{ array_sum($demoCompanySizeData) }}</p>
+                    <p class="lead-label">Total Leads</p>
+                </div>
+                <div class="lead-divider"></div>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <div class="lead-progress">
+                    <h3 class="status-title">Company Size</h3>
+                    <div style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
+                        @foreach ($demoCompanySizeData as $companySize => $count)
+                            @php
+                                $percentage = array_sum($demoCompanySizeData) > 0 ? round(($count / array_sum($demoCompanySizeData)) * 100, 2) : 0;
+                                $color = match($companySize) {
+                                    'Small' => '#D2E9D2',
+                                    'Medium' => '#FFE29C',
+                                    'Large' => '#FFD59C',
+                                    'Enterprise' => '#FF8A8A',
+                                    default => '#E2E8F0',
+                                };
+                                $bgcolor = match($companySize) {
+                                    'Small' => '#F2FAF2',
+                                    'Medium' => '#FFF9EB',
+                                    'Large' => '#FFF5E9',
+                                    'Enterprise' => '#FFEDED',
+                                    default => '#F9FAFB',
+                                };
+                            @endphp
+                            <div class="progress-info">
+                                <span>{{ ucfirst($companySize) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
-        @php
-            $total = array_sum($categoryData);
-        @endphp
-        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Categories Breakdown</h2>
-            </div><br>
-            <div style="display: flex; flex-direction: row; gap: 16px; flex-wrap: wrap;">
-                @foreach ($categoryData as $category => $count)
-                    @php
-                        $bgColor = match($category) {
-                            'Active' => '#00c7b1',   // green
-                            'New' => '#5c6bc0',
-                            'Inactive' => '#b0bec5', // red
-                        };
-                        $percentage = $total > 0 ? ($count / $total) * 100 : 0;
-                    @endphp
-
-                    <div style="
-                        width: 200px;
-                        height: 150px;
-                        background-color: {{ $bgColor }};
-                        color: white;
-                        padding: 16px;
-                        border-radius: 8px;
-                        text-align: center;
-                        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;
-                        flex: 0 0 auto;
-                    ">
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">{{ $category }}</h3>
-                        <p style="font-size: 24px; margin: 4px 0 0; font-weight: bold;">{{ $count }}</p>
-                        <p style="font-size: 14px; margin: 4px 0 0; opacity: 0.85;">
-                            {{ number_format($percentage, 2) }}%
-                        </p>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @php
-            $totalStages = array_sum($stageData);
-        @endphp
 
         <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-2">
-                    <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                    <h2 class="text-lg font-bold text-gray-800">Lead Stage Distribution</h2>
+                    <i class="text-lg text-indigo-500 fa fa-calendar-check"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Demo Type Distribution</h2>
                 </div>
-                <span class="text-lg font-bold text-gray-500">Total: {{ $totalStages }}</span>
+                <i class="bi bi-question-circle" title="Actual Total Demo for the Period"></i>
             </div>
 
-            <div class="flex flex-wrap justify-center gap-8">
-                @foreach ($stageData as $stage => $count)
-                    @php
-                        $percentage = $totalStages > 0 ? round(($count / $totalStages) * 100, 2) : 0;
-                        $color = match($stage) {
-                            'New' => '#D2E9D2',
-                            'Transfer' => '#82CFFD',  /* Light Blue */
-                            'Demo' => '#4BA3F5',      /* Purple */
-                            'Follow Up' => '#8AE3F5', /* Dark Blue */
-                            default => '#9CA3AF',     // Gray
-                        };
-                        $bgcolor = match($stage) {
-                            'New' => '#F2FAF2',
-                            'Transfer' => '#e5f1ff',  /* Light Blue */
-                            'Demo' => '#ccf4ff',      /* Purple */
-                            'Follow Up' => '#ccfbff', /* Dark Blue */
-                            default => '#D1D5DB',    /* Gray */
-                        };
-                    @endphp
-
-                <div class="relative text-center group">
-                    <div class="relative w-28 h-28">
-                        <svg width="130" height="130" viewBox="0 0 36 36">
-                            <!-- Background Circle -->
-                            <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                            <!-- Progress -->
-                            <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                    stroke-dasharray="88"
-                                    stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                    stroke-linecap="round"
-                                    transform="rotate(-90 18 18)">
-                            </circle>
-                        </svg>
-
-                        <!-- Count in center -->
-                        <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                            {{ $count }}
-                        </div>
-
-                        <!-- Hover Tooltip -->
-                        <div class="hover-message">
-                            {{ $percentage }}%
-                        </div>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-700">{{ $stage }}</p>
-                </div>
-                @endforeach
-            </div>
-        </div>
-
-        @php
-            $selectedStatuses = ['New', 'RFQ-Transfer', 'Pending Demo', 'Under Review', 'Demo Cancelled'];
-            $totalSelected = collect($leadStatusData)
-                ->only($selectedStatuses)
-                ->sum();
-        @endphp
-
-        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Status Distribution (Transfer)</h2>
-            </div>
             <div class="lead-summary-box">
                 <div class="lead-count">
-                    <p class="lead-number">{{ $totalSelected }}</p>
+                    <p class="lead-number">{{ array_sum($demoTypeData) }}</p>
                     <p class="lead-label">Total Leads</p>
                 </div>
                 <div class="lead-divider"></div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <div class="lead-progress">
-                    <h3 class="status-title">Statuses</h3>
-
-                    @foreach ($selectedStatuses as $status)
+                <div class="flex flex-wrap justify-center gap-6">
+                    @foreach ($demoTypeData as $type => $count)
                         @php
-                            $count = $leadStatusData[$status] ?? 0;
-                            $percentage = $totalSelected > 0 ? round(($count / $totalSelected) * 100, 2) : 0;
-                            $color = match($status) {
-                                'New' => '#D2E9D2',
-                                'RFQ-Transfer' => '#FFE29C',
-                                'Pending Demo' => '#FFD59C',
-                                'Under Review' => '#FF8A8A',
-                                'Demo Cancelled' => '#D0D3D9',
-                            };
-                            $bgcolor = match($status) {
-                                'New' => '#F2FAF2',
-                                'RFQ-Transfer' => '#FFF9EB',
-                                'Pending Demo' => '#FFF5E9',
-                                'Under Review' => '#FFEDED',
-                                'Demo Cancelled' => '#F5F7F9',
+                            $total = array_sum($demoTypeData);
+                            $percentage = $total > 0 ? round(($count / $total) * 100, 2) : 0;
+                            $color = match($type) {
+                                'New Demo' => '#3B82F6',
+                                'Webinar Demo' => '#F59E0B',
+                                default => '#9CA3AF',
                             };
                         @endphp
 
-                        <div class="progress-info">
-                            <span>{{ $status }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                        <div class="flex flex-col items-center justify-center flex-1 min-w-[200px] p-6 rounded-lg shadow-inner">
+                            <div class="relative text-center group">
+                                <div class="relative w-28 h-28">
+                                    <svg width="130" height="130" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="14" stroke="#E5E7EB" stroke-width="5" fill="none"></circle>
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                                stroke-dasharray="88"
+                                                stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                                stroke-linecap="round"
+                                                transform="rotate(-90 18 18)">
+                                        </circle>
+                                    </svg>
+
+                                    <!-- Count in center -->
+                                    <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                        {{ $count }}
+                                    </div>
+
+                                    <!-- Hover Tooltip -->
+                                    <div class="hover-message">
+                                        {{ $percentage }}%
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-700">{{ $type }}</p>
+                            </div>
                         </div>
                     @endforeach
                 </div>
             </div>
         </div>
 
-        @php
-            $followUpStatuses = ['RFQ-Follow Up', 'Hot', 'Warm', 'Cold'];
-            $totalFollowUps = collect($leadStatusData)
-                ->only($followUpStatuses)
-                ->sum();
-        @endphp
-
         <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Status Distribution (Follow Up)</h2>
-            </div>
-            <div class="lead-summary-box">
-                <div class="lead-count">
-                    <p class="lead-number">{{ $totalFollowUps }}</p>
-                    <p class="lead-label">Total Leads</p>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-purple-500 fa fa-percentage"></i> &nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Demos Rate</h2>
                 </div>
-                <div class="lead-divider"></div>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <div class="lead-progress">
-                    <h3 class="status-title">Statuses</h3>
-
-                    @foreach ($followUpStatuses as $status)
+                <i class="bi bi-question-circle" title="Company Size Distribution (Demos) / by Company Size Distribution"></i>
+            </div>
+            <table class="w-full text-sm text-left">
+                <thead>
+                    <tr class="text-gray-600 border-b">
+                        <th class="py-2">Company Size</th>
+                        <th class="py-2">Total Leads</th>
+                        <th class="py-2">Demo Leads</th>
+                        <th class="py-2">Demo Rate (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($demoRateBySize as $size => $rate)
                         @php
-                            $count = $leadStatusData[$status] ?? 0;
-                            $percentage = $totalFollowUps > 0 ? round(($count / $totalFollowUps) * 100, 2) : 0;
-                            $color = match($status) {
-                                'RFQ-Follow Up' => '#B3B0F7',
-                                'Hot' => '#FFD7D7',
-                                'Warm' => '#FFB066',
-                                'Cold' => '#B3F5F5',
-                            };
-                            $bgcolor = match($status) {
-                                'RFQ-Follow Up' => '#F0EEFC',
-                                'Hot' => '#FFF1F1',
-                                'Warm' => '#FFF2E3',
-                                'Cold' => '#ECFFFF',
+                            $total = $companySizeData[$size] ?? 0;
+                            $demo = $demoCompanySizeData[$size] ?? 0;
+                            $color = match($size) {
+                                'Small' => '#F2FAF2',
+                                'Medium' => '#FFF9EB',
+                                'Large' => '#FFF5E9',
+                                'Enterprise' => '#FFEDED',
+                                default => '#E2E8F0',
                             };
                         @endphp
-
-                        <div class="progress-info">
-                            <span>{{ $status }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                        </div>
+                        <tr class="border-b hover:bg-gray-50" style="background-color: {{ $color }}">
+                            <td class="py-2 font-medium">{{ $size }}</td>
+                            <td class="py-2">{{ $total }}</td>
+                            <td class="py-2">{{ $demo }}</td>
+                            <td class="py-2 font-semibold text-blue-600">{{ $rate }}%</td>
+                        </tr>
                     @endforeach
-                </div>
-            </div>
+                </tbody>
+                @php
+                    $totalLeads = array_sum($companySizeData);
+                    $totalDemos = array_sum($demoCompanySizeData);
+                    $overallRate = $totalLeads > 0 ? round(($totalDemos / $totalLeads) * 100, 2) : 0;
+                @endphp
+                <tfoot>
+                    <tr class="font-bold text-gray-800 bg-gray-100 border-t">
+                        <td class="py-2">Total</td>
+                        <td class="py-2">{{ $totalLeads }}</td>
+                        <td class="py-2">{{ $totalDemos }}</td>
+                        <td class="py-2 text-blue-700">{{ $overallRate }}%</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
-        @php
-            $closedStatuses = ['Closed', 'Lost', 'On Hold', 'No Response', 'Junk'];
-            $totalClosed = collect($leadStatusData)
-                ->only($closedStatuses)
-                ->sum();
-        @endphp
-
-        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Status Distribution (Inactive)</h2>
-            </div>
-            <div class="lead-summary-box">
-                <div class="lead-count">
-                    <p class="lead-number">{{ $totalClosed }}</p>
-                    <p class="lead-label">Total Leads</p>
+        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-blue-500 fa fa-users"></i> &nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Webinar Demo Distribution</h2>
                 </div>
-                <div class="lead-divider"></div>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <div class="lead-progress">
-                    <h3 class="status-title">Statuses</h3>
-
-                    @foreach ($closedStatuses as $status)
-                        @php
-                            $count = $leadStatusData[$status] ?? 0;
-                            $percentage = $totalClosed > 0 ? round(($count / $totalClosed) * 100, 2) : 0;
-                            $color = match($status) {
-                                'Closed' => '#82CEC2',
-                                'Lost' => '#A0A0A0',
-                                'On Hold' => '#B3B3B3',
-                                'No Response' => '#C6C6C6',
-                                'Junk' => '#C6C6C6',
-                            };
-                            $bgcolor = match($status) {
-                                'Closed' => '#E3F7F5',
-                                'Lost' => '#E5E5E5',
-                                'On Hold' => '#ECECEC',
-                                'No Response' => '#F7F7F7',
-                                'Junk' => '#F7F7F7',
-                            };
-                        @endphp
-
-                        <div class="progress-info">
-                            <span>{{ $status }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                        </div>
-                    @endforeach
-                </div>
+                <i class="bi bi-question-circle" title="Average of Companies under Webinar Demo per Session"></i>
             </div>
+            <table class="w-full text-sm text-left">
+                <thead>
+                    <tr class="text-gray-600 border-b">
+                        <th class="py-2">Salesperson</th>
+                        <th class="py-2">Webinar Sessions</th>
+                        <th class="py-2">Total Leads</th>
+                        <th class="py-2">Avg. Leads per Webinar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($webinarDemoAverages as $name => $data)
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-2 font-medium">{{ $name }}</td>
+                            <td class="py-2">{{ $data['webinar_count'] }}</td>
+                            <td class="py-2">{{ $data['total_leads'] }}</td>
+                            <td class="py-2 font-semibold text-blue-600">{{ $data['average_per_webinar'] }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-4 text-center text-gray-500">No webinar demo data found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
 
         <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
