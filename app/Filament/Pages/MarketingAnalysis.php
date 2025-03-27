@@ -50,7 +50,7 @@ class MarketingAnalysis extends Page
     public $webinarDemoAverages = [];
     public $selectedLeadOwner;
     public $leadOwners;
-
+    public $companySizeDistribution = [];
     public $days;
     public Carbon $currentDate;
     public $startDate;
@@ -223,8 +223,8 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
         $activeStatuses = [
-            'None', 'New', 'RFQ-Transfer', 'Pending Demo', 'Under Review',
-            'Demo Cancelled', 'Demo-Assigned', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold'
+            'None','New','RFQ-Transfer','Pending Demo','Under Review','Demo Cancelled',
+            'Demo-Assigned','RFQ-Follow Up','Hot','Warm','Cold'
         ];
 
         $otherStatuses = ['Closed', 'No Response', 'Junk', 'On Hold', 'Lost'];
@@ -259,8 +259,10 @@ class MarketingAnalysis extends Page
 
         $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
             $q->where(function ($sub) use ($activeStatuses) {
-                $sub->where('categories', 'Active')
-                    ->whereIn('lead_status', $activeStatuses);
+                $sub->where(function ($inner) {
+                    $inner->where('categories', 'Active')
+                          ->orWhere('categories', 'New');
+                })->whereIn('lead_status', $activeStatuses);
             })->orWhereIn('lead_status', $otherStatuses);
         });
 
@@ -364,10 +366,10 @@ class MarketingAnalysis extends Page
         }
 
         $query->where(function ($q) {
-            $q->whereNotIn('lead_status', ['Junk', 'On Hold']) // Exclude Junk & On Hold
+            $q->whereNotIn('lead_status', ['Junk', 'On Hold', 'Lost'])
             ->orWhere(function ($sub) {
                 $sub->where('lead_status', 'Lost')
-                    ->whereNotNull('demo_appointment'); // Allow Lost only if demo is present
+                    ->whereNotNull('demo_appointment');
             });
         });
 
@@ -388,7 +390,7 @@ class MarketingAnalysis extends Page
             ->map(fn($group) => $group->count())
             ->toArray();
 
-        $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
+        $this->companySizeDistribution = array_merge($defaultCompanySizes, $companySizeCounts);
     }
 
     public function fetchLeadsDemo()

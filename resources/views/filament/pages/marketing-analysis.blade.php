@@ -558,9 +558,7 @@
                 @endforeach
             </div>
         </div>
-        @php
-            $total = array_sum($categoryData);
-        @endphp
+
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-2">
@@ -571,16 +569,16 @@
             </div>
             <div class="lead-summary-box">
                 <div class="lead-count">
-                    <p class="lead-number">{{ array_sum($companySizeData) }}</p>
+                    <p class="lead-number">{{ array_sum($companySizeDistribution) }}</p>
                     <p class="lead-label">Total Leads</p>
                 </div>
                 <div class="lead-divider"></div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <div class="lead-progress">
                     <h3 class="status-title">Company Size</h3>
-                    @foreach ($companySizeData as $companySize => $count)
+                    @foreach ($companySizeDistribution as $companySize => $count)
                         @php
-                            $percentage = array_sum($companySizeData) > 0 ? round(($count / array_sum($companySizeData)) * 100, 2) : 0;
+                            $percentage = array_sum($companySizeDistribution) > 0 ? round(($count / array_sum($companySizeDistribution)) * 100, 2) : 0;
                             $color = match($companySize) {
                                 'Small' => '#D2E9D2',
                                 'Medium' => '#FFE29C',
