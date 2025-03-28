@@ -766,7 +766,7 @@
             </table>
         </div>
 
-        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg">
+        <div class="p-6 mt-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-2">
                     <i class="text-lg text-blue-500 fa fa-users"></i> &nbsp;&nbsp;

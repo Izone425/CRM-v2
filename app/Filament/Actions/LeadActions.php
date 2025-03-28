@@ -108,12 +108,15 @@ class LeadActions
                     ])
                     ->action(function (array $data, Lead $record) {
                         // Update the lead with the new values
-                        $record->companyDetail->update([
-                            'company_name' => $data['company_name'],
-                            'name' => $data['name'],
-                            'contact_no' => $data['contact_no'],
-                            'email' => $data['email'],
-                        ]);
+                        $record->companyDetail()->updateOrCreate(
+                            ['lead_id' => $record->id], // 🔍 Matching condition
+                            [
+                                'company_name' => $data['company_name'],
+                                'name' => $data['name'],
+                                'contact_no' => $data['contact_no'],
+                                'email' => $data['email'],
+                            ]
+                        );
 
                         $record->update([
                             'company_size' => $data['company_size'],
