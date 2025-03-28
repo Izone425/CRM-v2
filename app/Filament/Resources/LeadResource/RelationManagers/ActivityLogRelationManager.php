@@ -1161,6 +1161,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'position' => $salespersonUser->position ?? 'N/A', // position
                                         'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                        'leadOwnerEmail' => $leadowner->mobile_number ?? 'N/A',
                                         // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                                     ],
                                 ];

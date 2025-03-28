@@ -1142,20 +1142,22 @@ class LeadActions
             $viewName = 'emails.email_blasting_1st';
             $followUpDescription = '1st Automation Follow Up';
             try {
+                $leadowner = User::where('name', $lead->lead_owner)->first();
+
                 $emailContent = [
-                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                    'leadOwnerEmail' => $leadowner->email ?? 'N/A',
                     'lead' => [
-                        'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                        'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                        'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                        'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                        'email' => $lead->email ?? 'N/A', // Lead's Email
-                        'country' => $lead->country ?? 'N/A', // Lead's Country
-                        'products' => $lead->products ?? 'N/A', // Products
-                        'position' => $leadowner->position ?? 'N/A', // position
+                        'lastName' => $lead->name ?? 'N/A',
+                        'company' => $lead->companyDetail->company_name ?? 'N/A',
+                        'companySize' => $lead->company_size ?? 'N/A',
+                        'phone' => $lead->phone ?? 'N/A',
+                        'email' => $lead->email ?? 'N/A',
+                        'country' => $lead->country ?? 'N/A',
+                        'products' => $lead->products ?? 'N/A',
+                        'position' => $salespersonUser->position ?? 'N/A',
                         'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                        // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                     ],
                 ];
 
@@ -1181,12 +1183,11 @@ class LeadActions
 
             $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
             $variables = [$lead->name, $lead->lead_owner];
-            $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f'; // Your Content Template SID
+            $contentTemplateSid = 'HX50fdd31004919fd43e647ebfb934d608'; // Your Content Template SID
 
-            $whatsappController = new \App\Http\Controllers\WhatsAppController();
-            $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
-            return $response;
+            // $whatsappController = new \App\Http\Controllers\WhatsAppController();
+            // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+            // return $response;
         });
     }
 

@@ -25,7 +25,7 @@ class AutoFollowUp extends Command
                 ->get();
 
             foreach ($leads as $lead) {
-                // Increment follow-up count and set next follow-up date
+                info("Processing follow-up for Lead ID: {$lead->id}, Name: {$lead->name}, Follow-Up Count: {$lead->follow_up_count}");
                 $lead->update([
                     'follow_up_count' => $lead->follow_up_count + 1,
                     'follow_up_date' => now()->next('Tuesday'),
@@ -34,21 +34,21 @@ class AutoFollowUp extends Command
                 if ($lead->lead_status === 'New' || $lead->lead_status === 'Under Review') {
                     $followUpCount = $lead->follow_up_count;
                     $viewName = 'emails.email_blasting_1st';
-                    $contentTemplateSid = 'HX2d4adbe7d011693a90af7a09c866100f';
+                    $contentTemplateSid = 'HX50fdd31004919fd43e647ebfb934d608';
 
                     $followUpDescription = "{$followUpCount}st Automation Follow Up";
                     if ($followUpCount == 2) {
                         $viewName = 'emails.email_blasting_2nd';
                         $followUpDescription = '2nd Automation Follow Up';
-                        $contentTemplateSid = 'HX72acd0ab4ffec49493288f9c0b53a17a';
+                        $contentTemplateSid = 'HXee59098cc1d267094875b84ceed0dc09';
                     } elseif ($followUpCount == 3) {
                         $viewName = 'emails.email_blasting_3rd';
                         $followUpDescription = '3rd Automation Follow Up';
-                        $contentTemplateSid = 'HX9ed8a4589f03d9563e94d47c529aaa0a';
+                        $contentTemplateSid = 'HXddbbe2f375b1ad34e9cd6f9e35fa62f0';
                     } elseif ($followUpCount >= 4) {
                         $viewName = 'emails.email_blasting_4th';
                         $followUpDescription = 'Final Automation Follow Up';
-                        $contentTemplateSid = 'HXa18012edd80d072d54b60b93765dd3af';
+                        $contentTemplateSid = 'HX17778b5cec4858f24535bdbc69eebd8a';
                     }
 
                     // Retrieve latest activity log
@@ -111,10 +111,10 @@ class AutoFollowUp extends Command
                         $variables = [$lead->name, $lead->lead_owner];
                         // $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
 
-                        $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                        $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                        // $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                        // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                        return $response;
+                        // return $response;
                     } catch (Exception $e) {
                         Log::error("WhatsApp Error: {$e->getMessage()}");
                     }
