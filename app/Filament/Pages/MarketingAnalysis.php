@@ -489,38 +489,23 @@ class MarketingAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        // ✅ Custom status filtering
-        $query->where(function ($q) {
-            $q->whereIn('lead_status', [
-                'Closed',
-                'Demo-Assigned',
-                'RFQ-Follow Up',
-                'Hot',
-                'Warm',
-                'Cold',
-            ])
-            ->orWhere(function ($sub) {
-                $sub->whereIn('lead_status', ['Lost', 'No Response'])
-                    ->whereNotNull('demo_appointment');
-            });
-        });
-
-        // Fetch leads + demo data
+        // Load leads with ALL demo appointments
         $leads = $query->with('demoAppointment')->get();
 
-        // ✅ Count New Demo and Webinar Demo
         $newDemoCount = 0;
         $webinarKeys = [];
 
+        $start = Carbon::parse($this->startDate)->toDateString();
+        $end = Carbon::parse($this->endDate)->toDateString();
+
         foreach ($leads as $lead) {
-            foreach ($lead->demoAppointment as $demo) {
+            $appointments = $lead->demoAppointment ?? collect();
+
+            $appointments = $appointments->filter(function ($demo) use ($start, $end) {
+                return $demo->date >= $start && $demo->date <= $end;
+            });
+
+            foreach ($appointments as $demo) {
                 if ($demo->status === 'Cancelled') {
                     continue;
                 }
@@ -528,13 +513,12 @@ class MarketingAnalysis extends Page
                 if ($demo->type === 'NEW DEMO') {
                     $newDemoCount++;
                 } elseif ($demo->type === 'WEBINAR DEMO') {
-                    $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time . '|' . $lead->salesperson;
+                    $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time . '|' . $demo->salesperson;
                     $webinarKeys[$key] = true;
                 }
             }
         }
 
-        // ✅ Set data for Blade
         $this->demoTypeData = [
             'New Demo' => $newDemoCount,
             'Webinar Demo' => count($webinarKeys),
@@ -574,10 +558,18 @@ class MarketingAnalysis extends Page
             ]);
         }
 
-        // Fetch all filtered leads
+        // ✅ Exclude junk/on hold/lost unless has demo
+        $query->where(function ($q) {
+            $q->whereNotIn('lead_status', ['Junk', 'On Hold', 'Lost'])
+            ->orWhere(function ($sub) {
+                $sub->where('lead_status', 'Lost')
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
+        // Fetch filtered leads
         $leads = $query->get();
 
-        // Define sizes
         $defaultCompanySizes = [
             'Small' => 0,
             'Medium' => 0,
@@ -594,15 +586,10 @@ class MarketingAnalysis extends Page
 
         $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
 
-        // 🔵 Demo Leads by Company Size (apply status filter)
+        // 🔵 Demo Leads by Company Size
         $demoLeads = $leads->filter(function ($lead) {
             return in_array($lead->lead_status, [
-                'Closed',
-                'Demo-Assigned',
-                'RFQ-Follow Up',
-                'Hot',
-                'Warm',
-                'Cold',
+                'Closed', 'Demo-Assigned', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold',
             ]) || (
                 in_array($lead->lead_status, ['Lost', 'No Response']) &&
                 $lead->demo_appointment !== null
@@ -659,68 +646,90 @@ class MarketingAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        // Filter status
-        $query->where(function ($q) {
-            $q->whereIn('lead_status', [
-                'Closed', 'Demo-Assigned', 'RFQ-Follow Up', 'Hot', 'Warm', 'Cold',
-            ])
-            ->orWhere(function ($sub) {
-                $sub->whereIn('lead_status', ['Lost', 'No Response'])
-                    ->whereNotNull('demo_appointment');
-            });
-        });
-
         // Get leads + demo appointments
-        $leads = $query->with('demoAppointment')->get();
+        $leads = $query->with('demoAppointment')->get(); // Load all appointments
 
         $webinarData = [];
 
+        $start = Carbon::parse($this->startDate)->toDateString();
+        $end = Carbon::parse($this->endDate)->toDateString();
+
         foreach ($leads as $lead) {
-            foreach ($lead->demoAppointment as $demo) {
-                if ($demo->status === 'Cancelled' || $demo->type !== 'WEBINAR DEMO') {
+            $appointments = $lead->demoAppointment ?? collect();
+
+            $appointments = $appointments->filter(function ($demo) use ($start, $end) {
+                return $demo->date >= $start && $demo->date <= $end;
+            });
+
+            foreach ($appointments as $demo) {
+                // Skip cancelled webinars
+                if ($demo->type !== 'WEBINAR DEMO' || $demo->status === 'Cancelled') {
                     continue;
                 }
 
-                $salespersonId = $lead->salesperson;
-                $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time;
+                $salespersonId = $demo->salesperson;
+                $key = $demo->date . '|' . $demo->start_time . '|' . $demo->end_time . '|' . $salespersonId . '|' . $lead->id;
 
-                if (!isset($webinarData[$salespersonId])) {
-                    $webinarData[$salespersonId] = [
-                        'webinars' => [],
+                if (!isset($webinarData[$key])) {
+                    $webinarData[$key] = [
+                        'salesperson_id' => $salespersonId,
+                        'lead_count' => 0,
+                    ];
+                }
+
+                $webinarData[$key]['lead_count'] = 1; // Each key is per lead per session
+            }
+        }
+
+        // Final summary
+        $uniqueSessions = [];
+
+        foreach ($webinarData as $key => $data) {
+            $salespersonId = $data['salesperson_id'];
+
+            // Extract session key (remove leadId from key)
+            [$date, $start, $end, $salesperson] = explode('|', $key);
+
+            $sessionKey = $date . '|' . $start . '|' . $end . '|' . $salesperson;
+
+            // Count this session only once
+            if (!isset($uniqueSessions[$salespersonId])) {
+                $uniqueSessions[$salespersonId] = [];
+            }
+
+            if (!in_array($sessionKey, $uniqueSessions[$salespersonId])) {
+                $uniqueSessions[$salespersonId][] = $sessionKey;
+
+                if (!isset($this->webinarDemoAverages[$salespersonId])) {
+                    $this->webinarDemoAverages[$salespersonId] = [
+                        'webinar_count' => 0,
                         'total_leads' => 0,
                     ];
                 }
 
-                // Group webinar by time block
-                $webinarData[$salespersonId]['webinars'][$key] = true;
-
-                // Count lead per webinar
-                $webinarData[$salespersonId]['total_leads']++;
+                $this->webinarDemoAverages[$salespersonId]['webinar_count'] += 1;
             }
+
+            // Add lead
+            $this->webinarDemoAverages[$salespersonId]['total_leads'] += $data['lead_count'];
         }
 
-        // Final format
-        $this->webinarDemoAverages = [];
 
-        foreach ($webinarData as $salespersonId => $data) {
-            $webinarCount = count($data['webinars']);
-            $totalLeads = $data['total_leads'];
-            $average = $webinarCount > 0 ? round($totalLeads / $webinarCount, 2) : 0;
+        // Convert to name-indexed output
+        foreach ($this->webinarDemoAverages as $salespersonId => $summary) {
+            $average = $summary['webinar_count'] > 0
+                ? round($summary['total_leads'] / $summary['webinar_count'], 2)
+                : 0;
 
             $salespersonName = User::find($salespersonId)?->name ?? 'Unknown';
 
             $this->webinarDemoAverages[$salespersonName] = [
-                'webinar_count' => $webinarCount,
-                'total_leads' => $totalLeads,
+                'webinar_count' => $summary['webinar_count'],
+                'total_leads' => $summary['total_leads'],
                 'average_per_webinar' => $average,
             ];
+
+            unset($this->webinarDemoAverages[$salespersonId]);
         }
     }
 
