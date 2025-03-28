@@ -50,7 +50,7 @@ class WhatsAppController extends Controller
     private function generateMessageFromTemplate($contentTemplateSid, $variables)
     {
         $templates = [
-            'HXb472dfadcc08d3dcc012b694fff20f96' =>
+            'HXe771df50cc3d315ec8cd86321b4ff70d' =>
                 "Hi {{1}}. As per discussed via phone call, our demo session has been scheduled.
                 Company : {{2}}
                 Phone No : {{3}}
@@ -61,7 +61,7 @@ class WhatsAppController extends Controller
                 Demo Date / Time : {{7}}
                 Meeting Link : {{8}}",
 
-            'HX2d4adbe7d011693a90af7a09c866100f' =>
+            'HX50fdd31004919fd43e647ebfb934d608' =>
                 "Hi {{1}}! I'm {{2}} from TimeTec. Thanks for your interest in our HR Cloud Solutions!\n\n" .
                 "We offer awesome modules to make HR tasks a breeze:\n" .
                 "✅ Time Attendance\n" .
@@ -74,17 +74,17 @@ class WhatsAppController extends Controller
                 "🚀 Here’s our brochure to get you started: https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n" .
                 "Can’t wait to chat with you! 😊",
 
-            'HX72acd0ab4ffec49493288f9c0b53a17a' =>
+            'HXee59098cc1d267094875b84ceed0dc09' =>
                 "Hi {{1}},  {{2}} here again! 😊\n\n" .
                 "Just wanted to check in and see if you've had a chance to look over our brochure.\n" .
                 "If you're interested in setting up a demo, please let me know the best time to call you so we can arrange it for you.",
 
-            'HX9ed8a4589f03d9563e94d47c529aaa0a' =>
+            'HXddbbe2f375b1ad34e9cd6f9e35fa62f0' =>
                 "Just a quick reminder—the offer for a FREE Biometric Device is still available!\n" .
                 "It’s a great way to enhance your HR capabilities at no extra cost. 😊\n\n" .
                 "If now isn't the right time or if there’s someone else I should reach out to, please let me know. I’m here to assist!",
 
-            'HXa18012edd80d072d54b60b93765dd3af' =>
+            'HX17778b5cec4858f24535bdbc69eebd8a' =>
                 "Just popping in one last time to make sure I’m not overloading your WhatsApp. 🙈\n\n" .
                 "If now isn’t the right time for a chat, could you let me know when might be better, or if there’s someone else I should reach out to?\n\n" .
                 "And hey, if you ever want to revisit this down the line, I’m just a message away and ready to dive back in whenever you are! 😊"

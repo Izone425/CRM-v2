@@ -113,7 +113,9 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         $leads = $query->get();
-        $this->totalLeads = $leads->count();
+        $this->totalLeads = $leads
+            ->filter(fn ($lead) => $lead->lead_owner !== null && $lead->lead_owner !== 'Chee Chan')
+            ->count();
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
@@ -127,49 +129,41 @@ class SalesAdminAnalysisV2 extends Page
     {
         $dateRange = null;
 
-        // Apply date range filter if a month is selected
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
             $dateRange = [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')];
         }
 
-        // Define category counts with month filter applied
         $this->categoriesData = [
             'New' => Lead::query()
                 ->where('categories', 'New')
-                ->whereNull('lead_owner')
                 ->whereNull('salesperson')
-                ->when($dateRange, function ($query) use ($dateRange) {
-                    return $query->whereBetween('created_at', $dateRange);
-                })
+                ->whereNotNull('lead_owner')
+                ->where('lead_owner', '!=', 'Chee Chan')
+                ->when($dateRange, fn ($query) => $query->whereBetween('created_at', $dateRange))
                 ->count(),
 
             'Active' => Lead::query()
+                ->whereNotIn('categories', ['Inactive', 'New'])
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
-                ->where('categories', '!=', 'Inactive')
-                ->where(function ($query) {
-                    $query->whereNull('done_call')
-                        ->orWhere('done_call', 0);
-                })
-                ->when($dateRange, function ($query) use ($dateRange) {
-                    return $query->whereBetween('created_at', $dateRange);
-                })
+                ->where('lead_owner', '!=', 'Chee Chan')
+                ->when($dateRange, fn ($query) => $query->whereBetween('created_at', $dateRange))
                 ->count(),
 
             'Sales' => Lead::query()
                 ->whereNotNull('salesperson')
                 ->where('categories', '!=', 'Inactive')
-                ->when($dateRange, function ($query) use ($dateRange) {
-                    return $query->whereBetween('created_at', $dateRange);
-                })
+                ->whereNotNull('lead_owner')
+                ->where('lead_owner', '!=', 'Chee Chan')
+                ->when($dateRange, fn ($query) => $query->whereBetween('created_at', $dateRange))
                 ->count(),
 
             'Inactive' => Lead::query()
                 ->where('categories', 'Inactive')
-                ->when($dateRange, function ($query) use ($dateRange) {
-                    return $query->whereBetween('created_at', $dateRange);
-                })
+                ->whereNotNull('lead_owner')
+                ->where('lead_owner', '!=', 'Chee Chan')
+                ->when($dateRange, fn ($query) => $query->whereBetween('created_at', $dateRange))
                 ->count(),
         ];
     }
@@ -201,7 +195,6 @@ class SalesAdminAnalysisV2 extends Page
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
-            ->whereNull('salesperson')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -231,18 +224,17 @@ class SalesAdminAnalysisV2 extends Page
 
         // Clone and count each category separately
         $salesLeadsCount = (clone $queryBase)
-            ->where('categories', '!=', 'Inactive')
+            ->where('categories', '=', 'Active')
             ->whereNotNull('salesperson')
             ->count();
 
         $activeLeadsCount = (clone $queryBase)
             ->whereNull('salesperson')
-            ->where('categories', '!=', 'Inactive')
+            ->where('categories', '=', 'Active')
             ->count();
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
-            ->whereNull('salesperson')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -436,7 +428,6 @@ class SalesAdminAnalysisV2 extends Page
 
         // Apply additional filters for inactive leads where salesperson is NULL
         $queryJaja = (clone $queryBaseJaja)
-            ->whereNull('salesperson') // Ensure salesperson is NULL
             ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
 
         // Count total inactive leads for Jaja
@@ -473,7 +464,6 @@ class SalesAdminAnalysisV2 extends Page
 
         // Apply additional filters for inactive leads
         $queryAfifah = (clone $queryBaseAfifah)
-            ->whereNull('salesperson') // Ensure salesperson is NULL
             ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
 
         // Count total inactive leads for Afifah
