@@ -1,8 +1,13 @@
-<div class="p-4 bg-white rounded-lg shadow-lg" style="height: 520px;">
+<div class="p-4 bg-white rounded-lg shadow-lg" style="min-height: 450px; height: auto;">
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Call Attempt (25 Above)</h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getFollowUpBigCompanyLeads()->count() }})</span>
     </div>
     <br>
     {{ $this->table }}
+    @if ($this->getTableRecords()->total() > 0 && $this->getTableRecords()->lastPage() > 1)
+        <div class="mt-4 text-sm text-center text-gray-600">
+            Page {{ $this->getTableRecords()->currentPage() }} of {{ $this->getTableRecords()->lastPage() }}
+        </div>
+    @endif
 </div>

@@ -342,102 +342,6 @@ class LeadActions
                 ->modalHeading('Add Demo')
                 ->hidden(fn (Lead $record) => is_null($record->lead_owner)) // Use $record instead of getOwnerRecord()
                 ->form(fn (?Lead $record) => $record ? [ // Ensure record exists before running form logic
-                    Grid::make(3) // 3 columns for 3 Select fields
-                    ->schema([
-                        Select::make('type')
-                        ->options(function () use ($record) {
-                            // Check if the lead has an appointment with 'new' or 'done' status
-                                $leadHasNewAppointment = Appointment::where('lead_id', $record->id)
-                                    ->whereIn('status', ['New', 'Done'])
-                                    ->exists();
-
-                                // Dynamically set options
-                                $options = [
-                                    'NEW DEMO' => 'NEW DEMO',
-                                    'WEBINAR DEMO' => 'WEBINAR DEMO',
-                                ];
-
-                                if ($leadHasNewAppointment) {
-                                    $options = [
-                                        'HRMS DEMO' => 'HRMS DEMO',
-                                        'HRDF DISCUSSION' => 'HRDF DISCUSSION',
-                                        'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
-                                    ];
-                                }
-
-                                return $options;
-                            })
-                            ->default('NEW DEMO')
-                            ->required()
-                            ->label('DEMO TYPE'),
-
-                        Select::make('appointment_type')
-                            ->options([
-                                'ONLINE' => 'ONLINE',
-                                'ONSITE' => 'ONSITE',
-                            ])
-                            ->required()
-                            ->default('ONLINE')
-                            ->label('APPOINTMENT TYPE'),
-
-                        Select::make('salesperson')
-                            ->label('SALESPERSON')
-                            ->options(function () {
-                                // if ($lead->salesperson) {
-                                //     $salesperson = User::where('id', $lead->salesperson)->first();
-                                //     return [
-                                //         $lead->salesperson => $salesperson->name,
-                                //     ];
-                                // }
-
-                                if (auth()->user()->role_id == 3) {
-                                    return \App\Models\User::query()
-                                        ->whereIn('role_id', [2, 3])
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                } else {
-                                    return \App\Models\User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                }
-                            })
-                            ->disableOptionWhen(function ($value, $get) {
-                                $date = $get('date');
-                                $startTime = $get('start_time');
-                                $endTime = $get('end_time');
-                                $demo_type = $get('type');
-
-                                // If the demo type is 'WEBINAR DEMO', do not disable any options
-                                if ($demo_type === 'WEBINAR DEMO') {
-                                    return false; // Allow selection without restrictions
-                                }
-
-                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
-                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
-                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
-
-                                $hasOverlap = Appointment::where('salesperson', $value)
-                                    ->where('status', 'New')
-                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
-                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                                $query->where('start_time', '<', $parsedStartTime)
-                                                        ->where('end_time', '>', $parsedEndTime);
-                                            });
-                                    })
-                                    ->exists();
-
-                                    if ($hasOverlap) {
-                                        return true;
-                                    }
-                            })
-                            ->required()
-                            ->hidden(fn () => auth()->user()->role_id === 2)
-                            ->placeholder('Select a salesperson'),
-                        ]),
                     // Schedule
                     ToggleButtons::make('mode')
                         ->label('')
@@ -582,6 +486,103 @@ class LeadActions
                                 return $times;
                             }),
                     ]),
+
+                    Grid::make(3) // 3 columns for 3 Select fields
+                    ->schema([
+                        Select::make('type')
+                        ->options(function () use ($record) {
+                            // Check if the lead has an appointment with 'new' or 'done' status
+                                $leadHasNewAppointment = Appointment::where('lead_id', $record->id)
+                                    ->whereIn('status', ['New', 'Done'])
+                                    ->exists();
+
+                                // Dynamically set options
+                                $options = [
+                                    'NEW DEMO' => 'NEW DEMO',
+                                    'WEBINAR DEMO' => 'WEBINAR DEMO',
+                                ];
+
+                                if ($leadHasNewAppointment) {
+                                    $options = [
+                                        'HRMS DEMO' => 'HRMS DEMO',
+                                        'HRDF DISCUSSION' => 'HRDF DISCUSSION',
+                                        'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
+                                    ];
+                                }
+
+                                return $options;
+                            })
+                            ->default('NEW DEMO')
+                            ->required()
+                            ->label('DEMO TYPE'),
+
+                        Select::make('appointment_type')
+                            ->options([
+                                'ONLINE' => 'ONLINE',
+                                'ONSITE' => 'ONSITE',
+                            ])
+                            ->required()
+                            ->default('ONLINE')
+                            ->label('APPOINTMENT TYPE'),
+
+                        Select::make('salesperson')
+                            ->label('SALESPERSON')
+                            ->options(function () {
+                                // if ($lead->salesperson) {
+                                //     $salesperson = User::where('id', $lead->salesperson)->first();
+                                //     return [
+                                //         $lead->salesperson => $salesperson->name,
+                                //     ];
+                                // }
+
+                                if (auth()->user()->role_id == 3) {
+                                    return \App\Models\User::query()
+                                        ->whereIn('role_id', [2, 3])
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                } else {
+                                    return \App\Models\User::query()
+                                        ->where('role_id', 2)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                }
+                            })
+                            ->disableOptionWhen(function ($value, $get) {
+                                $date = $get('date');
+                                $startTime = $get('start_time');
+                                $endTime = $get('end_time');
+                                $demo_type = $get('type');
+
+                                // If the demo type is 'WEBINAR DEMO', do not disable any options
+                                if ($demo_type === 'WEBINAR DEMO') {
+                                    return false; // Allow selection without restrictions
+                                }
+
+                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
+                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
+                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                                $hasOverlap = Appointment::where('salesperson', $value)
+                                    ->where('status', 'New')
+                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
+                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                $query->where('start_time', '<', $parsedStartTime)
+                                                        ->where('end_time', '>', $parsedEndTime);
+                                            });
+                                    })
+                                    ->exists();
+
+                                    if ($hasOverlap) {
+                                        return true;
+                                    }
+                            })
+                            ->required()
+                            ->hidden(fn () => auth()->user()->role_id === 2)
+                            ->placeholder('Select a salesperson'),
+                        ]),
 
                     Textarea::make('remarks')
                         ->label('REMARKS')
