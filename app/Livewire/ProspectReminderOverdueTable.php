@@ -76,14 +76,19 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
-                    ->formatStateUsing(fn ($state, $record) =>
-                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->id)) . '"
-                            target="_blank"
-                            class="inline-block"
-                            style="color:#338cf0;">
-                            ' . strtoupper(Str::limit($state ?? 'N/A', 10, '...')) . '
-                        </a>'
-                    )
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
                     ->html(),
                 TextColumn::make('company_size_label')
                     ->label('Company Size')

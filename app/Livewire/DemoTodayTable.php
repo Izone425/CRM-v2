@@ -63,17 +63,22 @@ class DemoTodayTable extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
-                TextColumn::make('lead.companyDetail.company_name')
+                TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
-                    ->formatStateUsing(fn ($state, $record) =>
-                        '<a href="' . url('admin/leads/' . \App\Classes\Encryptor::encrypt($record->lead->id)) . '"
-                            target="_blank"
-                            class="inline-block"
-                            style="color:#338cf0;">
-                            ' . strtoupper(Str::limit($state ?? 'N/A', 10, '...')) . '
-                        </a>'
-                    )
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
                     ->html(),
                 TextColumn::make('type')
                     ->label('Demo Type')

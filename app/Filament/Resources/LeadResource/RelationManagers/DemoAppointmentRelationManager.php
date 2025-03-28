@@ -509,103 +509,6 @@ class DemoAppointmentRelationManager extends RelationManager
                 ->modalHeading('Add Appointment')
                 ->hidden(auth()->user()->role_id != 2 && is_null($this->getOwnerRecord()->lead_owner))
                 ->form([
-                    Grid::make(3) // 3 columns for 3 Select fields
-                    ->schema([
-                        Select::make('type')
-                            ->options(function () {
-                                // Check if the lead has an appointment with 'new' or 'done' status
-                                $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
-                                    ->whereIn('status', ['New', 'Done'])
-                                    ->exists();
-
-                                // Dynamically set options
-                                $options = [
-                                    'NEW DEMO' => 'NEW DEMO',
-                                    'WEBINAR DEMO' => 'WEBINAR DEMO',
-                                ];
-
-                                if ($leadHasNewAppointment) {
-                                    $options = [
-                                        'HRMS DEMO' => 'HRMS DEMO',
-                                        'HRDF DISCUSSION' => 'HRDF DISCUSSION',
-                                        'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
-                                    ];
-                                }
-
-                                return $options;
-                            })
-                            ->default('NEW DEMO')
-                            ->required()
-                            ->label('DEMO TYPE'),
-
-                        Select::make('appointment_type')
-                            ->options([
-                                'ONLINE' => 'ONLINE',
-                                'ONSITE' => 'ONSITE',
-                            ])
-                            ->required()
-                            ->default('ONLINE')
-                            ->label('APPOINTMENT TYPE'),
-
-                        Select::make('salesperson')
-                            ->label('SALESPERSON')
-                            ->options(function (ActivityLog $activityLog) {
-                                $lead = $this->ownerRecord;
-                                // if ($lead->salesperson) {
-                                //     $salesperson = User::where('id', $lead->salesperson)->first();
-                                //     return [
-                                //         $lead->salesperson => $salesperson->name,
-                                //     ];
-                                // }
-
-                                if (auth()->user()->role_id == 3) {
-                                    return \App\Models\User::query()
-                                        ->whereIn('role_id', [2, 3])
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                } else {
-                                    return \App\Models\User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                }
-                            })
-                            ->disableOptionWhen(function ($value, $get) {
-                                $date = $get('date');
-                                $startTime = $get('start_time');
-                                $endTime = $get('end_time');
-                                $demo_type = $get('type');
-
-                                // If the demo type is 'WEBINAR DEMO', do not disable any options
-                                if ($demo_type === 'WEBINAR DEMO') {
-                                    return false; // Allow selection without restrictions
-                                }
-
-                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
-                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
-                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
-
-                                $hasOverlap = Appointment::where('salesperson', $value)
-                                    ->where('status', 'New')
-                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
-                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                                $query->where('start_time', '<', $parsedStartTime)
-                                                        ->where('end_time', '>', $parsedEndTime);
-                                            });
-                                    })
-                                    ->exists();
-
-                                    if ($hasOverlap) {
-                                        return true;
-                                    }
-                            })
-                            ->required()
-                            ->hidden(fn () => auth()->user()->role_id === 2)
-                            ->placeholder('Select a salesperson'),
-                        ]),
                     // Schedule
                     ToggleButtons::make('mode')
                         ->label('')
@@ -629,129 +532,225 @@ class DemoAppointmentRelationManager extends RelationManager
                             }
                         }),
 
-                        Grid::make(3) // 3 columns for Date, Start Time, End Time
+                    Grid::make(3) // 3 columns for Date, Start Time, End Time
+                        ->schema([
+                            DatePicker::make('date')
+                                ->required()
+                                ->label('DATE')
+                                ->default(Carbon::today()->toDateString())
+                                ->reactive(),
+
+                            TimePicker::make('start_time')
+                                ->label('START TIME')
+                                ->required()
+                                ->seconds(false)
+                                ->reactive()
+                                ->default(function () {
+                                    // Round up to the next 30-minute interval
+                                    $now = Carbon::now();
+                                    return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                                })
+                                ->datalist(function (callable $get) {
+                                    $user = Auth::user();
+                                    $date = $get('date');
+
+                                    if ($get('mode') === 'custom') {
+                                        return [];
+                                    }
+
+                                    $times = [];
+                                    $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+
+                                    if ($user && $user->role_id == 2 && $date) {
+                                        // Fetch all booked appointments as full models
+                                        $appointments = Appointment::where('salesperson', $user->id)
+                                            ->whereDate('date', $date)
+                                            ->whereIn('status', ['New', 'Done'])
+                                            ->get(['start_time', 'end_time']);
+
+                                        for ($i = 0; $i < 48; $i++) {
+                                            $slotStart = $startTime->copy();
+                                            $slotEnd = $startTime->copy()->addMinutes(30);
+                                            $formattedTime = $slotStart->format('H:i');
+
+                                            $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                                // Check if the slot overlaps with the appointment
+                                                return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                            });
+
+                                            if (!$isBooked) {
+                                                $times[] = $formattedTime;
+                                            }
+
+                                            $startTime->addMinutes(30);
+                                        }
+                                    } else {
+                                        for ($i = 0; $i < 48; $i++) {
+                                            $times[] = $startTime->format('H:i');
+                                            $startTime->addMinutes(30);
+                                        }
+                                    }
+
+                                    return $times;
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($get('mode') === 'auto' && $state) {
+                                        $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                    }
+                                }),
+
+                            TimePicker::make('end_time')
+                                ->label('END TIME')
+                                ->required()
+                                ->seconds(false)
+                                ->reactive()
+                                ->default(function (callable $get) {
+                                    $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                    return $startTime->addHour()->format('H:i');
+                                })
+                                ->datalist(function (callable $get) {
+                                    $user = Auth::user();
+                                    $date = $get('date');
+
+                                    if ($get('mode') === 'custom') {
+                                        return []; // Custom mode: empty list
+                                    }
+
+                                    $times = [];
+                                    $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                                    if ($user && $user->role_id == 2 && $date) {
+                                        // Fetch booked time slots for this salesperson on the selected date
+                                        $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                            ->whereDate('date', $date)
+                                            ->pluck('end_time', 'start_time') // Start as key, End as value
+                                            ->toArray();
+
+                                        for ($i = 0; $i < 48; $i++) {
+                                            $formattedTime = $startTime->format('H:i');
+
+                                            // Check if time is booked
+                                            $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                                return $formattedTime >= $start && $formattedTime <= $end;
+                                            });
+
+                                            if (!$isBooked) {
+                                                $times[] = $formattedTime;
+                                            }
+
+                                            $startTime->addMinutes(30);
+                                        }
+                                    } else {
+                                        // Default available slots
+                                        for ($i = 0; $i < 48; $i++) {
+                                            $times[] = $startTime->format('H:i');
+                                            $startTime->addMinutes(30);
+                                        }
+                                    }
+
+                                    return $times;
+                                }),
+                            ]),
+                            Grid::make(3) // 3 columns for 3 Select fields
                             ->schema([
-                                DatePicker::make('date')
-                                    ->required()
-                                    ->label('DATE')
-                                    ->default(Carbon::today()->toDateString())
-                                    ->reactive(),
+                                Select::make('type')
+                                    ->options(function () {
+                                        // Check if the lead has an appointment with 'new' or 'done' status
+                                        $leadHasNewAppointment = Appointment::where('lead_id', $this->getOwnerRecord()->id)
+                                            ->whereIn('status', ['New', 'Done'])
+                                            ->exists();
 
-                                TimePicker::make('start_time')
-                                    ->label('START TIME')
-                                    ->required()
-                                    ->seconds(false)
-                                    ->reactive()
-                                    ->default(function () {
-                                        // Round up to the next 30-minute interval
-                                        $now = Carbon::now();
-                                        return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                                        // Dynamically set options
+                                        $options = [
+                                            'NEW DEMO' => 'NEW DEMO',
+                                            'WEBINAR DEMO' => 'WEBINAR DEMO',
+                                        ];
+
+                                        if ($leadHasNewAppointment) {
+                                            $options = [
+                                                'HRMS DEMO' => 'HRMS DEMO',
+                                                'HRDF DISCUSSION' => 'HRDF DISCUSSION',
+                                                'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
+                                            ];
+                                        }
+
+                                        return $options;
                                     })
-                                    ->datalist(function (callable $get) {
-                                        $user = Auth::user();
-                                        $date = $get('date');
-
-                                        if ($get('mode') === 'custom') {
-                                            return [];
-                                        }
-
-                                        $times = [];
-                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
-
-                                        if ($user && $user->role_id == 2 && $date) {
-                                            // Fetch all booked appointments as full models
-                                            $appointments = Appointment::where('salesperson', $user->id)
-                                                ->whereDate('date', $date)
-                                                ->whereIn('status', ['New', 'Done'])
-                                                ->get(['start_time', 'end_time']);
-
-                                            for ($i = 0; $i < 48; $i++) {
-                                                $slotStart = $startTime->copy();
-                                                $slotEnd = $startTime->copy()->addMinutes(30);
-                                                $formattedTime = $slotStart->format('H:i');
-
-                                                $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
-                                                    $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
-                                                    $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
-
-                                                    // Check if the slot overlaps with the appointment
-                                                    return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
-                                                });
-
-                                                if (!$isBooked) {
-                                                    $times[] = $formattedTime;
-                                                }
-
-                                                $startTime->addMinutes(30);
-                                            }
-                                        } else {
-                                            for ($i = 0; $i < 48; $i++) {
-                                                $times[] = $startTime->format('H:i');
-                                                $startTime->addMinutes(30);
-                                            }
-                                        }
-
-                                        return $times;
-                                    })
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                        if ($get('mode') === 'auto' && $state) {
-                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
-                                        }
-                                    }),
-
-                                TimePicker::make('end_time')
-                                    ->label('END TIME')
+                                    ->default('NEW DEMO')
                                     ->required()
-                                    ->seconds(false)
-                                    ->reactive()
-                                    ->default(function (callable $get) {
-                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
-                                        return $startTime->addHour()->format('H:i');
-                                    })
-                                    ->datalist(function (callable $get) {
-                                        $user = Auth::user();
-                                        $date = $get('date');
+                                    ->label('DEMO TYPE'),
 
-                                        if ($get('mode') === 'custom') {
-                                            return []; // Custom mode: empty list
-                                        }
+                                Select::make('appointment_type')
+                                    ->options([
+                                        'ONLINE' => 'ONLINE',
+                                        'ONSITE' => 'ONSITE',
+                                    ])
+                                    ->required()
+                                    ->default('ONLINE')
+                                    ->label('APPOINTMENT TYPE'),
 
-                                        $times = [];
-                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                Select::make('salesperson')
+                                    ->label('SALESPERSON')
+                                    ->options(function (ActivityLog $activityLog) {
+                                        $lead = $this->ownerRecord;
+                                        // if ($lead->salesperson) {
+                                        //     $salesperson = User::where('id', $lead->salesperson)->first();
+                                        //     return [
+                                        //         $lead->salesperson => $salesperson->name,
+                                        //     ];
+                                        // }
 
-                                        if ($user && $user->role_id == 2 && $date) {
-                                            // Fetch booked time slots for this salesperson on the selected date
-                                            $bookedAppointments = Appointment::where('salesperson', $user->id)
-                                                ->whereDate('date', $date)
-                                                ->pluck('end_time', 'start_time') // Start as key, End as value
+                                        if (auth()->user()->role_id == 3) {
+                                            return \App\Models\User::query()
+                                                ->whereIn('role_id', [2, 3])
+                                                ->pluck('name', 'id')
                                                 ->toArray();
-
-                                            for ($i = 0; $i < 48; $i++) {
-                                                $formattedTime = $startTime->format('H:i');
-
-                                                // Check if time is booked
-                                                $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
-                                                    return $formattedTime >= $start && $formattedTime <= $end;
-                                                });
-
-                                                if (!$isBooked) {
-                                                    $times[] = $formattedTime;
-                                                }
-
-                                                $startTime->addMinutes(30);
-                                            }
                                         } else {
-                                            // Default available slots
-                                            for ($i = 0; $i < 48; $i++) {
-                                                $times[] = $startTime->format('H:i');
-                                                $startTime->addMinutes(30);
-                                            }
+                                            return \App\Models\User::query()
+                                                ->where('role_id', 2)
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        }
+                                    })
+                                    ->disableOptionWhen(function ($value, $get) {
+                                        $date = $get('date');
+                                        $startTime = $get('start_time');
+                                        $endTime = $get('end_time');
+                                        $demo_type = $get('type');
+
+                                        // If the demo type is 'WEBINAR DEMO', do not disable any options
+                                        if ($demo_type === 'WEBINAR DEMO') {
+                                            return false; // Allow selection without restrictions
                                         }
 
-                                        return $times;
-                                    }),
-                                ]),
+                                        $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
+                                        $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
+                                        $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
 
+                                        $hasOverlap = Appointment::where('salesperson', $value)
+                                            ->where('status', 'New')
+                                            ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
+                                            ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                                    ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                                    ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                        $query->where('start_time', '<', $parsedStartTime)
+                                                                ->where('end_time', '>', $parsedEndTime);
+                                                    });
+                                            })
+                                            ->exists();
+
+                                            if ($hasOverlap) {
+                                                return true;
+                                            }
+                                    })
+                                    ->required()
+                                    ->hidden(fn () => auth()->user()->role_id === 2)
+                                    ->placeholder('Select a salesperson'),
+                                ]),
                     Textarea::make('remarks')
                         ->label('REMARKS')
                         ->rows(3)
