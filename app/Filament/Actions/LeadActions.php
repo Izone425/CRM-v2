@@ -37,6 +37,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event as FacadesEvent;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
@@ -1022,7 +1023,9 @@ class LeadActions
                         ->label('Next Follow Up Date')
                         ->required()
                         ->placeholder('Select a follow-up date')
-                        ->default(fn ($record) => $record->lead->follow_up_date ?? now())
+                        ->default(fn ($record) =>
+                            optional($record->lead->follow_up_date)->addDays(7) ?? now()->addDays(7)
+                        )
                         ->reactive(),
                         // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
 
@@ -1324,14 +1327,14 @@ class LeadActions
             ->requiresConfirmation()
             ->icon('heroicon-o-paper-airplane')
             ->modalHeading('Transfer to Call Attempt')
-            ->modalDescription('Do you want to transfer this lead to Call Attempt Section? Make sure you have contact the lead before you transfer')
+            ->modalDescription('Do you want to transfer this lead to Call Attempt Section? Make sure you have contacted the lead before you transfer')
             ->color('primary')
             ->action(function (Lead $record) {
-                // Increment the call attempt count
-                $record->increment('call_attempt');
-                $record->update(['done_call'=>1]);
+                $record->timestamps = false; // Skip updated_at
+                $record->call_attempt += 1;
+                $record->done_call = 1;
+                $record->saveQuietly(); // Silent update, no events triggered
 
-                // Display a success notification
                 Notification::make()
                     ->title('Call Attempt Recorded')
                     ->success()
@@ -1568,6 +1571,324 @@ class LeadActions
                     ->title('You had cancelled a demo')
                     ->warning()
                     ->send();
+            });
+    }
+
+    public static function getRescheduleDemoAction(): Action
+    {
+        return Action::make('reschedule_demo')
+            ->label('Reschedule Demo')
+            ->icon('heroicon-o-calendar-days')
+            ->color('primary')
+            ->modalHeading('Reschedule Demo Appointment')
+            ->form(function (?Appointment $record) {
+                if (! $record) {
+                    return [
+                        Placeholder::make('noAppointment')->content('No appointment found to reschedule.')
+                    ];
+                }
+                return [
+                    ToggleButtons::make('mode')
+                        ->label('')
+                        ->options([
+                            'auto' => 'Auto',
+                            'custom' => 'Custom',
+                        ])
+                        ->reactive()
+                        ->inline()
+                        ->grouped()
+                        ->default('auto')
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            if ($state === 'custom') {
+                                $set('date', null);
+                                $set('start_time', null);
+                                $set('end_time', null);
+                            } else {
+                                $set('date', Carbon::today()->toDateString());
+                                $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                            }
+                        }),
+
+                    Grid::make(3)->schema([
+                        DatePicker::make('date')
+                            ->required()
+                            ->label('DATE')
+                            ->default(Carbon::today()->toDateString()),
+
+                        TimePicker::make('start_time')
+                            ->label('START TIME')
+                            ->required()
+                            ->seconds(false)
+                            ->reactive()
+                            ->default(function () {
+                                // Round up to the next 30-minute interval
+                                $now = Carbon::now();
+                                return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                            })
+                            ->datalist(function (callable $get) {
+                                $user = Auth::user();
+                                $date = $get('date');
+
+                                if ($get('mode') === 'custom') {
+                                    return [];
+                                }
+
+                                $times = [];
+                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+
+                                if ($user && $user->role_id == 2 && $date) {
+                                    // Fetch all booked appointments as full models
+                                    $appointments = Appointment::where('salesperson', $user->id)
+                                        ->whereDate('date', $date)
+                                        ->whereIn('status', ['New', 'Done'])
+                                        ->get(['start_time', 'end_time']);
+
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $slotStart = $startTime->copy();
+                                        $slotEnd = $startTime->copy()->addMinutes(30);
+                                        $formattedTime = $slotStart->format('H:i');
+
+                                        $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                            $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                            $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                            // Check if the slot overlaps with the appointment
+                                            return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                        });
+
+                                        if (!$isBooked) {
+                                            $times[] = $formattedTime;
+                                        }
+
+                                        $startTime->addMinutes(30);
+                                    }
+                                } else {
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $times[] = $startTime->format('H:i');
+                                        $startTime->addMinutes(30);
+                                    }
+                                }
+
+                                return $times;
+                            })
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if ($get('mode') === 'auto' && $state) {
+                                    $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                }
+                            }),
+
+                        TimePicker::make('end_time')
+                            ->label('END TIME')
+                            ->required()
+                            ->seconds(false)
+                            ->reactive()
+                            ->default(function (callable $get) {
+                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                return $startTime->addHour()->format('H:i');
+                            })
+                            ->datalist(function (callable $get) {
+                                $user = Auth::user();
+                                $date = $get('date');
+
+                                if ($get('mode') === 'custom') {
+                                    return []; // Custom mode: empty list
+                                }
+
+                                $times = [];
+                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                                if ($user && $user->role_id == 2 && $date) {
+                                    // Fetch booked time slots for this salesperson on the selected date
+                                    $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                        ->whereDate('date', $date)
+                                        ->pluck('end_time', 'start_time') // Start as key, End as value
+                                        ->toArray();
+
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $formattedTime = $startTime->format('H:i');
+
+                                        // Check if time is booked
+                                        $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                            return $formattedTime >= $start && $formattedTime <= $end;
+                                        });
+
+                                        if (!$isBooked) {
+                                            $times[] = $formattedTime;
+                                        }
+
+                                        $startTime->addMinutes(30);
+                                    }
+                                } else {
+                                    // Default available slots
+                                    for ($i = 0; $i < 48; $i++) {
+                                        $times[] = $startTime->format('H:i');
+                                        $startTime->addMinutes(30);
+                                    }
+                                }
+
+                                return $times;
+                            }),
+                    ]),
+
+                    Grid::make(3)->schema([
+                        Select::make('type')
+                            ->label('DEMO TYPE')
+                            ->default('NEW DEMO')
+                            ->required()
+                            ->options(function () use ($record) {
+                                $leadHasNewAppointment = Appointment::where('lead_id', $record->id)
+                                    ->whereIn('status', ['New', 'Done'])
+                                    ->exists();
+
+                                return $leadHasNewAppointment
+                                    ? [
+                                        'HRMS DEMO' => 'HRMS DEMO',
+                                        'HRDF DISCUSSION' => 'HRDF DISCUSSION',
+                                        'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
+                                    ]
+                                    : [
+                                        'NEW DEMO' => 'NEW DEMO',
+                                        'WEBINAR DEMO' => 'WEBINAR DEMO',
+                                    ];
+                            }),
+
+                        Select::make('appointment_type')
+                            ->label('APPOINTMENT TYPE')
+                            ->required()
+                            ->default('ONLINE')
+                            ->options([
+                                'ONLINE' => 'ONLINE',
+                                'ONSITE' => 'ONSITE',
+                            ]),
+
+                        Select::make('salesperson')
+                            ->label('SALESPERSON')
+                            ->options(function () {
+                                return auth()->user()->role_id == 3
+                                    ? User::whereIn('role_id', [2, 3])->pluck('name', 'id')->toArray()
+                                    : User::where('role_id', 2)->pluck('name', 'id')->toArray();
+                            })
+                            ->disableOptionWhen(function ($value, $get) {
+                                $date = $get('date');
+                                $startTime = $get('start_time');
+                                $endTime = $get('end_time');
+                                $demoType = $get('type');
+
+                                if ($demoType === 'WEBINAR DEMO') return false;
+
+                                $parsedDate = Carbon::parse($date)->format('Y-m-d');
+                                $parsedStart = Carbon::parse($startTime)->format('H:i:s');
+                                $parsedEnd = Carbon::parse($endTime)->format('H:i:s');
+
+                                return Appointment::where('salesperson', $value)
+                                    ->where('status', 'New')
+                                    ->whereDate('date', $parsedDate)
+                                    ->where(function ($query) use ($parsedStart, $parsedEnd) {
+                                        $query->whereBetween('start_time', [$parsedStart, $parsedEnd])
+                                            ->orWhereBetween('end_time', [$parsedStart, $parsedEnd])
+                                            ->orWhere(function ($q) use ($parsedStart, $parsedEnd) {
+                                                $q->where('start_time', '<', $parsedStart)
+                                                    ->where('end_time', '>', $parsedEnd);
+                                            });
+                                    })
+                                    ->exists();
+                            })
+                            ->required()
+                            ->hidden(fn () => auth()->user()->role_id === 2)
+                            ->placeholder('Select a salesperson'),
+                    ]),
+
+                    Textarea::make('remarks')
+                        ->label('REMARKS')
+                        ->rows(3)
+                        ->autosize()
+                        ->reactive()
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                    TextInput::make('required_attendees')
+                        ->label('Required Attendees')
+                        ->helperText('Separate each email and name pair with a semicolon (e.g., email1;email2;email3).'),
+                ];
+            })
+            ->action(function (array $data, Appointment $record) {
+                $lead = $record->lead;
+
+                if (! $record) {
+                    Notification::make()
+                        ->title('No Existing Appointment')
+                        ->danger()
+                        ->body('No demo appointment found to reschedule.')
+                        ->send();
+                    return;
+                }
+
+                $record->update([
+                    'date' => $data['date'],
+                    'start_time' => $data['start_time'],
+                    'end_time' => $data['end_time'],
+                    'type' => $data['type'],
+                    'appointment_type' => $data['appointment_type'],
+                    'remarks' => $data['remarks'],
+                    'required_attendees' => $data['required_attendees'],
+                ]);
+
+                $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                $graph = new Graph();
+                $graph->setAccessToken($accessToken);
+
+                $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+                $salesperson = User::find($record->salesperson);
+                $organizerEmail = $salesperson->email ?? null;
+
+                if (! $organizerEmail) {
+                    Notification::make()
+                        ->title('Missing Organizer Email')
+                        ->danger()
+                        ->body('Salesperson email is not available.')
+                        ->send();
+                    return;
+                }
+
+                try {
+                    if ($record->event_id) {
+                        $meetingUpdatePayload = [
+                            'start' => ['dateTime' => $startTime, 'timeZone' => 'Asia/Kuala_Lumpur'],
+                            'end' => ['dateTime' => $endTime, 'timeZone' => 'Asia/Kuala_Lumpur'],
+                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                        ];
+
+                        $graph->createRequest("PATCH", "/users/$organizerEmail/events/{$record->event_id}")
+                            ->attachBody($meetingUpdatePayload)
+                            ->execute();
+
+                        Notification::make()
+                            ->title('Demo Rescheduled')
+                            ->success()
+                            ->body('The demo appointment and Teams meeting have been updated.')
+                            ->send();
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Teams Meeting Reschedule Failed: ' . $e->getMessage());
+                    Notification::make()
+                        ->title('Rescheduling Failed')
+                        ->danger()
+                        ->body($e->getMessage())
+                        ->send();
+                }
+
+                $lead->updateQuietly([
+                    'follow_up_date' => $data['date'],
+                    'remark' => $data['remarks'],
+                ]);
+
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($lead)
+                    ->log('Demo rescheduled to ' . $data['date'] . ' at ' . $data['start_time']);
+
             });
     }
 

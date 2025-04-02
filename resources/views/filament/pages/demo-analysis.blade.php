@@ -368,6 +368,10 @@
                 height: 100%;
                 border-radius: 5px;
             }
+            .cursor-pointer:hover {
+                transform: scale(1.02);
+                transition: all 0.2s;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -432,7 +436,7 @@
                             };
                         @endphp
 
-                        <div class="bar-group">
+                        <div class="cursor-pointer bar-group" wire:click="openDemoDetailSlideOver('{{ $type }}')">
                             <!-- Hover Message for Count -->
                             <div class="hover-message">{{ $percentage }}%</div>
 
@@ -534,14 +538,15 @@
                         @endphp
 
                         <!-- Company Size Title & Count -->
-                        <div class="progress-info">
-                            <span>{{ ucfirst($companySize) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <div class="cursor-pointer" wire:click="openNewDemoCompanySizeSlideOver('{{ $companySize }}')">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($companySize) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <!-- Progress Bar -->
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -571,7 +576,7 @@
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer" wire:click="openNewDemoStatusSlideOver('{{ $status }}')">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -633,14 +638,15 @@
                         @endphp
 
                         <!-- Company Size Title & Count -->
-                        <div class="progress-info">
-                            <span>{{ ucfirst($companySize) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <div class="cursor-pointer" wire:click="openWebinarCompanySizeSlideOver('{{ $companySize }}')">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($companySize) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <!-- Progress Bar -->
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -670,7 +676,7 @@
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer" wire:click="openWebinarStatusSlideOver('{{ $status }}')">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -691,6 +697,50 @@
                         <p class="mt-2 text-sm text-gray-700">{{ $status }}</p>
                     </div>
                 @endforeach
+            </div>
+        </div>
+    </div>
+    <!-- Outer Overlay -->
+    <div
+    x-data="{ open: @entangle('showSlideOver') }"
+    x-show="open"
+    @click.self="open = false"
+    @keydown.window.escape="open = false"
+    class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-100"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    >
+        <div class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl">
+            <br><br>
+
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                <button @click="open = false" class="text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+
+            <div class="flex-1 p-4 space-y-2 overflow-y-auto">
+                @forelse ($slideOverList as $item)
+                    @php
+                        $companyName = $item->lead->companyDetail->company_name ?? 'N/A';
+                        $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($item->lead_id);
+                    @endphp
+
+                    <a
+                        href="{{ url('admin/leads/' . $encryptedId) }}"
+                        target="_blank"
+                        title="{{ $companyName }}"
+                        class="block px-4 py-2 text-sm font-medium text-blue-600 transition border rounded bg-gray-50 hover:bg-blue-50 hover:text-blue-800"
+                    >
+                        {{ $shortened }}
+                    </a>
+                @empty
+                    <div class="text-sm text-gray-500">No data found.</div>
+                @endforelse
             </div>
         </div>
     </div>

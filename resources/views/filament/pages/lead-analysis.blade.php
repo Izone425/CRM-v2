@@ -276,6 +276,11 @@
                 opacity: 1;
                 visibility: visible;
             }
+
+            .cursor-pointer:hover {
+                transform: scale(1.02);
+                transition: all 0.2s;
+            }
         </style>
     </head>
 
@@ -330,12 +335,11 @@
                     <!-- Active Leads Doughnut -->
                     <div class="flex justify-center space-x-10"> <!-- Ensures proper spacing -->
                         <!-- Active Leads Doughnut -->
-                        <div class="text-center">
-                            <div class="relative w-28 h-28 group"> <!-- Group for hover -->
+                        <div class="text-center cursor-pointer" wire:click="openActiveLeadSlideOver">
+                            <div class="relative w-28 h-28 group">
+                                <!-- SVG circle... -->
                                 <svg width="130" height="130" viewBox="0 0 36 36">
-                                    <!-- Background Circle -->
                                     <circle cx="18" cy="18" r="14" stroke="#E8FCF7" stroke-width="5" fill="none"></circle>
-                                    <!-- Progress Indicator -->
                                     <circle cx="18" cy="18" r="14" stroke="#2CCF9C" stroke-width="5" fill="none"
                                             stroke-dasharray="88"
                                             stroke-dashoffset="{{ 88 - (88 * ($activePercentage / 100)) }}"
@@ -343,11 +347,7 @@
                                             transform="rotate(-90 18 18)">
                                     </circle>
                                 </svg>
-                                <!-- Hover Message for Count -->
-                                <div class="hover-message">
-                                    {{ $activeLeads }} Leads
-                                </div>
-                                <!-- Percentage in the Center -->
+                                <div class="hover-message">{{ $activeLeads }} Leads</div>
                                 <div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-900">
                                     {{ $activePercentage }}%
                                 </div>
@@ -356,23 +356,17 @@
                         </div>
 
                         <!-- Inactive Leads Doughnut -->
-                        <div class="text-center">
-                            <div class="relative w-28 h-28 group"> <!-- Group for hover -->
+                        <div class="text-center cursor-pointer" wire:click="openInactiveLeadSlideOver">
+                            <div class="relative w-28 h-28 group">
                                 <svg width="130" height="130" viewBox="0 0 36 36">
-                                    <!-- Background Circle -->
                                     <circle cx="18" cy="18" r="14" stroke="#F5F7F9" stroke-width="5" fill="none"></circle>
-                                    <!-- Progress Indicator -->
                                     <circle cx="18" cy="18" r="14" stroke="#D6DDEB" stroke-width="5" fill="none"
                                             stroke-dasharray="100, 100"
                                             stroke-dashoffset="{{ 100 - $inactivePercentage }}"
                                             stroke-linecap="round"
                                             transform="rotate(-90 18 18)"></circle>
                                 </svg>
-                                <!-- Hover Message for Count -->
-                                <div class="hover-message">
-                                    {{ $inactiveLeads }} Leads
-                                </div>
-                                <!-- Percentage in the Center -->
+                                <div class="hover-message">{{ $inactiveLeads }} Leads</div>
                                 <div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-900">
                                     {{ $inactivePercentage }}%
                                 </div>
@@ -404,8 +398,8 @@
                             };
                         @endphp
 
-                        <div class="bar-group">
-                            <p class="percentage-label">{{ $count }}</p>
+                        <div class="cursor-pointer bar-group" wire:click="openCompanySizeSlideOver('{{ ucfirst($size) }}')">
+                        <p class="percentage-label">{{ $count }}</p>
                             <div class="bar-wrapper" style="background-color: {{ $barBgColor }};">
                                 <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
                             </div>
@@ -454,13 +448,13 @@
                         @endphp
 
                         <!-- Stage Title & Count -->
-                        <div class="progress-info">
+                        <div class="cursor-pointer progress-info" wire:click="openStageLeadSlideOver('{{ $stage }}')">
                             <span>{{ ucfirst($stage) }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
                         <!-- Progress Bar -->
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                        <div class="cursor-pointer progress-bar" style="background-color: {{ $bgcolor }};" wire:click="openStageLeadSlideOver('{{ $stage }}')">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -502,12 +496,12 @@
                             };
                         @endphp
 
-                        <div class="progress-info">
+                        <div class="cursor-pointer progress-info" wire:click="openInactiveStatusSlideOver('{{ $status }}')">
                             <span>{{ ucfirst($status) }}</span>
                             <span>{{ $count }} ({{ $percentage }}%)</span>
                         </div>
 
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                        <div class="cursor-pointer progress-bar" style="background-color: {{ $bgcolor }};" wire:click="openInactiveStatusSlideOver('{{ $status }}')">
                             <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                         </div>
                     @endforeach
@@ -540,7 +534,7 @@
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer" wire:click="openTransferSlideOver('{{ $status }}')">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -590,7 +584,7 @@
                         };
                     @endphp
 
-                    <div class="text-center">
+                    <div class="text-center cursor-pointer" wire:click="openFollowUpSlideOver('{{ $status }}')">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -611,6 +605,54 @@
                         <p class="mt-2 text-sm text-gray-700">{{ $status }}</p>
                     </div>
                 @endforeach
+            </div>
+        </div>
+    </div>
+    <!-- Outer Overlay -->
+    <div
+    x-data="{ open: @entangle('showSlideOver') }"
+    x-show="open"
+    @keydown.window.escape="open = false"
+    class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-100"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    >
+        <!-- Slide-over content -->
+        <div
+            class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
+            @click.away="open = false"  <!-- ✅ Close when clicking outside -->
+        >
+            <!-- Header -->
+            <br><br>
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                <button @click="open = false" class="text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+
+            <!-- Scrollable content -->
+            <div class="flex-1 p-4 space-y-2 overflow-y-auto">
+                @forelse ($leadList as $lead)
+                    @php
+                        $companyName = $lead->companyDetail->company_name ?? 'N/A';
+                        $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+                    @endphp
+
+                    <a
+                        href="{{ url('admin/leads/' . $encryptedId) }}"
+                        target="_blank"
+                        title="{{ $companyName }}"
+                        class="block px-4 py-2 text-sm font-medium text-blue-600 transition border rounded bg-gray-50 hover:bg-blue-50 hover:text-blue-800"
+                    >
+                        {{ $shortened }}
+                    </a>
+                @empty
+                    <div class="text-sm text-gray-500">No data found.</div>
+                @endforelse
             </div>
         </div>
     </div>

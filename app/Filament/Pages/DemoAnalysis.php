@@ -43,6 +43,11 @@ class DemoAnalysis extends Page
     public $days;
     public Carbon $currentDate;
 
+    //Slide Modal Variables
+    public $showSlideOver = false;
+    public $slideOverTitle = '';
+    public $slideOverList = [];
+
     public function mount()
     {
         $authUser = auth()->user();
@@ -363,5 +368,168 @@ class DemoAnalysis extends Page
     private function getNumberOfDays(Carbon $date)
     {
         return $date->daysInMonth;
+    }
+
+    public function openDemoDetailSlideOver($type)
+    {
+        $authUser = auth()->user();
+        $query = Appointment::where('type', $type)->where('status', '!=', 'Cancelled')->with('lead.companyDetail');
+
+        if (in_array($authUser->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($authUser->role_id === 2) {
+            $query->where('salesperson', $authUser->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->slideOverTitle = $type . ' Appointments';
+        $this->showSlideOver = true;
+    }
+
+    public function openNewDemoCompanySizeSlideOver($size)
+    {
+        $this->slideOverTitle = "New Demo - " . ucfirst($size);
+        $authUser = auth()->user();
+
+        // Define the raw company_size values that match the given label
+        $sizeMap = [
+            'Small' => ['1-24'],
+            'Medium' => ['25-99'],
+            'Large' => ['100-500'],
+            'Enterprise' => ['501 and Above'],
+        ];
+
+        $rawSizes = $sizeMap[$size] ?? [];
+
+        $query = Appointment::with('lead.companyDetail')
+            ->where('type', 'NEW DEMO')
+            ->where('status', '!=', 'Cancelled')
+            ->whereHas('lead', function ($q) use ($rawSizes) {
+                $q->whereIn('company_size', $rawSizes);
+            });
+
+        // Role-based filtering
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($authUser->role_id == 2) {
+            $query->where('salesperson', $authUser->id);
+        }
+
+        // Month filter
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openNewDemoStatusSlideOver($status)
+    {
+        $this->slideOverTitle = "New Demo - Status: " . ucfirst($status);
+
+        $authUser = auth()->user();
+
+        $query = Appointment::with('lead.companyDetail')
+            ->where('type', 'NEW DEMO')
+            ->where('status', '!=', 'Cancelled')
+            ->whereHas('lead', fn($q) => $q->where('lead_status', $status));
+
+        // Role filter
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($authUser->role_id == 2) {
+            $query->where('salesperson', $authUser->id);
+        }
+
+        // Date filter
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openWebinarCompanySizeSlideOver($size)
+    {
+        $this->slideOverTitle = "Webinar Demo - " . ucfirst($size);
+        $authUser = auth()->user();
+
+        // Define raw company_size values for each label
+        $sizeMap = [
+            'Small' => ['1-24'],
+            'Medium' => ['25-99'],
+            'Large' => ['100-500'],
+            'Enterprise' => ['501 and Above'],
+        ];
+
+        $rawSizes = $sizeMap[$size] ?? [];
+
+        $query = Appointment::with('lead.companyDetail')
+            ->where('type', 'WEBINAR DEMO')
+            ->where('status', '!=', 'Cancelled')
+            ->whereHas('lead', function ($q) use ($rawSizes) {
+                $q->whereIn('company_size', $rawSizes);
+            });
+
+        // Role-based filtering
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($authUser->role_id == 2) {
+            $query->where('salesperson', $authUser->id);
+        }
+
+        // Month filter
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openWebinarStatusSlideOver($status)
+    {
+        $this->slideOverTitle = "Webinar Demo - Status: " . ucfirst($status);
+
+        $authUser = auth()->user();
+
+        $query = Appointment::with('lead.companyDetail')
+            ->where('type', 'WEBINAR DEMO')
+            ->where('status', '!=', 'Cancelled')
+            ->whereHas('lead', fn($q) => $q->where('lead_status', $status));
+
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($authUser->role_id == 2) {
+            $query->where('salesperson', $authUser->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
     }
 }

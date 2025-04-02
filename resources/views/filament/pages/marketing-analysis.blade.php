@@ -377,6 +377,10 @@
                 opacity: 1;
                 visibility: visible;
             }
+            .cursor-pointer:hover {
+                transform: scale(1.02);
+                transition: all 0.2s;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -515,12 +519,14 @@
                                     default => '#E2E8F0',
                                 };
                             @endphp
-                            <div class="progress-info">
-                                <span>{{ $status }}</span>
-                                <span>{{ $count }} ({{ $percentage }}%)</span>
-                            </div>
-                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <div class="text-center cursor-pointer" wire:click="openLeadStatusSlideOver('{{ $status }}')">
+                                <div class="progress-info">
+                                    <span>{{ $status }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+                                <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -547,7 +553,7 @@
                         $barColor = $colors[$loop->index % count($colors)];
                     @endphp
 
-                    <div class="bar-group">
+                    <div class="cursor-pointer bar-group" wire:click="openLeadSourceSlideOver('{{ $source }}')">
                         <p class="percentage-label">{{ $count }}</p>
                         <div class="bar-wrapper" style="background-color: #F7F7F7;">
                             <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
@@ -592,12 +598,15 @@
                                 'Enterprise' => '#FFEDED',
                             };
                         @endphp
-                        <div class="progress-info">
-                            <span>{{ ucfirst($companySize) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
-                        <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+
+                        <div wire:click="openCompanySizeSlideOver('{{ $companySize }}')" class="cursor-pointer">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($companySize) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -640,12 +649,15 @@
                                     default => '#F9FAFB',
                                 };
                             @endphp
-                            <div class="progress-info">
-                                <span>{{ ucfirst($companySize) }}</span>
-                                <span>{{ $count }} ({{ $percentage }}%)</span>
-                            </div>
-                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+
+                            <div wire:click="openDemoCompanySizeSlideOver('{{ $companySize }}')" class="cursor-pointer">
+                                <div class="progress-info">
+                                    <span>{{ ucfirst($companySize) }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+                                <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -681,7 +693,10 @@
                             };
                         @endphp
 
-                        <div class="flex flex-col items-center justify-center flex-1 min-w-[200px] p-6 rounded-lg shadow-inner">
+                        <div
+                            class="flex flex-col items-center justify-center flex-1 min-w-[200px] p-6 rounded-lg shadow-inner cursor-pointer"
+                            wire:click="openDemoTypeSlideOver('{{ $type }}')"
+                        >
                             <div class="relative text-center group">
                                 <div class="relative w-28 h-28">
                                     <svg width="130" height="130" viewBox="0 0 36 36">
@@ -786,7 +801,10 @@
                 <tbody>
                     @forelse ($webinarDemoAverages as $name => $data)
                         <tr class="border-b hover:bg-gray-50">
-                            <td class="py-2 font-medium">{{ $name }}</td>
+                            <td class="py-2 font-medium text-blue-600 cursor-pointer hover:underline"
+                                wire:click="openWebinarLeadList('{{ $name }}')">
+                                {{ $name }}
+                            </td>
                             <td class="py-2">{{ $data['webinar_count'] }}</td>
                             <td class="py-2">{{ $data['total_leads'] }}</td>
                             <td class="py-2 font-semibold text-blue-600">{{ $data['average_per_webinar'] }}</td>
@@ -827,54 +845,87 @@
                     @endphp
 
                     @foreach ($monthlyDealAmounts as $month => $amount)
+                    @php
+                        $heightPercent = $maxAmount > 0 ? ($amount / $maxAmount) * 100 : 0;
+                        $color = $barColors[$loop->index % count($barColors)];
+                        $bgcolor = $barBgColors[$loop->index % count($barBgColors)];
+                        $label = Carbon\Carbon::parse($month)->format('M');
+
+                        if ($previousAmount === null || $previousAmount == 0) {
+                            $percentChange = 0;
+                        } else {
+                            $percentChange = (($amount - $previousAmount) / $previousAmount) * 100;
+                        }
+
+                        $previousAmount = $amount;
+                    @endphp
+
+                    <div class="relative text-center cursor-pointer bar-group group" wire:click="openMonthlyDealsSlideOver('{{ $month }}')">
                         @php
-                            $heightPercent = $maxAmount > 0 ? ($amount / $maxAmount) * 100 : 0;
-                            $color = $barColors[$loop->index % count($barColors)];
-                            $bgcolor = $barBgColors[$loop->index % count($barBgColors)];
-                            $label = Carbon\Carbon::parse($month)->format('M');
-
-                            // % Change from previous month
-                            if ($previousAmount === null || $previousAmount == 0) {
-                                $percentChange = 0;
-                            } else {
-                                $percentChange = (($amount - $previousAmount) / $previousAmount) * 100;
-                            }
-
-                            $previousAmount = $amount;
+                            $labelcolor = $percentChange > 0
+                                ? '#16a34a'
+                                : ($percentChange < 0 ? '#dc2626' : '#374151');
                         @endphp
 
-                        <div class="relative text-center bar-group group">
-                            @if (!is_null($percentChange))
-                                @php
-                                    $labelcolor = $percentChange > 0
-                                        ? '#16a34a'      // green
-                                        : ($percentChange < 0
-                                            ? '#dc2626'  // red
-                                            : '#374151'); // gray-700 (neutral for 0%)
-                                @endphp
+                        <p style="margin-bottom: 4px; font-size: 12px; font-weight: 600; color: {{ $labelcolor }};">
+                            {{ $percentChange >= 0 ? '+' : '' }}{{ number_format($percentChange, 2) }}%
+                        </p>
 
-                                <p style="
-                                    margin-bottom: 4px;
-                                    font-size: 12px;
-                                    font-weight: 600;
-                                    color: {{ $labelcolor }};">
-                                    {{ $percentChange >= 0 ? '+' : '' }}{{ number_format($percentChange, 2) }}%
-                                </p>
-                            @endif
-
-                            <div class="w-6 bg-gray-200 rounded bar-wrapper" style="height: 140px; background-color: {{ $bgcolor }};">
-                                <div class="rounded bar-fill" style="height: {{ $heightPercent }}%; background-color: {{ $color }};"></div>
-                            </div>
-
-                            <p class="mt-2 text-xs text-gray-600">{{ $label }}</p>
-
-                            <!-- Optional Hover Tooltip -->
-                            <div class="hover-message">
-                                RM {{ number_format($amount, 2) }}
-                            </div>
+                        <div class="w-6 bg-gray-200 rounded bar-wrapper" style="height: 140px; background-color: {{ $bgcolor }};">
+                            <div class="rounded bar-fill" style="height: {{ $heightPercent }}%; background-color: {{ $color }};"></div>
                         </div>
+
+                        <p class="mt-2 text-xs text-gray-600">{{ $label }}</p>
+
+                        <div class="hover-message">
+                            RM {{ number_format($amount, 2) }}
+                        </div>
+                    </div>
                     @endforeach
                 </div>
+            </div>
+        </div>
+    </div>
+    <div
+    x-data="{ open: @entangle('showSlideOver') }"
+    x-show="open"
+    @click.self="open = false"
+    @keydown.window.escape="open = false"
+    class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-100"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    >
+        <div class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl">
+            <br><br>
+
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                <button @click="open = false" class="text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+
+            <div class="flex-1 p-4 space-y-2 overflow-y-auto">
+                @forelse ($slideOverList as $item)
+                    @php
+                        $companyName = $item->companyDetail->company_name ?? 'N/A';
+                        $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($item->id);
+                    @endphp
+
+                    <a
+                        href="{{ url('admin/leads/' . $encryptedId) }}"
+                        target="_blank"
+                        title="{{ $companyName }}"
+                        class="block px-4 py-2 text-sm font-medium text-blue-600 transition border rounded bg-gray-50 hover:bg-blue-50 hover:text-blue-800"
+                    >
+                        {{ $shortened }}
+                    </a>
+                @empty
+                    <div class="text-sm text-gray-500">No data found.</div>
+                @endforelse
             </div>
         </div>
     </div>

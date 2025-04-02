@@ -61,7 +61,7 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->paginated([5, 25])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
