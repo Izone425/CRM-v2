@@ -43,6 +43,13 @@ class LeadAnalysis extends Page
 
     public Carbon $currentDate;
 
+    //Slide Modal Variables
+    public $showSlideOver = false;
+    public $leadList = [];
+
+    public $slideOverTitle = 'Leads';
+
+
     public function mount()
     {
         $this->users = User::where('role_id', 2)->get(); // Fetch Salespersons
@@ -292,5 +299,186 @@ class LeadAnalysis extends Page
 
         // Ensure all statuses exist in the result, even if 0
         $this->followUpStatusData = array_merge(array_fill_keys($followUpStatuses, 0), $followUpStatusCounts);
+    }
+
+    public function openActiveLeadSlideOver()
+    {
+        $user = Auth::user();
+
+        $query = Lead::where('categories', 'Active');
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+        $this->slideOverTitle = 'Active Lead Names';
+
+        $this->leadList = $query->with('companyDetail')->get(); // ✅ gets full lead records with relationship
+        $this->showSlideOver = true;
+    }
+
+    public function openInactiveLeadSlideOver()
+    {
+        $user = Auth::user();
+
+        $query = Lead::where('categories', 'Inactive');
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = 'Inactive Lead Names';
+        $this->showSlideOver = true;
+    }
+
+    public function openCompanySizeSlideOver($label)
+    {
+        $user = Auth::user();
+
+        // Map label to actual company_size values
+        $sizeMap = [
+            'Small' => '1-24',
+            'Medium' => '25-99',
+            'Large' => '100-500',
+            'Enterprise' => '501 and Above',
+        ];
+
+        $companySize = $sizeMap[$label] ?? null;
+
+        if (!$companySize) {
+            $this->leadList = collect(); // empty collection
+            $this->slideOverTitle = 'Unknown Company Size';
+            $this->showSlideOver = true;
+            return;
+        }
+
+        $query = Lead::where('company_size', $companySize);
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = ucfirst($label) . ' Company Leads';
+        $this->showSlideOver = true;
+    }
+
+    public function openStageLeadSlideOver($stage)
+    {
+        $user = Auth::user();
+        $query = Lead::where('categories', 'Active')->where('stage', $stage);
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = ucfirst($stage) . ' Leads';
+        $this->showSlideOver = true;
+    }
+
+    public function openInactiveStatusSlideOver($status)
+    {
+        $user = Auth::user();
+        $query = Lead::where('categories', 'Inactive')->where('lead_status', $status);
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = ucfirst($status) . ' Inactive Leads';
+        $this->showSlideOver = true;
+    }
+
+    public function openTransferSlideOver($status)
+    {
+        $user = Auth::user();
+        $query = Lead::where('stage', 'Transfer')->where('lead_status', $status);
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "Transfer - " . ucfirst($status) . " Leads";
+        $this->showSlideOver = true;
+    }
+
+    public function openFollowUpSlideOver($status)
+    {
+        $user = Auth::user();
+        $query = Lead::where('stage', 'Follow Up')->where('lead_status', $status);
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "Follow Up - " . ucfirst($status) . " Leads";
+        $this->showSlideOver = true;
     }
 }

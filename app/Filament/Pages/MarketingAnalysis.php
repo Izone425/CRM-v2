@@ -78,6 +78,11 @@ class MarketingAnalysis extends Page
     public $closedDealsCount = 0;
     public $monthlyDealAmounts = [];
 
+    //Slide Modal Variables
+    public $showSlideOver = false;
+    public $slideOverTitle = '';
+    public $slideOverList = [];
+
     public static function canAccess(): bool
     {
         return auth()->user()->role_id == '3'; // Hides the resource from all users
@@ -831,5 +836,323 @@ class MarketingAnalysis extends Page
         }
 
         $this->monthlyDealAmounts = $data;
+    }
+
+    public function openLeadStatusSlideOver($status)
+    {
+        $this->slideOverTitle = "Leads - " . ucfirst($status);
+
+        $query = Lead::with('companyDetail')->where('lead_status', $status);
+
+        // Apply same filters as in fetchLeadStatusSummary
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if (auth()->user()->role_id == 2) {
+            $query->where('salesperson', auth()->user()->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openLeadSourceSlideOver($source)
+    {
+        $this->slideOverTitle = "Leads from: " . $source;
+
+        $user = Auth::user();
+        $query = Lead::with('companyDetail')->where('lead_code', $source);
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openCompanySizeSlideOver($label)
+    {
+        $this->slideOverTitle = "Company Size: " . ucfirst($label);
+
+        $sizeMap = [
+            'Small' => ['1-24'],
+            'Medium' => ['25-99'],
+            'Large' => ['100-500'],
+            'Enterprise' => ['501 and Above'],
+        ];
+
+        $rawSizes = $sizeMap[$label] ?? [];
+
+        $query = Lead::with('companyDetail')->whereIn('company_size', $rawSizes);
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if (auth()->user()->role_id == 2) {
+            $query->where('salesperson', auth()->id());
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Same filtering logic as fetchLeads()
+        $query->where(function ($q) {
+            $q->whereNotIn('lead_status', ['Junk', 'On Hold', 'Lost'])
+            ->orWhere(function ($sub) {
+                $sub->where('lead_status', 'Lost')->whereNotNull('demo_appointment');
+            });
+        });
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openDemoCompanySizeSlideOver($label)
+    {
+        $this->slideOverTitle = "Demo Leads - " . ucfirst($label);
+
+        $sizeMap = [
+            'Small' => ['1-24'],
+            'Medium' => ['25-99'],
+            'Large' => ['100-500'],
+            'Enterprise' => ['501 and Above'],
+        ];
+
+        $rawSizes = $sizeMap[$label] ?? [];
+
+        $query = Lead::with('companyDetail')
+            ->whereIn('company_size', $rawSizes)
+            ->where(function ($q) {
+                $q->whereIn('lead_status', [
+                    'Closed',
+                    'Demo-Assigned',
+                    'RFQ-Follow Up',
+                    'Hot',
+                    'Warm',
+                    'Cold',
+                ])->orWhere(function ($sub) {
+                    $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                        ->whereNotNull('demo_appointment');
+                });
+            });
+
+        // Filter by lead owner
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        // Role-based filtering
+        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if (auth()->user()->role_id == 2) {
+            $query->where('salesperson', auth()->id());
+        }
+
+        // Date filter
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openDemoTypeSlideOver($type)
+    {
+        $this->slideOverTitle = $type . ' Leads';
+
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Fetch leads with demo appointments
+        $leads = $query->with('demoAppointment', 'companyDetail')->get();
+
+        $start = Carbon::parse($this->startDate)->toDateString();
+        $end = Carbon::parse($this->endDate)->toDateString();
+
+        $matchedLeads = [];
+
+        foreach ($leads as $lead) {
+            $appointments = $lead->demoAppointment ?? collect();
+
+            $appointments = $appointments->filter(function ($demo) use ($start, $end, $type) {
+                return $demo->status !== 'Cancelled' &&
+                    $demo->type === strtoupper($type) &&
+                    $demo->date >= $start &&
+                    $demo->date <= $end;
+            });
+
+            if ($appointments->isNotEmpty()) {
+                $matchedLeads[] = $lead;
+            }
+        }
+
+        $this->slideOverList = collect($matchedLeads);
+        $this->showSlideOver = true;
+    }
+
+    public function openWebinarLeadList($salespersonName)
+    {
+        $this->slideOverTitle = "Webinar Demo - " . $salespersonName;
+
+        $salespersonId = User::where('name', $salespersonName)->value('id');
+        if (!$salespersonId) {
+            $this->slideOverList = collect();
+            $this->showSlideOver = true;
+            return;
+        }
+
+        $query = Lead::query()->with('companyDetail', 'demoAppointment');
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if (auth()->user()->role_id == 2) {
+            $query->where('salesperson', auth()->user()->id);
+        }
+
+        $leads = $query->get();
+
+        $start = Carbon::parse($this->startDate)->toDateString();
+        $end = Carbon::parse($this->endDate)->toDateString();
+
+        $filteredLeads = [];
+
+        foreach ($leads as $lead) {
+            $appointments = $lead->demoAppointment ?? collect();
+
+            $matched = $appointments->filter(function ($demo) use ($salespersonId, $start, $end) {
+                return $demo->type === 'WEBINAR DEMO'
+                    && $demo->status !== 'Cancelled'
+                    && $demo->salesperson == $salespersonId
+                    && $demo->date >= $start && $demo->date <= $end;
+            });
+
+            if ($matched->isNotEmpty()) {
+                $filteredLeads[] = $lead;
+            }
+        }
+
+        $this->slideOverList = collect($filteredLeads);
+        $this->showSlideOver = true;
+    }
+
+    public function openMonthlyDealsSlideOver($monthKey)
+    {
+        $this->slideOverTitle = "Closed Deals - " . Carbon::parse($monthKey)->format('F Y');
+
+        $user = Auth::user();
+        $query = Lead::query()->with('companyDetail');
+
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Monthly filter
+        $start = Carbon::parse($monthKey)->startOfMonth()->startOfDay();
+        $end = Carbon::parse($monthKey)->endOfMonth()->endOfDay();
+
+        $query->whereBetween('closing_date', [$start, $end])
+            ->where('lead_status', 'Closed');
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
     }
 }

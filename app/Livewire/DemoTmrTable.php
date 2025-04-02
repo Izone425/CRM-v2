@@ -62,13 +62,13 @@ class DemoTmrTable extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
                         $shortened = strtoupper(Str::limit($fullName, 10, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
@@ -105,6 +105,7 @@ class DemoTmrTable extends Component implements HasForms, HasTable
                 ActionGroup::make([
                     LeadActions::getLeadDetailActionInDemo(),
                     LeadActions::getWhatsappAction(),
+                    LeadActions::getRescheduleDemoAction()
                 ])
                 ->button()
                 ->color('primary'),

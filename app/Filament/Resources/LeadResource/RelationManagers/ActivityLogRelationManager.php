@@ -152,15 +152,45 @@ class ActivityLogRelationManager extends RelationManager
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalDescription('Here is the remark for this lead.')
-                            ->modalContent(function (ActivityLog $record) {
-                                // Decode JSON properties safely
-                                $properties = json_decode($record->properties, true);
+                            ->modalContent(function (\App\Models\ActivityLog $record) {
+                                // Decode properties
+                                $properties = is_array($record->properties)
+                                    ? $record->properties
+                                    : json_decode($record->properties, true);
 
-                                // Extract remark from 'attributes' key, fallback to '-'
-                                $remark = $properties['attributes']['remark'] ?? '-';
+                                $leadStatus = $properties['attributes']['lead_status'] ?? 'No status';
+                                $rawRemark = $properties['attributes']['remark'] ?? null;
+                                $remark = trim($rawRemark) !== '' ? $rawRemark : 'No remark available';
+                                $timestamp = $record->created_at->format('Y-m-d H:i:s');
+                                $formattedRemark = nl2br(e($remark));
 
-                                // Preserve line breaks and return as an HTML-safe string
-                                return new HtmlString(nl2br(e($remark)));
+                                // Get the related Lead (based on subject_id/type)
+                                $lead = $record->subject_type === \App\Models\Lead::class
+                                    ? \App\Models\Lead::find($record->subject_id)
+                                    : null;
+
+                                $extraInfoHtml = '';
+
+                                if ($lead) {
+                                    // Deal Amount
+                                    if (!is_null($lead->deal_amount)) {
+                                        $formattedAmount = number_format($lead->deal_amount, 2);
+                                        $extraInfoHtml .= "<p><strong>Deal Amount:</strong> <span class='text-green-600'>\${$formattedAmount}</span></p>";
+                                    }
+
+                                    // Follow Up Date
+                                    if (!is_null($lead->follow_up_date)) {
+                                        $formattedDate = \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d');
+                                        $extraInfoHtml .= "<p><strong>Next Follow Up Date:</strong> <span class='text-indigo-600'>{$formattedDate}</span></p>";
+                                    }
+                                }
+
+                                // Remarks list
+                                $remarksHtml = '<ul class="mt-2">';
+                                $remarksHtml .= "<li><strong>{$timestamp}</strong> - <span class='font-bold text-blue-600'>{$leadStatus}</span>: {$formattedRemark}</li>";
+                                $remarksHtml .= '</ul>';
+
+                                return new \Illuminate\Support\HtmlString($extraInfoHtml . $remarksHtml);
                             })
                         ),
 
@@ -973,7 +1003,9 @@ class ActivityLogRelationManager extends RelationManager
                                         ->label('Next Follow Up Date')
                                         ->required()
                                         ->placeholder('Select a follow-up date')
-                                        ->default(fn ($record) => $record->lead->follow_up_date ?? now())
+                                        ->default(fn ($record) =>
+                                            optional($record->lead->follow_up_date)->addDays(7) ?? now()->addDays(7)
+                                        )
                                         ->reactive(),
                                         // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
 
@@ -2097,10 +2129,10 @@ class ActivityLogRelationManager extends RelationManager
                             $updatedAt = $record->lead->rfq_transfer_at;
                             $remark = $record->lead->remark;
 
-                            return !empty($remark);
-                            // Check if the lead_status is RFQ_TRANSFER and within 48 hours
-                            return auth()->user()->role_id == 1 && !empty($remark) &&
-                                Carbon::parse($updatedAt)->diffInHours(Carbon::now()) <= 48;
+                            return auth()->user()->role_id == 1
+                                && !empty($remark)
+                                && $updatedAt
+                                && \Carbon\Carbon::parse($updatedAt)->diffInHours(now()) <= 48;
                         }),
                 ])
                 ->icon('heroicon-m-list-bullet')
