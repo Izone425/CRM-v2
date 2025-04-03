@@ -29,6 +29,7 @@ class ChatRoom extends Page
     public $file;
     public $selectedChat = null;
     public bool $filterUnreplied = false; // ✅ Default: Show all chats
+    public string $selectedLeadOwner = '';
 
     public static function canAccess(): bool
     {
@@ -115,11 +116,11 @@ class ChatRoom extends Page
 
                     // ✅ Check if the last message is from the customer AND has no reply yet
                     $hasNoReply = ChatMessage::where(function ($query) use ($chat) {
-                            $query->where('sender', $chat->user2)
+                            $query->where('is_read', false)
+                                ->where('sender', $chat->user2)
                                 ->where('receiver', $chat->user1)
                                 ->where('is_from_customer', true); // Look for replies from system user
-                        })
-                        ->doesntExist(); // Ensure no system reply exists
+                        });
 
                     $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
 
@@ -153,10 +154,16 @@ class ChatRoom extends Page
             $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
         }
 
+        if ($this->selectedLeadOwner) {
+            $contacts = $contacts->filter(function ($chat) {
+                $participant = $chat->participant_name;
+                $lead = Lead::where('name', $participant)->where('lead_owner', $this->selectedLeadOwner)->first();
+                return $lead !== null;
+            });
+        }
+
         return $contacts;
     }
-
-
 
     public function fetchParticipantDetails()
     {
@@ -190,7 +197,8 @@ class ChatRoom extends Page
                 'phone' => $lead->phone ?? 'N/A',
                 'company' => $lead->companyDetail->company_name ?? 'N/A',
                 'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)), // ✅ Generate URL
-                'source' => 'Lead'
+                'source' => $lead->lead_code ?? 'N/A',
+                'lead_status' => $lead->lead_status,
             ];
         }
 
@@ -202,8 +210,9 @@ class ChatRoom extends Page
                 'email' => $company->email ?? 'N/A',
                 'phone' => $company->contact_no ?? 'N/A',
                 'company' => $company->company_name ?? 'N/A',
-                'company_url' => null, // No lead, so no clickable link
-                'source' => 'Company'
+                'company_url' => url('admin/leads/' . Encryptor::encrypt($company->lead->id)), // ✅ Generate URL
+                'source' => $company->lead->lead_code ?? 'N/A',
+                'lead_status' => $company->lead->lead_status,
             ];
         }
 
@@ -213,7 +222,8 @@ class ChatRoom extends Page
             'phone' => $chatParticipant,
             'company' => 'N/A',
             'company_url' => null,
-            'source' => 'Not Found'
+            'source' => 'Not Found',
+            'lead_status' => 'N/A',
         ];
     }
 
@@ -279,5 +289,29 @@ class ChatRoom extends Page
         } else {
             session()->flash('error', 'Failed to send message.');
         }
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        // Get all distinct chat pairs with unread customer messages
+        $unreadChats = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+            ->where('is_from_customer', true)
+            ->where('is_read', false)
+            ->groupBy('user1', 'user2')
+            ->get();
+
+        return (string) $unreadChats->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        $unreadCount = ChatMessage::where('is_from_customer', true)
+            ->where('is_read', false)
+            ->selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+            ->groupBy('user1', 'user2')
+            ->get()
+            ->count();
+
+        return $unreadCount > 0 ? 'danger' : null;
     }
 }

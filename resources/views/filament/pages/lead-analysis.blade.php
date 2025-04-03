@@ -448,14 +448,17 @@
                         @endphp
 
                         <!-- Stage Title & Count -->
-                        <div class="cursor-pointer progress-info" wire:click="openStageLeadSlideOver('{{ $stage }}')">
-                            <span>{{ ucfirst($stage) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <div class="cursor-pointer" wire:click="openStageLeadSlideOver('{{ $stage }}')">
+                            <!-- Info -->
+                            <div class="progress-info">
+                                <span>{{ ucfirst($stage) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <!-- Progress Bar -->
-                        <div class="cursor-pointer progress-bar" style="background-color: {{ $bgcolor }};" wire:click="openStageLeadSlideOver('{{ $stage }}')">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <!-- Progress Bar -->
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -496,13 +499,15 @@
                             };
                         @endphp
 
-                        <div class="cursor-pointer progress-info" wire:click="openInactiveStatusSlideOver('{{ $status }}')">
-                            <span>{{ ucfirst($status) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <div class="cursor-pointer" wire:click="openInactiveStatusSlideOver('{{ $status }}')">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($status) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <div class="cursor-pointer progress-bar" style="background-color: {{ $bgcolor }};" wire:click="openInactiveStatusSlideOver('{{ $status }}')">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>

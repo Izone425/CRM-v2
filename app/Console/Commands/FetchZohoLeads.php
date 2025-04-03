@@ -125,7 +125,18 @@ class FetchZohoLeads extends Command
                     continue; // ✅ Skip if "HR Malaysia" tag is not found
                 }
 
-                $phoneNumber = isset($lead['Phone']) ? preg_replace('/^\+/', '', $lead['Phone']) : null;
+                $phoneNumber = null;
+
+                if (isset($lead['Phone'])) {
+                    $cleanedPhone = preg_replace('/^\+/', '', $lead['Phone']); // Remove + if exists
+
+                    // If it starts with 0, replace it with 6
+                    if (preg_match('/^0/', $cleanedPhone)) {
+                        $cleanedPhone = '6' . substr($cleanedPhone, 1);
+                    }
+
+                    $phoneNumber = $cleanedPhone;
+                }
 
                 $leadCreatedTime = isset($lead['Created_Time'])
                     ? Carbon::parse($lead['Created_Time'])->format('Y-m-d H:i:s')
