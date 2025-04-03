@@ -1,17 +1,31 @@
 <x-filament::page>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <label class="flex items-center space-x-2 cursor-pointer">
-        <input type="checkbox" wire:model="filterUnreplied" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-        <span class="text-sm text-gray-700">&nbsp&nbspShow Unreplied Only</span>
-    </label>
+    <div class="flex items-center mb-2 space-x-6">
+        <!-- 🔘 Checkbox: Show Unreplied Only -->
+        <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" wire:model="filterUnreplied" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <span class="text-sm text-gray-700">&nbsp;&nbsp;Show Unreplied Only</span>
+        </label>
+        &nbsp;&nbsp;
+        <!-- 🧑‍💼 Dropdown: Filter by Lead Owner -->
+        <div>
+            <select wire:model="selectedLeadOwner" class="text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                <option value="">All Lead Owners</option>
+                @foreach(\App\Models\User::where('role_id', 1)->orderBy('name')->get() as $user)
+                    <option value="{{ $user->name }}">{{ $user->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
     <div class="flex h-screen bg-white border border-gray-200 rounded-lg" wire:poll.1s>
         <!-- Left Sidebar - Chat List -->
-        <div class="border-r bg-gray-50" style="width: 300px !important;"> <!-- ✅ Ensures width is applied -->
+        <div class="border-r bg-gray-50" style="width: 300px;">
             <div class="p-4 bg-white border-b">
                 <h2 class="text-lg font-semibold">Chats</h2>
             </div>
 
-            <div class="overflow-y-auto h-[calc(100vh-9rem)]">
+            <!-- 🔽 Scrollable area -->
+            <div style="overflow-y: auto; height: calc(100vh - 9rem);">
                 @foreach($this->fetchContacts() as $contact)
                     <div wire:click="selectChat('{{ $contact->user1 }}', '{{ $contact->user2 }}')"
                         class="p-4 border-b cursor-pointer hover:bg-gray-50 {{ $selectedChat === $contact->participant_name ? 'bg-blue-50' : '' }}">
@@ -21,12 +35,12 @@
                                 {{ $contact->participant_name }}
                             </div>
                             @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
-                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span> <!-- 🔴 Red dot for unread messages -->
+                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span>
                             @endif
                         </div>
 
                         <div class="text-sm text-gray-500 truncate">
-                            <i class="fa {{ $contact->is_from_customer ? 'fa fa-reply' : 'fa fa-share' }}" aria-hidden="true"></i>
+                            <i class="fa {{ $contact->is_from_customer ? 'fa-reply' : 'fa-share' }}" aria-hidden="true"></i>
                             {{ \Illuminate\Support\Str::limit($contact->latest_message, 50, '...') }}
                         </div>
                     </div>
@@ -92,7 +106,7 @@
                                     @endif
                                 @else
                                     <!-- Normal Text Message -->
-                                    <div class="text-sm">{{ $message->message }}</div>
+                                    <div class="text-sm">{!! nl2br(e($message->message)) !!}</div>
                                 @endif
                                 <div class="mt-1 text-xs opacity-70">
                                     {{ $message->created_at->format('g:i A') }}
@@ -113,8 +127,18 @@
                             <input type="file" id="fileUpload" wire:model="file" class="hidden">
 
                             <!-- Text Input -->
-                            <input type="text" wire:model="message" placeholder="Type a message"
-                                class="flex-1 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500">
+                            <textarea
+                                wire:model="message"
+                                placeholder="Type a message"
+                                rows="1"
+                                x-data
+                                x-ref="textarea"
+                                x-init="$watch('message', () => {
+                                    $refs.textarea.style.height = 'auto';
+                                    $refs.textarea.style.height = $refs.textarea.scrollHeight + 'px';
+                                })"
+                                class="flex-1 overflow-hidden border-gray-300 rounded-lg resize-none focus:border-primary-500 focus:ring-primary-500"
+                            ></textarea>
 
                             <!-- Send Button -->
                             <button type="submit" class="px-4 py-2 text-white rounded-lg bg-primary-500 hover:bg-primary-600">
@@ -154,6 +178,14 @@
             <div class="p-6 space-y-4">
                 <div class="p-4 bg-white rounded-lg shadow">
                     <div class="flex items-center space-x-4">
+                        <i class="fa fa-search" aria-hidden="true"></i>&nbsp;&nbsp;
+                        <p class="text-sm text-gray-500">Lead Status</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-900">{{ $details['lead_status'] }}</p>
+                </div>
+
+                <div class="p-4 bg-white rounded-lg shadow">
+                    <div class="flex items-center space-x-4">
                         <i class="fa fa-user-circle" aria-hidden="true"></i>&nbsp;&nbsp;
                         <p class="text-sm text-gray-500">Name</p>
                     </div>
@@ -165,9 +197,9 @@
                         <i class="fa fa-envelope" aria-hidden="true"></i>&nbsp;&nbsp;
                         <p class="text-sm text-gray-500">Email</p>
                     </div>
-                    <p class="text-lg font-semibold text-gray-900" style="color:#338cf0;" >
-                        <a href="mailto:{{ $details['email'] }}" class="text-blue-600 hover:underline">
-                            {{ $details['email'] }}
+                    <p class="text-lg font-semibold text-gray-900" style="color:#338cf0;">
+                        <a href="mailto:{{ $details['email'] }}" class="text-blue-600 hover:underline" title="{{ $details['email'] }}">
+                            {{ \Illuminate\Support\Str::limit($details['email'], 25) }}
                         </a>
                     </p>
                 </div>

@@ -19,7 +19,7 @@
                             id="userFilter"
                             class="mt-1 border-gray-300 rounded-md shadow-sm"
                         >
-                            <option value="7">Your Own Dashboard</option>
+                        <option value="{{ auth()->id() }}">Your Own Dashboard</option>
                             <optgroup label="Lead Owner">
                                 @foreach ($users->where('role_id', 1) as $user)
                                     <option value="{{ $user->id }}">
@@ -39,7 +39,7 @@
 
                     &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
 
-                    @if ($selectedUser == 7 || $selectedUser == null)
+                    @if ($selectedUser == 1 || $selectedUser == 14 || $selectedUser == null)
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
                             <!-- Lead Owner Button -->
