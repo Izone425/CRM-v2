@@ -728,6 +728,10 @@ class MarketingAnalysis extends Page
 
             $salespersonName = User::find($salespersonId)?->name ?? 'Unknown';
 
+            if (empty($salespersonName) || $salespersonName === 'Unknown') {
+                continue;
+            }
+
             $this->webinarDemoAverages[$salespersonName] = [
                 'webinar_count' => $summary['webinar_count'],
                 'total_leads' => $summary['total_leads'],

@@ -1024,7 +1024,7 @@ class LeadActions
                         ->required()
                         ->placeholder('Select a follow-up date')
                         ->default(fn ($record) =>
-                            optional($record->lead->follow_up_date)->addDays(7) ?? now()->addDays(7)
+                            optional(optional($record)->lead?->follow_up_date)->addDays(7) ?? now()->addDays(7)
                         )
                         ->reactive(),
                         // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
@@ -1189,9 +1189,9 @@ class LeadActions
             $variables = [$lead->name, $lead->lead_owner];
             $contentTemplateSid = 'HX50fdd31004919fd43e647ebfb934d608'; // Your Content Template SID
 
-            // $whatsappController = new \App\Http\Controllers\WhatsAppController();
-            // $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-            // return $response;
+            $whatsappController = new \App\Http\Controllers\WhatsAppController();
+            $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+            return $response;
         });
     }
 
@@ -1330,10 +1330,20 @@ class LeadActions
             ->modalDescription('Do you want to transfer this lead to Call Attempt Section? Make sure you have contacted the lead before you transfer')
             ->color('primary')
             ->action(function (Lead $record) {
-                $record->timestamps = false; // Skip updated_at
+                $record->timestamps = false; // Avoid updating updated_at
                 $record->call_attempt += 1;
                 $record->done_call = 1;
-                $record->saveQuietly(); // Silent update, no events triggered
+                $record->saveQuietly(); // Regular save with event firing
+
+                // ✅ Log activity
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($record)
+                    ->withProperties([
+                        'call_attempt' => $record->call_attempt,
+                        'done_call' => true,
+                    ])
+                    ->log('Transfer to Call Attempt, Done Call');
 
                 Notification::make()
                     ->title('Call Attempt Recorded')

@@ -60,7 +60,10 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                   ->whereYear('created_at', Carbon::parse($this->selectedMonth)->year);
         }
 
-        return $query->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+        return $query
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days')
+            ->orderByRaw("FIELD(lead_status, 'Hot', 'Warm', 'Cold')")
+            ->orderByDesc('created_at');
     }
 
     /**

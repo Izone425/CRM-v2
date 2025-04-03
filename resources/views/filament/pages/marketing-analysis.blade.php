@@ -289,10 +289,6 @@
                 width: 0.5px;
             }
 
-            /* Right Section (65%) */
-            .lead-progress {
-                flex: 6.5;
-            }
             .status-title {
                 font-size: 1rem;
                 font-weight: bold;
@@ -583,21 +579,27 @@
                 <div class="lead-progress">
                     <h3 class="status-title">Company Size</h3>
                     @foreach ($companySizeDistribution as $companySize => $count)
-                        @php
-                            $percentage = array_sum($companySizeDistribution) > 0 ? round(($count / array_sum($companySizeDistribution)) * 100, 2) : 0;
-                            $color = match($companySize) {
-                                'Small' => '#D2E9D2',
-                                'Medium' => '#FFE29C',
-                                'Large' => '#FFD59C',
-                                'Enterprise' => '#FF8A8A',
-                            };
-                            $bgcolor = match($companySize) {
-                                'Small' => '#F2FAF2',
-                                'Medium' => '#FFF9EB',
-                                'Large' => '#FFF5E9',
-                                'Enterprise' => '#FFEDED',
-                            };
-                        @endphp
+                    @php
+                        $percentage = array_sum($companySizeDistribution) > 0
+                            ? round(($count / array_sum($companySizeDistribution)) * 100, 2)
+                            : 0;
+
+                        $color = match($companySize) {
+                            'Small' => '#D2E9D2',
+                            'Medium' => '#FFE29C',
+                            'Large' => '#FFD59C',
+                            'Enterprise' => '#FF8A8A',
+                            default => '#E2E8F0', // fallback color
+                        };
+
+                        $bgcolor = match($companySize) {
+                            'Small' => '#F2FAF2',
+                            'Medium' => '#FFF9EB',
+                            'Large' => '#FFF5E9',
+                            'Enterprise' => '#FFEDED',
+                            default => '#F3F4F6', // fallback background
+                        };
+                    @endphp
 
                         <div wire:click="openCompanySizeSlideOver('{{ $companySize }}')" class="cursor-pointer">
                             <div class="progress-info">
@@ -630,37 +632,35 @@
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <div class="lead-progress">
                     <h3 class="status-title">Company Size</h3>
-                    <div style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
-                        @foreach ($demoCompanySizeData as $companySize => $count)
-                            @php
-                                $percentage = array_sum($demoCompanySizeData) > 0 ? round(($count / array_sum($demoCompanySizeData)) * 100, 2) : 0;
-                                $color = match($companySize) {
-                                    'Small' => '#D2E9D2',
-                                    'Medium' => '#FFE29C',
-                                    'Large' => '#FFD59C',
-                                    'Enterprise' => '#FF8A8A',
-                                    default => '#E2E8F0',
-                                };
-                                $bgcolor = match($companySize) {
-                                    'Small' => '#F2FAF2',
-                                    'Medium' => '#FFF9EB',
-                                    'Large' => '#FFF5E9',
-                                    'Enterprise' => '#FFEDED',
-                                    default => '#F9FAFB',
-                                };
-                            @endphp
+                    @foreach ($demoCompanySizeData as $companySize => $count)
+                        @php
+                            $percentage = array_sum($demoCompanySizeData) > 0 ? round(($count / array_sum($demoCompanySizeData)) * 100, 2) : 0;
+                            $color = match($companySize) {
+                                'Small' => '#D2E9D2',
+                                'Medium' => '#FFE29C',
+                                'Large' => '#FFD59C',
+                                'Enterprise' => '#FF8A8A',
+                                default => '#E2E8F0',
+                            };
+                            $bgcolor = match($companySize) {
+                                'Small' => '#F2FAF2',
+                                'Medium' => '#FFF9EB',
+                                'Large' => '#FFF5E9',
+                                'Enterprise' => '#FFEDED',
+                                default => '#F9FAFB',
+                            };
+                        @endphp
 
-                            <div wire:click="openDemoCompanySizeSlideOver('{{ $companySize }}')" class="cursor-pointer">
-                                <div class="progress-info">
-                                    <span>{{ ucfirst($companySize) }}</span>
-                                    <span>{{ $count }} ({{ $percentage }}%)</span>
-                                </div>
-                                <div class="progress-bar" style="background-color: {{ $bgcolor }};">
-                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                                </div>
+                        <div wire:click="openDemoCompanySizeSlideOver('{{ $companySize }}')" class="cursor-pointer">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($companySize) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
                             </div>
-                        @endforeach
-                    </div>
+                            <div class="progress-bar" style="background-color: {{ $bgcolor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
