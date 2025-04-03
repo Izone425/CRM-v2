@@ -16,6 +16,7 @@ use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
 use App\Filament\Pages\SalesAdminAnalysisV1;
 use App\Filament\Pages\SalesAdminAnalysisV2;
+use App\Filament\Pages\SalesAdminAnalysisV3;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Resources\ChatMessageResource;
@@ -104,6 +105,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesForecast::class,
                 SalesAdminAnalysisV1::class,
                 SalesAdminAnalysisV2::class,
+                SalesAdminAnalysisV3::class,
                 SalesForecastSummary::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
