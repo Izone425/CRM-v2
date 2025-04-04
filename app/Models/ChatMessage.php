@@ -14,6 +14,7 @@ class ChatMessage extends Model
         'receiver',
         'message',
         'twilio_message_id',
+        'reply_to_sid',
         'profile_name',
         'is_from_customer',
         'is_read',
@@ -49,5 +50,10 @@ class ChatMessage extends Model
     public function markAsRead()
     {
         $this->update(['is_read' => true]); // ✅ Mark message as read
+    }
+
+    public function repliedMessage()
+    {
+        return $this->hasOne(ChatMessage::class, 'twilio_message_id', 'reply_to_sid');
     }
 }

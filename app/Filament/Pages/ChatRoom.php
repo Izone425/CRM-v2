@@ -229,6 +229,11 @@ class ChatRoom extends Page
 
     public function sendMessage()
     {
+        if (empty($this->message) && !$this->file) {
+            session()->flash('error', 'Please enter a message or attach a file.');
+            return;
+        }
+
         if ($this->selectedChat) {
             // Clean Twilio WhatsApp number (remove "whatsapp:" and "+")
             $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
