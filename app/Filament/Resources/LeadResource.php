@@ -229,6 +229,12 @@ class LeadResource extends Resource
                                                     ->columnSpan(1), // Right side spans 1 column
                                             ])->columnSpan(1),
                                 ]),
+                                Section::make('UTM Details')
+                                    ->icon('heroicon-o-chart-bar')
+                                    ->schema([
+                                        View::make('components.utm-details')
+                                            ->extraAttributes(fn ($record) => ['record' => $record]),
+                                    ]),
                             ]),
                             Tabs\Tab::make('Company')->schema([
                                 Grid::make(4)

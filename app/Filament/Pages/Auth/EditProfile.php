@@ -26,7 +26,7 @@ class EditProfile extends BaseEditProfile
                     ->avatar()
                     ->imageEditor()
                     ->extraAttributes(['class' => 'mx-auto']),
-                $this->getNameFormComponent(),
+                // $this->getNameFormComponent(),
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),

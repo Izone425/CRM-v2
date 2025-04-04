@@ -62,7 +62,7 @@
                 </div>
 
                 <!-- Messages Container -->
-                <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100" wire:poll.5s>
+                <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100" wire:poll.1s>
                     @foreach($this->fetchMessages($selectedChat) as $message)
                         <div class="flex {{ $message->is_from_customer ? 'justify-start' : 'justify-end' }}">
                             <div class="max-w-[70%] rounded-lg p-3
@@ -105,7 +105,14 @@
                                         </a>
                                     @endif
                                 @else
-                                    <!-- Normal Text Message -->
+                                    <!-- Quoted Message Preview (if this is a reply) -->
+                                    @if ($message->repliedMessage)
+                                        <div class="p-2 mb-1 text-xs bg-gray-100 border-l-4 rounded border-primary-500">
+                                            {{ $message->repliedMessage->message }}
+                                        </div>
+                                    @endif
+
+                                    <!-- Actual Message Content -->
                                     <div class="text-sm">{!! nl2br(e($message->message)) !!}</div>
                                 @endif
                                 <div class="mt-1 text-xs opacity-70">
@@ -119,13 +126,15 @@
                 <!-- Message Input -->
                 <div class="p-4 bg-white border-t">
                     <form wire:submit.prevent="sendMessage">
+                        @if (session()->has('error'))
+                            <p class="mt-2 text-sm" style="color: red;">{{ session('error') }}</p>
+                        @endif
                         <div class="flex items-center space-x-2">
                             <!-- File Upload Button -->
                             <label for="fileUpload" class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg cursor-pointer hover:bg-gray-300">
                                 <i class="fas fa-paperclip"></i>
                             </label>
                             <input type="file" id="fileUpload" wire:model="file" class="hidden">
-
                             <!-- Text Input -->
                             <textarea
                                 wire:model="message"

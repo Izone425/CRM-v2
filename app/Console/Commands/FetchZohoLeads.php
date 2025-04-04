@@ -128,9 +128,10 @@ class FetchZohoLeads extends Command
                 $phoneNumber = null;
 
                 if (isset($lead['Phone'])) {
-                    $cleanedPhone = preg_replace('/^\+/', '', $lead['Phone']); // Remove + if exists
+                    // Remove everything except digits
+                    $cleanedPhone = preg_replace('/[^0-9]/', '', $lead['Phone']);
 
-                    // If it starts with 0, replace it with 6
+                    // Replace starting 0 with 6
                     if (preg_match('/^0/', $cleanedPhone)) {
                         $cleanedPhone = '6' . substr($cleanedPhone, 1);
                     }

@@ -120,6 +120,7 @@ Route::post('/webhook/whatsapp', function (Request $request) {
         'is_from_customer' => true,
         'media_url' => $mediaUrl, // ✅ Save media URL
         'media_type' => $mediaType, // ✅ Save media type
+        'reply_to_sid' => $request->input('OriginalRepliedMessageSid') ?? null,
     ]);
 });
 
