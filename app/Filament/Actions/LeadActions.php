@@ -337,7 +337,7 @@ class LeadActions
     {
         return
             Action::make('add_demo')
-                ->icon('heroicon-o-pencil')
+                ->icon('heroicon-o-calendar-days')
                 ->color('success')
                 ->label('Add Demo')
                 ->modalHeading('Add Demo')
@@ -1050,7 +1050,7 @@ class LeadActions
         ])
         ->color('success')
         ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
-        ->icon('heroicon-o-pencil-square')
+        ->icon('heroicon-o-bell-alert')
         ->action(function (Lead $lead, array $data) {
             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);

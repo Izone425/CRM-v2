@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
+use App\Filament\Actions\LeadActions;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -1297,70 +1298,23 @@ class LeadResource extends Resource
                 ->orderBy('updated_at', 'desc');
                 })
             ->actions([
-                Tables\Actions\Action::make('updateLeadOwner')
-                    ->label(__('Assign to Me'))
-                    ->form(function (Lead $record) {
-                        $isDuplicate = Lead::query()
-                            ->where('company_name', $record->companyDetail->company_name)
-                            ->orWhere('email', $record->email)
-                            ->where('id', '!=', $record->id) // Exclude the current lead
-                            ->exists();
+                Tables\Actions\ActionGroup::make([
+                    LeadActions::getAssignToMeAction(),
+                    LeadActions::getViewAction(),
+                    LeadActions::getAddDemoAction()
+                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
+                    LeadActions::getAddRFQ()
+                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
+                    LeadActions::getAddFollowUp()->visible(fn (Lead $record) => !is_null($record->lead_owner)),
+                    LeadActions::getAddAutomation()
+                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
+                    LeadActions::getArchiveAction()->visible(fn (Lead $record) => !is_null($record->lead_owner)),
 
-                        $content = $isDuplicate
-                            ? '⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?'
-                            : 'Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.';
-
-                        return [
-                            Placeholder::make('warning')
-                                ->content($content)
-                                ->hiddenLabel()
-                                ->extraAttributes([
-                                    'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
-                                ]),
-                        ];
-                    })
-                    ->color('success')
-                    ->size(ActionSize::Small)
-                    ->button()
-                    ->icon('heroicon-o-pencil-square')
-                    ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2
-                                                     && is_null($record->salesperson))
-                    ->action(function (Lead $record, array $data) {
-                        // Update the lead owner and related fields
-                        $record->update([
-                            'lead_owner' => auth()->user()->name,
-                            'categories' => 'Active',
-                            'stage' => 'Transfer',
-                            'lead_status' => 'New',
-                            'pickup_date' => now(),
-                        ]);
-
-                        // Update the latest activity log
-                        $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                            ->orderByDesc('created_at')
-                            ->first();
-
-                        if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
-                            $latestActivityLog->update([
-                                'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-                            ]);
-
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($record);
-                        }
-
-                        Notification::make()
-                            ->title('Lead Owner Assigned Successfully')
-                            ->success()
-                            ->send();
-                    }),
                     Tables\Actions\Action::make('resetLead')
                         ->label(__('Reset Lead'))
-                        ->color('warning')
-                        ->size(ActionSize::Small)
-                        ->button()
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
+                        ->color('danger')
+                        ->icon('heroicon-o-shield-exclamation')
+                        // ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([
@@ -1400,6 +1354,9 @@ class LeadResource extends Resource
                         ]))
                         ->label('') // Remove the label
                         ->extraAttributes(['class' => 'hidden']),
+                ])
+                ->button()
+                ->visible(fn () => in_array(auth()->user()->role_id, [1, 3]))
             ])
             ->modifyQueryUsing(function (Builder $query) {
                 // Get the current user and their role
