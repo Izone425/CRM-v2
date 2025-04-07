@@ -19,13 +19,22 @@ class AutoFollowUp extends Command
     public function handle()
     {
         DB::transaction(function () {
-            // Fetch leads that need follow-up
             $leads = Lead::where('follow_up_needed', true)
                 ->where('follow_up_count', '<', 4)
                 ->get();
 
+            $counter = 0;
+
             foreach ($leads as $lead) {
+                // Rate limit: sleep after every 5 leads
+                if ($counter > 0 && $counter % 5 === 0) {
+                    usleep(1_000_000); // Sleep for 1 second (1,000,000 microseconds)
+                }
+
+                $counter++;
+
                 info("Processing follow-up for Lead ID: {$lead->id}, Name: {$lead->name}, Follow-Up Count: {$lead->follow_up_count}");
+
                 $lead->update([
                     'follow_up_count' => $lead->follow_up_count + 1,
                     'follow_up_date' => now()->next('Tuesday'),
@@ -51,17 +60,16 @@ class AutoFollowUp extends Command
                         $contentTemplateSid = 'HX17778b5cec4858f24535bdbc69eebd8a';
                     }
 
-                    // Retrieve latest activity log
                     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                         ->orderByDesc('created_at')
                         ->first();
 
-                    // Stop follow-ups if limit is reached
                     if ($latestActivityLog && $lead->follow_up_count >= 4) {
                         $latestActivityLog->update([
                             'description' => 'Final Automation Follow Up',
                             'causer_id' => 0
                         ]);
+
                         $lead->updateQuietly([
                             'follow_up_needed' => false,
                             'follow_up_count' => 1,
@@ -81,8 +89,9 @@ class AutoFollowUp extends Command
                             ->withProperties(['description' => $followUpDescription]);
                     }
 
-                    $leadowner = User::where('name', $lead->lead_owner)->first();
+                    // Email
                     try {
+                        $leadowner = User::where('name', $lead->lead_owner)->first();
                         $emailContent = [
                             'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
                             'leadOwnerEmail' => $leadowner->email ?? 'Unknown Email',
@@ -105,16 +114,12 @@ class AutoFollowUp extends Command
                         Log::error("Email Error: {$e->getMessage()}");
                     }
 
-                    // ✅ Send WhatsApp message
+                    // WhatsApp
                     try {
-                        $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
+                        $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
                         $variables = [$lead->name, $lead->lead_owner];
-                        $contentTemplateSid = 'HX6de8cec52e6c245826a67456a3ea3144'; // Your Content Template SID
-
                         $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                        $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
-                        return $response;
+                        $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
                     } catch (Exception $e) {
                         Log::error("WhatsApp Error: {$e->getMessage()}");
                     }

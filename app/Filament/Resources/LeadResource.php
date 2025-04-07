@@ -1358,15 +1358,15 @@ class LeadResource extends Resource
                                 ->success()
                                 ->send();
                         }),
-                    Tables\Actions\ViewAction::make()
-                        ->url(fn ($record) => route('filament.admin.resources.leads.view', [
-                            'record' => Encryptor::encrypt($record->id),
-                        ]))
-                        ->label('') // Remove the label
-                        ->extraAttributes(['class' => 'hidden']),
                 ])
                 ->button()
-                ->visible(fn () => in_array(auth()->user()->role_id, [1, 3]))
+                ->visible(fn () => in_array(auth()->user()->role_id, [1, 3])),
+                Tables\Actions\ViewAction::make()
+                    ->url(fn ($record) => route('filament.admin.resources.leads.view', [
+                        'record' => Encryptor::encrypt($record->id),
+                    ]))
+                    ->label('') // Remove the label
+                    ->extraAttributes(['class' => 'hidden']),
             ])
             ->modifyQueryUsing(function (Builder $query) {
                 // Get the current user and their role

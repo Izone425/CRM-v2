@@ -253,7 +253,7 @@ class ChatRoom extends Page
             return [
                 'name' => $lead->name ?? 'Unknown',
                 'email' => $lead->email ?? 'N/A',
-                'phone' => $lead->phone ?? $chatParticipant,
+                'phone' => $chatParticipant ?? $lead->phone,
                 'company' => $lead->companyDetail->company_name ?? 'N/A',
                 'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)),
                 'source' => $lead->lead_code ?? 'N/A',

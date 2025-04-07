@@ -276,45 +276,44 @@ class DemoAnalysis extends Page
     public function fetchWebinarDemoByLeadStatus()
     {
         $authUser = auth()->user();
-        $defaultLeadStatuses = [
-            'Closed' => 0,
-            'Lost' => 0,
-            'On Hold' => 0,
-            'No Response' => 0,
-        ];
 
-        $query = Appointment::where('type', 'WEBINAR DEMO')
+        // Define allowed statuses only
+        $allowedStatuses = ['Closed', 'Lost', 'On Hold', 'No Response'];
+
+        $defaultLeadStatuses = array_fill_keys($allowedStatuses, 0);
+
+        $query = Appointment::with('lead')
+            ->where('type', 'WEBINAR DEMO')
             ->where('status', '!=', 'Cancelled')
-            ->whereHas('lead', function ($q) {
-                $q->whereIn('lead_status', ['Closed', 'Lost', 'On Hold', 'No Response']);
-            });
+            ->whereHas('lead', fn ($q) => $q->whereIn('lead_status', $allowedStatuses));
 
-        // Role-based filtering
-        if ($authUser->role_id == 1 && !empty($this->selectedUser)) {
+        // Apply role-based filtering
+        if (in_array($authUser->role_id, [1, 3]) && !empty($this->selectedUser)) {
             $query->where('salesperson', $this->selectedUser);
         }
+
         if ($authUser->role_id == 2) {
             $query->where('salesperson', $authUser->id);
         }
 
-        // Filter by Month
+        // Filter by selected month
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('date', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+            $query->whereBetween('date', [
+                $date->startOfMonth()->format('Y-m-d'),
+                $date->endOfMonth()->format('Y-m-d')
+            ]);
         }
 
-        // Count total webinar demo appointments
         $this->totalWebinarAppointmentsByLeadStatus = $query->count();
 
-        // Fetch lead statuses using Eloquent
-        $leadStatusData = $query
-            ->with('lead') // Load the lead relationship
-            ->get()
-            ->groupBy(fn ($appointment) => $appointment->lead->lead_status ?? 'Unknown')
+        // Group strictly by allowed statuses
+        $leadStatusData = $query->get()
+            ->groupBy(fn ($appointment) => $appointment->lead->lead_status)
             ->map(fn ($group) => $group->count())
             ->toArray();
 
-        // Merge with default values to ensure all statuses exist
+        // Merge to fill missing ones with 0
         $this->webinarDemoLeadStatusData = array_merge($defaultLeadStatuses, $leadStatusData);
     }
 

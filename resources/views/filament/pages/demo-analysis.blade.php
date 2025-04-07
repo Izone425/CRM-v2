@@ -660,28 +660,28 @@
 
             <div class="flex justify-center mt-4 space-x-6">
                 @foreach ($webinarDemoLeadStatusData as $status => $count)
+                    @continue(!in_array($status, ['Closed', 'Lost', 'On Hold', 'No Response'])) {{-- Prevent unknown statuses --}}
+
                     @php
-                        $percentage = $totalWebinarAppointmentsByLeadStatus > 0 ? round(($count / $totalWebinarAppointmentsByLeadStatus) * 100, 2) : 0;
-                        $color = match($status) {
-                            'Closed' => '#82CEC2',  /* Green */
-                            'Lost' => '#A0A0A0',    /* Dark Gray */
-                            'On Hold' => '#B3B3B3', /* Medium Gray */
-                            'No Response' => '#C6C6C6', /* Light Gray */
-                        };
-                        $bgcolor = match($status) {
-                            'Closed' => '#E3F7F5',  /* Green */
-                            'Lost' => '#E5E5E5',    /* Dark Gray */
-                            'On Hold' => '#ECECEC', /* Medium Gray */
-                            'No Response' => '#F7F7F7', /* Light Gray */
-                        };
+                        $percentage = $totalWebinarAppointmentsByLeadStatus > 0
+                            ? round(($count / $totalWebinarAppointmentsByLeadStatus) * 100, 2)
+                            : 0;
+
+                        $colors = [
+                            'Closed' => ['color' => '#82CEC2', 'bg' => '#E3F7F5'],
+                            'Lost' => ['color' => '#A0A0A0', 'bg' => '#E5E5E5'],
+                            'On Hold' => ['color' => '#B3B3B3', 'bg' => '#ECECEC'],
+                            'No Response' => ['color' => '#C6C6C6', 'bg' => '#F7F7F7'],
+                        ];
+
+                        $color = $colors[$status]['color'];
+                        $bgcolor = $colors[$status]['bg'];
                     @endphp
 
                     <div class="text-center cursor-pointer" wire:click="openWebinarStatusSlideOver('{{ $status }}')">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
                                 <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
                                         stroke-dasharray="88"
                                         stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
@@ -689,7 +689,6 @@
                                         transform="rotate(-90 18 18)">
                                 </circle>
                             </svg>
-                            <!-- Number in Center -->
                             <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
                                 {{ $count }}
                             </div>
