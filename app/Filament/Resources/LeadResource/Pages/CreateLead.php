@@ -83,6 +83,44 @@ class CreateLead extends CreateRecord
                 'categories' => 'Active',
             ]);
         }
+
+        try {
+            $lead = $this->record;
+            $viewName = 'emails.new_lead';
+
+            // Set fixed recipient
+            $recipients = collect([
+                (object)[
+                    'email' => 'faiz@ttc', // ✅ Your desired recipient
+                    'name' => 'Faiz'
+                ]
+            ]);
+
+            foreach ($recipients as $recipient) {
+                $emailContent = [
+                    'leadOwnerName' => $recipient->name ?? 'Unknown Person',
+                    'lead' => [
+                        'lead_code' => 'CRM',
+                        'lastName' => $lead->name ?? 'N/A',
+                        'company' => $lead->companyDetail->company_name ?? 'N/A',
+                        'companySize' => $lead->company_size ?? 'N/A',
+                        'phone' => $lead->phone ?? 'N/A',
+                        'email' => $lead->email ?? 'N/A',
+                        'country' => $lead->country ?? 'N/A',
+                        'products' => $lead->products ?? 'N/A',
+                    ],
+                    'remark' => $lead->remark ?? 'No remarks provided',
+                    'formatted_products' => is_array($lead->formatted_products)
+                        ? implode(', ', $lead->formatted_products)
+                        : ($lead->formatted_products ?? 'N/A'),
+                ];
+
+                Mail::to($recipient->email)
+                    ->send(new \App\Mail\NewLeadNotification($emailContent, $viewName));
+            }
+        } catch (\Exception $e) {
+            Log::error("New Lead Email Error: {$e->getMessage()}");
+        }
     }
 
     protected function getFormSchema(): array

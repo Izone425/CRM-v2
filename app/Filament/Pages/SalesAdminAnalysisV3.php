@@ -71,7 +71,7 @@ class SalesAdminAnalysisV3 extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id !== '2'; // Hides the resource from all users
+        return auth()->user()->role_id !== 2; // Hides the resource from all users
     }
 
     public function mount()
