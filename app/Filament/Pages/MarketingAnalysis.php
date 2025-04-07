@@ -335,6 +335,17 @@ class MarketingAnalysis extends Page
             }
         }
 
+        $this->leadCodes = Lead::query()
+            ->select('lead_code')
+            ->distinct()
+            ->pluck('lead_code')
+            ->map(function ($value) {
+                return $value ?? 'Null'; // Replace null with 'Null' string
+            })
+            ->sort()
+            ->values()
+            ->toArray();
+
         $leads = $query->get();
 
         $counts = collect([
@@ -1395,5 +1406,13 @@ class MarketingAnalysis extends Page
 
         $this->slideOverList = $query->get();
         $this->showSlideOver = true;
+    }
+
+    public function getSelectedMonthRangeLabelProperty()
+    {
+        $start = Carbon::parse($this->startDate)->format('F Y');
+        $end = Carbon::parse($this->endDate)->format('F Y');
+
+        return $start === $end ? $start : "{$start} - {$end}";
     }
 }
