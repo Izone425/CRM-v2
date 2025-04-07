@@ -23,6 +23,7 @@ class Appointment extends Model
         'salesperson',
         'remarks',
         'title',
+        'causer_id',
         'categories',
         'required_attendees',
         'optional_attendees',

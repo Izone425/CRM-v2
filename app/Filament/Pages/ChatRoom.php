@@ -3,6 +3,7 @@ namespace App\Filament\Pages;
 
 use App\Classes\Encryptor;
 use App\Models\ChatMessage;
+use App\Models\ActivityLog;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Services\WhatsAppService;
@@ -31,9 +32,25 @@ class ChatRoom extends Page
     public bool $filterUnreplied = false; // ✅ Default: Show all chats
     public string $selectedLeadOwner = '';
 
+    public int $contactsLimit = 15;
+    public int $filteredContactsCount = 0;
+
+    public function loadMoreContacts()
+    {
+        $this->contactsLimit += 15;
+    }
+
     public static function canAccess(): bool
     {
         return auth()->user()->role_id != '2';
+    }
+
+    public function getTotalContactsCountProperty()
+    {
+        return ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+            ->groupBy('user1', 'user2')
+            ->get()
+            ->count();
     }
 
     public function selectChat($user1, $user2)
@@ -98,7 +115,7 @@ class ChatRoom extends Page
                 ->orderByDesc('last_message_time')
                 ->get()
                 ->map(function ($chat) {
-                    // Get the last message for display
+                    // Get the last message
                     $lastMessage = ChatMessage::where(function ($query) use ($chat) {
                             $query->where('sender', $chat->user1)
                                 ->where('receiver', $chat->user2);
@@ -114,34 +131,24 @@ class ChatRoom extends Page
                     $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
                     $chat->is_read = $lastMessage->is_read ?? null;
 
-                    // ✅ Check if the last message is from the customer AND has no reply yet
                     $hasNoReply = ChatMessage::where(function ($query) use ($chat) {
                             $query->where('is_read', false)
                                 ->where('sender', $chat->user2)
                                 ->where('receiver', $chat->user1)
-                                ->where('is_from_customer', true); // Look for replies from system user
+                                ->where('is_from_customer', true);
                         });
 
                     $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
 
-                    // Determine chat participant's name
-
-                    // Remove "whatsapp:" and "+" from the Twilio number
                     $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
-
-                    // Remove "+" from user1 (in case it's stored differently)
                     $user1 = preg_replace('/^\+/', '', $chat->user1);
                     $user2 = preg_replace('/^\+/', '', $chat->user2);
-
-                    // Now compare properly
                     $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
-                    // Check in Leads table
                     $lead = Lead::where('phone', $chatParticipant)->first();
                     if ($lead) {
                         $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
                     } else {
-                        // Check in CompanyDetail table
                         $company = CompanyDetail::where('contact_no', $chatParticipant)->first();
                         $chat->participant_name = $company->name ?? $chatParticipant;
                     }
@@ -149,7 +156,6 @@ class ChatRoom extends Page
                     return $chat;
                 });
 
-        // ✅ Apply the filter only when the checkbox is checked
         if ($this->filterUnreplied) {
             $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
         }
@@ -157,69 +163,115 @@ class ChatRoom extends Page
         if ($this->selectedLeadOwner) {
             $contacts = $contacts->filter(function ($chat) {
                 $participant = $chat->participant_name;
-                $lead = Lead::where('name', $participant)->where('lead_owner', $this->selectedLeadOwner)->first();
+                $lead = Lead::where('name', $participant)
+                    ->where('lead_owner', $this->selectedLeadOwner)
+                    ->first();
                 return $lead !== null;
             });
         }
 
-        return $contacts;
+        $this->filteredContactsCount = $contacts->count();
+
+        return $contacts->take($this->contactsLimit);
     }
 
     public function fetchParticipantDetails()
     {
         if (!$this->selectedChat || !isset($this->selectedChat['user1'], $this->selectedChat['user2'])) {
-            return [
-                'name' => 'Unknown',
-                'email' => 'N/A',
-                'phone' => 'N/A',
-                'company' => 'N/A',
-                'company_url' => null, // No link
-                'source' => 'Not Found'
-            ];
+            return $this->defaultParticipantResponse('Unknown');
         }
 
-        // Clean Twilio WhatsApp number (remove "whatsapp:" and "+")
+        // Clean Twilio number and participants
         $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
-
-        // Clean user1 and user2 (remove "+" if present)
         $user1 = preg_replace('/^\+/', '', $this->selectedChat['user1']);
         $user2 = preg_replace('/^\+/', '', $this->selectedChat['user2']);
 
-        // Compare properly and assign chat participant
         $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
-        // Check in Leads table
-        $lead = \App\Models\Lead::where('phone', $chatParticipant)->with('companyDetail')->first();
-        if ($lead && $lead->companyDetail) {
+        // STEP 1: Try to find lead by phone
+        $lead = \App\Models\Lead::with('companyDetail')
+            ->where('phone', $chatParticipant)
+            ->first();
+
+        // STEP 2: If not found, try finding via company contact_no
+        if (!$lead) {
+            $company = \App\Models\CompanyDetail::where('contact_no', $chatParticipant)->first();
+
+            if ($company && $company->lead) {
+                $lead = $company->lead->load('companyDetail');
+            }
+        }
+
+        // STEP 3: Fallback - Create lead if message found and no lead exists
+        if (!$lead) {
+            $lastMessage = \App\Models\ChatMessage::where(function ($query) use ($chatParticipant) {
+                $query->where('sender', $chatParticipant)
+                    ->orWhere('receiver', $chatParticipant);
+            })->latest()->first();
+
+            if ($lastMessage) {
+                // 1. Create the Lead
+                $lead = \App\Models\Lead::create([
+                    'name' => $lastMessage->profile_name ?? 'Unknown',
+                    'phone' => $chatParticipant,
+                    'categories' => 'New',
+                    'stage' => 'New',
+                    'lead_status' => 'None',
+                    'lead_code' => 'WhatsApp - TimeTec',
+                ]);
+
+                // 2. Create the CompanyDetail
+                $companyDetail = \App\Models\CompanyDetail::create([
+                    'lead_id' => $lead->id,
+                    'contact_no' => $chatParticipant,
+                    'company_name' => 'Unknown',
+                    'name' => $lastMessage->profile_name ?? 'Unknown',
+                ]);
+
+                // 3. Quietly update the lead's `company_name` field with the company_detail id
+                $lead->company_name = $companyDetail->id;
+                $lead->saveQuietly();
+
+                // 4. Load the relationship for return use
+                $lead->load('companyDetail');
+            }
+
+            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+            // ✅ Update the latest activity log description
+            if ($latestActivityLog) {
+                $latestActivityLog->update([
+                    'description' => 'New lead created from WhatsApp',
+                ]);
+            }
+        }
+
+        // STEP 4: Build final response
+        if ($lead) {
             return [
                 'name' => $lead->name ?? 'Unknown',
                 'email' => $lead->email ?? 'N/A',
-                'phone' => $lead->phone ?? 'N/A',
+                'phone' => $lead->phone ?? $chatParticipant,
                 'company' => $lead->companyDetail->company_name ?? 'N/A',
-                'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)), // ✅ Generate URL
+                'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)),
                 'source' => $lead->lead_code ?? 'N/A',
-                'lead_status' => $lead->lead_status,
+                'lead_status' => $lead->lead_status ?? 'N/A',
             ];
         }
 
-        // Check in CompanyDetail table
-        $company = \App\Models\CompanyDetail::where('contact_no', $chatParticipant)->first();
-        if ($company) {
-            return [
-                'name' => $company->name,
-                'email' => $company->email ?? 'N/A',
-                'phone' => $company->contact_no ?? 'N/A',
-                'company' => $company->company_name ?? 'N/A',
-                'company_url' => url('admin/leads/' . Encryptor::encrypt($company->lead->id)), // ✅ Generate URL
-                'source' => $company->lead->lead_code ?? 'N/A',
-                'lead_status' => $company->lead->lead_status,
-            ];
-        }
+        // STEP 5: No match found at all
+        return $this->defaultParticipantResponse($chatParticipant);
+    }
 
+    // Reusable fallback
+    private function defaultParticipantResponse($phone)
+    {
         return [
             'name' => 'Unknown',
             'email' => 'N/A',
-            'phone' => $chatParticipant,
+            'phone' => $phone,
             'company' => 'N/A',
             'company_url' => null,
             'source' => 'Not Found',
@@ -298,25 +350,66 @@ class ChatRoom extends Page
 
     public static function getNavigationBadge(): ?string
     {
-        // Get all distinct chat pairs with unread customer messages
-        $unreadChats = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
-            ->where('is_from_customer', true)
-            ->where('is_read', false)
+        $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
             ->groupBy('user1', 'user2')
             ->get();
+
+        $unreadChats = $chatPairs->filter(function ($chat) {
+            $lastMessage = ChatMessage::where(function ($query) use ($chat) {
+                    $query->where('sender', $chat->user1)
+                        ->where('receiver', $chat->user2);
+                })
+                ->orWhere(function ($query) use ($chat) {
+                    $query->where('sender', $chat->user2)
+                        ->where('receiver', $chat->user1);
+                })
+                ->latest()
+                ->first();
+
+            if (!$lastMessage || !$lastMessage->is_from_customer) {
+                return false;
+            }
+
+            // Look for unread message from customer to system (i.e. no reply yet)
+            return ChatMessage::where('sender', $chat->user2)
+                ->where('receiver', $chat->user1)
+                ->where('is_from_customer', true)
+                ->where('is_read', false)
+                ->exists();
+        });
 
         return (string) $unreadChats->count();
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
-        $unreadCount = ChatMessage::where('is_from_customer', true)
-            ->where('is_read', false)
-            ->selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+        $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
             ->groupBy('user1', 'user2')
-            ->get()
-            ->count();
+            ->get();
 
-        return $unreadCount > 0 ? 'danger' : null;
+        $hasUnread = $chatPairs->contains(function ($chat) {
+            $lastMessage = ChatMessage::where(function ($query) use ($chat) {
+                    $query->where('sender', $chat->user1)
+                        ->where('receiver', $chat->user2);
+                })
+                ->orWhere(function ($query) use ($chat) {
+                    $query->where('sender', $chat->user2)
+                        ->where('receiver', $chat->user1);
+                })
+                ->latest()
+                ->first();
+
+            if (!$lastMessage || !$lastMessage->is_from_customer) {
+                return false;
+            }
+
+            return ChatMessage::where('sender', $chat->user2)
+                ->where('receiver', $chat->user1)
+                ->where('is_from_customer', true)
+                ->where('is_read', false)
+                ->exists();
+        });
+
+        return $hasUnread ? 'danger' : null;
     }
 }

@@ -677,7 +677,7 @@
             <div class="lead-summary-box">
                 <div class="lead-count">
                     <p class="lead-number">{{ array_sum($demoTypeData) }}</p>
-                    <p class="lead-label">Total Leads</p>
+                    <p class="lead-label">Total Demos</p>
                 </div>
                 <div class="lead-divider"></div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

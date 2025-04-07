@@ -52,14 +52,25 @@ class LeadAnalysis extends Page
 
     public function mount()
     {
-        $this->users = User::where('role_id', 2)->get(); // Fetch Salespersons
+        $this->users = User::where('role_id', 2)->get(); // Fetch all salespersons
         $this->currentDate = Carbon::now();
 
-        // Default to session or logged-in user
-        $this->selectedUser = session('selectedUser') ?? auth()->user()->id;
+        $authUser = auth()->user();
+
+        // 👇 Admins and managers can select a user or default to "All"
+        if (in_array($authUser->role_id, [1, 3])) {
+            $this->selectedUser = session('selectedUser', null); // null = all users
+        }
+
+        // 👇 Salesperson will only see their own data
+        if ($authUser->role_id === 2) {
+            $this->selectedUser = $authUser->id;
+        }
+
         $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
 
-        // Fetch all leads and active leads initially
+        session(['selectedUser' => $this->selectedUser, 'selectedMonth' => $this->selectedMonth]);
+
         $this->fetchLeads();
         $this->fetchActiveLeads();
         $this->fetchInactiveLeads();

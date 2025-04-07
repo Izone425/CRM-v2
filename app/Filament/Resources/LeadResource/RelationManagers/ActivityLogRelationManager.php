@@ -175,7 +175,7 @@ class ActivityLogRelationManager extends RelationManager
                                     // Deal Amount
                                     if (!is_null($lead->deal_amount)) {
                                         $formattedAmount = number_format($lead->deal_amount, 2);
-                                        $extraInfoHtml .= "<p><strong>Deal Amount:</strong> <span class='text-green-600'>\${$formattedAmount}</span></p>";
+                                        $extraInfoHtml .= "<p><strong>Deal Amount:</strong> <span class='text-green-600'>RM {$formattedAmount}</span></p>";
                                     }
 
                                     // Follow Up Date

@@ -230,7 +230,7 @@ class LeadResource extends Resource
                                             ])->columnSpan(1),
                                 ]),
                                 Section::make('UTM Details')
-                                    ->icon('heroicon-o-chart-bar')
+                                    ->icon('heroicon-o-puzzle-piece')
                                     ->schema([
                                         View::make('components.utm-details')
                                             ->extraAttributes(fn ($record) => ['record' => $record]),
@@ -592,6 +592,10 @@ class LeadResource extends Resource
                                                                     }
 
                                                                     if ($demoAppointment->status !== 'Done') {
+                                                                        return true;
+                                                                    }
+
+                                                                    if (auth()->id() === 12) {
                                                                         return true;
                                                                     }
 
@@ -1320,7 +1324,7 @@ class LeadResource extends Resource
                         ->label(__('Reset Lead'))
                         ->color('danger')
                         ->icon('heroicon-o-shield-exclamation')
-                        // ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
+                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([

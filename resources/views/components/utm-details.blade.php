@@ -32,7 +32,7 @@
                             </div>
                         </div>
                         <div class="grid auto-cols-fr gap-y-2">
-                            <div class="text-sm leading-6 text-gray-900 fi-fo-placeholder dark:text-white">
+                            <div class="text-sm leading-6 text-gray-900 break-words whitespace-normal fi-fo-placeholder dark:text-white">
                                 {{ $item['value'] }}
                             </div>
                         </div>

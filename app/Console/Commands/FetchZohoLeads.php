@@ -149,6 +149,12 @@ class FetchZohoLeads extends Command
                     continue; // ✅ Skip if lead exists
                 }
 
+                $leadSource = $lead['Lead_Source'] ?? null;
+
+                if (empty($leadSource) && !empty($lead['utm_matchtype'])) {
+                    $leadSource = 'Google AdWords';
+                }
+
                 // ✅ Create a new lead (no updates for existing ones)
                 $newLead = Lead::create([
                     'zoho_id'      => $lead['id'] ?? null,
@@ -157,9 +163,8 @@ class FetchZohoLeads extends Command
                     'country'      => $lead['Country'] ?? null,
                     'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? null), // ✅ Normalize before storing
                     'phone'        => $phoneNumber,
-                    'lead_code'    => $lead['Lead_Source'] ?? null,
+                    'lead_code'    => $leadSource,
                     'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
-                    'lead_source'  => $lead['Lead_Source'] ?? null,
                     'created_at'   => $leadCreatedTime,
                 ]);
 
