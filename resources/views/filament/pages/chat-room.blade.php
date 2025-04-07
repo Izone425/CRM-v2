@@ -45,6 +45,16 @@
                         </div>
                     </div>
                 @endforeach
+
+                <!-- 👇 Show More Button -->
+                @if ($filteredContactsCount > $contactsLimit)
+                    <div class="p-4 text-center bg-white border-t">
+                        <button wire:click="loadMoreContacts"
+                                class="px-4 py-2 text-sm font-medium text-blue-600 bg-gray-100 rounded hover:bg-gray-200">
+                            Show More
+                        </button>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -63,6 +73,17 @@
 
                 <!-- Messages Container -->
                 <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100" wire:poll.1s>
+                    <!-- 👇 Loading spinner while switching chat -->
+                    <div wire:loading wire:target="selectChat" class="text-center text-gray-500">
+                        <i class="mr-2 fas fa-spinner fa-spin"></i> Loading messages...
+                    </div>
+
+                    <!-- 👇 Hide messages while loading -->
+                    <div wire:loading.remove wire:target="selectChat">
+                        @foreach($this->fetchMessages($selectedChat) as $message)
+                            <!-- message bubble -->
+                        @endforeach
+                    </div>
                     @foreach($this->fetchMessages($selectedChat) as $message)
                         <div class="flex {{ $message->is_from_customer ? 'justify-start' : 'justify-end' }}">
                             <div class="max-w-[70%] rounded-lg p-3
@@ -138,15 +159,15 @@
                             <!-- Text Input -->
                             <textarea
                                 wire:model="message"
-                                placeholder="Type a message"
-                                rows="1"
-                                x-data
-                                x-ref="textarea"
+                                x-data="{ message: @entangle('message').defer }"
                                 x-init="$watch('message', () => {
-                                    $refs.textarea.style.height = 'auto';
-                                    $refs.textarea.style.height = $refs.textarea.scrollHeight + 'px';
+                                    $el.style.height = 'auto';
+                                    $el.style.height = $el.scrollHeight + 'px';
                                 })"
+                                @input="message = $el.value"
                                 class="flex-1 overflow-hidden border-gray-300 rounded-lg resize-none focus:border-primary-500 focus:ring-primary-500"
+                                rows="1"
+                                placeholder="Type a message"
                             ></textarea>
 
                             <!-- Send Button -->
@@ -162,7 +183,17 @@
                     </form>
                 </div>
             @else
-                <!-- Empty State -->
+            <div wire:loading wire:target="selectChat" class="text-center text-gray-500">
+                <i class="mr-2 fas fa-spinner fa-spin"></i> Loading messages...
+            </div>
+
+            <!-- 👇 Hide messages while loading -->
+            <div wire:loading.remove wire:target="selectChat">
+                @foreach($this->fetchMessages($selectedChat) as $message)
+                    <!-- message bubble -->
+                @endforeach
+            </div>
+            <!-- Empty State -->
                 <div class="flex items-center justify-center flex-1 bg-gray-50">
                     <div class="text-center text-gray-500">
                         <div class="mb-2 text-xl font-medium">Select a chat</div>
