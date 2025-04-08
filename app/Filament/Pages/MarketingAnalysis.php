@@ -555,6 +555,22 @@ class MarketingAnalysis extends Page
             }
         }
 
+        // ✅ Lead status filter
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
         // Load leads with demo appointments
         $leads = $query->with('demoAppointment')->get();
 
@@ -714,6 +730,22 @@ class MarketingAnalysis extends Page
         if ($user->role_id == 2) {
             $query->where('salesperson', $user->id);
         }
+
+        // ✅ Lead status filter
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
 
         // ✅ Filter by lead created_at instead of demo date
         if (!empty($this->startDate) && !empty($this->endDate)) {
