@@ -1870,9 +1870,13 @@ class LeadActions
                             'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
                         ];
 
-                        $graph->createRequest("PATCH", "/users/$organizerEmail/events/{$record->event_id}")
+                        $response = $graph->createRequest("PATCH", "/users/$organizerEmail/events/{$record->event_id}")
                             ->attachBody($meetingUpdatePayload)
                             ->execute();
+
+                        $eventData = $response->getBody(); // associative array
+
+                        $joinUrl = $eventData['onlineMeeting']['joinUrl'] ?? null;
 
                         Notification::make()
                             ->title('Demo Rescheduled')
@@ -1894,11 +1898,97 @@ class LeadActions
                     'remark' => $data['remarks'],
                 ]);
 
+                $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
+                    $demoAppointment = $lead->demoAppointment()->latest('created_at')->first();
+                    $startTime = Carbon::parse($demoAppointment->start_time);
+                    $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
+                    $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
+                    $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
+                    $picName = optional($lead->companyDetail)->name ?? $lead->name;
+                    $email = optional($lead->companyDetail)->email ?? $lead->email;
+                    info($email);
+                    if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
+                        try {
+                            $viewName = 'emails.demo_notification';
+                            $leadowner = User::where('name', $lead->lead_owner)->first();
+
+                            $emailContent = [
+                                'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                'lead' => [
+                                    'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
+                                    'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                    'salespersonName' => $salespersonUser->name ?? 'N/A',
+                                    'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
+                                    'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                    'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
+                                    'phone' =>$contactNo ?? 'N/A',
+                                    'pic' => $picName ?? 'N/A',
+                                    'email' => $email ?? 'N/A',
+                                    'date' => $formattedDate ?? 'N/A',
+                                    'startTime' => $startTime ?? 'N/A',
+                                    'endTime' => $endTime ?? 'N/A',
+                                    'meetingLink' => $joinUrl ?? 'N/A',
+                                    'position' => $salespersonUser->position ?? 'N/A', // position
+                                    'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                    'demo_type' => $record->type,
+                                    'appointment_type' => $record->appointment_type
+                                ],
+                            ];
+
+                            $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
+
+                            $requiredAttendees = $demoAppointment->required_attendees ?? null;
+
+                            // Parse attendees' emails if not null
+                            $attendeeEmails = [];
+                            if (!empty($requiredAttendees)) {
+                                $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
+                            }
+
+                            // Get Lead's Email (Primary recipient)
+                            $leadEmail = $lead->companyDetail->email ?? $lead->email;
+
+                            // Get Salesperson Email
+                            $salespersonId = $lead->salesperson;
+                            $salesperson = User::find($salespersonId);
+                            $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
+                            info($salespersonEmail);
+
+                            // Get Lead Owner Email
+                            $leadownerName = $lead->lead_owner;
+                            $leadowner = User::where('name', $leadownerName)->first();
+                            $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
+
+                            // Combine CC recipients
+                            $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
+                                return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                            });
+
+                            // Send email only if valid
+                            if (!empty($leadEmail)) {
+                                $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
+
+                                if (!empty($ccEmails)) {
+                                    $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
+                                }
+
+                                $mail->send(new DemoNotification($emailContent, $viewName));
+
+                                info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
+                            } else {
+                                Log::error("No valid lead email found for sending DemoNotification.");
+                            }
+                        } catch (\Exception $e) {
+                            // Handle email sending failure
+                            Log::error("Email sending failed for salesperson: " . ($data['salesperson'] ?? auth()->user()->name) . ", Error: {$e->getMessage()}");
+                        }
+                    }
+
                 activity()
                     ->causedBy(auth()->user())
                     ->performedOn($lead)
                     ->log('Demo rescheduled to ' . $data['date'] . ' at ' . $data['start_time']);
-
             });
     }
 

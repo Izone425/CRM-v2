@@ -33,8 +33,6 @@ class AutoFollowUp extends Command
 
                 $counter++;
 
-                info("Processing follow-up for Lead ID: {$lead->id}, Name: {$lead->name}, Follow-Up Count: {$lead->follow_up_count}");
-
                 $lead->update([
                     'follow_up_count' => $lead->follow_up_count + 1,
                     'follow_up_date' => now()->next('Tuesday'),
@@ -124,6 +122,7 @@ class AutoFollowUp extends Command
                         Log::error("WhatsApp Error: {$e->getMessage()}");
                     }
                 }
+                info("Processing follow-up for Lead ID: {$lead->id}, Follow-Up Count: {$lead->follow_up_count}");
             }
         });
     }

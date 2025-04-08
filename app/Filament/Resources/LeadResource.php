@@ -97,7 +97,7 @@ class LeadResource extends Resource
                                                         ->action(function (Lead $lead, array $data) {
                                                             if ($lead) {
                                                                 // Update the existing SystemQuestion record
-                                                                $lead->update($data);
+                                                                $lead->updateQuietly($data);
 
                                                                 Notification::make()
                                                                     ->title('Updated Successfully')
@@ -1324,7 +1324,7 @@ class LeadResource extends Resource
                         ->label(__('Reset Lead'))
                         ->color('danger')
                         ->icon('heroicon-o-shield-exclamation')
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
+                        // ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([
@@ -1359,8 +1359,8 @@ class LeadResource extends Resource
                                 ->send();
                         }),
                 ])
-                ->button()
-                ->visible(fn () => in_array(auth()->user()->role_id, [1, 3])),
+                ->button(),
+                // ->visible(fn () => in_array(auth()->user()->role_id, [1, 3])),
                 Tables\Actions\ViewAction::make()
                     ->url(fn ($record) => route('filament.admin.resources.leads.view', [
                         'record' => Encryptor::encrypt($record->id),
