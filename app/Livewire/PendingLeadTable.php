@@ -14,6 +14,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Str;
@@ -44,17 +45,29 @@ class PendingLeadTable extends Component implements HasForms, HasTable
     public function getNewLeadsQuery()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
-        $leadOwner = auth()->user()->role_id == 3 && $this->selectedUser
-            ? User::find($this->selectedUser)->name
-            : auth()->user()->name;
 
-        return Lead::query()
+        $query = Lead::query()
             ->where('stage', 'Transfer')
-            ->where('lead_owner', $leadOwner)
-            ->whereNull('salesperson') // Salesperson must be NULL
+            ->whereNull('salesperson')
             ->where('follow_up_date', null)
-            ->whereIn('lead_status', ['New','Demo Cancelled'])
+            ->whereIn('lead_status', ['New', 'Demo Cancelled'])
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+
+        if ($this->selectedUser === 'all-lead-owners') {
+            $leadOwnerNames = User::where('role_id', 1)->pluck('name');
+            $query->whereIn('lead_owner', $leadOwnerNames);
+        } elseif (is_numeric($this->selectedUser)) {
+            $user = User::find($this->selectedUser);
+
+            if ($user) {
+                $query->where('lead_owner', $user->name);
+            }
+        } else {
+            // fallback for current user
+            $query->where('lead_owner', auth()->user()->name);
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -67,6 +80,14 @@ class PendingLeadTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'My Pending Tasks - ' . $this->getNewLeadsQuery()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

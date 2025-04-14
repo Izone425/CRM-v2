@@ -7,8 +7,10 @@ use App\Models\ActivityLog;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Services\WhatsAppService;
+use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
 use Livewire\WithPolling;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +37,15 @@ class ChatRoom extends Page
     public int $contactsLimit = 15;
     public int $filteredContactsCount = 0;
 
+    public ?string $startDate = null;
+    public ?string $endDate = null;
+
+    public function mount()
+    {
+        $this->endDate = Carbon::now()->toDateString(); // default to today
+        $this->startDate = Carbon::now()->subWeek()->toDateString();
+    }
+
     public function loadMoreContacts()
     {
         $this->contactsLimit += 15;
@@ -51,6 +62,16 @@ class ChatRoom extends Page
             ->groupBy('user1', 'user2')
             ->get()
             ->count();
+    }
+
+    public function updatedStartDate()
+    {
+        $this->fetchContacts();
+    }
+
+    public function updatedEndDate()
+    {
+        $this->fetchContacts();
     }
 
     public function selectChat($user1, $user2)
@@ -106,59 +127,82 @@ class ChatRoom extends Page
 
     public function fetchContacts()
     {
-        $contacts = ChatMessage::selectRaw('
-                    LEAST(sender, receiver) AS user1,
-                    GREATEST(sender, receiver) AS user2,
-                    MAX(created_at) as last_message_time
-                ')
-                ->groupBy('user1', 'user2')
-                ->orderByDesc('last_message_time')
-                ->get()
-                ->map(function ($chat) {
-                    // Get the last message
-                    $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-                            $query->where('sender', $chat->user1)
-                                ->where('receiver', $chat->user2);
-                        })
-                        ->orWhere(function ($query) use ($chat) {
-                            $query->where('sender', $chat->user2)
-                                ->where('receiver', $chat->user1);
-                        })
-                        ->latest()
-                        ->first();
+        $query = ChatMessage::selectRaw('
+                LEAST(sender, receiver) AS user1,
+                GREATEST(sender, receiver) AS user2,
+                MAX(created_at) as last_message_time
+            ')
+            ->groupBy('user1', 'user2');
 
-                    $chat->latest_message = $lastMessage->message ?? null;
-                    $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
-                    $chat->is_read = $lastMessage->is_read ?? null;
-
-                    $hasNoReply = ChatMessage::where(function ($query) use ($chat) {
-                            $query->where('is_read', false)
-                                ->where('sender', $chat->user2)
-                                ->where('receiver', $chat->user1)
-                                ->where('is_from_customer', true);
-                        });
-
-                    $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
-
-                    $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
-                    $user1 = preg_replace('/^\+/', '', $chat->user1);
-                    $user2 = preg_replace('/^\+/', '', $chat->user2);
-                    $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
-
-                    $lead = Lead::where('phone', $chatParticipant)->first();
-                    if ($lead) {
-                        $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
-                    } else {
-                        $company = CompanyDetail::where('contact_no', $chatParticipant)->first();
-                        $chat->participant_name = $company->name ?? $chatParticipant;
-                    }
-
-                    return $chat;
-                });
-
-        if ($this->filterUnreplied) {
-            $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
+        // Date filter
+        if ($this->startDate && $this->endDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
         }
+
+        // SQL-level filter for unreplied messages
+        if ($this->filterUnreplied) {
+            $query->where('chat_messages.is_from_customer', true)
+                ->where('chat_messages.is_read', false)
+                ->whereNotExists(function ($sub) {
+                    $sub->selectRaw(1)
+                        ->from('chat_messages as replies')
+                        ->whereColumn('replies.sender', 'chat_messages.receiver')
+                        ->whereColumn('replies.receiver', 'chat_messages.sender')
+                        ->where('replies.created_at', '>', DB::raw('chat_messages.created_at'))
+                        ->where('replies.is_from_customer', false);
+                });
+        }
+
+        $contacts = $query->orderByDesc('last_message_time')
+            ->limit($this->contactsLimit)
+            ->get()
+            ->map(function ($chat) {
+                // Get the last message in this chat pair
+                $lastMessage = ChatMessage::where(function ($query) use ($chat) {
+                        $query->where('sender', $chat->user1)
+                            ->where('receiver', $chat->user2);
+                    })
+                    ->orWhere(function ($query) use ($chat) {
+                        $query->where('sender', $chat->user2)
+                            ->where('receiver', $chat->user1);
+                    })
+                    ->latest()
+                    ->first();
+
+                $chat->latest_message = $lastMessage->message ?? null;
+                $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
+                $chat->is_read = $lastMessage->is_read ?? null;
+
+                $hasNoReply = ChatMessage::where('is_read', false)
+                    ->where('sender', $chat->user2)
+                    ->where('receiver', $chat->user1)
+                    ->where('is_from_customer', true)
+                    ->exists();
+
+                $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
+
+                $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+                $user1 = preg_replace('/^\+/', '', $chat->user1);
+                $user2 = preg_replace('/^\+/', '', $chat->user2);
+                $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
+
+                $lead = Lead::where('phone', $chatParticipant)->first();
+                if ($lead) {
+                    $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
+                } else {
+                    $company = CompanyDetail::where('contact_no', $chatParticipant)->first();
+                    $chat->participant_name = $company->name ?? $chatParticipant;
+                }
+
+                return $chat;
+            });
+
+        // if ($this->filterUnreplied) {
+        //     $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
+        // }
 
         if ($this->selectedLeadOwner) {
             $contacts = $contacts->filter(function ($chat) {
@@ -203,7 +247,7 @@ class ChatRoom extends Page
         }
 
         // STEP 3: Fallback - Create lead if message found and no lead exists
-        if (!$lead) {
+        if (!$lead && $chatParticipant !== $twilioNumber) {
             $lastMessage = \App\Models\ChatMessage::where(function ($query) use ($chatParticipant) {
                 $query->where('sender', $chatParticipant)
                     ->orWhere('receiver', $chatParticipant);
@@ -251,9 +295,11 @@ class ChatRoom extends Page
         // STEP 4: Build final response
         if ($lead) {
             return [
-                'name' => $lead->name ?? 'Unknown',
-                'email' => $lead->email ?? 'N/A',
-                'phone' => $chatParticipant ?? $lead->phone,
+                'name' => $lead->companyDetail->name
+                    ?? $lead->name
+                    ?? 'Unknown',
+                'email' => $lead->companyDetail->email ?? $lead->email ?? 'N/A',
+                'phone' => $chatParticipant ?? $lead->companyDetail->contact_no ?? $lead->phone,
                 'company' => $lead->companyDetail->company_name ?? 'N/A',
                 'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)),
                 'source' => $lead->lead_code ?? 'N/A',
@@ -337,15 +383,15 @@ class ChatRoom extends Page
                 'message' => $this->message ?: '[File Sent]',
                 'twilio_message_id' => $result,
                 'is_from_customer' => false,
-                'media_url' => $fileUrl, // ✅ Store public file URL
-                'media_type' => $fileMimeType, // ✅ Store file type
+                'media_url' => $fileUrl,
+                'media_type' => $fileMimeType,
             ]);
 
             $this->reset(['message', 'file']);
-            session()->flash('success', 'Message sent successfully!');
-        } else {
-            session()->flash('error', 'Failed to send message.');
         }
+
+        $this->dispatch('messageSent');
+        $this->reset(['message', 'file']);
     }
 
     public static function getNavigationBadge(): ?string

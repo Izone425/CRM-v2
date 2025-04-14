@@ -535,7 +535,7 @@
                 <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
                 <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
             </div>
-            <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 10px; align-items: flex-end; gap: 40px;">
+            <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 10px 10px 10px 100px; align-items: flex-end; gap: 40px;">
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 @php
                     $leadTypeCounts = $this->getLeadTypeCounts();

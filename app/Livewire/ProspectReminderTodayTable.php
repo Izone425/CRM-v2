@@ -14,6 +14,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Str;
@@ -45,20 +46,29 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        // Fetch user safely to prevent null error
-        $selectedUser = User::find($this->selectedUser);
-
-        $leadOwner = (auth()->user()->role_id == 3 && $selectedUser)
-            ? $selectedUser->name // Only access name if the user exists
-            : auth()->user()->name;
-
-        return Lead::query()
+        $query = Lead::query()
             ->whereDate('follow_up_date', today())
             ->where('categories', '!=', 'Inactive')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
-            ->where('lead_owner', $leadOwner)
             ->where('follow_up_counter', true)
             ->whereNull('salesperson');
+
+        // Handle filtering by user or group
+        if ($this->selectedUser === 'all-lead-owners') {
+            $leadOwnerNames = User::where('role_id', 1)->pluck('name');
+            $query->whereIn('lead_owner', $leadOwnerNames);
+        } elseif (is_numeric($this->selectedUser)) {
+            $user = User::find($this->selectedUser);
+
+            if ($user) {
+                $query->where('lead_owner', $user->name);
+            }
+        } else {
+            // fallback to current user
+            $query->where('lead_owner', auth()->user()->name);
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -71,6 +81,14 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Prospect Reminder (Today) - ' . $this->getProspectTodayQuery()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

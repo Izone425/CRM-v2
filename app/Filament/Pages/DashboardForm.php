@@ -44,20 +44,25 @@ class DashboardForm extends Page
 
     public function updatedSelectedUser($userId)
     {
-        $this->selectedUser = $userId; // Store selected user
-        $selectedUser = User::find($userId);
+        $this->selectedUser = $userId;
+        session(['selectedUser' => $userId]);
 
-        if ($selectedUser) {
-            $this->selectedUserRole = $selectedUser->role_id;
-
-            // Use toggleDashboard to switch dashboards dynamically
-            $this->toggleDashboard($this->selectedUserRole == 2 ? 'Salesperson' : 'LeadOwner');
+        if (in_array($userId, ['all-lead-owners', 'all-salespersons'])) {
+            // Set role based on group type
+            $this->selectedUserRole = $userId === 'all-salespersons' ? 2 : 1;
+            $this->toggleDashboard($this->selectedUserRole === 2 ? 'Salesperson' : 'LeadOwner');
         } else {
-            $this->selectedUserRole = null;
-            $this->toggleDashboard('LeadOwner'); // Default to LeadOwner if no user selected
+            $selectedUser = User::find($userId);
+
+            if ($selectedUser) {
+                $this->selectedUserRole = $selectedUser->role_id;
+                $this->toggleDashboard($selectedUser->role_id == 2 ? 'Salesperson' : 'LeadOwner');
+            } else {
+                $this->selectedUserRole = null;
+                $this->toggleDashboard('LeadOwner');
+            }
         }
 
-        session(['selectedUser' => $userId]); // Store the selected user in session
-        $this->dispatch('updateTablesForUser', selectedUser: $userId); // Dispatch event
+        $this->dispatch('updateTablesForUser', selectedUser: $userId);
     }
 }

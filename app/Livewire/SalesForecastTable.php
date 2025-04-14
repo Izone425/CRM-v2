@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use App\Models\Lead;
@@ -10,6 +11,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
 class SalesForecastTable extends Component implements HasForms, HasTable
@@ -39,36 +41,34 @@ class SalesForecastTable extends Component implements HasForms, HasTable
         session(['selectedUser' => $this->selectedUser]);
         session(['selectedMonth' => $this->selectedMonth]);
 
-        $this->calculateTotals(); // Update totals dynamically
-        $this->resetTable(); // Refresh the table
+        $this->calculateTotals();
+        $this->resetTable();
     }
 
-    public function getFilteredLeadsQuery()
+    public function getFilteredLeadsQuery(): Builder
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser', null);
         $this->selectedMonth = $this->selectedMonth ?? session('selectedMonth', null);
 
         $query = Lead::query()
-            ->whereIn('lead_status', ['Hot', 'Warm', 'Cold']);
+            ->with('companyDetail')
+            ->join('company_details', 'leads.company_name', '=', 'company_details.id')
+            ->whereIn('lead_status', ['Hot', 'Warm', 'Cold'])
+            ->select('leads.*', 'company_details.company_name')
+            ->selectRaw('DATEDIFF(NOW(), leads.created_at) as pending_days');
 
         if ($this->selectedUser !== null) {
             $query->where('salesperson', $this->selectedUser);
         }
 
         if ($this->selectedMonth !== null) {
-            $query->whereMonth('created_at', Carbon::parse($this->selectedMonth)->month)
-                  ->whereYear('created_at', Carbon::parse($this->selectedMonth)->year);
+            $query->whereMonth('leads.created_at', Carbon::parse($this->selectedMonth)->month)
+                  ->whereYear('leads.created_at', Carbon::parse($this->selectedMonth)->year);
         }
 
-        return $query
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days')
-            ->orderByRaw("FIELD(lead_status, 'Hot', 'Warm', 'Cold')")
-            ->orderByDesc('created_at');
+        return $query;
     }
 
-    /**
-     * Calculate total deal_amount for Hot, Warm, and Cold leads.
-     */
     public function calculateTotals()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser', null);
@@ -108,17 +108,22 @@ class SalesForecastTable extends Component implements HasForms, HasTable
         return $table
             ->poll('10s')
             ->query($this->getFilteredLeadsQuery())
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('lead_status')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
-            ->paginated([10, 25, 50, 100, 'all'])
+            ->paginated([10, 25, 50, 100])
             ->columns([
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
-                    ->sortable(),
+                    ->sortable(query: fn ($query, $direction) => $query->orderBy('company_details.company_name', $direction)),
+
                 TextColumn::make('lead_status')
                     ->label('Lead Status')
-                    ->sortable()
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            FIELD(lead_status, 'Hot', 'Warm', 'Cold') $direction
+                        ");
+                    })
                     ->badge()
                     ->color(fn ($state) => match ($state) {
                         'Hot' => 'danger',
@@ -126,10 +131,12 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                         'Cold' => 'gray',
                         default => 'secondary',
                     }),
+
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->sortable()
                     ->dateTime('d M Y'),
+
                 TextColumn::make('deal_amount')
                     ->label('Deal Amount')
                     ->sortable()

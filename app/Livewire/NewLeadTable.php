@@ -34,11 +34,30 @@ class NewLeadTable extends Component implements HasForms, HasTable
 
     public function getPendingLeadsQuery()
     {
-        return Lead::query()
+        $query = Lead::query()
             ->where('categories', 'New')
-            ->where('salesperson', null)
+            ->whereNull('salesperson') // Still keeping this condition unless you want to include assigned ones too
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
-            // ->orderBy('created_at', 'desc');
+
+        if ($this->selectedUser === 'all-lead-owners') {
+            $leadOwnerNames = User::where('role_id', 1)->pluck('name');
+            $query->whereIn('lead_owner', $leadOwnerNames);
+        } elseif ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereIn('salesperson', $salespersonIds);
+        } elseif ($this->selectedUser) {
+            $selectedUser = User::find($this->selectedUser);
+
+            if ($selectedUser) {
+                if ($selectedUser->role_id == 1) {
+                    $query->where('lead_owner', $selectedUser->name);
+                } elseif ($selectedUser->role_id == 2) {
+                    $query->where('salesperson', $selectedUser->id);
+                }
+            }
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -85,6 +104,12 @@ class NewLeadTable extends Component implements HasForms, HasTable
                             ? 'Company Size: ' . implode(', ', $data['values'])
                             : null;
                     }),
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
             ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')

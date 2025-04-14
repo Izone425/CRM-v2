@@ -14,6 +14,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Str;
@@ -46,20 +47,31 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        // Fetch user safely to prevent null error
-        $selectedUser = User::find($this->selectedUser);
-
-        $leadOwner = ($selectedUser && auth()->user()->role_id == 3)
-            ? $selectedUser->name // Only access name if the user exists
-            : auth()->user()->name;
-
-        return Lead::query()
-            ->whereDate('follow_up_date', '<', today()) // Overdue follow-ups
+        $query = Lead::query()
+            ->whereDate('follow_up_date', '<', today()) // Overdue
             ->where('categories', '!=', 'Inactive')
-            ->where('lead_owner', $leadOwner) // Filter by authenticated user's name
-            ->whereNull('salesperson') // Ensure salesperson is NULL
+            ->whereNull('salesperson')
             ->where('follow_up_counter', true)
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days'); // Default sorting by follow-up date
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
+
+        // Group filter
+        if ($this->selectedUser === 'all-lead-owners') {
+            $leadOwnerNames = User::where('role_id', 1)->pluck('name');
+            $query->whereIn('lead_owner', $leadOwnerNames);
+        }
+        // Specific user filter
+        elseif (is_numeric($this->selectedUser)) {
+            $user = User::find($this->selectedUser);
+            if ($user) {
+                $query->where('lead_owner', $user->name);
+            }
+        }
+        // Fallback to logged-in user
+        else {
+            $query->where('lead_owner', auth()->user()->name);
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -72,6 +84,14 @@ class ProspectReminderOverdueTable extends Component implements HasForms, HasTab
             // ->heading(fn () => 'Prospect Reminder (Overdue) - ' . $this->getProspectOverdueQuery()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

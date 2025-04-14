@@ -22,6 +22,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
 class PrTodaySalespersonTable extends Component implements HasForms, HasTable
@@ -42,17 +43,25 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
 
     public function getTodayProspects()
     {
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Lead::query()
-            ->where('salesperson', $salespersonId) // Filter by salesperson
+        $query = Lead::query()
             ->where('categories', '!=', 'Inactive')
-            ->whereDate('follow_up_date', '=', today())
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
-            ->where('follow_up_counter', true);
+            ->whereDate('follow_up_date', today())
+            ->where('follow_up_counter', true)
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
+        // Salesperson filter logic
+        if ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereIn('salesperson', $salespersonIds);
+        } elseif (is_numeric($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        } else {
+            $query->where('salesperson', auth()->id());
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -65,6 +74,14 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5, 25])
+            ->filters([
+                SelectFilter::make('salesperson')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
+                    ->placeholder('Select Salesperson')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

@@ -786,17 +786,28 @@ class ActivityLogRelationManager extends RelationManager
                             }
                         }
 
-                        $lead->update([
-                            'categories' => 'Active',
-                            'stage' => 'Demo',
-                            'lead_status' => 'Demo-Assigned',
-                            'follow_up_date' => $data['date'],
-                            'demo_appointment' => $appointment->id,
-                            'remark' => $data['remarks'],
-                            'salesperson' => $data['salesperson'] ?? auth()->user()->id,
-                            'salesperson_assigned_date' => now(),
-                            'follow_up_counter' => true,
-                        ]);
+                        if ($lead->stage !== 'Follow Up') {
+                            $lead->update([
+                                'categories' => 'Active',
+                                'stage' => 'Demo',
+                                'lead_status' => 'Demo-Assigned',
+                                'follow_up_date' => $data['date'],
+                                'demo_appointment' => $appointment->id,
+                                'remark' => $data['remarks'],
+                                'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                                'salesperson_assigned_date' => now(),
+                                'follow_up_counter' => true,
+                            ]);
+                        } else {
+                            $lead->update([
+                                'follow_up_date' => $data['date'],
+                                'demo_appointment' => $appointment->id,
+                                'remark' => $data['remarks'],
+                                'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                                'salesperson_assigned_date' => now(),
+                                'follow_up_counter' => true,
+                            ]);
+                        }
 
                         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                                 ->orderByDesc('created_at')
@@ -1284,14 +1295,16 @@ class ActivityLogRelationManager extends RelationManager
                             $reasonText = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
 
                             if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
-                                ]);
-
                                 activity()
                                     ->causedBy(auth()->user())
                                     ->performedOn($lead)
                                     ->log('Lead marked as inactive.');
+
+                                sleep(1);
+
+                                $latestActivityLog->update([
+                                    'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
+                                ]);
                             }
 
                             Notification::make()
@@ -1500,73 +1513,51 @@ class ActivityLogRelationManager extends RelationManager
 
                     Tables\Actions\Action::make('rearchive')
                         ->visible(function (ActivityLog $record) {
-                            return data_get(json_decode($record->properties, true), 'attributes.lead_status') == 'On Hold' ||
-                            data_get(json_decode($record->properties, true), 'attributes.lead_status') == 'Lost' ||
-                            data_get(json_decode($record->properties, true), 'attributes.lead_status') == 'Junk';
+                            $status = optional($record->lead)->lead_status;
+
+                            return in_array($status, ['On Hold', 'Lost', 'Junk', 'Closed'])
+                                && optional($record->lead)->categories === 'Inactive';
                         })
                         ->label(__('Rearchive'))
-                        ->modalHeading('Reactive Lead')
+                        ->modalHeading('Reactivate Lead')
                         ->form([
                             Placeholder::make('')
-                            ->content(__('Are you sure you want to reactive this lead? This action will move the lead back to active status for further follow-ups and actions.')),
+                                ->content(__('Are you sure you want to reactivate this lead? This action will move the lead back to its previous status before being archived.')),
 
                             TextInput::make('remark')
-                            ->label('Remarks')
-                            ->required()
-                            ->placeholder('Enter remarks here...')
-                            ->maxLength(500)
-                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                ->label('Remarks')
+                                ->required()
+                                ->placeholder('Enter remarks here...')
+                                ->maxLength(500)
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                         ])
                         ->color('danger')
-                        ->icon($icon = 'heroicon-o-pencil-square')
+                        ->icon('heroicon-o-pencil-square')
                         ->action(function (ActivityLog $activityLog, array $data) {
                             $lead = $activityLog->lead;
 
-                            if (auth()->user()->role_id == 1) {
-                                $lead->update([
-                                    'categories' => 'Active',
-                                    'stage' => 'Transfer',
-                                    'lead_status' => 'RFQ-Transfer',
-                                    'remark' => $data['remark'],
-                                    'follow_up_date' => null,
-                                    'salesperson' => auth()->user()->name,
-                                    'salesperson_assigned_date' => now(),
-                                ]);
+                            $previousData = data_get(json_decode($activityLog->properties, true), 'old');
 
-                                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                    ->orderByDesc('created_at')
-                                    ->first();
-
-                                $latestActivityLog->update([
-                                    'description' => 'Lead assigned to Salesperson: ' . auth()->user()->name . '. RFQ only',
-                                ]);
-
-                            } elseif (auth()->user()->role_id == 2) {
-                                $lead->update([
-                                    'categories' => 'Active',
-                                    'stage' => 'Transfer',
-                                    'lead_status' => 'RFQ-Transfer',
-                                    'remark' => $data['remark'],
-                                    'follow_up_date' => null,
-                                    'salesperson' => auth()->user()->id,
-                                    'salesperson_assigned_date' => now(),
-                                ]);
-
-                                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                    ->orderByDesc('created_at')
-                                    ->first();
-
-                                $latestActivityLog->update([
-                                    'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-                                ]);
+                            if (!$previousData) {
+                                Notification::make()
+                                    ->title('Failed to restore: No previous data found')
+                                    ->danger()
+                                    ->send();
+                                return;
                             }
+
+                            // Update lead with old data
+                            $lead->updateQuietly(array_merge($previousData, [
+                                'remark' => $data['remark'], // override remark with new input
+                            ]));
 
                             activity()
                                 ->causedBy(auth()->user())
-                                ->performedOn($lead);
+                                ->performedOn($lead)
+                                ->log('Lead reactivated and restored to previous state.');
 
                             Notification::make()
-                                ->title('You had rearchived a record')
+                                ->title('Lead has been reactivated and restored')
                                 ->success()
                                 ->send();
                         }),
@@ -2144,7 +2135,7 @@ class ActivityLogRelationManager extends RelationManager
 
                     // Get the latest ActivityLog for the related Lead
                     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                        ->orderByDesc('created_at')
+                        ->orderByDesc('updated_at')
                         ->first();
 
                     // Check if the current record is the latest activity log

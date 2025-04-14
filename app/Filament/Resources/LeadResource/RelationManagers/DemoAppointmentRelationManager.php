@@ -971,17 +971,28 @@ class DemoAppointmentRelationManager extends RelationManager
                         }
                     }
 
-                    $lead->update([
-                        'categories' => 'Active',
-                        'stage' => 'Demo',
-                        'lead_status' => 'Demo-Assigned',
-                        'follow_up_date' => $data['date'],
-                        'demo_appointment' => $appointment->id,
-                        'remark' => $data['remarks'],
-                        'salesperson' => $data['salesperson'] ?? auth()->user()->id,
-                        'salesperson_assigned_date' => now(),
-                        'follow_up_counter' => true,
-                    ]);
+                    if ($lead->stage !== 'Follow Up') {
+                        $lead->update([
+                            'categories' => 'Active',
+                            'stage' => 'Demo',
+                            'lead_status' => 'Demo-Assigned',
+                            'follow_up_date' => $data['date'],
+                            'demo_appointment' => $appointment->id,
+                            'remark' => $data['remarks'],
+                            'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                            'salesperson_assigned_date' => now(),
+                            'follow_up_counter' => true,
+                        ]);
+                    } else {
+                        $lead->update([
+                            'follow_up_date' => $data['date'],
+                            'demo_appointment' => $appointment->id,
+                            'remark' => $data['remarks'],
+                            'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                            'salesperson_assigned_date' => now(),
+                            'follow_up_counter' => true,
+                        ]);
+                    }
 
                     $appointment = $lead->demoAppointment()->latest()->first(); // Assuming a relation exists
                     if ($appointment) {

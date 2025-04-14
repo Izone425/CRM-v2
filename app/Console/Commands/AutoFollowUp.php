@@ -41,21 +41,21 @@ class AutoFollowUp extends Command
                 if ($lead->lead_status === 'New' || $lead->lead_status === 'Under Review') {
                     $followUpCount = $lead->follow_up_count;
                     $viewName = 'emails.email_blasting_1st';
-                    $contentTemplateSid = 'HX50fdd31004919fd43e647ebfb934d608';
+                    $contentTemplateSid = 'HX5c9b745783710d7915fedc4e7e503da0';
 
                     $followUpDescription = "{$followUpCount}st Automation Follow Up";
                     if ($followUpCount == 2) {
                         $viewName = 'emails.email_blasting_2nd';
                         $followUpDescription = '2nd Automation Follow Up';
-                        $contentTemplateSid = 'HXee59098cc1d267094875b84ceed0dc09';
+                        $contentTemplateSid = 'HX6531d9c843b71e0a45accd0ce2cfe5f2';
                     } elseif ($followUpCount == 3) {
                         $viewName = 'emails.email_blasting_3rd';
                         $followUpDescription = '3rd Automation Follow Up';
-                        $contentTemplateSid = 'HXddbbe2f375b1ad34e9cd6f9e35fa62f0';
+                        $contentTemplateSid = 'HXcccb50b8124d29d7d21af628b92522d4';
                     } elseif ($followUpCount >= 4) {
                         $viewName = 'emails.email_blasting_4th';
                         $followUpDescription = 'Final Automation Follow Up';
-                        $contentTemplateSid = 'HX17778b5cec4858f24535bdbc69eebd8a';
+                        $contentTemplateSid = 'HX517e06b8e7ddabea51aa799bfd1987f8';
                     }
 
                     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)

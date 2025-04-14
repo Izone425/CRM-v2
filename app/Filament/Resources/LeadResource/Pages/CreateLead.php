@@ -13,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Ysfkaya\FilamentPhoneInput\Infolists\PhoneEntry;
@@ -245,9 +246,13 @@ class CreateLead extends CreateRecord
 
             Select::make('lead_code')
                 ->label('Lead Source')
-                ->default('CRM')
-                ->options(fn () => LeadSource::pluck('lead_code')->toArray()) // Fetch existing lead sources
-                ->searchable(),
+                ->default(function () {
+                    $roleId = Auth::user()->role_id;
+                    return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                })
+                ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
+                ->searchable()
+                ->required(),
 
             Select::make('products')
                 ->label('Products')

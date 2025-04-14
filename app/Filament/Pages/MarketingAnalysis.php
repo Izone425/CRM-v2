@@ -354,8 +354,9 @@ class MarketingAnalysis extends Page
             'Refer & Earn'       => $leads->where('lead_code', 'Refer & Earn')->count(),
             'WhatsApp - TimeTec' => $leads->where('lead_code', 'WhatsApp - TimeTec')->count(),
             'Facebook Messenger' => $leads->where('lead_code', 'Facebook Messenger')->count(),
+            'Salesperson Lead'   => $leads->where('lead_code', 'Salesperson Lead')->count(),
+            'BD Referral'        => $leads->where('lead_code', 'BD Referral Program')->count(),
             'Website'            => $leads->where('lead_code', 'Website')->count(),
-            'Crm'                => $leads->where('lead_code', 'CRM')->count(),
             'Criteo'             => $leads->where('lead_code', 'Criteo')->count(),
             'Null'               => $leads->where('lead_code', null)->count(),
         ]);
