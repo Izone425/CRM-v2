@@ -151,6 +151,7 @@ class LeadResource extends Resource
                                                                                                 ]),
                                                                                             Select::make('lead_owner')
                                                                                                 ->label('Lead Owner')
+                                                                                                ->default(fn ($record) => $record?->lead_owner ?? null)
                                                                                                 ->options(
                                                                                                     \App\Models\User::where('role_id', 1)
                                                                                                         ->pluck('name', 'id')
@@ -166,6 +167,7 @@ class LeadResource extends Resource
                                                                                         \App\Models\User::where('role_id', 2)
                                                                                             ->pluck('name', 'id')
                                                                                     )
+                                                                                    ->default(fn ($record) => $record?->salesperson)
                                                                                     ->required()
                                                                                     ->searchable(),
                                                                             ]
@@ -231,6 +233,65 @@ class LeadResource extends Resource
                                 ]),
                                 Section::make('UTM Details')
                                     ->icon('heroicon-o-puzzle-piece')
+                                    ->headerActions([
+                                        Action::make('edit_utm_details')
+                                            ->label('Edit') // Modal button
+                                            ->icon('heroicon-o-pencil')
+                                            ->modalHeading('Edit UTM Details')
+                                            ->modalSubmitActionLabel('Save Changes')
+                                            ->visible(fn (Lead $lead) => auth()->user()->role_id !== 2)
+                                            ->form([
+                                                TextInput::make('utm_campaign')
+                                                    ->label('UTM Campaign')
+                                                    ->default(fn ($record) => $record->utmDetail->utm_campaign ?? ''),
+
+                                                TextInput::make('utm_adgroup')
+                                                    ->label('UTM Adgroup')
+                                                    ->default(fn ($record) => $record->utmDetail->utm_adgroup ?? ''),
+
+                                                TextInput::make('referrername')
+                                                    ->label('Referrer Name')
+                                                    ->default(fn ($record) => $record->utmDetail->referrername ?? ''),
+
+                                                TextInput::make('utm_creative')
+                                                    ->label('UTM Creative')
+                                                    ->default(fn ($record) => $record->utmDetail->utm_creative ?? ''),
+
+                                                TextInput::make('utm_term')
+                                                    ->label('UTM Term')
+                                                    ->default(fn ($record) => $record->utmDetail->utm_term ?? ''),
+
+                                                TextInput::make('utm_matchtype')
+                                                    ->label('UTM Match Type')
+                                                    ->default(fn ($record) => $record->utmDetail->utm_matchtype ?? ''),
+
+                                                TextInput::make('device')
+                                                    ->label('Device')
+                                                    ->default(fn ($record) => $record->utmDetail->device ?? ''),
+
+                                                TextInput::make('gclid')
+                                                    ->label('GCLID')
+                                                    ->default(fn ($record) => $record->utmDetail->gclid ?? ''),
+
+                                                TextInput::make('social_lead_id')
+                                                    ->label('Social Lead ID')
+                                                    ->default(fn ($record) => $record->utmDetail->social_lead_id ?? ''),
+                                            ])
+                                            ->action(function (Lead $lead, array $data) {
+                                                $utm = $lead->utmDetail;
+
+                                                if (!$utm) {
+                                                    $utm = $lead->utmDetail()->create($data); // create new if not exists
+                                                } else {
+                                                    $utm->update($data);
+                                                }
+
+                                                Notification::make()
+                                                    ->title('UTM Details Updated')
+                                                    ->success()
+                                                    ->send();
+                                            }),
+                                    ])
                                     ->schema([
                                         View::make('components.utm-details')
                                             ->extraAttributes(fn ($record) => ['record' => $record]),
@@ -507,14 +568,16 @@ class LeadResource extends Resource
                                                                                 ->first();
 
                                                                             if ($latestActivityLog) {
-                                                                                $latestActivityLog->update([
-                                                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
-                                                                                ]);
-
                                                                                 activity()
                                                                                     ->causedBy(auth()->user())
                                                                                     ->performedOn($lead)
                                                                                     ->log('Lead marked as inactive.');
+
+                                                                                sleep(1);
+
+                                                                                $latestActivityLog->update([
+                                                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
+                                                                                ]);
                                                                             }
 
                                                                             Notification::make()
@@ -712,6 +775,10 @@ class LeadResource extends Resource
                                                                         return true;
                                                                     }
 
+                                                                    if (auth()->id() === 12) {
+                                                                        return true;
+                                                                    }
+
                                                                     return $demoAppointment->updated_at->diffInHours(now()) <= 48;
                                                                 })
                                                                 ->form([
@@ -793,6 +860,10 @@ class LeadResource extends Resource
                                                                     }
 
                                                                     if ($demoAppointment->status !== 'Done') {
+                                                                        return true;
+                                                                    }
+
+                                                                    if (auth()->id() === 12) {
                                                                         return true;
                                                                     }
 
@@ -1319,12 +1390,13 @@ class LeadResource extends Resource
                     LeadActions::getAddAutomation()
                     ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
                     LeadActions::getArchiveAction()->visible(fn (Lead $record) => !is_null($record->lead_owner)),
+                    LeadActions::getChangeLeadOwnerAction(),
 
                     Tables\Actions\Action::make('resetLead')
                         ->label(__('Reset Lead'))
                         ->color('danger')
                         ->icon('heroicon-o-shield-exclamation')
-                        // ->visible(fn (Lead $record) => Auth::user()->role_id == 3 && $record->id == 7581)
+                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3)
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([

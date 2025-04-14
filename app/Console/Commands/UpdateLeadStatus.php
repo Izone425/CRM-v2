@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ActivityLog;
+use App\Models\Appointment;
 use App\Models\Lead;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
@@ -14,53 +15,43 @@ class UpdateLeadStatus extends Command
 
     public function handle()
     {
-        info('Demo-Assigned status update to RFQ-Follow Up command executed at ' . now());
+        info('Running auto-update for overdue demos — ' . now());
 
-        $leads = Lead::where('lead_status', 'Demo-Assigned')
-            ->where('stage', 'Demo')
-            ->whereHas('demoAppointment', function ($query) {
-                $query->whereDate('date', Carbon::yesterday());
-            })
+        $appointments = Appointment::whereDate('date', '<=', Carbon::yesterday())
+            ->where('status', 'New')
             ->get();
 
-        foreach ($leads as $lead) {
-            $yesterdayDemos = $lead->demoAppointment()
-                ->whereDate('date', Carbon::yesterday())
-                ->where('status', 'New')
-                ->get();
+        foreach ($appointments as $appointment) {
+            $lead = $appointment->lead;
 
-            if ($lead->categories !== 'Inactive' && $yesterdayDemos->isNotEmpty()) {
-                // Update lead
+            if (!$lead) {
+                continue;
+            }
+
+            // Update appointment to Done
+            $appointment->update(['status' => 'Done']);
+
+            ActivityLog::create([
+                'description' => 'Demo auto-updated to Done status after overdue',
+                'subject_id' => $lead->id,
+                'causer_id' => null,
+            ]);
+
+            // Update lead if in 'Demo' category
+            if ($lead && $lead->stage === 'Demo') {
                 $lead->update([
                     'lead_status' => 'RFQ-Follow Up',
                     'stage' => 'Follow Up',
                 ]);
 
-                // Mark demos as done
-                $lead->demoAppointment()
-                    ->whereDate('date', Carbon::yesterday())
-                    ->where('status', 'New')
-                    ->update(['status' => 'Done']);
-
-                // Activity log
-                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    ->orderByDesc('created_at')
-                    ->first();
-
-                if ($latestActivityLog) {
-                    $latestActivityLog->update([
-                        'description' => 'Demo-Assigned auto changed to RFQ-Follow Up after appointment date',
-                    ]);
-                } else {
-                    ActivityLog::create([
-                        'description' => 'Demo-Assigned auto changed to RFQ-Follow Up after appointment date',
-                        'subject_id' => $lead->id,
-                        'causer_id' => null,
-                    ]);
-                }
+                ActivityLog::create([
+                    'description' => 'Lead auto-updated to RFQ-Follow Up after overdue demo',
+                    'subject_id' => $lead->id,
+                    'causer_id' => null,
+                ]);
             }
         }
 
-        info('Status update completed for ' . $leads->count() . ' leads.');
+        info('Finished updating ' . $appointments->count() . ' appointments.');
     }
 }

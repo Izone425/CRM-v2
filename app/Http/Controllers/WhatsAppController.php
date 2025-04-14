@@ -61,7 +61,7 @@ class WhatsAppController extends Controller
                 Demo Date / Time : {{7}}
                 Meeting Link : {{8}}",
 
-            'HX50fdd31004919fd43e647ebfb934d608' =>
+            'HX5c9b745783710d7915fedc4e7e503da0' =>
                 "Hi {{1}}! I'm {{2}} from TimeTec. Thanks for your interest in our HR Cloud Solutions!\n\n" .
                 "We offer awesome modules to make HR tasks a breeze:\n" .
                 "✅ Time Attendance\n" .
@@ -74,17 +74,17 @@ class WhatsAppController extends Controller
                 "🚀 Here’s our brochure to get you started: https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n" .
                 "Can’t wait to chat with you! 😊",
 
-            'HXee59098cc1d267094875b84ceed0dc09' =>
+            'HX6531d9c843b71e0a45accd0ce2cfe5f2' =>
                 "Hi {{1}},  {{2}} here again! 😊\n\n" .
                 "Just wanted to check in and see if you've had a chance to look over our brochure.\n" .
                 "If you're interested in setting up a demo, please let me know the best time to call you so we can arrange it for you.",
 
-            'HXddbbe2f375b1ad34e9cd6f9e35fa62f0' =>
+            'HXcccb50b8124d29d7d21af628b92522d4' =>
                 "Just a quick reminder—the offer for a FREE Biometric Device is still available!\n" .
                 "It’s a great way to enhance your HR capabilities at no extra cost. 😊\n\n" .
                 "If now isn't the right time or if there’s someone else I should reach out to, please let me know. I’m here to assist!",
 
-            'HX17778b5cec4858f24535bdbc69eebd8a' =>
+            'HX517e06b8e7ddabea51aa799bfd1987f8' =>
                 "Just popping in one last time to make sure I’m not overloading your WhatsApp. 🙈\n\n" .
                 "If now isn’t the right time for a chat, could you let me know when might be better, or if there’s someone else I should reach out to?\n\n" .
                 "And hey, if you ever want to revisit this down the line, I’m just a message away and ready to dive back in whenever you are! 😊"

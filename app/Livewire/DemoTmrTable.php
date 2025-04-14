@@ -20,6 +20,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
 class DemoTmrTable extends Component implements HasForms, HasTable
@@ -40,15 +41,24 @@ class DemoTmrTable extends Component implements HasForms, HasTable
 
     public function getTomorrowDemos()
     {
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
-        $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
-
-        return Appointment::whereDate('date', today()->addDay()) // Filter by tomorrow's date in Appointment
+        $query = Appointment::whereDate('date', today()->addDay())
             ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')
-            ->join('leads', 'appointments.lead_id', '=', 'leads.id') // Join leads table
-            ->where('leads.salesperson', $salespersonId) // Salesperson check from Lead
-            ->where('status', 'New');
+            ->join('leads', 'appointments.lead_id', '=', 'leads.id')
+            ->where('appointments.status', 'New');
+
+        // Filter by salesperson
+        if ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereIn('leads.salesperson', $salespersonIds);
+        } elseif (is_numeric($this->selectedUser)) {
+            $query->where('leads.salesperson', $this->selectedUser);
+        } else {
+            $query->where('leads.salesperson', auth()->id());
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -61,6 +71,14 @@ class DemoTmrTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                SelectFilter::make('salesperson')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
+                    ->placeholder('Select Salesperson')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')

@@ -20,6 +20,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
 class DemoTodayTable extends Component implements HasForms, HasTable
@@ -40,16 +41,24 @@ class DemoTodayTable extends Component implements HasForms, HasTable
 
     public function getTodayDemos()
     {
-        // Ensure selectedUser is fetched from session if not set
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser');
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
-        $salespersonId = ($this->selectedUser && auth()->user()->role_id == 3) ? $this->selectedUser : auth()->id();
+        $query = Appointment::whereDate('date', today())
+            ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')
+            ->join('leads', 'appointments.lead_id', '=', 'leads.id')
+            ->where('appointments.status', 'New');
 
-        return Appointment::whereDate('date', today()) // Filter by today's date in Appointment
-        ->selectRaw('appointments.*, leads.created_at as lead_created_at, DATEDIFF(NOW(), leads.created_at) as pending_days')
-        ->join('leads', 'appointments.lead_id', '=', 'leads.id') // Assuming there is a 'lead_id' in appointments
-        ->where('leads.salesperson', $salespersonId)
-        ->where('status', 'New');
+        // Filter based on selectedUser
+        if ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereIn('leads.salesperson', $salespersonIds);
+        } elseif (is_numeric($this->selectedUser)) {
+            $query->where('leads.salesperson', $this->selectedUser);
+        } else {
+            $query->where('leads.salesperson', auth()->id());
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -62,6 +71,14 @@ class DemoTodayTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                SelectFilter::make('salesperson')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
+                    ->placeholder('Select Salesperson')
+                    ->hidden(fn () => auth()->user()->role_id !== 3),
+            ])
             ->columns([
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')

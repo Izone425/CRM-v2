@@ -160,7 +160,8 @@ class LeadActions
 
     private static function generateWhatsappUrl(Appointment $record): string
     {
-        $contactNo = $record->lead->companyDetail->contact_no ?? $record->lead->phone ?? null;
+        $rawNumber = $record->lead->companyDetail->contact_no ?? $record->lead->phone ?? null;
+        $contactNo = preg_replace('/[^0-9]/', '', $rawNumber); // remove +, -, spaces etc.
 
         if (!$contactNo) {
             return 'javascript:void(0);';
@@ -1187,7 +1188,7 @@ class LeadActions
 
             $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
             $variables = [$lead->name, $lead->lead_owner];
-            $contentTemplateSid = 'HX50fdd31004919fd43e647ebfb934d608'; // Your Content Template SID
+            $contentTemplateSid = 'HX5c9b745783710d7915fedc4e7e503da0'; // Your Content Template SID
 
             $whatsappController = new \App\Http\Controllers\WhatsAppController();
             $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
@@ -1282,14 +1283,16 @@ class LeadActions
             $reasonText = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
 
             if ($latestActivityLog) {
-                $latestActivityLog->update([
-                    'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
-                ]);
-
                 activity()
                     ->causedBy(auth()->user())
                     ->performedOn($lead)
                     ->log('Lead marked as inactive.');
+
+                sleep(1);
+
+                $latestActivityLog->update([
+                    'description' => 'Marked as ' . $statusLabel . ': ' . $reasonText, // New description
+                ]);
             }
 
             Notification::make()
@@ -2203,5 +2206,42 @@ class LeadActions
                 ->send();
             }
         );
+    }
+
+    public static function getChangeLeadOwnerAction(): Action
+    {
+        return Action::make('change_lead_owner')
+            ->label('Change Lead Owner')
+            ->icon('heroicon-o-user-group')
+            ->visible(fn () => auth()->user()->role_id == 3) // Only manager
+            ->form([
+                Select::make('new_lead_owner')
+                    ->label('New Lead Owner')
+                    ->options(
+                        \App\Models\User::where('role_id', 1)->pluck('name', 'name') // uses name since `lead_owner` stores names
+                    )
+                    ->searchable()
+                    ->required()
+                    ->placeholder('Select a lead owner'),
+            ])
+            ->action(function (Lead $record, array $data) {
+                $newOwner = $data['new_lead_owner'];
+
+                $record->update([
+                    'lead_owner' => $newOwner,
+                ]);
+
+                ActivityLog::create([
+                    'description' => "Lead ownership changed to: {$newOwner}",
+                    'subject_id' => $record->id,
+                    'causer_id' => auth()->id(),
+                ]);
+
+                Notification::make()
+                    ->title('Lead Owner Updated')
+                    ->success()
+                    ->body("This lead has been reassigned to {$newOwner}.")
+                    ->send();
+            });
     }
 }

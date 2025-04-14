@@ -19,7 +19,13 @@
                             id="userFilter"
                             class="mt-1 border-gray-300 rounded-md shadow-sm"
                         >
-                        <option value="{{ auth()->id() }}">Your Own Dashboard</option>
+                            <option value="{{ auth()->id() }}">Your Own Dashboard</option>
+
+                            <optgroup label="All Groups">
+                                <option value="all-lead-owners">All Lead Owners</option>
+                                <option value="all-salespersons">All Salespersons</option>
+                            </optgroup>
+
                             <optgroup label="Lead Owner">
                                 @foreach ($users->where('role_id', 1) as $user)
                                     <option value="{{ $user->id }}">
@@ -27,6 +33,7 @@
                                     </option>
                                 @endforeach
                             </optgroup>
+
                             <optgroup label="Salesperson">
                                 @foreach ($users->where('role_id', 2) as $user)
                                     <option value="{{ $user->id }}">

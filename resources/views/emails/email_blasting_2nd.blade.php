@@ -17,9 +17,9 @@
         <li><strong>Leave:</strong> Simplify leave management</li>
     </ul>
 
-    <p>As mentioned, with a subscription to our Time Attendance module, you can receive a <strong>FREE Biometric Device</strong> as part of our special promotion.</p>
+    <p>As mentioned, with a subscription to our Time Attendance module, you can receive a <strong>FREE Biometric Device</strong> as part of our special promotion (terms and conditions apply).</p>
 
-    <p>I’d love to schedule a demo at your convenience to show you how these solutions can benefit your organisation and provide more details on the promotion.</p>
+    <p>I’d love to schedule a demo at your convenience to show you how these solutions can benefit your organization and provide more details on the promotion.</p>
 
     <p>Please let me know if there’s a time that works best for you.</p>
 

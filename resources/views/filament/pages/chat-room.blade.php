@@ -8,18 +8,20 @@
         </label>
         &nbsp;&nbsp;
         <!-- 🧑‍💼 Dropdown: Filter by Lead Owner -->
-        <div>
-            <select wire:model="selectedLeadOwner" class="text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
-                <option value="">All Lead Owners</option>
-                @foreach(\App\Models\User::where('role_id', 1)->orderBy('name')->get() as $user)
-                    <option value="{{ $user->name }}">{{ $user->name }}</option>
-                @endforeach
-            </select>
+        &nbsp;&nbsp;
+        <div class="flex items-center ml-10 space-x-4">
+            <div>
+                <input wire:model="startDate" type="date" id="startDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
+            </div>
+            &nbsp;- &nbsp;
+            <div>
+                <input wire:model="endDate" type="date" id="endDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
+            </div>
         </div>
     </div>
-    <div class="flex h-screen bg-white border border-gray-200 rounded-lg" wire:poll.1s>
+    <div class="flex h-screen bg-white border border-gray-200 rounded-lg">
         <!-- Left Sidebar - Chat List -->
-        <div class="border-r bg-gray-50" style="width: 300px;">
+        <div class="border-r bg-gray-50" style="width: 300px;" wire:poll.1s>
             <div class="p-4 bg-white border-b">
                 <h2 class="text-lg font-semibold">Chats</h2>
             </div>
@@ -31,12 +33,23 @@
                         class="p-4 border-b cursor-pointer hover:bg-gray-50 {{ $selectedChat === $contact->participant_name ? 'bg-blue-50' : '' }}">
 
                         <div class="flex items-center justify-between">
-                            <div class="font-medium text-gray-900">
-                                {{ $contact->participant_name }}
+                            <!-- 👤 Name on the left -->
+                            <span class="font-medium text-gray-900 truncate">
+                                {{ \Illuminate\Support\Str::limit($contact->participant_name, 20, '...') }}
+                            </span>
+
+                            <!-- 🔴 Red dot + Timestamp on the right -->
+                            <div class="flex items-center gap-2">
+                                @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
+                                    <span class="text-xl font-bold" style="color:red;">&#x25CF;</span>
+                                @endif
+
+                                @if($contact->last_message_time)
+                                    <span class="text-gray-500" style= "font-size: 12px;">
+                                        {{ \Carbon\Carbon::parse($contact->last_message_time)->format('d M, H:i') }}
+                                    </span>
+                                @endif
                             </div>
-                            @if($contact->is_from_customer && ($contact->is_read === null || $contact->is_read == false))
-                                <span class="text-xl font-bold" style="color:red;">&#x25CF;</span>
-                            @endif
                         </div>
 
                         <div class="text-sm text-gray-500 truncate">
@@ -45,15 +58,23 @@
                         </div>
                     </div>
                 @endforeach
-
+                @php
+                    $contacts = $this->fetchContacts();
+                @endphp
                 <!-- 👇 Show More Button -->
-                @if ($filteredContactsCount > $contactsLimit)
-                    <div class="p-4 text-center bg-white border-t">
-                        <button wire:click="loadMoreContacts"
-                                class="px-4 py-2 text-sm font-medium text-blue-600 bg-gray-100 rounded hover:bg-gray-200">
-                            Show More
-                        </button>
-                    </div>
+                @if ($contacts->count() >= $contactsLimit)
+                <div class="flex justify-center p-4 bg-white border-t">
+                    <button
+                        wire:click="loadMoreContacts"
+                        class="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-gray-100 rounded hover:bg-gray-200"
+                        wire:loading.attr="disabled"
+                    >
+                        <span wire:loading wire:target="loadMoreContacts">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                        <span>Show More</span>
+                    </button>
+                </div>
                 @endif
             </div>
         </div>
@@ -72,7 +93,7 @@
                 </div>
 
                 <!-- Messages Container -->
-                <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100" wire:poll.1s>
+                <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100">
                     <!-- 👇 Loading spinner while switching chat -->
                     <div wire:loading wire:target="selectChat" class="text-center text-gray-500">
                         <i class="mr-2 fas fa-spinner fa-spin"></i> Loading messages...
@@ -137,7 +158,7 @@
                                     <div class="text-sm">{!! nl2br(e($message->message)) !!}</div>
                                 @endif
                                 <div class="mt-1 text-xs opacity-70">
-                                    {{ $message->created_at->format('g:i A') }}
+                                    {{ $message->created_at->format('M d, g:i A') }}
                                 </div>
                             </div>
                         </div>
@@ -146,7 +167,22 @@
 
                 <!-- Message Input -->
                 <div class="p-4 bg-white border-t">
-                    <form wire:submit.prevent="sendMessage">
+                    <form
+                        x-data="{
+                            message: $wire.entangle('message').defer,
+                            send() {
+                                $wire.set('message', this.message).then(() => {
+                                    $wire.sendMessage(); // ✅ Trigger Livewire method
+                                });
+                            },
+                            clear() {
+                                this.message = '';
+                                this.$refs.textarea.style.height = 'auto';
+                            }
+                        }"
+                        x-init="window.addEventListener('messageSent', () => clear())"
+                        @submit.prevent="send"
+                    >
                         @if (session()->has('error'))
                             <p class="mt-2 text-sm" style="color: red;">{{ session('error') }}</p>
                         @endif
@@ -157,22 +193,29 @@
                             </label>
                             <input type="file" id="fileUpload" wire:model="file" class="hidden">
                             <!-- Text Input -->
-                            <textarea
-                                wire:model="message"
-                                x-data="{ message: @entangle('message').defer }"
-                                x-init="$watch('message', () => {
-                                    $el.style.height = 'auto';
-                                    $el.style.height = $el.scrollHeight + 'px';
-                                })"
-                                @input="message = $el.value"
-                                class="flex-1 overflow-hidden border-gray-300 rounded-lg resize-none focus:border-primary-500 focus:ring-primary-500"
-                                rows="1"
-                                placeholder="Type a message"
-                            ></textarea>
-
+                            <div wire:ignore class="flex items-center flex-1">
+                                <textarea
+                                    x-ref="textarea"
+                                    x-model="message"
+                                    @input="
+                                        $refs.textarea.style.height = 'auto';
+                                        $refs.textarea.style.height = $refs.textarea.scrollHeight + 'px';
+                                    "
+                                    class="w-full overflow-hidden border-gray-300 rounded-lg resize-none focus:border-primary-500 focus:ring-primary-500"
+                                    style="min-height: 38px;"
+                                    rows="1"
+                                    placeholder="Type a message"
+                                ></textarea>
+                            </div>
                             <!-- Send Button -->
-                            <button type="submit" class="px-4 py-2 text-white rounded-lg bg-primary-500 hover:bg-primary-600">
-                                Send
+                            <button
+                                type="submit"
+                                class="flex items-center justify-center px-4 py-2 text-white rounded-lg bg-primary-500 hover:bg-primary-600"
+                                wire:loading.attr="disabled"
+                                wire:target="sendMessage"
+                            >
+                                <i class="mr-2 fas fa-spinner fa-spin" wire:loading wire:target="sendMessage"></i>
+                                <span wire:loading.remove wire:target="sendMessage">Send</span>
                             </button>
                         </div>
 

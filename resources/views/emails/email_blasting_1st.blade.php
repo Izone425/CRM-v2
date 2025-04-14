@@ -15,7 +15,7 @@
         <li><strong>Leave:</strong> Simplify leave management</li>
     </ul>
 
-    <p>As part of a special promotion, you can receive a <strong>FREE Biometric Device</strong> with your subscription to our Time Attendance module.</p>
+    <p>As part of a special promotion, you can receive a <strong>FREE Biometric Device</strong> with your subscription to our Time Attendance module (terms and conditions apply).</p>
 
     <p>Let’s schedule a demo at your convenience to explore how our tailored solutions can benefit your organisation and provide you with details on how to claim your FREE Biometric Device.</p>
 
