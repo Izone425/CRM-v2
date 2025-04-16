@@ -522,6 +522,7 @@ class LeadActions
                             ->options([
                                 'ONLINE' => 'ONLINE',
                                 'ONSITE' => 'ONSITE',
+                                'INHOUSE' => 'INHOUSE'
                             ])
                             ->required()
                             ->default('ONLINE')
@@ -1773,6 +1774,7 @@ class LeadActions
                             ->options([
                                 'ONLINE' => 'ONLINE',
                                 'ONSITE' => 'ONSITE',
+                                'INHOUSE' => 'INHOUSE'
                             ]),
 
                         Select::make('salesperson')

@@ -687,6 +687,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->options([
                                         'ONLINE' => 'ONLINE',
                                         'ONSITE' => 'ONSITE',
+                                        'INHOUSE' => 'INHOUSE'
                                     ])
                                     ->required()
                                     ->default('ONLINE')

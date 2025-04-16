@@ -8,6 +8,16 @@
         </label>
         &nbsp;&nbsp;
         <!-- 🧑‍💼 Dropdown: Filter by Lead Owner -->
+        <div>
+            <select wire:model="selectedLeadOwner"
+                class="mt-1 border-gray-300 rounded-md shadow-sm">
+                <option value="">All Lead Owners</option>
+                <option value="none">None</option>
+                @foreach(\App\Models\User::where('role_id', 1)->pluck('name', 'name') as $name => $nameLabel)
+                    <option value="{{ $name }}">{{ $nameLabel }}</option>
+                @endforeach
+            </select>
+        </div>
         &nbsp;&nbsp;
         <div class="flex items-center ml-10 space-x-4">
             <div>
@@ -17,6 +27,15 @@
             <div>
                 <input wire:model="endDate" type="date" id="endDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
             </div>
+        </div>
+        &nbsp;&nbsp;
+        <div>
+            <input
+                type="text"
+                wire:model.debounce.500ms="searchCompany"
+                placeholder="Search company name..."
+                class="mt-1 border-gray-300 rounded-md shadow-sm"
+            />
         </div>
     </div>
     <div class="flex h-screen bg-white border border-gray-200 rounded-lg">
