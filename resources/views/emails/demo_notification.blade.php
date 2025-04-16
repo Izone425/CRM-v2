@@ -42,6 +42,8 @@
             </li>
         @elseif($lead['appointment_type'] === 'ONSITE')
             <li><strong>Demo Location:</strong> ONSITE DEMO AT PROSPECT OFFICE</li>
+        @elseif($lead['appointment_type'] === 'INHOUSE')
+            <li><strong>Demo Location: TIMETEC OFFICE</strong> Level 18, Tower, 5 @ PFCC, Jalan Puteri 1/2, Bandar Puteri, 47100 Puchong, Selangor</li>
         @endif
     </ul>
 

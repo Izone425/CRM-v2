@@ -1099,17 +1099,63 @@ class LeadResource extends Resource
             ->filters([
                 // Filter for Lead Owner
                 SelectFilter::make('lead_owner')
-                    ->label('')
-                    ->multiple()
-                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
-                    ->placeholder('Select Lead Owner'),
+                ->label('')
+                ->multiple()
+                ->options([
+                    'none' => 'None',
+                    ...\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray(),
+                ])
+                ->placeholder('Select Lead Owner')
+                ->query(function ($query, $data) {
+                    $values = collect($data)->flatten()->filter()->values();
+
+                    if ($values->isEmpty()) {
+                        return; // ✅ Don't filter if nothing selected
+                    }
+
+                    if ($values->contains('none')) {
+                        $query->where(function ($q) use ($values) {
+                            $q->whereNull('lead_owner');
+
+                            $filtered = $values->reject(fn ($val) => $val === 'none');
+                            if ($filtered->isNotEmpty()) {
+                                $q->orWhereIn('lead_owner', $filtered->all());
+                            }
+                        });
+                    } else {
+                        $query->whereIn('lead_owner', $values->all());
+                    }
+                }),
 
                 // Filter for Salesperson
                 SelectFilter::make('salesperson')
-                    ->label('')
-                    ->multiple()
-                    ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
-                    ->placeholder('Select Salesperson'),
+                ->label('')
+                ->multiple()
+                ->options([
+                    'none' => 'None',
+                    ...\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray(),
+                ])
+                ->placeholder('Select Salesperson')
+                ->query(function ($query, $data) {
+                    $values = collect($data)->flatten()->filter()->values();
+
+                    if ($values->isEmpty()) {
+                        return; // ✅ Don't filter if nothing selected
+                    }
+
+                    if ($values->contains('none')) {
+                        $query->where(function ($q) use ($values) {
+                            $q->whereNull('salesperson');
+
+                            $filtered = $values->reject(fn ($val) => $val === 'none');
+                            if ($filtered->isNotEmpty()) {
+                                $q->orWhereIn('salesperson', $filtered->all());
+                            }
+                        });
+                    } else {
+                        $query->whereIn('salesperson', $values->all());
+                    }
+                }),
 
                 //Filter for Created At
                 Filter::make('created_at')

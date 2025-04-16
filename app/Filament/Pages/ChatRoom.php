@@ -39,6 +39,7 @@ class ChatRoom extends Page
 
     public ?string $startDate = null;
     public ?string $endDate = null;
+    public string $searchCompany = '';
 
     public function mount()
     {
@@ -142,6 +143,41 @@ class ChatRoom extends Page
             ]);
         }
 
+        if (!empty($this->selectedLeadOwner)) {
+            $query->where(function ($q) {
+                $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+
+                // Filter chats where either sender or receiver is a lead with matching lead_owner
+                $q->whereIn(DB::raw("LEAST(sender, receiver)"), function ($sub) use ($twilioNumber) {
+                    $sub->select('phone')
+                        ->from('leads')
+                        ->when($this->selectedLeadOwner === 'none', fn ($query) => $query->whereNull('lead_owner'))
+                        ->when($this->selectedLeadOwner !== 'none', fn ($query) => $query->where('lead_owner', $this->selectedLeadOwner));
+                })
+                ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), function ($sub) use ($twilioNumber) {
+                    $sub->select('phone')
+                        ->from('leads')
+                        ->when($this->selectedLeadOwner === 'none', fn ($query) => $query->whereNull('lead_owner'))
+                        ->when($this->selectedLeadOwner !== 'none', fn ($query) => $query->where('lead_owner', $this->selectedLeadOwner));
+                });
+            });
+        }
+
+        if (!empty($this->searchCompany)) {
+            $companyNames = CompanyDetail::where('company_name', 'LIKE', '%' . $this->searchCompany . '%')
+                ->pluck('contact_no')
+                ->merge(
+                    Lead::whereHas('companyDetail', fn ($q) => $q->where('company_name', 'LIKE', '%' . $this->searchCompany . '%'))
+                        ->pluck('phone')
+                )
+                ->unique();
+
+            $query->where(function ($q) use ($companyNames) {
+                $q->whereIn(DB::raw("LEAST(sender, receiver)"), $companyNames)
+                  ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), $companyNames);
+            });
+        }
+
         // SQL-level filter for unreplied messages
         if ($this->filterUnreplied) {
             $query->where('chat_messages.is_from_customer', true)
@@ -200,20 +236,6 @@ class ChatRoom extends Page
                 return $chat;
             });
 
-        // if ($this->filterUnreplied) {
-        //     $contacts = $contacts->filter(fn($chat) => $chat->has_no_reply);
-        // }
-
-        if ($this->selectedLeadOwner) {
-            $contacts = $contacts->filter(function ($chat) {
-                $participant = $chat->participant_name;
-                $lead = Lead::where('name', $participant)
-                    ->where('lead_owner', $this->selectedLeadOwner)
-                    ->first();
-                return $lead !== null;
-            });
-        }
-
         $this->filteredContactsCount = $contacts->count();
 
         return $contacts->take($this->contactsLimit);
@@ -247,7 +269,7 @@ class ChatRoom extends Page
         }
 
         // STEP 3: Fallback - Create lead if message found and no lead exists
-        if (!$lead && $chatParticipant !== $twilioNumber) {
+        if (!$lead && $chatParticipant !== $twilioNumber && strtolower($chatParticipant) !== 'unknown') {
             $lastMessage = \App\Models\ChatMessage::where(function ($query) use ($chatParticipant) {
                 $query->where('sender', $chatParticipant)
                     ->orWhere('receiver', $chatParticipant);

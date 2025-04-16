@@ -454,6 +454,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ->options([
                                             'ONLINE' => 'ONLINE',
                                             'ONSITE' => 'ONSITE',
+                                            'INHOUSE' => 'INHOUSE'
                                         ])
                                         ->required()
                                         ->default('ONLINE')
@@ -1501,14 +1502,11 @@ class ActivityLogRelationManager extends RelationManager
                                 ->performedOn($lead);
                         })
                         ->visible(function (ActivityLog $record) {
+                            $lead = $record->lead;
 
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
-
-                            $leadCategories = data_get($attributes, 'categories');
-
-                            $leadStatus = data_get($attributes, 'lead_status');
-
-                            return $leadCategories == 'Inactive' && $leadStatus == 'No Response';
+                            return $lead
+                                && $lead->categories === 'Inactive'
+                                && $lead->lead_status === 'No Response';
                         }),
 
                     Tables\Actions\Action::make('rearchive')

@@ -69,7 +69,7 @@ class WhatsAppController extends Controller
                 "✅ Claim Management\n" .
                 "✅ Leave Management\n\n" .
                 "🎁 Special Promotion:\n" .
-                "Secure a FREE Biometric Device when you subscribe to our Time Attendance module!\n" .
+                "Secure a FREE Biometric Device when you subscribe to our Time Attendance module (terms and conditions apply)!\n" .
                 "Why not schedule a quick demo to see how our solutions can benefit your organization? Plus, I’ll show you how to claim your FREE Biometric Device.\n\n" .
                 "🚀 Here’s our brochure to get you started: https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n" .
                 "Can’t wait to chat with you! 😊",
@@ -80,8 +80,8 @@ class WhatsAppController extends Controller
                 "If you're interested in setting up a demo, please let me know the best time to call you so we can arrange it for you.",
 
             'HXcccb50b8124d29d7d21af628b92522d4' =>
-                "Just a quick reminder—the offer for a FREE Biometric Device is still available!\n" .
-                "It’s a great way to enhance your HR capabilities at no extra cost. 😊\n\n" .
+                "Just a quick reminder—the offer for a FREE Biometric Device (terms and conditions apply) is still available!\n" .
+                "It’s a great way to enhance your HR capabilities at no extra cost. 😊\n" .
                 "If now isn't the right time or if there’s someone else I should reach out to, please let me know. I’m here to assist!",
 
             'HX517e06b8e7ddabea51aa799bfd1987f8' =>

@@ -47,6 +47,7 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
 
         $query = Lead::query()
             ->where('categories', '!=', 'Inactive')
+            ->where('lead_status', '!=', 'Demo-Assigned')
             ->whereDate('follow_up_date', '<', today())
             ->where('follow_up_counter', true)
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
