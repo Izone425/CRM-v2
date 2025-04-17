@@ -24,12 +24,10 @@ class SalesAdminAnalysisV1 extends Page
     public $newLeads = 0;
     public $jajaLeads = 0;
     public $afifahLeads = 0;
-    public $noneLeads = 0;
 
     public $newPercentage = 0;
     public $jajaPercentage = 0;
     public $afifahPercentage = 0;
-    public $nonePercentage = 0;
     public $categoriesData = [];
     public $companySizeData = [];
     public $totalActiveLeads = 0;
@@ -89,12 +87,10 @@ class SalesAdminAnalysisV1 extends Page
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
-        $this->noneLeads = $leads->whereNull('lead_owner')->count();
 
         $this->newPercentage = $this->totalLeads > 0 ? round(($this->newLeads / $this->totalLeads) * 100, 2) : 0;
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
-        $this->nonePercentage = $this->totalLeads > 0 ? round(($this->noneLeads / $this->totalLeads) * 100, 2) : 0; 
     }
 
     public function fetchLeadsByCategory()
@@ -122,6 +118,10 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
+                ->where(function ($query) {
+                    $query->whereNull('done_call')
+                        ->orWhere('done_call', 0);
+                })
                 ->when($dateRange, function ($query) use ($dateRange) {
                     return $query->whereBetween('created_at', $dateRange);
                 })
@@ -213,7 +213,6 @@ class SalesAdminAnalysisV1 extends Page
             'Call Attempt 24 Below' => Lead::query()
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
                 ->where('company_size', '=', '1-24')
                 ->where('categories', '!=', 'Inactive')
                 ->when($dateRange, function ($query) use ($dateRange) {
@@ -224,7 +223,6 @@ class SalesAdminAnalysisV1 extends Page
             'Call Attempt 25 Above' => Lead::query()
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
                 ->whereBetween('call_attempt', [1, 10])
                 ->where('categories', '!=', 'Inactive')
                 ->where('company_size', '!=', '1-24')

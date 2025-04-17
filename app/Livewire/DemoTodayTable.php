@@ -123,8 +123,7 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                 ActionGroup::make([
                     LeadActions::getLeadDetailActionInDemo(),
                     LeadActions::getWhatsappAction(),
-                    LeadActions::getRescheduleDemoAction(),
-                    LeadActions::getCancelDemoAction()
+                    LeadActions::getRescheduleDemoAction()
                 ])
                 ->button()
                 ->color('primary'),
