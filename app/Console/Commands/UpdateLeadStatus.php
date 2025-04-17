@@ -29,7 +29,7 @@ class UpdateLeadStatus extends Command
             }
 
             // Update appointment to Done
-            $appointment->update(['status' => 'Done']);
+            $appointment->updateQuietly(['status' => 'Done']);
 
             ActivityLog::create([
                 'description' => 'Demo auto-updated to Done status after overdue',
@@ -39,7 +39,7 @@ class UpdateLeadStatus extends Command
 
             // Update lead if in 'Demo' category
             if ($lead && $lead->stage === 'Demo') {
-                $lead->update([
+                $lead->updateQuietly([
                     'lead_status' => 'RFQ-Follow Up',
                     'stage' => 'Follow Up',
                 ]);

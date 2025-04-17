@@ -7,6 +7,7 @@ use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
 use App\Enums\QuotationStatusEnum;
+use App\Mail\CancelDemoNotification;
 use App\Mail\DemoNotification;
 use App\Mail\FollowUpNotification;
 use App\Mail\SalespersonNotification;
@@ -516,7 +517,8 @@ class LeadActions
                             })
                             ->default('NEW DEMO')
                             ->required()
-                            ->label('DEMO TYPE'),
+                            ->label('DEMO TYPE')
+                            ->reactive(),
 
                         Select::make('appointment_type')
                             ->options([
@@ -1038,16 +1040,24 @@ class LeadActions
                             'Warm' => 'Warm',
                             'Cold' => 'Cold'
                         ])
-                        ->default(fn ($record) => $record->lead->lead_status ?? 'Hot')
+                        ->default(fn ($record) => $record->lead_status ?? 'Hot')
                         ->required()
-                        ->visible(fn (?Lead $record) => $record && Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up'),
+                        ->visible(fn (?Lead $record) => 
+                            $record 
+                            && in_array(Auth::user()->role_id, [2, 3]) 
+                            && ($record->stage ?? '') === 'Follow Up'
+                        ),
 
                     TextInput::make('deal_amount')
                         ->label('Deal Amount')
                         ->numeric()
                         ->required()
                         ->default(fn (?Lead $record) => $record ? $record->deal_amount : null)
-                        ->visible(fn (?Lead $record) => $record && Auth::user()->role_id == 2 && ($record->stage ?? '') === 'Follow Up')
+                        ->visible(fn (?Lead $record) => 
+                            $record 
+                            && in_array(Auth::user()->role_id, [2, 3]) 
+                            && ($record->stage ?? '') === 'Follow Up'
+                        ),
                 ])
         ])
         ->color('success')
@@ -1454,138 +1464,187 @@ class LeadActions
     public static function getCancelDemoAction(): Action
     {
         return Action::make('demo_cancel')
-            ->label(__('Cancel Demo'))
-            ->modalHeading('Cancel Demo')
-            ->form([
-                Placeholder::make('')
-                ->content(__('You are cancelling this appointment. Confirm?')),
+        ->label(__('Cancel Demo'))
+        ->modalHeading('Cancel Demo')
+        ->requiresConfirmation()
+        ->color('danger')
+        ->icon('heroicon-o-x-circle')
+        ->action(function (array $data, $record) {
+            $appointment = $record;
+            $lead = $appointment->lead;
 
-                TextInput::make('remark')
-                ->label('Remarks')
-                ->required()
-                ->placeholder('Enter remarks here...')
-                ->maxLength(500)
-                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-            ])
-            ->color('danger')
-            ->icon('heroicon-o-phone-x-mark')
-            ->action(function (Lead $lead, array $data) {
-                $accessToken = MicrosoftGraphService::getAccessToken();
+            $updateData = [
+                'stage' => 'Transfer',
+                'lead_status' => 'Demo Cancelled',
+                'remark' => $data['remark'] ?? null,
+                'follow_up_date' => null
+            ];
 
-                $graph = new Graph();
-                $graph->setAccessToken($accessToken);
+            if (in_array(auth()->user()->role_id, [1, 3])) {
+                $updateData['salesperson'] = null;
+            }
 
-                $appointment = $lead->demoAppointment()->latest('created_at')->first();
-                $eventId = $appointment->event_id;
-                $salespersonId = $appointment->salesperson;
-                $salesperson = User::find($salespersonId);
+            $lead->update($updateData);
 
-                if (!$salesperson || !$salesperson->email) {
-                    Notification::make()
-                        ->title('Salesperson Not Found')
-                        ->danger()
-                        ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
-                        ->send();
-                    return; // Exit if no valid email is found
-                }
+            $lead->refresh();
 
-                $organizerEmail = $salesperson->email;
+            // Get event details
+            $eventId = $appointment->event_id;
+            $salesperson = User::find($appointment->salesperson);
 
-                try {
-                    if ($eventId) {
-                        $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
-                            ->execute();
+            if (!$salesperson || !$salesperson->email) {
+                Notification::make()
+                    ->title('Salesperson Not Found')
+                    ->danger()
+                    ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
+                    ->send();
+                return;
+            }
 
-                        $appointment->update([
-                            'status' => 'Cancelled',
-                        ]);
+            $organizerEmail = $salesperson->email;
 
-                        Notification::make()
-                            ->title('Teams Meeting Cancelled Successfully')
-                            ->warning()
-                            ->body('The meeting has been cancelled successfully.')
-                            ->send();
+            // ✅ Get all recipients for cancellation email
+            $email = $lead->companyDetail->email ?? $lead->email;
+            $demoAppointment = $lead->demoAppointment()->latest()->first();
+
+            // Extract required attendees
+            $requiredAttendees = $demoAppointment->required_attendees ?? null;
+            $attendeeEmails = [];
+            if (!empty($requiredAttendees)) {
+                $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
+            }
+
+            $salespersonUser = \App\Models\User::find($appointment->salesperson ?? auth()->user()->id);
+            $demoAppointment = $lead->demoAppointment->first();
+            $startTime = Carbon::parse($demoAppointment->start_time);
+            $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
+            $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
+            $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
+            $picName = optional($lead->companyDetail)->name ?? $lead->name;
+            $email = optional($lead->companyDetail)->email ?? $lead->email;
+
+            try {
+                if ($eventId) {
+                    $accessToken = MicrosoftGraphService::getAccessToken();
+                    $graph = new Graph();
+                    $graph->setAccessToken($accessToken);
+
+                    // Cancel the Teams meeting
+                    $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
+                    $leadowner = User::where('name', $lead->lead_owner)->first();
+
+                    $viewName = 'emails.cancel_demo_notification';
+                    $emailContent = [
+                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                        'lead' => [
+                            'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
+                            'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                            'salespersonName' => $salespersonUser->name ?? 'N/A',
+                            'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
+                            'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                            'phone' =>$contactNo ?? 'N/A',
+                            'pic' => $picName ?? 'N/A',
+                            'email' => $email ?? 'N/A',
+                            'date' => $formattedDate ?? 'N/A',
+                            'startTime' => $startTime ?? 'N/A',
+                            'endTime' => $endTime ?? 'N/A',
+                            'position' => $salespersonUser->position ?? 'N/A', // position
+                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                            'demo_type' => $appointment->type,
+                            'appointment_type' => $appointment->appointment_type
+                        ],
+                    ];
+                    // ✅ Extract CC Recipients
+                    $ccEmails = array_filter(array_merge([$salespersonUser->email, $leadowner->email], $attendeeEmails), function ($email) {
+                        return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                    });
+
+                    // ✅ Send email with CC recipients
+                    if (!empty($email)) {
+                        $mail = Mail::to($email); // Send to Lead
+
+                        if (!empty($ccEmails)) {
+                            $mail->cc($ccEmails); // Add CC recipients
+                        }
+
+                        $mail->send(new CancelDemoNotification($emailContent, $viewName));
+
+                        info("Email sent successfully to: " . $email . " and CC to: " . implode(', ', $ccEmails));
                     } else {
-                        // Log missing event ID
-                        Log::warning('No event ID found for appointment', [
-                            'appointment_id' => $appointment->id,
-                        ]);
-
-                        Notification::make()
-                            ->title('No Meeting Found')
-                            ->danger()
-                            ->body('The appointment does not have an associated Teams meeting.')
-                            ->send();
+                        Log::error("No valid lead email found for sending CancelDemoNotification.");
                     }
-                } catch (\Exception $e) {
-                    Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
-                        'event_id' => $eventId,
-                        'organizer' => $organizerEmail,
+
+                    Notification::make()
+                        ->title('Teams Meeting Cancelled Successfully')
+                        ->warning()
+                        ->body('The meeting has been cancelled successfully.')
+                        ->send();
+                } else {
+                    Log::warning('No event ID found for appointment', [
+                        'appointment_id' => $appointment->id,
                     ]);
 
                     Notification::make()
-                        ->title('Failed to Cancel Teams Meeting')
+                        ->title('No Meeting Found')
                         ->danger()
-                        ->body('Error: ' . $e->getMessage())
+                        ->body('The appointment does not have an associated Teams meeting.')
                         ->send();
                 }
-
-                $updateData = [
-                    'stage' => 'Transfer',
-                    'lead_status' => 'Demo Cancelled',
-                    'remark' => $data['remark'] ?? null,
-                    'follow_up_date' => null
-                ];
-
-                if (in_array(auth()->user()->role_id, [1, 3])) {
-                    $updateData['salesperson'] = null;
-                }
-
-                $lead->update($updateData);
-
-                $cancelfollowUpCount = ActivityLog::where('subject_id', $lead->id)
-                        ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled') // Filter by lead_status in properties
-                        ->count();
-
-                // Increment the follow-up count for the new description
-                $cancelFollowUpDescription = ($cancelfollowUpCount) . 'st Demo Cancelled Follow Up';
-                if ($cancelfollowUpCount == 2) {
-                    $cancelFollowUpDescription = '2nd Demo Cancelled Follow Up';
-                } elseif ($cancelfollowUpCount == 3) {
-                    $cancelFollowUpDescription = '3rd Demo Cancelled Follow Up';
-                } elseif ($cancelfollowUpCount >= 4) {
-                    $cancelFollowUpDescription = $cancelfollowUpCount . 'th Demo Cancelled Follow Up';
-                }
-
-                // Update or create the latest activity log description
-                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    ->orderByDesc('created_at')
-                    ->first();
-
-                if ($latestActivityLog) {
-                    $latestActivityLog->update([
-                        'description' => 'Demo Cancelled. ' . ($cancelFollowUpDescription),
-                    ]);
-                } else {
-                    activity()
-                        ->causedBy(auth()->user())
-                        ->performedOn($lead)
-                        ->withProperties(['description' => $cancelFollowUpDescription]);
-                }
-
-                $appointment = $lead->demoAppointment(); // Assuming a relation exists
-
-                if ($appointment) {
-                    $appointment->update([
-                        'status' => 'Cancelled', // Or whatever status you need to set
-                    ]);
-                }
+            } catch (\Exception $e) {
+                Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                    'event_id' => $eventId,
+                    'organizer' => $organizerEmail,
+                ]);
 
                 Notification::make()
-                    ->title('You had cancelled a demo')
-                    ->warning()
+                    ->title('Failed to Cancel Teams Meeting')
+                    ->danger()
+                    ->body('Error: ' . $e->getMessage())
                     ->send();
-            });
+            }
+
+            // Count how many times Demo was Cancelled
+            $cancelFollowUpCount = ActivityLog::where('subject_id', $lead->id)
+                ->whereJsonContains('properties->attributes->lead_status', 'Demo Cancelled')
+                ->count();
+
+            // Generate Follow-up Description
+            $cancelFollowUpDescription = match ($cancelFollowUpCount) {
+                1 => '1st Demo Cancelled Follow Up',
+                2 => '2nd Demo Cancelled Follow Up',
+                3 => '3rd Demo Cancelled Follow Up',
+                default => "{$cancelFollowUpCount}th Demo Cancelled Follow Up",
+            };
+
+            // Update or Create the Latest Activity Log
+            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($latestActivityLog) {
+                $latestActivityLog->update([
+                    'description' => 'Demo Cancelled. ' . $cancelFollowUpDescription,
+                ]);
+            } else {
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($lead)
+                    ->withProperties(['description' => $cancelFollowUpDescription])
+                    ->log('Demo Cancelled');
+            }
+
+            // Update the Appointment status
+            $appointment->update([
+                'status' => 'Cancelled',
+                // 'remarks' => $data['remark'],
+            ]);
+
+            Notification::make()
+                ->title('You have cancelled a demo')
+                ->warning()
+                ->send();
+        });
     }
 
     public static function getRescheduleDemoAction(): Action

@@ -681,7 +681,8 @@ class DemoAppointmentRelationManager extends RelationManager
                                     })
                                     ->default('NEW DEMO')
                                     ->required()
-                                    ->label('DEMO TYPE'),
+                                    ->label('DEMO TYPE')
+                                    ->reactive(),
 
                                 Select::make('appointment_type')
                                     ->options([

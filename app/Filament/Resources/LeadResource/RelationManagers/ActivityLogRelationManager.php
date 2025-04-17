@@ -1030,14 +1030,14 @@ class ActivityLogRelationManager extends RelationManager
                                         ])
                                         ->default('hot')
                                         ->required()
-                                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && $record->lead->stage === 'Follow Up'),
+                                        ->visible(fn (ActivityLog $record) => in_array(Auth::user()->role_id, [2, 3]) && $record->lead->stage === 'Follow Up'),
 
                                     TextInput::make('deal_amount')
                                         ->label('Deal Amount')
                                         ->numeric()
                                         ->required()
                                         ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
-                                        ->visible(fn (ActivityLog $record) => Auth::user()->role_id == 2 && ($record->lead->stage ?? '') === 'Follow Up'),
+                                        ->visible(fn (ActivityLog $record) => in_array(Auth::user()->role_id, [2, 3]) && ($record->lead->stage ?? '') === 'Follow Up'),
                                 ])
                             ])
                         ->color('success')

@@ -408,76 +408,74 @@ class ChatRoom extends Page
                 'media_url' => $fileUrl,
                 'media_type' => $fileMimeType,
             ]);
-
-            $this->reset(['message', 'file']);
         }
 
         $this->dispatch('messageSent');
         $this->reset(['message', 'file']);
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
-            ->groupBy('user1', 'user2')
-            ->get();
+    // public static function getNavigationBadge(): ?string
+    // {
+    //     $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+    //         ->groupBy('user1', 'user2')
+    //         ->get();
 
-        $unreadChats = $chatPairs->filter(function ($chat) {
-            $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-                    $query->where('sender', $chat->user1)
-                        ->where('receiver', $chat->user2);
-                })
-                ->orWhere(function ($query) use ($chat) {
-                    $query->where('sender', $chat->user2)
-                        ->where('receiver', $chat->user1);
-                })
-                ->latest()
-                ->first();
+    //     $unreadChats = $chatPairs->filter(function ($chat) {
+    //         $lastMessage = ChatMessage::where(function ($query) use ($chat) {
+    //                 $query->where('sender', $chat->user1)
+    //                     ->where('receiver', $chat->user2);
+    //             })
+    //             ->orWhere(function ($query) use ($chat) {
+    //                 $query->where('sender', $chat->user2)
+    //                     ->where('receiver', $chat->user1);
+    //             })
+    //             ->latest()
+    //             ->first();
 
-            if (!$lastMessage || !$lastMessage->is_from_customer) {
-                return false;
-            }
+    //         if (!$lastMessage || !$lastMessage->is_from_customer) {
+    //             return false;
+    //         }
 
-            // Look for unread message from customer to system (i.e. no reply yet)
-            return ChatMessage::where('sender', $chat->user2)
-                ->where('receiver', $chat->user1)
-                ->where('is_from_customer', true)
-                ->where('is_read', false)
-                ->exists();
-        });
+    //         // Look for unread message from customer to system (i.e. no reply yet)
+    //         return ChatMessage::where('sender', $chat->user2)
+    //             ->where('receiver', $chat->user1)
+    //             ->where('is_from_customer', true)
+    //             ->where('is_read', false)
+    //             ->exists();
+    //     });
 
-        return (string) $unreadChats->count();
-    }
+    //     return (string) $unreadChats->count();
+    // }
 
-    public static function getNavigationBadgeColor(): ?string
-    {
-        $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
-            ->groupBy('user1', 'user2')
-            ->get();
+    // public static function getNavigationBadgeColor(): ?string
+    // {
+    //     $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
+    //         ->groupBy('user1', 'user2')
+    //         ->get();
 
-        $hasUnread = $chatPairs->contains(function ($chat) {
-            $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-                    $query->where('sender', $chat->user1)
-                        ->where('receiver', $chat->user2);
-                })
-                ->orWhere(function ($query) use ($chat) {
-                    $query->where('sender', $chat->user2)
-                        ->where('receiver', $chat->user1);
-                })
-                ->latest()
-                ->first();
+    //     $hasUnread = $chatPairs->contains(function ($chat) {
+    //         $lastMessage = ChatMessage::where(function ($query) use ($chat) {
+    //                 $query->where('sender', $chat->user1)
+    //                     ->where('receiver', $chat->user2);
+    //             })
+    //             ->orWhere(function ($query) use ($chat) {
+    //                 $query->where('sender', $chat->user2)
+    //                     ->where('receiver', $chat->user1);
+    //             })
+    //             ->latest()
+    //             ->first();
 
-            if (!$lastMessage || !$lastMessage->is_from_customer) {
-                return false;
-            }
+    //         if (!$lastMessage || !$lastMessage->is_from_customer) {
+    //             return false;
+    //         }
 
-            return ChatMessage::where('sender', $chat->user2)
-                ->where('receiver', $chat->user1)
-                ->where('is_from_customer', true)
-                ->where('is_read', false)
-                ->exists();
-        });
+    //         return ChatMessage::where('sender', $chat->user2)
+    //             ->where('receiver', $chat->user1)
+    //             ->where('is_from_customer', true)
+    //             ->where('is_read', false)
+    //             ->exists();
+    //     });
 
-        return $hasUnread ? 'danger' : null;
-    }
+    //     return $hasUnread ? 'danger' : null;
+    // }
 }
