@@ -50,7 +50,7 @@ class Calendar extends Component
     public array $selectedAppointmentType = [];
     public bool $allAppointmentTypeSelected = true;
 
-
+    public $newDemoCompanySizeBreakdown = [];
 
     public function mount()
     {
@@ -216,7 +216,7 @@ class Calendar extends Component
                 'leave' => UserLeave::getUserLeavesByDateRange($salesperson['id'], $this->startDate, $this->endDate),
             ];
 
-            // Retrieve from $appointments using salesperson ID 
+            // Retrieve from $appointments using salesperson ID
             $salespersonAppointments = $appointments->where('salesperson', $salesperson['id']);
 
             // Group appointments by the day of the week
@@ -298,7 +298,7 @@ class Calendar extends Component
     public function render()
     {
 
-        //Initialize 
+        //Initialize
         foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
             $this->newDemoCount[$day]["noDemo"] = 0;
             $this->newDemoCount[$day]["oneDemo"] = 0;
@@ -313,11 +313,39 @@ class Calendar extends Component
 
         //Count Demos
         $this->getNumberOfDemos($this->selectedSalesPeople);
-
+        $this->calculateNewDemoCompanySize();
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
         $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $this->selectedSalesPeople);
         // $this->setSelectedMonthToCurrentMonth(); //Not used
         $this->currentMonth = $this->date->startOfWeek()->format('F Y');
         return view('livewire.calendar');
+    }
+
+    public function calculateNewDemoCompanySize()
+    {
+        $query = \App\Models\Appointment::with('lead')
+            ->where('type', 'NEW DEMO')
+            ->where('status', '!=', 'Cancelled')
+            ->whereBetween('date', [$this->startDate, $this->endDate]);
+
+        if (!empty($this->selectedSalesPeople)) {
+            $query->whereIn('salesperson', $this->selectedSalesPeople);
+        }
+
+        $appointments = $query->get();
+
+        $result = [
+            'Small' => 0,
+            'Medium' => 0,
+            'Large' => 0,
+            'Enterprise' => 0,
+        ];
+
+        foreach ($appointments as $appointment) {
+            $label = $appointment->lead?->company_size_label ?? 'Unknown';
+            $result[$label] = ($result[$label] ?? 0) + 1;
+        }
+
+        $this->newDemoCompanySizeBreakdown = $result;
     }
 }

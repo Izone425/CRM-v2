@@ -643,19 +643,33 @@
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] }}</p>
 
                     @foreach (['NEW DEMO' => '#71eb71', 'WEBINAR DEMO' => '#ffff5cbf', 'OTHERS' => '#f86f6f'] as $type => $color)
-                    @php
-                    $count = $totalDemos[$type] ?? 0;
-                    $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
-                    @endphp
+    @php
+        $count = $totalDemos[$type] ?? 0;
+        $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
+    @endphp
 
-                    <div class="flex justify-between mt-2 text-sm">
-                        <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
-                        <span>{{ $count }} ({{ $percentage }}%)</span>
-                    </div>
-                    <div class="w-full h-3 bg-gray-200 rounded-md">
-                        <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                    </div>
-                    @endforeach
+    <div class="flex justify-between mt-2 text-sm">
+        <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
+        <span>{{ $count }} ({{ $percentage }}%)</span>
+    </div>
+
+    <div style="position: relative; width: 100%; height: 0.75rem; background-color: #e5e7eb; border-radius: 0.375rem;">
+        <div
+            style="height: 100%; border-radius: 0.375rem; width: {{ $percentage }}%; background-color: {{ $color }};"
+            onmouseover="this.nextElementSibling.style.opacity = '1';"
+            onmouseout="this.nextElementSibling.style.opacity = '0';">
+        </div>
+
+        @if ($type === 'NEW DEMO' && !empty($newDemoCompanySizeBreakdown))
+            <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background-color: black; color: white; padding: 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; z-index: 999;">
+                @foreach ($newDemoCompanySizeBreakdown as $label => $sizeCount)
+                    <div>{{ $label }}: {{ $sizeCount }}</div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+@endforeach
+
                 </div>
 
                 <!-- Demo Status -->
@@ -734,9 +748,9 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if ($newDemoCount[$day]['noDemo'] < 6) 
-                    @foreach ($rows as $salesperson) 
-                        @if ($salesperson['newDemo'][$day]==0) 
+                @if ($newDemoCount[$day]['noDemo'] < 6)
+                    @foreach ($rows as $salesperson)
+                        @if ($salesperson['newDemo'][$day]==0)
                             <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
                         @endif
                     @endforeach
@@ -782,9 +796,9 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if ($newDemoCount[$day]['oneDemo'] < 6) 
-                    @foreach ($rows as $salesperson) 
-                        @if ($salesperson['newDemo'][$day]==1) 
+                @if ($newDemoCount[$day]['oneDemo'] < 6)
+                    @foreach ($rows as $salesperson)
+                        @if ($salesperson['newDemo'][$day]==1)
                             <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
                         @endif
                     @endforeach
@@ -831,9 +845,9 @@
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="summary-cell">
             <div class="demo-avatar">
-                @if ($newDemoCount[$day]['twoDemo'] < 6) 
-                    @foreach ($rows as $salesperson) 
-                        @if ($salesperson['newDemo'][$day]==2) 
+                @if ($newDemoCount[$day]['twoDemo'] < 6)
+                    @foreach ($rows as $salesperson)
+                        @if ($salesperson['newDemo'][$day]==2)
                             <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
                         @endif
                     @endforeach
@@ -930,22 +944,22 @@
     <div class="time">
         <div class="flex-container">
             <div class="image-container">
-                <img 
-                    style="border-radius: 50%;" 
-                    src="{{ $row['salespersonAvatar'] }}" 
-                    data-tooltip="{{ $row['salespersonName'] }}" 
-                    @mouseover="show($event)" 
-                    @mousemove="updatePosition($event)" 
+                <img
+                    style="border-radius: 50%;"
+                    src="{{ $row['salespersonAvatar'] }}"
+                    data-tooltip="{{ $row['salespersonName'] }}"
+                    @mouseover="show($event)"
+                    @mousemove="updatePosition($event)"
                     @mouseout="hide()">
             </div>
         </div>
-        
+
     </div>
-    
+
     @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="day">
             @if (isset($row['leave'][$loop->iteration]))
-                <div 
+                <div
                     style="
                         padding-block: 1rem;
                         width: 100%;
@@ -977,8 +991,8 @@
                 <div x-data="{ expanded: false }">
                     @if (count($row[$day . 'Appointments']) <= 4)
                         @foreach ($row[$day . 'Appointments'] as $appointment)
-                            <div 
-                                class="appointment-card" 
+                            <div
+                                class="appointment-card"
                                 @if ($appointment->status === 'Done')
                                     style="background-color: var(--bg-demo-green)"
                                 @elseif ($appointment->status == 'New')
@@ -990,7 +1004,7 @@
                                 <div class="appointment-card-info">
                                     <div class="appointment-demo-type">{{ $appointment->type }}</div>
                                     <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }} | 
+                                        {{ $appointment->appointment_type }} |
                                         <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                     </div>
                                     <div class="appointment-company-name" title="{{ $appointment->company_name }}">
@@ -1007,8 +1021,8 @@
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
                                     @if ($loop->index < 3)
-                                        <div 
-                                            class="appointment-card" 
+                                        <div
+                                            class="appointment-card"
                                             @if ($appointment->status === 'Done')
                                                 style="background-color: var(--bg-demo-green)"
                                             @elseif ($appointment->status == 'New')
@@ -1029,8 +1043,8 @@
                                             </div>
                                         </div>
                                     @elseif($loop->index === 3)
-                                        <div 
-                                            class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card" 
+                                        <div
+                                            class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
                                             @click="expanded = true">
                                             +{{ count($row[$day . 'Appointments']) - 3 }} more
                                         </div>
@@ -1038,12 +1052,12 @@
                                 @endforeach
                             </div>
                         </template>
-                        
+
                         <template x-if="expanded">
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    <div 
-                                        class="appointment-card" 
+                                    <div
+                                        class="appointment-card"
                                         @if ($appointment->status === 'Done')
                                             style="background-color: var(--bg-demo-green)"
                                         @elseif ($appointment->status == 'New')
@@ -1064,8 +1078,8 @@
                                         </div>
                                     </div>
                                 @endforeach
-                                <div 
-                                    class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card" 
+                                <div
+                                    class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
                                     @click="expanded = false">
                                     Hide
                                 </div>
