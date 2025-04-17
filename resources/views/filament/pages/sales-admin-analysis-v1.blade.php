@@ -332,12 +332,11 @@
                                 @foreach ([
                                     ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
                                     ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
-                                    ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da'],
-                                    ['label' => 'None', 'percentage' => $nonePercentage, 'count' => $noneLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee']
+                                    ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da']
                                 ] as $data)
                                     <div class="relative text-center group">
                                         <div class="relative w-28 h-28">
-                                            <svg width="100" height="100" viewBox="0 0 36 36">
+                                            <svg width="130" height="130" viewBox="0 0 36 36">
                                                 <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
                                                 <circle cx="18" cy="18" r="14" stroke="{{ $data['color'] }}" stroke-width="5" fill="none"
                                                         stroke-dasharray="88"

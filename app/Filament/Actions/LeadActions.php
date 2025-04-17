@@ -1467,8 +1467,8 @@ class LeadActions
                 ->maxLength(500)
                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
             ])
-            ->color('danger')
-            ->icon('heroicon-o-phone-x-mark')
+            ->color('warning')
+            ->icon('heroicon-o-pencil-square')
             ->action(function (Lead $lead, array $data) {
                 $accessToken = MicrosoftGraphService::getAccessToken();
 
