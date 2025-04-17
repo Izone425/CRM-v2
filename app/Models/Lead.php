@@ -224,6 +224,10 @@ class Lead extends Model
         return $this->hasOne(UtmDetail::class);
     }
 
+    public function salespersonUser()
+    {
+        return $this->belongsTo(User::class, 'salesperson');
+    }
     // public function getDealAmountAttribute()
     // {
     //     return $this->quotations->sum(function ($quotation) {
