@@ -265,15 +265,19 @@ class Calendar extends Component
     public function getAllSalesPeople()
     {
         return User::where('role_id', '2')
-            ->select('id', 'name', 'api_user_id', 'avatar_path')
+            ->select('users.id', 'users.name', 'users.api_user_id', 'users.avatar_path')
+            ->join('demo_rankings', 'users.id', '=', 'demo_rankings.user_id')
+            ->orderBy('demo_rankings.rank', 'asc') // or 'desc' if you want highest rank first
             ->get();
     }
 
     public function getSelectedSalesPeople(array $arr)
     {
         return User::where('role_id', '2')
-            ->select('id', 'name', 'api_user_id', 'avatar_path')
-            ->whereIn('id', $arr)
+            ->select('users.id', 'users.name', 'users.api_user_id', 'users.avatar_path')
+            ->whereIn('users.id', $arr)
+            ->join('demo_rankings', 'users.id', '=', 'demo_rankings.user_id')
+            ->orderBy('demo_rankings.rank', 'asc') // or 'desc' if you want highest rank first
             ->get();
     }
 
