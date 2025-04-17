@@ -26,7 +26,7 @@ class CalendarRankingForm extends Component
             // Get users with role_id 2 and join with rankings
             $usersFromDb = User::where("role_id", "2")
                 ->leftJoin('demo_rankings', 'users.id', '=', 'demo_rankings.user_id')
-                ->select('users.id', 'users.name', 'users.avatar_path', DB::raw('COALESCE(demo_rankings.rank, 999999) as rank'))
+                ->select('users.id', 'users.name', 'users.avatar_path', DB::raw("COALESCE(demo_rankings.rank, 999999) as 'rank'"))
                 ->orderBy('rank')
                 ->get();
 
