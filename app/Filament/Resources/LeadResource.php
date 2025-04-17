@@ -49,6 +49,7 @@ use Illuminate\Support\HtmlString;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Arr;
 
 class LeadResource extends Resource
 {
@@ -1133,7 +1134,13 @@ class LeadResource extends Resource
                 ->multiple()
                 ->options([
                     'none' => 'None',
-                    ...\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray(),
+                    6 => 'Wan Amirul Muim',
+                    7 => 'Yasmin',
+                    8 => 'Farhanah Jamil',
+                    9 => 'Joshua Ho',
+                    10 => 'Abdul Aziz',
+                    11 => 'Muhammad Khoirul Bariah',
+                    12 => 'Vince Leong',
                 ])
                 ->placeholder('Select Salesperson')
                 ->query(function ($query, $data) {
@@ -1155,7 +1162,7 @@ class LeadResource extends Resource
                     } else {
                         $query->whereIn('salesperson', $values->all());
                     }
-                }),
+                }),          
 
                 //Filter for Created At
                 Filter::make('created_at')
@@ -1390,7 +1397,7 @@ class LeadResource extends Resource
                     )
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'transfer', 'follow_up', 'inactive'])),
                 TextColumn::make('day_taken_to_close_deal')
-                    ->label('DAYS TAKEN TO CLOSE DEAL')
+                    ->label('IN-ACTIVE DAYS')
                     ->getStateUsing(fn (Lead $record) =>
                         $record->lead_status === 'Closed'
                         ? sprintf(
@@ -1442,7 +1449,7 @@ class LeadResource extends Resource
                         ->label(__('Reset Lead'))
                         ->color('danger')
                         ->icon('heroicon-o-shield-exclamation')
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 3)
+                        ->visible(fn (Lead $record) => Auth::user()->role_id == 10)
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([

@@ -161,7 +161,7 @@ class FetchZohoLeads extends Command
                     'name'         => $lead['Full_Name'] ?? null,
                     'email'        => $lead['Email'] ?? null,
                     'country'      => $lead['Country'] ?? null,
-                    'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? null), // ✅ Normalize before storing
+                    'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'), // ✅ Normalize before storing
                     'phone'        => $phoneNumber,
                     'lead_code'    => $leadSource,
                     'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
