@@ -1,186 +1,160 @@
-<div style="display:flex;">
+<div id="userListContainer">
+    <div wire:ignore>
+        <ul id="userList">
+            @foreach ($users as $index => $user)
+            <li class="user-item" data-id="{{ $user['id'] }}">
+                <div class="rank-container">
+                    <div class="rank">{{ $index + 1 }}</div>
+                </div>
+                <div class="draggable-box">
+                    <div class="avatar"><img src="{{ $user['avatarPath'] }}"></div>
+                    <span>{{ $user['name'] }}</span>
+                </div>
+            </li>
+            @endforeach
+        </ul>
+    </div>
 
-<div x-data="rankingForm({{ json_encode($users) }})" class="ranking-container" style="width:70%">
+    @if (session()->has('error'))
+    <div class="error-message">{{ session('error') }}</div>
+    @endif
+
+    <div wire:loading wire:target="updateRankings" class="loading-indicator">
+        <span>Saving rankings...</span>
+    </div>
+    @script
+    <script>
+        const el = document.getElementById('userList');
+
+        // Function to update all rank numbers visually
+        function updateRanks() {
+            const items = Array.from(el.children);
+            items.forEach((item, index) => {
+                item.querySelector('.rank').textContent = index + 1;
+            });
+        }
+
+        // Initialize Sortable
+        Sortable.create(el, {
+            animation: 150
+            , handle: '.draggable-box'
+            , onEnd: function() {
+                // Update the rank numbers after drag
+                updateRanks();
+
+                // Save the new order to the database via Livewire
+                const orderedIds = Array.from(el.children).map(li => li.dataset.id);
+                @this.call('updateRankings', orderedIds);
+            }
+        });
+
+        // Listen for ranking updated event
+        Livewire.on('rankingUpdated', () => {
+            // You could add a toast notification here
+            console.log('Rankings updated successfully!');
+        });
+
+    </script>
+    @endscript
+    
     <style>
-
-    :root{
-        --bg-tt-blue: #431fa1;
-    }
-        .ranking-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Four columns */
-            gap: 20px;
-            {{-- max-width: 90%; /* Adjust as needed */ --}}
+        #userListContainer {
+            max-width: 500px;
             margin: 0 auto;
             padding: 20px;
-            border: 1px solid #ccc;
         }
 
-        .column {
-            /* Each column will contain the select fields */
+        #userList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
 
-        .rank-field {
-            margin-bottom: 20px;
-        }
-
-        .rank-field label {
-            display: block;
-            font-weight: bold;
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
             margin-bottom: 5px;
         }
 
-        .rank-field select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        .rank-container {
+            width: 36px;
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .rank {
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            font-weight: bold;
+            color: #fff;
+            background-color: #431fa1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .draggable-box {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 8px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: grab;
+            transition: background 0.2s;
+            flex-grow: 1;
+        }
+
+        .draggable-box:hover {
+            background-color: #f9f9f9;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #3498db;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit:cover;
+            flex-shrink: 0;
+
+        }
+        .avatar img {
+            /* max-width: 40px; */
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .user-item span {
+            font-size: 15px;
+            font-weight: 500;
         }
 
         .error-message {
-            color: red;
-            margin-bottom: 20px;
-            grid-column: span 4; /* Takes full width across 4 columns */
-        }
-
-        .submit-button {
-            padding: 10px 20px;
-            background-color: var(--bg-tt-blue);
-            border: none;
-            color: white;
-            font-size: 16px;
+            color: #e74c3c;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #fadbd8;
             border-radius: 4px;
-            cursor: pointer;
-            grid-column: span 4; /* Spans all four columns */
+            text-align: center;
         }
+
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #3498db;
+        }
+
+        .loading-indicator[style*="display: block"] {
+            display: block !important;
+        }
+
     </style>
-
-    <!-- Column 1 -->
-    <div class="column">
-        <template x-for="rank in column1" :key="rank">
-            <div class="rank-field">
-                <label x-text="'Rank ' + rank"></label>
-                <select x-model="rankings[rank]">
-                    <option value="">Select User</option>
-                    <template x-for="user in users" :key="user.id">
-                        <option :value="user.id" x-text="user.name"
-                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
-                        </option>
-                    </template>
-                </select>
-            </div>
-        </template>
     </div>
-
-    <!-- Column 2 -->
-    <div class="column">
-        <template x-for="rank in column2" :key="rank">
-            <div class="rank-field">
-                <label x-text="'Rank ' + rank"></label>
-                <select x-model="rankings[rank]">
-                    <option value="">Select User</option>
-                    <template x-for="user in users" :key="user.id">
-                        <option :value="user.id" x-text="user.name"
-                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
-                        </option>
-                    </template>
-                </select>
-            </div>
-        </template>
-    </div>
-
-    <!-- Column 3 -->
-    <div class="column">
-        <template x-for="rank in column3" :key="rank">
-            <div class="rank-field">
-                <label x-text="'Rank ' + rank"></label>
-                <select x-model="rankings[rank]">
-                    <option value="">Select User</option>
-                    <template x-for="user in users" :key="user.id">
-                        <option :value="user.id" x-text="user.name"
-                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
-                        </option>
-                    </template>
-                </select>
-            </div>
-        </template>
-    </div>
-
-    <!-- Column 4 -->
-    <div class="column">
-        <template x-for="rank in column4" :key="rank">
-            <div class="rank-field">
-                <label x-text="'Rank ' + rank"></label>
-                <select x-model="rankings[rank]">
-                    <option value="">Select User</option>
-                    <template x-for="user in users" :key="user.id">
-                        <option :value="user.id" x-text="user.name"
-                            :disabled="isUserSelected(user.id) && rankings[rank] != user.id">
-                        </option>
-                    </template>
-                </select>
-            </div>
-        </template>
-    </div>
-
-    <!-- Error Message -->
-    <template x-if="hasDuplicates">
-        <div class="error-message">
-            Duplicate user selections are not allowed!
-        </div>
-    </template>
-
-    <!-- Submit Button -->
-    <button type="button" @click="submitForm()" class="submit-button">
-        Submit Rankings
-    </button>
-
-    <script>
-        function rankingForm(users) {
-            return {
-                users: users, // Array of user objects: { id, name }
-                // Create ranking numbers from 1 up to the number of users.
-                rankingNumbers: Array.from({ length: users.length }, (_, i) => i + 1),
-                rankings: {}, // Object to hold the selected user id for each rank
-
-                // Calculate the size of each column (quarter of total ranking numbers).
-                get quarter() {
-                    return Math.ceil(this.rankingNumbers.length / 4);
-                },
-                // Split the ranking numbers into 4 columns.
-                get column1() {
-                    return this.rankingNumbers.slice(0, this.quarter);
-                },
-                get column2() {
-                    return this.rankingNumbers.slice(this.quarter, this.quarter * 2);
-                },
-                get column3() {
-                    return this.rankingNumbers.slice(this.quarter * 2, this.quarter * 3);
-                },
-                get column4() {
-                    return this.rankingNumbers.slice(this.quarter * 3);
-                },
-                // Check if a user id is already selected in any rank (excluding the current one).
-                isUserSelected(userId) {
-                    const selected = Object.values(this.rankings).filter(val => val);
-                    return selected.includes(userId);
-                },
-                // Check for duplicate selections.
-                get hasDuplicates() {
-                    const selected = Object.values(this.rankings).filter(val => val);
-                    return new Set(selected).size !== selected.length;
-                },
-                // Submit handler.
-                submitForm() {
-                    if (this.hasDuplicates) {
-                        alert("Please fix duplicate selections before submitting.");
-                        return;
-                    }
-                    console.log("Submitting rankings:", this.rankings);
-                    // Place your form submission logic here (e.g., send an AJAX request).
-                }
-            }
-        }
-    </script>
-</div>
-</div>
