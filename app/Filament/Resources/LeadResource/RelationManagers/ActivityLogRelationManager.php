@@ -1,6 +1,7 @@
 <?php
 namespace App\Filament\Resources\LeadResource\RelationManagers;
 
+use App\Services\TemplateSelector;
 use App\Classes\Encryptor;
 use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
@@ -711,7 +712,11 @@ class ActivityLogRelationManager extends RelationManager
 
                         if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                             try {
-                                $viewName = 'emails.demo_notification';
+                                $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                                $templateSelector = new TemplateSelector();
+                                $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+                                
+                                $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                                 $leadowner = User::where('name', $lead->lead_owner)->first();
 
                                 $emailContent = [
@@ -1620,7 +1625,11 @@ class ActivityLogRelationManager extends RelationManager
                                     $appointment->update([
                                         'status' => 'Cancelled',
                                     ]);
-                                    $viewName = 'emails.cancel_demo_notification';
+                                    $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                                    $templateSelector = new TemplateSelector();
+                                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+                                    
+                                    $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [

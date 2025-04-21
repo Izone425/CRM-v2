@@ -18,13 +18,13 @@ class ProformaInvoices extends Page
 
     protected static string $view = 'filament.pages.proforma-invoices';
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id != '2';
-    // }
-
     public static function canAccess(): bool
     {
-        return false; // Hides the resource from all users
+        return auth()->user()->role_id == '3';
     }
+
+    // public static function canAccess(): bool
+    // {
+    //     return false; // Hides the resource from all users
+    // }
 }

@@ -12,7 +12,6 @@
             <select wire:model="selectedLeadOwner"
                 class="mt-1 border-gray-300 rounded-md shadow-sm">
                 <option value="">All Lead Owners</option>
-                <option value="none">None</option>
                 @foreach(\App\Models\User::where('role_id', 1)->pluck('name', 'name') as $name => $nameLabel)
                     <option value="{{ $name }}">{{ $nameLabel }}</option>
                 @endforeach

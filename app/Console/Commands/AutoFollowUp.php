@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use App\Services\TemplateSelector;
 
 class AutoFollowUp extends Command
 {
@@ -40,23 +41,18 @@ class AutoFollowUp extends Command
 
                 if ($lead->lead_status === 'New' || $lead->lead_status === 'Under Review') {
                     $followUpCount = $lead->follow_up_count;
-                    $viewName = 'emails.email_blasting_1st';
-                    $contentTemplateSid = 'HX5c9b745783710d7915fedc4e7e503da0';
+                    $templateSelector = new TemplateSelector();
+                    $template = $templateSelector->getTemplate($lead->utmDetail->utm_campaign ?? null, $followUpCount);
 
-                    $followUpDescription = "{$followUpCount}st Automation Follow Up";
-                    if ($followUpCount == 2) {
-                        $viewName = 'emails.email_blasting_2nd';
-                        $followUpDescription = '2nd Automation Follow Up';
-                        $contentTemplateSid = 'HX6531d9c843b71e0a45accd0ce2cfe5f2';
-                    } elseif ($followUpCount == 3) {
-                        $viewName = 'emails.email_blasting_3rd';
-                        $followUpDescription = '3rd Automation Follow Up';
-                        $contentTemplateSid = 'HXcccb50b8124d29d7d21af628b92522d4';
-                    } elseif ($followUpCount >= 4) {
-                        $viewName = 'emails.email_blasting_4th';
-                        $followUpDescription = 'Final Automation Follow Up';
-                        $contentTemplateSid = 'HX517e06b8e7ddabea51aa799bfd1987f8';
-                    }
+                    $viewName = $template['email'];
+                    $contentTemplateSid = $template['sid'];
+
+                    $followUpDescription = match ($followUpCount) {
+                        1 => '1st Automation Follow Up',
+                        2 => '2nd Automation Follow Up',
+                        3 => '3rd Automation Follow Up',
+                        default => 'Final Automation Follow Up',
+                    };
 
                     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                         ->orderByDesc('created_at')

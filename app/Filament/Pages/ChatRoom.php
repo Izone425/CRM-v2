@@ -280,6 +280,7 @@ class ChatRoom extends Page
                 $lead = \App\Models\Lead::create([
                     'name' => $lastMessage->profile_name ?? 'Unknown',
                     'phone' => $chatParticipant,
+                    'company_size' => '1-24',
                     'categories' => 'New',
                     'stage' => 'New',
                     'lead_status' => 'None',

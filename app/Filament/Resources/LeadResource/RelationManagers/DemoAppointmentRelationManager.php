@@ -383,7 +383,11 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
                                     $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                                    $viewName = 'emails.cancel_demo_notification';
+                                    $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                                    $templateSelector = new TemplateSelector();
+                                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+                                    
+                                    $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [

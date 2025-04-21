@@ -111,17 +111,24 @@ Route::post('/webhook/whatsapp', function (Request $request) {
     }
 
     // Store the message
-    ChatMessage::create([
-        'sender' => preg_replace('/^\+|^whatsapp:/', '', $sender),
-        'receiver' => preg_replace('/^\+|^whatsapp:/', '', $receiver),
-        'message' => $message, // Text or placeholder for media
-        'twilio_message_id' => $twilioMessageId,
-        'profile_name' => $profileName,
-        'is_from_customer' => true,
-        'media_url' => $mediaUrl, // ✅ Save media URL
-        'media_type' => $mediaType, // ✅ Save media type
-        'reply_to_sid' => $request->input('OriginalRepliedMessageSid') ?? null,
-    ]);
+    if (!str_contains($sender, 'unknown') && !str_contains($receiver, 'unknown')) {
+        ChatMessage::create([
+            'sender' => preg_replace('/^\+|^whatsapp:/', '', $sender),
+            'receiver' => preg_replace('/^\+|^whatsapp:/', '', $receiver),
+            'message' => $message,
+            'twilio_message_id' => $twilioMessageId,
+            'profile_name' => $profileName,
+            'is_from_customer' => true,
+            'media_url' => $mediaUrl,
+            'media_type' => $mediaType,
+            'reply_to_sid' => $request->input('OriginalRepliedMessageSid') ?? null,
+        ]);
+    } else {
+        Log::warning('Skipped saving WhatsApp message due to missing sender or receiver.', [
+            'sender' => $sender,
+            'receiver' => $receiver
+        ]);
+    }
 });
 
 Route::get('/zoho/auth', function (Request $request) {

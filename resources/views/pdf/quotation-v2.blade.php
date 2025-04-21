@@ -76,27 +76,36 @@
                     <div class="container" style="clear:both;">&nbsp;
                         <div class="row">
                             <div class="col-4 pull-left">
-                                <span style="font-weight: bold;">{{ Str::upper($quotation->lead->companyDetail->company_name) }}</span><br />
-                                <span>
-                                    @php
-                                        $address = "";
-                                        // if (strlen(trim($quotation->company->address1)) > 0) {
-                                        //     $address .= Str::upper(trim($quotation->company->address1)).'<br />';
-                                        // }
-                                        // if (strlen(trim($quotation->company->address2)) > 0) {
-                                        //     $address .= Str::upper(trim($quotation->company->address2)).'<br />';
-                                        // }
-                                        // if (strlen(trim($quotation->company->postcode)) > 0) {
-                                        //     $address .= trim($quotation->company->postcode);
-                                        // }
-                                        // $address .= " ".Str::upper(trim($quotation->company->state)) . '<br />';
-                                        // if ($quotation->company->country <> 'Malaysia') {
-                                        //     $address .= trim($quotation->company->country);
-                                        // }
+                            @if ($quotation->lead && $quotation->lead->companyDetail)
+                                <span style="font-weight: bold;">
+                                    {{ Str::upper($quotation->lead->companyDetail->company_name) }}
+                                </span><br />
 
-                                    @endphp
-                                    {!! $address !!}
-                                </span>
+                                @php
+                                    $company = $quotation->lead->companyDetail;
+                                    $address = "";
+
+                                    if (strlen(trim($company->company_address1 ?? '')) > 0) {
+                                        $address .= Str::upper(trim($company->company_address1)).'<br />';
+                                    }
+
+                                    if (strlen(trim($company->company_address2 ?? '')) > 0) {
+                                        $address .= Str::upper(trim($company->company_address2)).'<br />';
+                                    }
+
+                                    if (strlen(trim($company->postcode ?? '')) > 0) {
+                                        $address .= trim($company->postcode);
+                                    }
+
+                                    $address .= " " . Str::upper(trim($company->state ?? '')) . '<br />';
+
+                                    if (($company->country ?? '') !== 'Malaysia') {
+                                        $address .= trim($company->country);
+                                    }
+                                @endphp
+
+                                {!! $address !!}<br />
+                            @endif
                                 <br>
 
                                 <span><span style="font-weight:bold;" >Attention: </span>{{ $quotation->lead->companyDetail->name }}</span><br />

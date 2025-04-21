@@ -121,11 +121,6 @@ class CreateQuotation extends CreateRecord
         }
     }
 
-    protected function beforeCreate(): void
-    {
-
-    }
-
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

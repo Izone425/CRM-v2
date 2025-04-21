@@ -2,6 +2,7 @@
 
 namespace App\Filament\Actions;
 
+use App\Services\TemplateSelector;
 use App\Classes\Encryptor;
 use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
@@ -730,7 +731,11 @@ class LeadActions
 
                     if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                         try {
-                            $viewName = 'emails.demo_notification';
+                            $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                            $templateSelector = new TemplateSelector();
+                            $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+                            
+                            $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();
 
                             $emailContent = [
@@ -1138,7 +1143,7 @@ class LeadActions
         ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
         ->action(function (Lead $record, array $data) {
             $lead = $record;
-
+        
             $lead->update([
                 'follow_up_count' => 1,
                 'follow_up_needed' => 1,
@@ -1146,20 +1151,29 @@ class LeadActions
                 'remark' => null,
                 'follow_up_date' => null
             ]);
+        
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-            ->orderByDesc('created_at')
-            ->first();
-
+                ->orderByDesc('created_at')
+                ->first();
+        
             if ($latestActivityLog) {
                 $latestActivityLog->update([
                     'description' => 'Automation Enabled',
                 ]);
             }
-            $viewName = 'emails.email_blasting_1st';
+        
+            // Load template using service
+            $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+            $templateSelector = new TemplateSelector();
+            $template = $templateSelector->getTemplate($utmCampaign, 1); // first follow-up
+        
+            $viewName = $template['email'];
+            $contentTemplateSid = $template['sid'];
             $followUpDescription = '1st Automation Follow Up';
+        
             try {
                 $leadowner = User::where('name', $lead->lead_owner)->first();
-
+        
                 $emailContent = [
                     'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
                     'leadOwnerEmail' => $leadowner->email ?? 'N/A',
@@ -1176,35 +1190,38 @@ class LeadActions
                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                     ],
                 ];
-
+        
                 Mail::to($lead->companyDetail->email ?? $lead->email)
                     ->send(new FollowUpNotification($emailContent, $viewName));
             } catch (\Exception $e) {
-                // Handle email sending failure
-                Log::error("Error: {$e->getMessage()}");
+                Log::error("Email Error: {$e->getMessage()}");
             }
+        
             $lead->updateQuietly([
                 'follow_up_date' => now()->next('Tuesday'),
             ]);
+        
             ActivityLog::create([
                 'description' => $followUpDescription,
                 'subject_id' => $lead->id,
                 'causer_id' => auth()->id(),
             ]);
+        
             Notification::make()
                 ->title('Automation Applied')
                 ->success()
                 ->body('Will auto send email to lead every Tuesday 10am in 3 times')
                 ->send();
-
-            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone; // Recipient's WhatsApp number
-            $variables = [$lead->name, $lead->lead_owner];
-            $contentTemplateSid = 'HX5c9b745783710d7915fedc4e7e503da0'; // Your Content Template SID
-
-            $whatsappController = new \App\Http\Controllers\WhatsAppController();
-            $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-            return $response;
-        });
+        
+            try {
+                $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+                $variables = [$lead->name, $lead->lead_owner];
+                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+            } catch (\Exception $e) {
+                Log::error("WhatsApp Error: {$e->getMessage()}");
+            }
+        });        
     }
 
     public static function getArchiveAction(): Action
@@ -1534,7 +1551,12 @@ class LeadActions
                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
                     $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                    $viewName = 'emails.cancel_demo_notification';
+                    $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                    $templateSelector = new TemplateSelector();
+                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+                    
+                    $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
+                    
                     $emailContent = [
                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                         'lead' => [
@@ -1973,7 +1995,11 @@ class LeadActions
                     info($email);
                     if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                         try {
-                            $viewName = 'emails.demo_notification';
+                            $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                            $templateSelector = new TemplateSelector();
+                            $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+                            
+                            $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();
 
                             $emailContent = [

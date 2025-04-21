@@ -8,7 +8,7 @@ class SalesForecastSummary extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static string $view = 'filament.pages.sales-forecast-summary';
-    protected static ?string $navigationLabel = 'Sales Forecast Summary';
+    protected static ?string $navigationLabel = 'Sales Forecast - Summary';
     protected static ?string $navigationGroup = 'Sales Forecast';
     protected static ?string $title = '';
     protected static ?int $navigationSort = 10;

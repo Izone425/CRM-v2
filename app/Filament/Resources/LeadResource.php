@@ -1162,7 +1162,7 @@ class LeadResource extends Resource
                     } else {
                         $query->whereIn('salesperson', $values->all());
                     }
-                }),          
+                }),
 
                 //Filter for Created At
                 Filter::make('created_at')
@@ -1431,6 +1431,51 @@ class LeadResource extends Resource
                 ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
                 ->orderBy('updated_at', 'desc');
                 })
+            ->bulkActions([
+                \Filament\Tables\Actions\BulkAction::make('changeLeadOwner')
+                    ->label('Change Lead Owner')
+                    ->icon('heroicon-o-user-circle')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('lead_owner')
+                            ->label('New Lead Owner')
+                            ->options(
+                                \App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray()
+                            )
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                        foreach ($records as $lead) {
+                            $lead->update([
+                                'lead_owner' => $data['lead_owner'],
+                            ]);
+
+                            // Update latest activity log description
+                            $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Lead Owner changed by Manager',
+                                ]);
+                            }
+
+                            // Optional: Create new activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk lead owner changed to: ' . $data['lead_owner']);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Lead Owner Updated')
+                            ->success()
+                            ->body(count($records) . ' leads updated with new Lead Owner.')
+                            ->send();
+                    }),
+            ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     LeadActions::getAssignToMeAction(),
@@ -1449,7 +1494,9 @@ class LeadResource extends Resource
                         ->label(__('Reset Lead'))
                         ->color('danger')
                         ->icon('heroicon-o-shield-exclamation')
-                        ->visible(fn (Lead $record) => Auth::user()->role_id == 10)
+                        ->visible(fn (Lead $record) =>
+                            auth()->user()->role_id === 3 && $record->id === 7581
+                        )
                         ->action(function (Lead $record) {
                             // Reset the specific lead record
                             $record->update([

@@ -82,6 +82,17 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                     ->options(\App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray())
                     ->placeholder('Select Salesperson')
                     ->hidden(fn () => auth()->user()->role_id !== 3),
+                SelectFilter::make('lead_status')
+                    ->label('Lead Status')
+                    ->multiple()
+                    ->options([
+                        'Pending Demo' => 'Pending Demo',
+                        'RFQ-Follow Up' => 'RFQ-Follow Up',
+                        'Demo Cancelled' => 'Demo Cancelled',
+                        'Hot' => 'Hot',
+                        'Warm' => 'Warm',
+                        'Cold' => 'Cold',
+                    ]),
             ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
