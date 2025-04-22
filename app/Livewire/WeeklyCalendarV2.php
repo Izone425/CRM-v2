@@ -26,8 +26,8 @@ class WeeklyCalendarV2 extends Component
 
     public function mount()
     {
-        // $this->currentDate = Carbon::now();
-        $this->currentDate = Carbon::parse("12-03-2025");
+        $this->currentDate = Carbon::now();
+        // $this->currentDate = Carbon::parse("12-03-2025");
     }
 
     private function loadStartEndDate()
