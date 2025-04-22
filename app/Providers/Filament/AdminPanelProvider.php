@@ -100,6 +100,7 @@ class AdminPanelProvider extends PanelProvider
                 DemoRanking::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
+                ChatRoom::class,
                 LeadAnalysis::class,
                 DemoAnalysis::class,
                 MarketingAnalysis::class,
@@ -153,4 +154,20 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth(MaxWidth::Full);
     }
 
+    // public function boot()
+    // {
+    //     Filament::serving(function () {
+    //         $newMessages = ChatMessage::where('is_from_customer', true)
+    //             ->where('is_read', false)
+    //             ->count();
+
+    //         if ($newMessages > 0) {
+    //             Notification::make()
+    //                 ->title('New Messages')
+    //                 ->body("You have $newMessages unread messages.")
+    //                 ->success()
+    //                 ->send();
+    //         }
+    //     });
+    // }
 }
