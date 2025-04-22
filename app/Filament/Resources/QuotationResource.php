@@ -54,10 +54,10 @@ class QuotationResource extends Resource
     //     return auth()->user()->role_id != '1';
     // }
 
-    public static function canAccess(): bool
-    {
-        return auth()->user()->role_id == '3'; // Hides the resource from all users
-    }
+    // public static function canAccess(): bool
+    // {
+    //     return auth()->user()->role_id == '3'; // Hides the resource from all users
+    // }
 
     public function mount($lead_id): void
     {
@@ -105,6 +105,24 @@ class QuotationResource extends Resource
                             ->default(now()->format('j M Y'))
                             ->required()
                             ->clickOpens(),
+                        Select::make('sales_type')
+                            ->label('Sales Type')
+                            ->placeholder('Select a sales type')
+                            ->options([
+                                'NEW SALES' => 'NEW SALES',
+                                'RENEWAL SALES' => 'RENEWAL SALES',
+                            ])
+                            ->default('NEW SALES')
+                            ->required()
+                            ->disabled(fn () => auth()->user()?->role_id == 2),
+                        Select::make('hrdf_status')
+                            ->label('HRDF Status')
+                            ->placeholder('Select a hrdf status')
+                            ->options([
+                                'HRDF' => 'HRDF',
+                                'NON HRDF' => 'NON HRDF',
+                            ])
+                            ->required(),
                         Select::make('currency')
                             ->placeholder('Select a currency')
                             ->options([
@@ -499,16 +517,35 @@ class QuotationResource extends Resource
                         'hrdf' => 'HRDF',
                         // 'other' => 'Others'
                     ]),
-                SelectFilter::make('company_id')
-                    ->label('Company')
-                    ->relationship('company', 'company_name')
-                    ->searchable()
-                    ->getSearchResultsUsing(
-                        fn(Lead $lead, ?string $search, QuotationService $quotationService): array => $quotationService->searchLeadByName($lead, $search)
-                    )
-                    ->getOptionLabelUsing(
-                        fn(Lead $lead, $value, QuotationService $quotationService): string => $quotationService->getLeadName($lead, $value)
-                    ),
+                // SelectFilter::make('company_id')
+                //     ->label('Company')
+                //     ->relationship('company', 'company_name')
+                //     ->searchable()
+                //     ->getSearchResultsUsing(
+                //         fn(Lead $lead, ?string $search, QuotationService $quotationService): array => $quotationService->searchLeadByName($lead, $search)
+                //     )
+                //     ->getOptionLabelUsing(
+                //         fn(Lead $lead, $value, QuotationService $quotationService): string => $quotationService->getLeadName($lead, $value)
+                //     ),
+                Filter::make('company_name')
+                    ->form([
+                        TextInput::make('company_name')
+                            ->label('Company Name')
+                            // ->hiddenLabel()
+                            ->placeholder('Enter company name'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['company_name'])) {
+                            $query->whereHas('lead.companyDetail', function ($query) use ($data) {
+                                $query->where('company_name', 'like', '%' . $data['company_name'] . '%');
+                            });
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['company_name'])
+                            ? 'Company Name: ' . $data['company_name']
+                            : null;
+                    }),
                 SelectFilter::make('sales_person_id')
                     ->label('Sales Person')
                     ->relationship('sales_person', 'name')
@@ -528,7 +565,56 @@ class QuotationResource extends Resource
                         'email_sent' => 'Email Sent',
                         'accepted' => 'Accepted',
                         // 'rejected' => 'Rejected',
+                    ]),
+                SelectFilter::make('sales_type')
+                    ->label('Sales Type')
+                    ->options([
+                        'NEW SALES' => 'NEW SALES',
+                        'RENEWAL SALES' => 'RENEWAL SALES',
                     ])
+                    ->searchable(),
+                SelectFilter::make('hrdf_status')
+                    ->label('HRDF Status')
+                    ->options([
+                        'HRDF' => 'HRDF',
+                        'NON HRDF' => 'NON HRDF',
+                    ])
+                    ->searchable(),
+                Filter::make('customer_type')
+                    ->label('Customer Type')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('customer_type')
+                            ->label('Customer Type')
+                            ->options([
+                                'END USER' => 'END USER',
+                                'RESELLER' => 'RESELLER',
+                            ])
+                            ->placeholder('Select type')
+                    ])
+                    ->query(fn (Builder $query, array $data) =>
+                        !empty($data['customer_type'])
+                            ? $query->whereHas('lead', fn ($q) => $q->where('customer_type', $data['customer_type']))
+                            : $query
+                    )
+                    ->indicateUsing(fn (array $data) => $data['customer_type'] ?? null),
+
+                Filter::make('region')
+                    ->label('Region')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('region')
+                            ->label('Region')
+                            ->options([
+                                'LOCAL' => 'LOCAL',
+                                'OVERSEA' => 'OVERSEA',
+                            ])
+                            ->placeholder('Select region')
+                    ])
+                    ->query(fn (Builder $query, array $data) =>
+                        !empty($data['region'])
+                            ? $query->whereHas('lead', fn ($q) => $q->where('region', $data['region']))
+                            : $query
+                    )
+                    ->indicateUsing(fn (array $data) => $data['region'] ?? null),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
             ->actions([
@@ -695,6 +781,7 @@ class QuotationResource extends Resource
             'index' => Pages\ListQuotations::route('/'),
             'create' => Pages\CreateQuotation::route('/create'),
             'edit' => Pages\EditQuotation::route('/{record}/edit'),
+            'send-quotation-email' => Pages\SendQuotationEmail::route('/{record}/send-quotation-email'),
         ];
     }
 

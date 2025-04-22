@@ -27,6 +27,8 @@ class Quotation extends Model
         'quotation_type',
         'sales_person_id',
         'currency',
+        'sales_type',
+        'hrdf_status',
         'subscription_period',
         'status',
         'tax_rate',

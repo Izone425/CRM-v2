@@ -94,6 +94,22 @@ class LeadResource extends Resource
                                                                 ->label('Lead Source')
                                                                 ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
                                                                 ->searchable(),
+                                                            Select::make('customer_type')
+                                                                ->label('Customer Type')
+                                                                ->options([
+                                                                    'END USER' => 'END USER',
+                                                                    'RESELLER' => 'RESELLER',
+                                                                ])
+                                                                ->required()
+                                                                ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                                            Select::make('region')
+                                                                ->label('Region')
+                                                                ->options([
+                                                                    'LOCAL' => 'LOCAL',
+                                                                    'OVERSEA' => 'OVERSEA',
+                                                                ])
+                                                                ->required()
+                                                                ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             if ($lead) {
@@ -1060,14 +1076,14 @@ class LeadResource extends Resource
                                 ),
                             ]),
                             Tabs\Tab::make('Quotation')->schema([
-                                // \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
-                                // ),
+                                \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                    ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
+                                ),
                             ]),
                             Tabs\Tab::make('Proforma Invoice')->schema([
-                                // \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                //     ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager::class,
-                                // ),
+                                \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                    ->manager(\App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager::class,
+                                ),
                             ]),
                             Tabs\Tab::make('Invoice')->schema([
 
