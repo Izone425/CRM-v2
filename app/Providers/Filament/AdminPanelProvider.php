@@ -19,6 +19,7 @@ use App\Filament\Pages\SalesAdminAnalysisV2;
 use App\Filament\Pages\SalesAdminAnalysisV3;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
+use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
@@ -94,11 +95,11 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 // Pages\Dashboard::class,
                 Calendar::class,
+                WeeklyCalendarV2::class,
                 MonthlyCalendar::class,
                 DemoRanking::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
-                ChatRoom::class,
                 LeadAnalysis::class,
                 DemoAnalysis::class,
                 MarketingAnalysis::class,
@@ -152,20 +153,4 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth(MaxWidth::Full);
     }
 
-    // public function boot()
-    // {
-    //     Filament::serving(function () {
-    //         $newMessages = ChatMessage::where('is_from_customer', true)
-    //             ->where('is_read', false)
-    //             ->count();
-
-    //         if ($newMessages > 0) {
-    //             Notification::make()
-    //                 ->title('New Messages')
-    //                 ->body("You have $newMessages unread messages.")
-    //                 ->success()
-    //                 ->send();
-    //         }
-    //     });
-    // }
 }
