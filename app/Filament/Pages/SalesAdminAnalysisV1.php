@@ -24,11 +24,13 @@ class SalesAdminAnalysisV1 extends Page
     public $newLeads = 0;
     public $jajaLeads = 0;
     public $afifahLeads = 0;
+    public $shahilahLeads = 0;
     public $noneLeads = 0;
 
     public $newPercentage = 0;
     public $jajaPercentage = 0;
     public $afifahPercentage = 0;
+    public $shahilahPercentage = 0;
     public $nonePercentage = 0;
     public $categoriesData = [];
     public $companySizeData = [];
@@ -89,11 +91,13 @@ class SalesAdminAnalysisV1 extends Page
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
+        $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
         $this->noneLeads = $leads->whereNull('lead_owner')->count();
 
         $this->newPercentage = $this->totalLeads > 0 ? round(($this->newLeads / $this->totalLeads) * 100, 2) : 0;
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
+        $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0;
         $this->nonePercentage = $this->totalLeads > 0 ? round(($this->noneLeads / $this->totalLeads) * 100, 2) : 0; 
     }
 

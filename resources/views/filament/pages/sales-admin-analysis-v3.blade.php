@@ -86,7 +86,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">
@@ -133,7 +133,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">
@@ -180,7 +180,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">
@@ -227,7 +227,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">
@@ -274,7 +274,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">
@@ -321,7 +321,7 @@
                             overflow: hidden;
                             white-space: nowrap;
                             ">
-                            {{ strtoupper(\Illuminate\Support\Str::of($owner)->words(1, '')) }} - {{ $data['count'] }}
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
                         <div class="hover-message">

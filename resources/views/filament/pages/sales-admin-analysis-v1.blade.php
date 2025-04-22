@@ -333,6 +333,7 @@
                                     ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
                                     ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
                                     ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da'],
+                                    ['label' => 'Shahilah', 'percentage' => $shahilahPercentage, 'count' => $shahilahLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
                                     ['label' => 'None', 'percentage' => $nonePercentage, 'count' => $noneLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee']
                                 ] as $data)
                                     <div class="relative text-center group">
