@@ -781,7 +781,7 @@ class QuotationResource extends Resource
             'index' => Pages\ListQuotations::route('/'),
             'create' => Pages\CreateQuotation::route('/create'),
             'edit' => Pages\EditQuotation::route('/{record}/edit'),
-            'send-quotation-email' => Pages\SendQuotationEmail::route('/{record}/send-quotation-email'),
+            // 'send-quotation-email' => Pages\SendQuotationEmail::route('/{record}/send-quotation-email'), temporary comment
         ];
     }
 
