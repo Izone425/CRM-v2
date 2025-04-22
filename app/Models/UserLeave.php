@@ -29,6 +29,10 @@ class UserLeave extends Model
         return $this->belongsTo(User::class, 'user_ID');
     }
 
+    public static function getUserLeavesByDate($userID,$date){
+        return UserLeave::where("user_ID",$userID)->where("date",$date)->get()->toArray();
+    }
+
     public static function getUserLeavesByDateRange($userID,$startDate,$endDate){
         $temp = UserLeave::where("user_ID","=",$userID)->whereBetween('date',[$startDate,$endDate])->get()->toArray();
         $newArray = [];
