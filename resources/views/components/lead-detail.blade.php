@@ -11,6 +11,8 @@
         ['label' => 'Lead Created On', 'value' => isset($lead->created_at) ? $lead->created_at->format('d M Y, H:i') : '-'],
         ['label' => 'Company Size', 'value' => $lead->getCompanySizeLabelAttribute() ?? '-'],
         ['label' => 'Headcount', 'value' => $lead->company_size ?? '-'],
+        ['label' => 'Customer Type', 'value' => $lead->customer_type ?? '-'],
+        ['label' => 'Region', 'value' => $lead->region ?? '-'],
     ];
 
     // Split into rows with a max of 2 items per row

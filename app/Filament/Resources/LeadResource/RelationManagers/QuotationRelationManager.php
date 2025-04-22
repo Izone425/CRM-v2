@@ -133,67 +133,81 @@ class QuotationRelationManager extends RelationManager
                     })
             ])
             ->filters([
-                SelectFilter::make('quotation_reference_no')
-                    ->label('Ref No')
-                    ->searchable()
-                    ->getSearchResultsUsing(fn(Quotation $quotation, ?string $search, QuotationService $quotationService): array => $quotationService->searchQuotationByReferenceNo($quotation, $search))
-                    ->getOptionLabelsUsing(fn(Quotation $quotation, QuotationService $quotationService): array => $quotationService->getQuotationList($quotation)),
-                // Filter::make('quotation_reference_no')
+                // SelectFilter::make('quotation_reference_no')
+                //     ->label('Ref No')
+                //     ->searchable()
+                //     ->getSearchResultsUsing(fn(Quotation $quotation, ?string $search, QuotationService $quotationService): array => $quotationService->searchQuotationByReferenceNo($quotation, $search))
+                //     ->getOptionLabelsUsing(fn(Quotation $quotation, QuotationService $quotationService): array => $quotationService->getQuotationList($quotation)),
+                // // Filter::make('quotation_reference_no')
+                // //     ->form([
+                // //         Select::make('quotation_reference_no')
+                // //             ->label('Ref No')
+                // //             ->placeholder('Search by ref no')
+                // //             ->options(fn(Quotation $quotation, QuotationService $quotationService): array => $quotationService->getQuotationList($quotation))
+                // //             ->searchable(),
+                // //     ])
+                // //     ->query(fn(Builder $query, array $data, QuotationService $quotationService): Builder => $quotationService->searchQuotationByReferenceNo($query, $data)),
+                // Filter::make('quotation_date')
+                //     ->label('Date')
                 //     ->form([
-                //         Select::make('quotation_reference_no')
-                //             ->label('Ref No')
-                //             ->placeholder('Search by ref no')
-                //             ->options(fn(Quotation $quotation, QuotationService $quotationService): array => $quotationService->getQuotationList($quotation))
-                //             ->searchable(),
+                //         Flatpickr::make('quotation_date')
+                //             ->label('Date')
+                //             ->dateFormat('j M Y')
+                //             ->allowInput()
                 //     ])
-                //     ->query(fn(Builder $query, array $data, QuotationService $quotationService): Builder => $quotationService->searchQuotationByReferenceNo($query, $data)),
-                Filter::make('quotation_date')
-                    ->label('Date')
-                    ->form([
-                        Flatpickr::make('quotation_date')
-                            ->label('Date')
-                            ->dateFormat('j M Y')
-                            ->allowInput()
-                    ])
-                    ->query(fn(Builder $query, array $data, QuotationService $quotationService): Builder => $quotationService->searchQuotationByDate($query, $data)),
-                SelectFilter::make('quotation_type')
-                    ->label('Type')
-                    ->searchable()
-                    ->options([
-                        'product' => 'Product',
-                        'hrdf' => 'HRDF',
-                        // 'other' => 'Others'
-                    ]),
-                SelectFilter::make('company_id')
-                    ->label('Company')
-                    ->relationship('company', 'name')
-                    ->searchable()
-                    ->getSearchResultsUsing(
-                        fn(Lead $lead, ?string $search, QuotationService $quotationService): array => $quotationService->searchLeadByName($lead, $search)
-                    )
-                    ->getOptionLabelUsing(
-                        fn(Lead $lead, $value, QuotationService $quotationService): string => $quotationService->getLeadName($lead, $value)
-                    ),
-                SelectFilter::make('sales_person_id')
-                    ->label('Sales Person')
-                    ->relationship('sales_person', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->getSearchResultsUsing(
-                        fn(User $user, ?string $search, QuotationService $quotationService): array => $quotationService->searchSalesPersonName($user, $search)
-                    )
-                    ->getOptionLabelUsing(
-                        fn(User $user, $value, QuotationService $quotationService): string => $quotationService->getSalesPersonName($user, $value)
-                    ),
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->searchable()
-                    ->options([
-                        'new' => 'New',
-                        'email_sent' => 'Email Sent',
-                        'accepted' => 'Accepted',
-                        // 'rejected' => 'Rejected',
-                    ])
+                //     ->query(fn(Builder $query, array $data, QuotationService $quotationService): Builder => $quotationService->searchQuotationByDate($query, $data)),
+                // SelectFilter::make('quotation_type')
+                //     ->label('Type')
+                //     ->searchable()
+                //     ->options([
+                //         'product' => 'Product',
+                //         'hrdf' => 'HRDF',
+                //         // 'other' => 'Others'
+                //     ]),
+                // SelectFilter::make('company_id')
+                //     ->label('Company')
+                //     ->relationship('company', 'name')
+                //     ->searchable()
+                //     ->getSearchResultsUsing(
+                //         fn(Lead $lead, ?string $search, QuotationService $quotationService): array => $quotationService->searchLeadByName($lead, $search)
+                //     )
+                //     ->getOptionLabelUsing(
+                //         fn(Lead $lead, $value, QuotationService $quotationService): string => $quotationService->getLeadName($lead, $value)
+                //     ),
+                // SelectFilter::make('sales_person_id')
+                //     ->label('Sales Person')
+                //     ->relationship('sales_person', 'name')
+                //     ->searchable()
+                //     ->preload()
+                //     ->getSearchResultsUsing(
+                //         fn(User $user, ?string $search, QuotationService $quotationService): array => $quotationService->searchSalesPersonName($user, $search)
+                //     )
+                //     ->getOptionLabelUsing(
+                //         fn(User $user, $value, QuotationService $quotationService): string => $quotationService->getSalesPersonName($user, $value)
+                //     ),
+                // SelectFilter::make('status')
+                //     ->label('Status')
+                //     ->searchable()
+                //     ->options([
+                //         'new' => 'New',
+                //         'email_sent' => 'Email Sent',
+                //         'accepted' => 'Accepted',
+                //         // 'rejected' => 'Rejected',
+                //     ]),
+                // SelectFilter::make('sales_type')
+                //     ->label('Sales Type')
+                //     ->options([
+                //         'NEW SALES' => 'NEW SALES',
+                //         'RENEWAL SALES' => 'RENEWAL SALES',
+                //     ])
+                //     ->searchable(),
+                // SelectFilter::make('hrdf_status')
+                //     ->label('HRDF Status')
+                //     ->options([
+                //         'HRDF' => 'HRDF',
+                //         'NON HRDF' => 'NON HRDF',
+                //     ])
+                //     ->searchable(),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
             ->actions([

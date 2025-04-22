@@ -715,7 +715,7 @@ class ActivityLogRelationManager extends RelationManager
                                 $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                 $templateSelector = new TemplateSelector();
                                 $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
-                                
+
                                 $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                                 $leadowner = User::where('name', $lead->lead_owner)->first();
 
@@ -1319,50 +1319,68 @@ class ActivityLogRelationManager extends RelationManager
                                 ->body('You have successfully marked the lead as inactive.')
                                 ->send();
                         }),
+                    // Tables\Actions\Action::make('quotation')
+                    //     ->label(__('Add Quotation'))
+                    //     ->color('success')
+                    //     ->icon('heroicon-o-pencil-square')
+                    //     ->visible(function (ActivityLog $record) {
+                    //         $lead = $record->lead;
+
+                    //         return (auth()->user()->role_id !== 1 && !is_null($lead->salesperson)) &&
+                    //             ($lead->lead_status === LeadStatusEnum::RFQ_FOLLOW_UP->value
+                    //             || $lead->lead_status === LeadStatusEnum::RFQ_TRANSFER->value);
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->modalDescription('Did you create the quotation under Mr Wee Quotation System?')
+                    //     ->action(function (ActivityLog $record) {
+                    //         $lead = $record->lead;
+                    //         if ($lead) {
+                    //             if ($lead->lead_status === 'RFQ-Transfer') {
+                    //                 $lead->update([
+                    //                     'lead_status' => 'Pending Demo',
+                    //                     'remark' => null,
+                    //                     'follow_up_date' => today(),
+                    //                 ]);
+                    //             }else if($lead->lead_status === 'RFQ-Follow Up'){
+                    //                 $lead->update([
+                    //                     'lead_status' => 'Hot',
+                    //                     'remark' => null,
+                    //                     'follow_up_date' => today(),
+                    //                 ]);
+                    //             }
+                    //         }
+
+                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                    //             ->orderByDesc('created_at')
+                    //             ->first();
+
+                    //         $latestActivityLog->update([
+                    //             'description' => 'Quotation Added',
+                    //         ]);
+
+                    //         Notification::make()
+                    //             ->title('Quotation Added')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
                     Tables\Actions\Action::make('quotation')
                         ->label(__('Add Quotation'))
                         ->color('success')
                         ->icon('heroicon-o-pencil-square')
                         ->visible(function (ActivityLog $record) {
+                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+
+                            $leadStatus = data_get($attributes, 'lead_status');
+
                             $lead = $record->lead;
 
-                            return (auth()->user()->role_id !== 1 && !is_null($lead->salesperson)) &&
-                                ($lead->lead_status === LeadStatusEnum::RFQ_FOLLOW_UP->value
-                                || $lead->lead_status === LeadStatusEnum::RFQ_TRANSFER->value);
+                            return !(auth()->user()->role_id === 1 && !is_null($lead->salesperson)) &&
+                                ($leadStatus === LeadStatusEnum::RFQ_FOLLOW_UP->value
+                                || $leadStatus === LeadStatusEnum::RFQ_TRANSFER->value);
                         })
-                        ->requiresConfirmation()
-                        ->modalDescription('Did you create the quotation under Mr Wee Quotation System?')
-                        ->action(function (ActivityLog $record) {
-                            $lead = $record->lead;
-                            if ($lead) {
-                                if ($lead->lead_status === 'RFQ-Transfer') {
-                                    $lead->update([
-                                        'lead_status' => 'Pending Demo',
-                                        'remark' => null,
-                                        'follow_up_date' => today(),
-                                    ]);
-                                }else if($lead->lead_status === 'RFQ-Follow Up'){
-                                    $lead->update([
-                                        'lead_status' => 'Hot',
-                                        'remark' => null,
-                                        'follow_up_date' => today(),
-                                    ]);
-                                }
-                            }
-
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            $latestActivityLog->update([
-                                'description' => 'Quotation Added',
-                            ]);
-
-                            Notification::make()
-                                ->title('Quotation Added')
-                                ->success()
-                                ->send();
-                        }),
+                        ->url(fn (ActivityLog $record) => route('filament.admin.resources.quotations.create', [
+                            'lead_id' => Encryptor::encrypt($record->subject_id),
+                        ]), true),
                     Tables\Actions\Action::make('noResponse')
                         ->label(__('No Response'))
                         ->modalHeading('Mark Lead as No Response')
@@ -1628,7 +1646,7 @@ class ActivityLogRelationManager extends RelationManager
                                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                     $templateSelector = new TemplateSelector();
                                     $template = $templateSelector->getTemplate($utmCampaign, 5);
-                                    
+
                                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
@@ -1760,169 +1778,169 @@ class ActivityLogRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    // Tables\Actions\Action::make('demo_done')
-                    //     ->visible(function (ActivityLog $record) {
-                    //         $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                    Tables\Actions\Action::make('demo_done')
+                        ->visible(function (ActivityLog $record) {
+                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
 
-                    //         return data_get($attributes, 'stage') === 'Demo';
-                    //     })
-                    //     ->label(__('Demo Done'))
-                    //     ->requiresConfirmation()
-                    //     ->modalHeading('Demo Completed Confirmation')
-                    //     // ->form([
-                    //     //     Placeholder::make('')
-                    //     //         ->content(__('You are marking this demo as completed. Confirm?')),
+                            return data_get($attributes, 'stage') === 'Demo';
+                        })
+                        ->label(__('Demo Done'))
+                        ->requiresConfirmation()
+                        ->modalHeading('Demo Completed Confirmation')
+                        // ->form([
+                        //     Placeholder::make('')
+                        //         ->content(__('You are marking this demo as completed. Confirm?')),
 
-                    //     //     TextInput::make('remark')
-                    //     //         ->label('Remarks')
-                    //     //         ->required()
-                    //     //         ->placeholder('Enter remarks here...')
-                    //     //         ->maxLength(500),
-                    //     // ])
-                    //     ->color('success')
-                    //     ->icon($icon = 'heroicon-o-pencil-square')
-                    //     ->action(function (ActivityLog $activityLog, array $data) {
-                    //         // Retrieve the related Lead model from ActivityLog
-                    //         $lead = $activityLog->lead; // Ensure this relation exists
+                        //     TextInput::make('remark')
+                        //         ->label('Remarks')
+                        //         ->required()
+                        //         ->placeholder('Enter remarks here...')
+                        //         ->maxLength(500),
+                        // ])
+                        ->color('success')
+                        ->icon($icon = 'heroicon-o-pencil-square')
+                        ->action(function (ActivityLog $activityLog, array $data) {
+                            // Retrieve the related Lead model from ActivityLog
+                            $lead = $activityLog->lead; // Ensure this relation exists
 
-                    //         // Retrieve the latest demo appointment for the lead
-                    //         $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
-                    //             ->latest('created_at') // Retrieve the most recent demo
-                    //             ->first();
+                            // Retrieve the latest demo appointment for the lead
+                            $latestDemoAppointment = $lead->demoAppointment() // Assuming 'demoAppointments' relation exists
+                                ->latest('created_at') // Retrieve the most recent demo
+                                ->first();
 
-                    //         if ($latestDemoAppointment) {
-                    //             $latestDemoAppointment->update([
-                    //                 'status' => 'Done', // Or whatever status you need to set
-                    //             ]);
-                    //         }
+                            if ($latestDemoAppointment) {
+                                $latestDemoAppointment->update([
+                                    'status' => 'Done', // Or whatever status you need to set
+                                ]);
+                            }
 
-                    //         // Update the Lead model
-                    //         $lead->update([
-                    //             'stage' => 'Follow Up',
-                    //             'lead_status' => 'RFQ-Follow Up',
-                    //             // 'remark' => $data['remark'],
-                    //             'follow_up_date' => null,
-                    //         ]);
+                            // Update the Lead model
+                            $lead->update([
+                                'stage' => 'Follow Up',
+                                'lead_status' => 'RFQ-Follow Up',
+                                // 'remark' => $data['remark'],
+                                'follow_up_date' => null,
+                            ]);
 
-                    //         // Update the latest ActivityLog related to the lead
-                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    //             ->orderByDesc('created_at')
-                    //             ->first();
+                            // Update the latest ActivityLog related to the lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
 
-                    //         if ($latestActivityLog) {
-                    //             $latestActivityLog->update([
-                    //                 'description' => 'Demo Completed',
-                    //             ]);
-                    //         }
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Demo Completed',
+                                ]);
+                            }
 
-                    //         // Log activity
-                    //         activity()
-                    //             ->causedBy(auth()->user())
-                    //             ->performedOn($lead);
+                            // Log activity
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead);
 
-                    //         // Send success notification
-                    //         Notification::make()
-                    //             ->title('Demo completed successfully')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
+                            // Send success notification
+                            Notification::make()
+                                ->title('Demo completed successfully')
+                                ->success()
+                                ->send();
+                        }),
 
-                    // Tables\Actions\Action::make('view_proof')
-                    //     ->visible(function (ActivityLog $record) {
-                    //         // Decode the properties from the activity log
-                    //         $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                    Tables\Actions\Action::make('view_proof')
+                        ->visible(function (ActivityLog $record) {
+                            // Decode the properties from the activity log
+                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
 
-                    //         // Extract lead status
-                    //         $leadStatus = data_get($attributes, 'lead_status');
-                    //         $lead = $record->lead;
+                            // Extract lead status
+                            $leadStatus = data_get($attributes, 'lead_status');
+                            $lead = $record->lead;
 
-                    //         // Get the latest activity log for the given lead
-                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    //             ->orderByDesc('created_at')
-                    //             ->first();
+                            // Get the latest activity log for the given lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
 
-                    //         // Decode the properties from the activity log
-                    //         $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                            // Decode the properties from the activity log
+                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
 
-                    //         if($latestActivityLog && (str_contains($latestActivityLog->description, 'Quotation Sent.')
-                    //             || str_contains($latestActivityLog->description, 'Quotation Transfer Follow Up'))){
-                    //             return false;
-                    //         }
-                    //         // Show action only for specific lead statuses
-                    //         return $leadStatus === LeadStatusEnum::HOT->value ||
-                    //             $leadStatus === LeadStatusEnum::WARM->value ||
-                    //             $leadStatus === LeadStatusEnum::COLD->value;
-                    //     })
-                    //     ->label(__('View Proof'))
-                    //     ->color('warning')
-                    //     ->icon('heroicon-o-document-text')
-                    //     ->url(function (ActivityLog $record) {
-                    //         $quotation = $record->lead->quotations()->latest('created_at')->first();
+                            if($latestActivityLog && (str_contains($latestActivityLog->description, 'Quotation Sent.')
+                                || str_contains($latestActivityLog->description, 'Quotation Transfer Follow Up'))){
+                                return false;
+                            }
+                            // Show action only for specific lead statuses
+                            return $leadStatus === LeadStatusEnum::HOT->value ||
+                                $leadStatus === LeadStatusEnum::WARM->value ||
+                                $leadStatus === LeadStatusEnum::COLD->value;
+                        })
+                        ->label(__('View Proof'))
+                        ->color('warning')
+                        ->icon('heroicon-o-document-text')
+                        ->url(function (ActivityLog $record) {
+                            $quotation = $record->lead->quotations()->latest('created_at')->first();
 
-                    //         if ($quotation && $quotation->confirmation_order_document) {
-                    //             // Generate the public URL using Storage::url
-                    //             return Storage::url($quotation->confirmation_order_document);
-                    //         }
-                    //         return null; // No document URL
-                    //     })
-                    //     ->openUrlInNewTab()
-                    //     ->action(function (ActivityLog $record) {
-                    //         // Notify the user that no document is found
-                    //         Notification::make()
-                    //             ->title('Error')
-                    //             ->body('No document found for this quotation.')
-                    //             ->danger()
-                    //             ->send();
-                    //     }),
-                    // Tables\Actions\Action::make('view_pi')
-                    //     ->visible(function (ActivityLog $record) {
-                    //         $lead = $record->lead;
+                            if ($quotation && $quotation->confirmation_order_document) {
+                                // Generate the public URL using Storage::url
+                                return Storage::url($quotation->confirmation_order_document);
+                            }
+                            return null; // No document URL
+                        })
+                        ->openUrlInNewTab()
+                        ->action(function (ActivityLog $record) {
+                            // Notify the user that no document is found
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No document found for this quotation.')
+                                ->danger()
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('view_pi')
+                        ->visible(function (ActivityLog $record) {
+                            $lead = $record->lead;
 
-                    //         // Get the latest activity log for the given lead
-                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    //             ->orderByDesc('created_at')
-                    //             ->first();
+                            // Get the latest activity log for the given lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
 
-                    //         // Decode the properties from the activity log
-                    //         $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                            // Decode the properties from the activity log
+                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
 
-                    //         // Extract lead status
-                    //         $leadStatus = data_get($attributes, 'lead_status');
+                            // Extract lead status
+                            $leadStatus = data_get($attributes, 'lead_status');
 
-                    //         if($latestActivityLog && (str_contains($latestActivityLog->description, 'Quotation Sent.')
-                    //             || str_contains($latestActivityLog->description, 'Quotation Transfer Follow Up'))){
-                    //             return false;
-                    //         }
-                    //         // Show action only for specific lead statuses
-                    //         return $leadStatus === LeadStatusEnum::HOT->value ||
-                    //             $leadStatus === LeadStatusEnum::WARM->value ||
-                    //             $leadStatus === LeadStatusEnum::COLD->value;
-                    //     })
-                    //     ->label(__('View PI'))
-                    //     ->color('warning')
-                    //     ->icon('heroicon-o-document-text')
-                    //     ->url(function (ActivityLog $record) {
-                    //         $quotation = $record->lead->quotations()->latest('created_at')->first();
+                            if($latestActivityLog && (str_contains($latestActivityLog->description, 'Quotation Sent.')
+                                || str_contains($latestActivityLog->description, 'Quotation Transfer Follow Up'))){
+                                return false;
+                            }
+                            // Show action only for specific lead statuses
+                            return $leadStatus === LeadStatusEnum::HOT->value ||
+                                $leadStatus === LeadStatusEnum::WARM->value ||
+                                $leadStatus === LeadStatusEnum::COLD->value;
+                        })
+                        ->label(__('View PI'))
+                        ->color('warning')
+                        ->icon('heroicon-o-document-text')
+                        ->url(function (ActivityLog $record) {
+                            $quotation = $record->lead->quotations()->latest('created_at')->first();
 
-                    //         if ($quotation && $quotation->pi_reference_no) {
-                    //             // Generate the PI URL using the pi_reference_no
-                    //             $lastTwoDigits = substr($quotation->pi_reference_no, -2); // Get the last 2 characters
+                            if ($quotation && $quotation->pi_reference_no) {
+                                // Generate the PI URL using the pi_reference_no
+                                $lastTwoDigits = substr($quotation->pi_reference_no, -2); // Get the last 2 characters
 
-                    //             if (is_numeric($lastTwoDigits)) {
-                    //                 return "https://crm.timeteccloud.com:8082/proforma-invoice-v2/{$lastTwoDigits}";
-                    //             }
-                    //         }
+                                if (is_numeric($lastTwoDigits)) {
+                                    return "https://crm.timeteccloud.com:8082/proforma-invoice-v2/{$lastTwoDigits}";
+                                }
+                            }
 
-                    //         return null; // No valid PI reference number
-                    //     })
-                    //     ->openUrlInNewTab()
-                    //     ->action(function (ActivityLog $record) {
-                    //         Notification::make()
-                    //             ->title('Error')
-                    //             ->body('No valid PI reference number found for this quotation.')
-                    //             ->danger()
-                    //             ->send();
-                    //     }),
+                            return null; // No valid PI reference number
+                        })
+                        ->openUrlInNewTab()
+                        ->action(function (ActivityLog $record) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No valid PI reference number found for this quotation.')
+                                ->danger()
+                                ->send();
+                        }),
                     Tables\Actions\Action::make('Reupload')
                         ->color('warning')
                         ->icon('heroicon-o-receipt-refund')
