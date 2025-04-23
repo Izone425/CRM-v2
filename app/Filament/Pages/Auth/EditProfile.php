@@ -30,7 +30,16 @@ class EditProfile extends BaseEditProfile
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),
-
+                FileUpload::make("signature_path")
+                    ->label('Signature')
+                    ->placeholder('')
+                    ->disk('public')
+                    ->directory('uploads/photos')
+                    ->image()
+                    ->extraAttributes([
+                        'class' => 'mx-auto',
+                        'style' => 'border-radius: 0; width: 100%; height: auto;', // Removes circular shape and makes it rectangular
+                    ]),
             ]);
     }
 

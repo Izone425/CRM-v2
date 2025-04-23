@@ -57,8 +57,8 @@
                             <div class="pull-left">
                                 <span style="font-weight:bold;font-size:13px;line-height:2.5">TIMETEC CLOUD SDN BHD <small class="fw-normal" style="font-size:9px;">(832542-W)</small></span>
                                 <p>
-                                NO 6, 8 & 10, Jalan BK3/2, Bandar Kinrara,<br />
-                                47180 Puchong, Selangor Darul Ehsan, Malaysia<br />
+                                Level 18, Tower 5 @ PFCC, Jalan Puteri 1/2,<br />
+                                Bandar Puteri, 47100 Puchong, Selangor, Malaysia<br />
                                 Tel: +6(03)8070 9933    Fax: +6(03)8070 9988<br />
                                 Email: info@timeteccloud.com  Website: www.timeteccloud.com
                                 </p>
@@ -115,9 +115,9 @@
                             <div class="col-4 pull-right">
                                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />
                                 <span><span class="fw-bold">Date: </span>{{ $quotation->quotation_date->format('j M Y')}}</span><br />
-                                {{-- <span><span class="fw-bold">Prepared By: </span>{{ $quotation->sales_person->name }}</span><br />
+                                <span><span class="fw-bold">Prepared By: </span>{{ $quotation->sales_person->name }}</span><br />
                                 <span><span class="fw-bold">Email: </span>{{ $quotation->sales_person->email }}</span><br />
-                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person->mobile_no }}</span> --}}
+                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person->mobile_number }}</span>
                             </div>
                         </div>
                     </div>

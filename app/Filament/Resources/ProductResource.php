@@ -31,13 +31,9 @@ class ProductResource extends Resource
     protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id != '2';
-    // }
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == '3'; // Hides the resource from all users
+        return auth()->user()->role_id == 3 || in_array(auth()->id(), [4, 5]);
     }
 
     public static function form(Form $form): Form
@@ -63,7 +59,11 @@ class ProductResource extends Resource
                         ->inline(false),
                 Toggle::make('is_active')
                         ->label('Is Active?')
-                        ->inline(false)
+                        ->inline(false),
+                TextInput::make('sort_order')
+                        ->label('Sort Order')
+                        ->numeric()
+                        ->helperText('Lower numbers appear first in dropdowns.')
             ])
             ->columns(2);
     }
@@ -71,27 +71,17 @@ class ProductResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->reorderable('sort_order')
+            ->defaultSort('sort_order')
             ->recordUrl(false)
             ->columns([
-                TextColumn::make('code')
-                    ->width(100),
-                TextColumn::make('solution')
-                    ->width(100),
-                TextColumn::make('description')
-                    ->html()
-                    ->width(500)
-                    ->wrap(),
-                TextColumn::make('unit_price')
-                    ->label('Cost (RM)')
-                    ->width(100),
-                ToggleColumn::make('taxable')
-                    ->label('Taxable?')
-                    ->width(100)
-                    ->disabled(),
-                ToggleColumn::make('is_active')
-                    ->label('Is Active?')
-                    ->width(100)
-                    ->disabled()
+                TextColumn::make('sort_order')->label('Order')->sortable(),
+                TextColumn::make('code')->width(100),
+                TextColumn::make('solution')->width(100),
+                TextColumn::make('description')->html()->width(500)->wrap(),
+                TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
+                ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(),
+                ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
             ])
             ->filters([
                 Filter::make('code')
@@ -117,9 +107,7 @@ class ProductResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

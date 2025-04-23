@@ -242,6 +242,34 @@ class LeadResource extends Resource
                                                                         ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff
                                                                                             to take action on the current and future follow-ups only.')
                                                                         ->modalSubmitActionLabel('Save Changes'),
+                                                                    Actions\Action::make('request_change_lead_owner')
+                                                                        ->label('Request Change Lead Owner')
+                                                                        ->icon('heroicon-o-paper-airplane')
+                                                                        ->visible(fn () => auth()->user()?->role_id !== 3) // Only visible to non-manager roles
+                                                                        ->action(function ($record) {
+                                                                            $manager = \App\Models\User::where('role_id', 3)->first();
+
+                                                                            if ($manager) {
+                                                                                // Notify the manager about the request
+                                                                                Notification::make()
+                                                                                    ->title('Lead Owner Change Request')
+                                                                                    ->body('A request has been sent to the manager to change the lead owner for Lead ID: ' . $record->id)
+                                                                                    ->success()
+                                                                                    ->send();
+
+                                                                                // Optionally, log the request or send an email to the manager
+                                                                                activity()
+                                                                                    ->causedBy(auth()->user())
+                                                                                    ->performedOn($record)
+                                                                                    ->log('Requested manager to change lead owner for Lead ID: ' . $record->id);
+                                                                            } else {
+                                                                                Notification::make()
+                                                                                    ->title('Manager Not Found')
+                                                                                    ->body('No manager found to handle the request.')
+                                                                                    ->danger()
+                                                                                    ->send();
+                                                                            }
+                                                                        }),
                                                                 ]),
                                                             ]),
                                                     ])
@@ -1438,7 +1466,8 @@ class LeadResource extends Resource
                 TextColumn::make('company_size_label')
                     ->label('COMPANY SIZE'),
                 TextColumn::make('company_size')
-                    ->label('HEADCOUNT'),
+                    ->label('HEADCOUNT')
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['inactive'])),
             ])
             // ->defaultSort('created_at', 'asc')
             // ->defaultSort('categories', 'New')
@@ -1497,13 +1526,36 @@ class LeadResource extends Resource
                     LeadActions::getAssignToMeAction(),
                     LeadActions::getViewAction(),
                     LeadActions::getAddDemoAction()
-                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
+                        ->visible(fn (Lead $record) =>
+                            $record->categories === 'Active'
+                            && !is_null($record->lead_owner)
+                            && is_null($record->salesperson)
+                        ),
                     LeadActions::getAddRFQ()
-                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
-                    LeadActions::getAddFollowUp()->visible(fn (Lead $record) => !is_null($record->lead_owner)),
+                        ->visible(fn (Lead $record) =>
+                            $record->categories === 'Active'
+                            && !is_null($record->lead_owner)
+                            && is_null($record->salesperson)
+                        ),
+
+                    LeadActions::getAddFollowUp()
+                        ->visible(fn (Lead $record) =>
+                            $record->categories === 'Active'
+                            && !is_null($record->lead_owner)
+                        ),
+
                     LeadActions::getAddAutomation()
-                    ->visible(fn (Lead $record) => !is_null($record->lead_owner) && is_null($record->salesperson)),
-                    LeadActions::getArchiveAction()->visible(fn (Lead $record) => !is_null($record->lead_owner)),
+                        ->visible(fn (Lead $record) =>
+                            $record->categories === 'Active'
+                            && !is_null($record->lead_owner)
+                            && is_null($record->salesperson)
+                        ),
+
+                    LeadActions::getArchiveAction()
+                        ->visible(fn (Lead $record) =>
+                            $record->categories === 'Active'
+                            && !is_null($record->lead_owner)
+                        ),
                     LeadActions::getChangeLeadOwnerAction(),
 
                     Tables\Actions\Action::make('resetLead')

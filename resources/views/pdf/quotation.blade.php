@@ -53,8 +53,8 @@
             <div class="pull-left">
                 <span style="font-weight:bold;font-size:13px;line-height:2.5">TIMETEC CLOUD SDN BHD <small class="fw-normal" style="font-size:9px;">(832542-W)</small></span>
                 <p>
-                NO 6, 8 & 10, Jalan BK3/2, Bandar Kinrara,<br />
-                47180 Puchong, Selangor Darul Ehsan, Malaysia<br />
+                Level 18, Tower 5 @ PFCC, Jalan Puteri 1/2,<br />
+                Bandar Puteri, 47100 Puchong, Selangor, Malaysia<br />
                 Tel: +6(03)8070 9933    Fax: +6(03)8070 9988<br />
                 Email: info@timeteccloud.com  Website: www.timeteccloud.com
                 </p>
