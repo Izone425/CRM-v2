@@ -115,14 +115,6 @@ class QuotationResource extends Resource
                             ->default('NEW SALES')
                             ->required()
                             ->disabled(fn () => auth()->user()?->role_id == 2),
-                        Select::make('hrdf_status')
-                            ->label('HRDF Status')
-                            ->placeholder('Select a hrdf status')
-                            ->options([
-                                'HRDF' => 'HRDF',
-                                'NON HRDF' => 'NON HRDF',
-                            ])
-                            ->required(),
                         Select::make('currency')
                             ->placeholder('Select a currency')
                             ->options([
@@ -140,7 +132,27 @@ class QuotationResource extends Resource
                                 'hrdf' => 'HRDF',
                             ])
                             ->live(debounce:500)
-                            ->disabledOn('edit'),  // we do not allow this field to change in Edit Mode
+                            ->disabledOn('edit')
+                            ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
+                                if ($state === 'hrdf') {
+                                    $unitPrice = $get('unit_price') ?? 0;
+
+                                    $set('items', [
+                                        [
+                                            'product_id' => 16,
+                                        ],
+                                        [
+                                            'product_id' => 17,
+                                        ],
+                                        [
+                                            'product_id' => 18,
+                                        ],
+                                    ]);
+
+                                    // Trigger recalculation if needed
+                                    QuotationResource::recalculateAllRowsFromParent($get, $set);
+                                }
+                            }),
                         // Select::make('status')
                         //     ->label('Status')
                         //     ->options([
@@ -171,39 +183,49 @@ class QuotationResource extends Resource
                                 }
                                 return true;
                             }),
+                        // For 'product' type
                         TextInput::make('headcount')
+                            ->label('Headcount')
                             ->numeric()
                             ->required()
                             ->live(onBlur:true)
-                            ->afterStateUpdated(
-                                function(Forms\Get $get, Forms\Set $set, $state) {
-                                    $set('headcount', $state);
-                                    self::recalculateAllRowsFromParent($get,  $set);
-                               }
-                            )
-                            ->hidden(function(Forms\Get $get) {
-                                if ($get('quotation_type') == 'product') {
-                                    return false;
-                                }
-                                return true;
-                            }),
-                        TextInput::make('headcount')
+                            ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set, $state) {
+                                $set('headcount', $state);
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'product'),
+
+                        // For 'hrdf' type
+                        TextInput::make('num_of_participant')
                             ->label('Number Of Participant(s)')
                             ->numeric()
-                            ->required()
-                            ->live(onBlur:true)
-                            ->afterStateUpdated(
-                                function(Forms\Get $get, Forms\Set $set, $state) {
-                                     $set('num_of_participant', $state);
-                                     self::recalculateAllRowsFromParent($get,  $set);
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $set('num_of_participant', $state);
+
+                                $items = $get('items') ?? [];
+                                foreach ($items as $index => $item) {
+                                    $set("items.{$index}.quantity", $state);
                                 }
-                            )
-                            ->hidden(function(Forms\Get $get) {
-                                if ($get('quotation_type') == 'hrdf') {
-                                    return false;
-                                }
-                                return true;
+
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
                             })
+                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'hrdf'),
+
+                        TextInput::make('unit_price')
+                            ->label('Unit Price')
+                            ->numeric()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                $items = $get('items');
+                                foreach ($items as $index => $item) {
+                                    $set("items.{$index}.unit_price", $state);
+                                }
+
+                                // Recalculate everything
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'hrdf'),
                     ])
                     ->columnSpan(3)
                     ->columns(2),
@@ -248,9 +270,29 @@ class QuotationResource extends Resource
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Product Code')
-                                    ->options(
-                                        fn(Forms\Get $get, Product $product, QuotationService $quotationService, ?string $state) => $quotationService->getProductList($product, $get('../../quotation_type'))
-                                    )
+                                    ->options(function (Forms\Get $get) {
+                                        $quotationType = $get('../../quotation_type');
+
+                                        $query = \App\Models\Product::query()
+                                            ->orderBy('solution')
+                                            ->orderBy('sort_order'); // 🔄 changed from 'code' to 'sort_order'
+
+                                        if ($quotationType === 'hrdf') {
+                                            $query->where('solution', 'hrdf');
+                                        } else {
+                                            $query->where('solution', '!=', 'hrdf');
+                                        }
+
+                                        return $query->get()
+                                            ->groupBy('solution')
+                                            ->mapWithKeys(function ($group, $solution) {
+                                                return [
+                                                    ucfirst($solution) => $group->pluck('code', 'id'),
+                                                ];
+                                            })
+                                            ->toArray();
+                                    })
+
                                     // We are disabling the option if it's already selected in another Repeater row
                                     // ->disableOptionWhen(function ($value, $state, Forms\Get $get) {
                                     //     return collect($get('../*.product_id'))
@@ -571,13 +613,6 @@ class QuotationResource extends Resource
                     ->options([
                         'NEW SALES' => 'NEW SALES',
                         'RENEWAL SALES' => 'RENEWAL SALES',
-                    ])
-                    ->searchable(),
-                SelectFilter::make('hrdf_status')
-                    ->label('HRDF Status')
-                    ->options([
-                        'HRDF' => 'HRDF',
-                        'NON HRDF' => 'NON HRDF',
                     ])
                     ->searchable(),
                 Filter::make('customer_type')

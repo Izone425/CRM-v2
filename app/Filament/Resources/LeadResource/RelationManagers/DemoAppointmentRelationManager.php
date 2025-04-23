@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Services\MicrosoftGraphService;
+use App\Services\TemplateSelector;
 use Carbon\Carbon;
 use Filament\Actions\EditAction;
 use Filament\Forms;
@@ -386,7 +387,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                     $templateSelector = new TemplateSelector();
                                     $template = $templateSelector->getTemplate($utmCampaign, 5);
-                                    
+
                                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name

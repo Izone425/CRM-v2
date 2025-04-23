@@ -36,8 +36,8 @@
             <div class="pull-left">
                 <span style="font-weight:bold;font-size:13px;line-height:2.5">TIMETEC CLOUD SDN BHD <small class="fw-normal" style="font-size:9px;">(832542-W)</small></span>
                 <p>
-                NO 6, 8 & 10, Jalan BK3/2, Bandar Kinrara,<br />
-                47180 Puchong, Selangor Darul Ehsan, Malaysia<br />
+                Level 18, Tower 5 @ PFCC, Jalan Puteri 1/2,<br />
+                Bandar Puteri, 47100 Puchong, Selangor, Malaysia<br />
                 Tel: +6(03)8070 9933    Fax: +6(03)8070 9988<br />
                 Email: info@timeteccloud.com  Website: www.timeteccloud.com
                 </p>
@@ -58,20 +58,26 @@
                 <span style="font-weight: bold;">{{ Str::upper($quotation->lead->companyDetail->company_name) }}</span><br />
                 <span>
                     @php
+                        $company = $quotation->lead->companyDetail;
                         $address = "";
-                        // if (strlen(trim($quotation->company->address1)) > 0) {
-                        //     $address .= Str::upper(trim($quotation->company->address1)).'<br />';
-                        // }
-                        // if (strlen(trim($quotation->company->address2)) > 0) {
-                        //     $address .= Str::upper(trim($quotation->company->address2)).'<br />';
-                        // }
-                        // if (strlen(trim($quotation->company->postcode)) > 0) {
-                        //     $address .= trim($quotation->company->postcode);
-                        // }
-                        // $address .= " ".Str::upper(trim($quotation->company->state)) . '<br />';
-                        // if ($quotation->company->country <> 'Malaysia') {
-                        //     $address .= trim($quotation->company->country);
-                        // }
+
+                        if (strlen(trim($company->company_address1 ?? '')) > 0) {
+                            $address .= Str::upper(trim($company->company_address1)).'<br />';
+                        }
+
+                        if (strlen(trim($company->company_address2 ?? '')) > 0) {
+                            $address .= Str::upper(trim($company->company_address2)).'<br />';
+                        }
+
+                        if (strlen(trim($company->postcode ?? '')) > 0) {
+                            $address .= trim($company->postcode);
+                        }
+
+                        $address .= " " . Str::upper(trim($company->state ?? '')) . '<br />';
+
+                        if (($company->country ?? '') !== 'Malaysia') {
+                            $address .= trim($company->country);
+                        }
 
                     @endphp
                     {!! $address !!}
@@ -167,8 +173,8 @@
             <div class="pull-left">
                 <span style="font-weight:bold;font-size:13px;line-height:2.5">TIMETEC CLOUD SDN BHD <small class="fw-normal" style="font-size:9px;">(832542-W)</small></span>
                 <p>
-                NO 6, 8 & 10, Jalan BK3/2, Bandar Kinrara,<br />
-                47180 Puchong, Selangor Darul Ehsan, Malaysia<br />
+                Level 18, Tower 5 @ PFCC, Jalan Puteri 1/2, Bandar Puteri,<br />
+                47100 Puchong, Selangor Darul Ehsan, Malaysia<br />
                 Tel: +6(03)8070 9933    Fax: +6(03)8070 9988<br />
                 Email: info@timeteccloud.com  Website: www.timeteccloud.com
                 </p>
@@ -189,20 +195,26 @@
                 <span style="font-weight: bold;">{{ Str::upper($quotation->lead->companyDetail->company_name) }}</span><br />
                 <span>
                     @php
+                        $company = $quotation->lead->companyDetail;
                         $address = "";
-                        // if (strlen(trim($quotation->company->address1)) > 0) {
-                        //     $address .= Str::upper(trim($quotation->company->address1)).'<br />';
-                        // }
-                        // if (strlen(trim($quotation->company->address2)) > 0) {
-                        //     $address .= Str::upper(trim($quotation->company->address2)).'<br />';
-                        // }
-                        // if (strlen(trim($quotation->company->postcode)) > 0) {
-                        //     $address .= trim($quotation->company->postcode);
-                        // }
-                        // $address .= " ".Str::upper(trim($quotation->company->state)) . '<br />';
-                        // if ($quotation->company->country <> 'Malaysia') {
-                        //     $address .= trim($quotation->company->country);
-                        // }
+
+                        if (strlen(trim($company->company_address1 ?? '')) > 0) {
+                            $address .= Str::upper(trim($company->company_address1)).'<br />';
+                        }
+
+                        if (strlen(trim($company->company_address2 ?? '')) > 0) {
+                            $address .= Str::upper(trim($company->company_address2)).'<br />';
+                        }
+
+                        if (strlen(trim($company->postcode ?? '')) > 0) {
+                            $address .= trim($company->postcode);
+                        }
+
+                        $address .= " " . Str::upper(trim($company->state ?? '')) . '<br />';
+
+                        if (($company->country ?? '') !== 'Malaysia') {
+                            $address .= trim($company->country);
+                        }
 
                     @endphp
                     {!! $address !!}

@@ -29,15 +29,14 @@ class GenerateQuotationPdfController extends Controller
         /**
          * if signature image exists
          */
-        // if ($quotation->sales_person->signature) {
-        //     $signatureImg = public_path('storage/'.$quotation->sales_person->signature);
-        //     // $signatureImg = Storage::disk('public')->get($quotation->sales_person->signature);
-        //     if ($signatureImg) {
-        //         $image3 = file_get_contents($signatureImg);
-        //         $img_base_64_3 = base64_encode($image3);
-        //         $signature = 'data:image/png;base64,' . $img_base_64_3;
-        //     }
-        // }
+        if ($quotation->sales_person && $quotation->sales_person->signature_path) {
+            $signaturePath = public_path('storage/' . $quotation->sales_person->signature_path);
+
+            if (file_exists($signaturePath)) {
+                $signatureImage = file_get_contents($signaturePath);
+                $signature = 'data:image/png;base64,' . base64_encode($signatureImage);
+            }
+        }
 
         $img_base_64 = base64_encode($image);
         $img_base_64_2 = base64_encode($image2);

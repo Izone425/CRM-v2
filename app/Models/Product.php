@@ -15,7 +15,8 @@ class Product extends Model
         'solution',
         'unit_price',
         'taxable',
-        'is_active'
+        'is_active',
+        'sort_order'
     ];
 
     public function scopeActive(Builder $query, bool $value=true): Builder

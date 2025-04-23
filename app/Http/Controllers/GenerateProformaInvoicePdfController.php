@@ -32,12 +32,11 @@ class GenerateProformaInvoicePdfController extends Controller
         /**
          * if signature image exists
          */
-        if ($quotation->sales_person->signature) {
-            $signatureImg = public_path('/img/'.$quotation->sales_person->signature);
+        if ($quotation->sales_person && $quotation->sales_person->signature_path) {
+            $signatureImg = public_path('storage/' . $quotation->sales_person->signature_path);
             if (file_exists($signatureImg)) {
                 $image3 = file_get_contents($signatureImg);
-                $img_base_64_3 = base64_encode($image3);
-                $signature = 'data:image/png;base64,' . $img_base_64_3;
+                $signature = 'data:image/png;base64,' . base64_encode($image3);
             }
         }
 
