@@ -12,7 +12,7 @@ class TemplateSelector
             2 => ['email' => 'emails.email_blasting_2nd_bm', 'sid' => 'HXbb1b933e2fa363c64c996ae0da7c8773'],
             3 => ['email' => 'emails.email_blasting_3rd_bm', 'sid' => 'HX8094ffaa4380226a4c803c10ea59655e'],
             4 => ['email' => 'emails.email_blasting_4th_bm', 'sid' => 'HX4d2db45f7de1fd07563369d87a0c8c75'],
-            5 => ['email' => 'emails.cancel_demo_notification_bm', 'sid' => null],
+            5 => ['email' => 'emails.cancel_demo_notification', 'sid' => null],
         ],
         '120213654055070392' => [
             0 => ['email' => 'emails.demo_notification_bm', 'sid' => null],
@@ -20,7 +20,7 @@ class TemplateSelector
             2 => ['email' => 'emails.email_blasting_2nd_bm', 'sid' => 'HXbb1b933e2fa363c64c996ae0da7c8773'],
             3 => ['email' => 'emails.email_blasting_3rd_bm', 'sid' => 'HX8094ffaa4380226a4c803c10ea59655e'],
             4 => ['email' => 'emails.email_blasting_4th_bm', 'sid' => 'HX4d2db45f7de1fd07563369d87a0c8c75'],
-            5 => ['email' => 'emails.cancel_demo_notification_bm', 'sid' => null],
+            5 => ['email' => 'emails.cancel_demo_notification', 'sid' => null],
         ],
         '120220143815230392' => [
             0 => ['email' => 'emails.demo_notification_bm', 'sid' => null],
@@ -28,7 +28,7 @@ class TemplateSelector
             2 => ['email' => 'emails.email_blasting_2nd_bm', 'sid' => 'HXbb1b933e2fa363c64c996ae0da7c8773'],
             3 => ['email' => 'emails.email_blasting_3rd_bm', 'sid' => 'HX8094ffaa4380226a4c803c10ea59655e'],
             4 => ['email' => 'emails.email_blasting_4th_bm', 'sid' => 'HX4d2db45f7de1fd07563369d87a0c8c75'],
-            5 => ['email' => 'emails.cancel_demo_notification_bm', 'sid' => null],
+            5 => ['email' => 'emails.cancel_demo_notification', 'sid' => null],
         ],
         // Default (English)
         'default' => [

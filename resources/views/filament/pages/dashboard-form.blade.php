@@ -46,9 +46,24 @@
 
                     &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
 
-                    @if ($selectedUser == 1 || $selectedUser == 14 || $selectedUser == null)
+                    @if ($selectedUser == 7 || $selectedUser == 14 || $selectedUser == null)
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
+                            <button
+                                wire:click="toggleDashboard('Manager')"
+                                style="
+                                    padding: 10px 15px;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    border: none;
+                                    border-radius: 20px;
+                                    background: {{ $currentDashboard === 'Manager' ? '#431fa1' : 'transparent' }};
+                                    color: {{ $currentDashboard === 'Manager' ? '#ffffff' : '#555' }};
+                                    cursor: pointer;
+                                "
+                            >
+                                Manager
+                            </button>
                             <!-- Lead Owner Button -->
                             <button
                                 wire:click="toggleDashboard('LeadOwner')"
@@ -98,11 +113,17 @@
 
                     @include('filament.pages.salesperson')
 
+                @elseif ($selectedUserRole == 2)
+
+                    @include('filament.pages.manager')
+
                 @else
                     @if ($currentDashboard === 'LeadOwner')
                         @include('filament.pages.leadowner')
                     @elseif ($currentDashboard === 'Salesperson')
                         @include('filament.pages.salesperson')
+                    @elseif ($currentDashboard === 'Manager')
+                        @include('filament.pages.manager')
                     @endif
                 @endif
             {{-- </div> --}}

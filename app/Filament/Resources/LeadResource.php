@@ -101,7 +101,8 @@ class LeadResource extends Resource
                                                                     'RESELLER' => 'RESELLER',
                                                                 ])
                                                                 ->required()
-                                                                ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                                                ->default(fn ($record) => $record?->customer_type ?? 'Unknown')
+                                                                ->visible(fn () => auth()->user()?->role_id == 3),
                                                             Select::make('region')
                                                                 ->label('Region')
                                                                 ->options([
@@ -109,7 +110,8 @@ class LeadResource extends Resource
                                                                     'OVERSEA' => 'OVERSEA',
                                                                 ])
                                                                 ->required()
-                                                                ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                                                ->default(fn ($record) => $record?->region ?? 'Unknown')
+                                                                ->visible(fn () => auth()->user()?->role_id == 3),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             if ($lead) {
@@ -242,32 +244,61 @@ class LeadResource extends Resource
                                                                         ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff
                                                                                             to take action on the current and future follow-ups only.')
                                                                         ->modalSubmitActionLabel('Save Changes'),
+
                                                                     Actions\Action::make('request_change_lead_owner')
                                                                         ->label('Request Change Lead Owner')
                                                                         ->icon('heroicon-o-paper-airplane')
                                                                         ->visible(fn () => auth()->user()?->role_id !== 3) // Only visible to non-manager roles
-                                                                        ->action(function ($record) {
+                                                                        ->form([
+                                                                            \Filament\Forms\Components\Select::make('requested_owner_id')
+                                                                                ->label('New Lead Owner')
+                                                                                ->searchable()
+                                                                                ->required()
+                                                                                ->options(
+                                                                                    \App\Models\User::where('role_id', 1)->pluck('name', 'id') // Assuming lead owners are role_id = 1
+                                                                                ),
+                                                                            \Filament\Forms\Components\Textarea::make('reason')
+                                                                                ->label('Reason for Request')
+                                                                                ->rows(3)
+                                                                                ->autosize()
+                                                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                                                ->required(),
+                                                                        ])
+                                                                        ->action(function ($record, array $data) {
                                                                             $manager = \App\Models\User::where('role_id', 3)->first();
 
-                                                                            if ($manager) {
-                                                                                // Notify the manager about the request
-                                                                                Notification::make()
-                                                                                    ->title('Lead Owner Change Request')
-                                                                                    ->body('A request has been sent to the manager to change the lead owner for Lead ID: ' . $record->id)
-                                                                                    ->success()
-                                                                                    ->send();
+                                                                            // Create the request
+                                                                            \App\Models\Request::create([
+                                                                                'lead_id' => $record->id,
+                                                                                'requested_by' => auth()->id(),
+                                                                                'current_owner_id' => \App\Models\User::where('name', $record->lead_owner)->value('id'),
+                                                                                'requested_owner_id' => $data['requested_owner_id'],
+                                                                                'reason' => $data['reason'],
+                                                                                'status' => 'pending',
+                                                                            ]);
 
-                                                                                // Optionally, log the request or send an email to the manager
-                                                                                activity()
-                                                                                    ->causedBy(auth()->user())
-                                                                                    ->performedOn($record)
-                                                                                    ->log('Requested manager to change lead owner for Lead ID: ' . $record->id);
-                                                                            } else {
+                                                                            activity()
+                                                                                ->causedBy(auth()->user())
+                                                                                ->performedOn($record)
+                                                                                ->withProperties([
+                                                                                    'lead_id' => $record->id,
+                                                                                    'requested_by' => auth()->user()->name,
+                                                                                    'requested_owner_id' => \App\Models\User::find($data['requested_owner_id'])?->name,
+                                                                                    'reason' => $data['reason'],
+                                                                                ])
+                                                                                ->log('Requested lead owner change');
+
+                                                                            Notification::make()
+                                                                                ->title('Request Submitted')
+                                                                                ->body('Your request to change the lead owner has been submitted to the manager.')
+                                                                                ->success()
+                                                                                ->send();
+
+                                                                            if ($manager) {
                                                                                 Notification::make()
-                                                                                    ->title('Manager Not Found')
-                                                                                    ->body('No manager found to handle the request.')
-                                                                                    ->danger()
-                                                                                    ->send();
+                                                                                    ->title('New Lead Owner Change Request')
+                                                                                    ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id)
+                                                                                    ->sendToDatabase($manager);
                                                                             }
                                                                         }),
                                                                 ]),

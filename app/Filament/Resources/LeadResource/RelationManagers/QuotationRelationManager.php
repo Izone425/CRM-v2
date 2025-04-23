@@ -368,7 +368,10 @@ class QuotationRelationManager extends RelationManager
                         // ->openUrlInNewTab()
                         ->closeModalByClickingAway(false)
                         ->modalWidth(MaxWidth::Medium)
-                        ->visible(fn(Quotation $quotation) => $quotation->status != QuotationStatusEnum::accepted),
+                        ->visible(fn(Quotation $quotation) =>
+                            $quotation->status !== QuotationStatusEnum::accepted &&
+                            $quotation->lead?->lead_status === 'Closed'
+                        ),
                     Tables\Actions\Action::make('proforma_invoice')
                         ->label('Proforma Invoice')
                         ->color('primary')
