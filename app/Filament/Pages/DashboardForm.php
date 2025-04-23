@@ -25,6 +25,7 @@ class DashboardForm extends Page
     public function mount()
     {
         $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
+        $this->currentDashboard = 'Manager';
 
         // Default selectedUser to 7 (Your Own Dashboard) when the page loads
         $this->selectedUser = session('selectedUser') == 7;
@@ -48,7 +49,6 @@ class DashboardForm extends Page
         session(['selectedUser' => $userId]);
 
         if (in_array($userId, ['all-lead-owners', 'all-salespersons'])) {
-            // Set role based on group type
             $this->selectedUserRole = $userId === 'all-salespersons' ? 2 : 1;
             $this->toggleDashboard($this->selectedUserRole === 2 ? 'Salesperson' : 'LeadOwner');
         } else {
@@ -56,10 +56,15 @@ class DashboardForm extends Page
 
             if ($selectedUser) {
                 $this->selectedUserRole = $selectedUser->role_id;
-                $this->toggleDashboard($selectedUser->role_id == 2 ? 'Salesperson' : 'LeadOwner');
+                $this->toggleDashboard(match($selectedUser->role_id) {
+                    1 => 'LeadOwner',
+                    2 => 'Salesperson',
+                    3 => 'Manager', // 🆕 Add Manager support here
+                    default => 'Manager',
+                });
             } else {
                 $this->selectedUserRole = null;
-                $this->toggleDashboard('LeadOwner');
+                $this->toggleDashboard('Manager');
             }
         }
 

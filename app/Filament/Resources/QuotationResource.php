@@ -83,18 +83,24 @@ class QuotationResource extends Resource
                         Select::make('lead_id')
                             ->label('Company Name')
                             ->searchable()
-                            ->options(fn() => Lead::with('companyDetail') // Eager load the companyDetail relationship
-                                ->get()
-                                ->filter(fn($lead) => $lead->companyDetail && $lead->companyDetail->company_name) // Exclude null or missing company names
-                                ->mapWithKeys(function ($lead) {
-                                    return [$lead->id => $lead->companyDetail->company_name];
-                                })
-                                ->toArray()
-                            )
+                            ->options(function () {
+                                $query = Lead::with('companyDetail')
+                                    ->when(auth()->user()->role_id == 2, function ($q) {
+                                        $q->where('salesperson', auth()->id()); // Filter leads by salesperson if role_id == 2
+                                    })
+                                    ->get();
+
+                                return $query
+                                    ->filter(fn($lead) => $lead->companyDetail && $lead->companyDetail->company_name)
+                                    ->mapWithKeys(function ($lead) {
+                                        return [$lead->id => $lead->companyDetail->company_name];
+                                    })
+                                    ->toArray();
+                            })
                             ->default(
                                 fn() => request()->has('lead_id')
                                     ? Encryptor::decrypt(request()->query('lead_id'))
-                                    : null // Decrypt the query parameter if present
+                                    : null
                             )
                             ->preload()
                             ->required()
@@ -782,7 +788,10 @@ class QuotationResource extends Resource
                         // ->openUrlInNewTab()
                         ->closeModalByClickingAway(false)
                         ->modalWidth(MaxWidth::Medium)
-                        ->visible(fn(Quotation $quotation) => $quotation->status != QuotationStatusEnum::accepted),
+                        ->visible(fn(Quotation $quotation) =>
+                            $quotation->status !== QuotationStatusEnum::accepted &&
+                            $quotation->lead?->lead_status === 'Closed'
+                        ),
                     Tables\Actions\Action::make('proforma_invoice')
                         ->label('Proforma Invoice')
                         ->color('primary')
@@ -1132,6 +1141,4 @@ class QuotationResource extends Resource
         $set('tax_amount', number_format($totalTax, 2, '.', ''));
         $set('total', number_format($grandTotal, 2, '.', ''));
     }
-
-
 }
