@@ -68,7 +68,7 @@
         .dropdown-summary {
             grid-column: 1 / -1;
             background-color: var(--bar-color-blue);
-            min-height: 50px;
+            min-height: 0px;
         }
 
         .summary-cell {
@@ -400,63 +400,74 @@
             background: #ccc;
             width: 0.5px;
         }
-
     </style>
 
 
     <!-- Filter and Badges Section -->
     <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
-        <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl" style="width:70%;">
+        <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
+            style="width:70%;">
             <h3> Filter </h3><br>
             {{-- Status --}}
             <div class="relative w-full">
                 <form>
-                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedStatus'),
-                        allSelected: @entangle('allStatusSelected'),
-                        get label() {
-
-                            if (this.allSelected)
-                                return 'All Status'
-
-                            else if (this.selected.length <= 0)
-                                return 'All Status'
-
-                            else {
-                                console.log(this.selected);
-                                return this.selected.join(',');
+                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                        @click.away="open = false" x-data="{
+                            open: false,
+                            selected: @entangle('selectedStatus'),
+                            allSelected: @entangle('allStatusSelected'),
+                            get label() {
+                        
+                                if (this.allSelected)
+                                    return 'All Status'
+                        
+                                else if (this.selected.length <= 0)
+                                    return 'All Status'
+                        
+                                else {
+                                    console.log(this.selected);
+                                    return this.selected.join(',');
+                                }
                             }
-                        }
-                    }">
+                        }">
                         <!-- Trigger Button -->
                         <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
                             <span x-text="label" class="truncate"></span>
-                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
 
                         <!-- Dropdown List -->
-                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg " style="display: none;">
+                        <div x-show="open"
+                            class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                            style="display: none;">
                             <ul class="py-1">
                                 <!-- Select All Checkbox -->
                                 <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="allStatusSelected" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                    <input type="checkbox" wire:model.live="allStatusSelected"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                    <label class="block ml-3 text-sm font-medium text-gray-700"
+                                        style="padding-left: 10px;">
                                         All Status
                                     </label>
                                 </li>
 
                                 <!-- Status -->
                                 @foreach ($status as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedStatus" value="{{ $row }}" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        {{ $row }}
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="selectedStatus"
+                                            value="{{ $row }}"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label for="checkbox-{{ $row }}"
+                                            class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            {{ $row }}
 
-                                    </label>
-                                </li>
+                                        </label>
+                                    </li>
                                 @endforeach
                             </ul>
                         </div>
@@ -466,58 +477,70 @@
 
             <div x-data="weeklyPicker()" class="w-36">
                 <!-- Set a fixed width -->
-                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
+                    class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
 
             <!-- Demo Type Filter -->
             <div class="relative w-full">
                 <form>
-                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedDemoType'),
-                        allSelected: @entangle('allDemoTypeSelected'),
-                        get label() {
-
-                            if (this.allSelected)
-                                return 'All Demo Type'
-
-                            else if (this.selected.length <= 0)
-                                return 'All Demo Type'
-
-                            else {
-                                console.log(this.selected);
-                                return this.selected.join(',');
+                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                        @click.away="open = false" x-data="{
+                            open: false,
+                            selected: @entangle('selectedDemoType'),
+                            allSelected: @entangle('allDemoTypeSelected'),
+                            get label() {
+                        
+                                if (this.allSelected)
+                                    return 'All Demo Type'
+                        
+                                else if (this.selected.length <= 0)
+                                    return 'All Demo Type'
+                        
+                                else {
+                                    console.log(this.selected);
+                                    return this.selected.join(',');
+                                }
                             }
-                        }
-                    }">
+                        }">
                         <!-- Trigger Button -->
                         <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
                             <span x-text="label" class="truncate"></span>
-                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
 
                         <!-- Dropdown List -->
-                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg " style="display: none;">
+                        <div x-show="open"
+                            class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                            style="display: none;">
                             <ul class="py-1">
                                 <!-- Select All Checkbox -->
                                 <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="allDemoTypeSelected" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                    <input type="checkbox" wire:model.live="allDemoTypeSelected"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                    <label class="block ml-3 text-sm font-medium text-gray-700"
+                                        style="padding-left: 10px;">
                                         All Demo Type
                                     </label>
                                 </li>
 
                                 <!-- Individual Salespersons -->
                                 @foreach ($demoTypes as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedDemoType" value="{{ $row }}" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        {{ $row }}
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="selectedDemoType"
+                                            value="{{ $row }}"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label for="checkbox-{{ $row }}"
+                                            class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            {{ $row }}
 
-                                    </label>
-                                </li>
+                                        </label>
+                                    </li>
                                 @endforeach
                             </ul>
                         </div>
@@ -528,7 +551,8 @@
             <!-- Salesperson Filter -->
             <div class="relative w-full">
                 <form>
-                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{
+                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                        @click.away="open = false" x-data="{
                             open: false,
                             selected: @entangle('selectedSalesPeople'),
                             allSelected: @entangle('allSalesPeopleSelected'),
@@ -540,35 +564,48 @@
                                 else
                                     return this.selected.length + ' Salesperson';
                             }
-                        }" @if(auth()->user()->role_id == 2) x-bind:class="'pointer-events-none opacity-50'" @endif>
+                        }"
+                        @if (auth()->user()->role_id == 2) x-bind:class="'pointer-events-none opacity-50'" @endif>
 
                         <!-- Trigger Button -->
                         <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
                             <span x-text="label" class="truncate"></span>
-                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
 
                         <!-- Dropdown List -->
-                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg" style="display: none; height: 30vh">
+                        <div x-show="open"
+                            class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
+                            style="display: none; height: 30vh">
                             <ul class="py-1">
                                 <!-- Select All Checkbox -->
                                 <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="allSalesPeopleSelected" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" @if(auth()->user()->role_id == 2) disabled @endif />
-                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                    <input type="checkbox" wire:model.live="allSalesPeopleSelected"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                        @if (auth()->user()->role_id == 2) disabled @endif />
+                                    <label class="block ml-3 text-sm font-medium text-gray-700"
+                                        style="padding-left: 10px;">
                                         All Salesperson
                                     </label>
                                 </li>
 
                                 <!-- Individual Salespersons -->
                                 @foreach ($salesPeople as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedSalesPeople" value="{{ $row['id'] }}" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" @if(auth()->user()->role_id == 2) disabled @endif />
-                                    <label for="checkbox-{{ $row['id'] }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        {{ $row['name'] }}
-                                    </label>
-                                </li>
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="selectedSalesPeople"
+                                            value="{{ $row['id'] }}"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                            @if (auth()->user()->role_id == 2) disabled @endif />
+                                        <label for="checkbox-{{ $row['id'] }}"
+                                            class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            {{ $row['name'] }}
+                                        </label>
+                                    </li>
                                 @endforeach
                             </ul>
                         </div>
@@ -579,57 +616,72 @@
             <!-- Appointment Filter -->
             <div class="relative w-full">
                 <form>
-                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm" @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedAppointmentType'),
-                        allSelected: @entangle('allAppointmentTypeSelected'),
-                        get label() {
-
-                            if (this.allSelected)
-                                return 'All Appointment Type'
-
-                            else if (this.selected.length <= 0)
-                                return 'All Appointment Type'
-
-                            else {
-                                console.log(this.selected);
-                                return this.selected.join(',');
+                    <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                        @click.away="open = false" x-data="{
+                            open: false,
+                            selected: @entangle('selectedAppointmentType'),
+                            allSelected: @entangle('allAppointmentTypeSelected'),
+                            get label() {
+                        
+                                if (this.allSelected)
+                                    return 'All Appointment Type'
+                        
+                                else if (this.selected.length <= 0)
+                                    return 'All Appointment Type'
+                        
+                                else {
+                                    console.log(this.selected);
+                                    return this.selected.join(',');
+                                }
                             }
-                        }
-                    }">
+                        }">
                         <!-- Trigger Button -->
                         <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
                             <span x-text="label" class="truncate"></span>
-                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
 
                         <!-- Dropdown List -->
-                        <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg " style="display: none;">
+                        <div x-show="open"
+                            class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                            style="display: none;">
                             <ul class="py-1">
                                 <!-- Select All Checkbox -->
                                 <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="allAppointmentTypeSelected" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
+                                    <input type="checkbox" wire:model.live="allAppointmentTypeSelected"
+                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                    <label class="block ml-3 text-sm font-medium text-gray-700"
+                                        style="padding-left: 10px;">
                                         All Appointment Types
                                     </label>
                                 </li>
 
                                 <!-- Individual Salespersons -->
                                 @foreach ($appointmentTypes as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedAppointmentType" value="{{ $row }}" class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}" class="block ml-3 text-sm font-medium text-gray-700" style="padding-left: 10px;">
-                                        {{ $row }}
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="selectedAppointmentType"
+                                            value="{{ $row }}"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label for="checkbox-{{ $row }}"
+                                            class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            {{ $row }}
 
-                                    </label>
-                                </li>
+                                        </label>
+                                    </li>
                                 @endforeach
                             </ul>
                         </div>
                     </div>
                 </form>
+            </div>
+            <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
+                    <input type="checkbox" wire:model.change="showDropdown">
+                    <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
             </div>
         </div>
 
@@ -643,32 +695,33 @@
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] }}</p>
 
                     @foreach (['NEW DEMO' => '#71eb71', 'WEBINAR DEMO' => '#ffff5cbf', 'OTHERS' => '#f86f6f'] as $type => $color)
-    @php
-        $count = $totalDemos[$type] ?? 0;
-        $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
-    @endphp
+                        @php
+                            $count = $totalDemos[$type] ?? 0;
+                            $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
+                        @endphp
 
-    <div class="flex justify-between mt-2 text-sm">
-        <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
-        <span>{{ $count }} ({{ $percentage }}%)</span>
-    </div>
+                        <div class="flex justify-between mt-2 text-sm">
+                            <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
+                            <span>{{ $count }} ({{ $percentage }}%)</span>
+                        </div>
 
-    <div style="position: relative; width: 100%; height: 0.75rem; background-color: #e5e7eb; border-radius: 0.375rem;">
-        <div
-            style="height: 100%; border-radius: 0.375rem; width: {{ $percentage }}%; background-color: {{ $color }};"
-            onmouseover="this.nextElementSibling.style.opacity = '1';"
-            onmouseout="this.nextElementSibling.style.opacity = '0';">
-        </div>
+                        <div
+                            style="position: relative; width: 100%; height: 0.75rem; background-color: #e5e7eb; border-radius: 0.375rem;">
+                            <div style="height: 100%; border-radius: 0.375rem; width: {{ $percentage }}%; background-color: {{ $color }};"
+                                onmouseover="this.nextElementSibling.style.opacity = '1';"
+                                onmouseout="this.nextElementSibling.style.opacity = '0';">
+                            </div>
 
-        @if ($type === 'NEW DEMO' && !empty($newDemoCompanySizeBreakdown))
-            <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background-color: black; color: white; padding: 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; z-index: 999;">
-                @foreach ($newDemoCompanySizeBreakdown as $label => $sizeCount)
-                    <div>{{ $label }}: {{ $sizeCount }}</div>
-                @endforeach
-            </div>
-        @endif
-    </div>
-@endforeach
+                            @if ($type === 'NEW DEMO' && !empty($newDemoCompanySizeBreakdown))
+                                <div
+                                    style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background-color: black; color: white; padding: 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s ease; white-space: nowrap; z-index: 999;">
+                                    @foreach ($newDemoCompanySizeBreakdown as $label => $sizeCount)
+                                        <div>{{ $label }}: {{ $sizeCount }}</div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
 
                 </div>
 
@@ -678,18 +731,19 @@
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] ?? 0 }}</p>
 
                     @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
-                    @php
-                    $count = $totalDemos[$status] ?? 0;
-                    $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
-                    @endphp
+                        @php
+                            $count = $totalDemos[$status] ?? 0;
+                            $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
+                        @endphp
 
-                    <div class="flex justify-between mt-2 text-sm">
-                        <span>{{ ucfirst(strtolower($status)) }}</span>
-                        <span>{{ $count }} ({{ $percentage }}%)</span>
-                    </div>
-                    <div class="w-full h-3 bg-gray-200 rounded-md">
-                        <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                    </div>
+                        <div class="flex justify-between mt-2 text-sm">
+                            <span>{{ ucfirst(strtolower($status)) }}</span>
+                            <span>{{ $count }} ({{ $percentage }}%)</span>
+                        </div>
+                        <div class="w-full h-3 bg-gray-200 rounded-md">
+                            <div class="h-full rounded-md"
+                                style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                        </div>
                     @endforeach
                 </div>
 
@@ -700,12 +754,14 @@
     <!-- Calendar Section -->
     <div class="calendar-header">
         <div class="header-row">
-            <div class="header" style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
+            <div class="header"
+                style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
                 <div>{{ $this->currentMonth }}</div>
             </div>
             <div class="header">
                 <div class="flex">
-                    <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button wire:click="prevWeek" style="width: 10%;"><i
+                            class="fa-solid fa-chevron-left"></i></button>
                     <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
                         <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
                         <div>{{ $weekDays[0]['day'] }}</div>
@@ -730,175 +786,214 @@
                         <div class="header-date">{{ $weekDays[4]['date'] }}</div>
                         <div>{{ $weekDays[4]['day'] }}</div>
                     </div>
-                    <button wire:click="nextWeek" style="width: 10%;"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button wire:click="nextWeek" style="width: 10%;"><i
+                            class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
         <!-- Dropdown -->
         <div class="dropdown-summary"></div>
-        @if(auth()->user()->role_id !== 2)
+        @if (auth()->user()->role_id !== 2 && $showDropdown == true)
 
+                <!-- No New Demo -->
+                <div class="summary-cell">
+                    <div class="circle-bg" style="background-color:var(--text-demo-red)">
+                        <i class="fa-solid fa-x" style="font-size: 1.4rem;color:white"></i>
+                    </div>
+                </div>
+                @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+                    <div class="summary-cell">
+                        <div class="demo-avatar">
+                            @if ($newDemoCount[$day]['noDemo'] < 6)
+                                @foreach ($rows as $salesperson)
+                                    @if ($salesperson['newDemo'][$day] == 0)
+                                        <img data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                            src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                    @endif
+                                @endforeach
+                            @else
+                                @php
+                                    $count = 0;
+                                    $i = 0;
+                                @endphp
+                                @while ($count < 5 && $i < count($rows))
+                                    @if ($rows[$i]['newDemo'][$day] == 0)
+                                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                            src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                        @php $count++; @endphp
+                                    @endif
+                                    @php $i++; @endphp
+                                @endwhile
+                                <div class="hover-container" style="position: relative">
+                                    <div class="circle-bg">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </div>
+                                    <div class="hover-content">
 
-        <!-- No New Demo -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:var(--text-demo-red)">
-                <i class="fa-solid fa-x" style="font-size: 1.4rem;color:white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="summary-cell">
-            <div class="demo-avatar">
-                @if ($newDemoCount[$day]['noDemo'] < 6)
-                    @foreach ($rows as $salesperson)
-                        @if ($salesperson['newDemo'][$day]==0)
-                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                @else
-                    @php
-                        $count = 0;
-                        $i = 0;
-                    @endphp
-                    @while ($count < 5 && $i < count($rows))
-                        @if ($rows[$i]['newDemo'][$day] == 0)
-                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                            @php $count++; @endphp
-                        @endif
-                        @php $i++; @endphp
-                    @endwhile
-                    <div class="hover-container" style="position: relative">
-                        <div class="circle-bg">
-                            <i class="fa-solid fa-plus"></i>
-                        </div>
-                        <div class="hover-content">
-
-                            @foreach ($rows as $salesperson)
-                                @if ($salesperson['newDemo'][$day] == 0)
-                                <div class="hover-content-flexcontainer">
-                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                        @foreach ($rows as $salesperson)
+                                            @if ($salesperson['newDemo'][$day] == 0)
+                                                <div class="hover-content-flexcontainer">
+                                                    <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                        alt="Salesperson Avatar"
+                                                        style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
+                                                        data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                        @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                        @mouseout="hide()" />
+                                                    <span
+                                                        style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
                                 </div>
-                                @endif
-                            @endforeach
+                            @endif
                         </div>
                     </div>
-                @endif
-            </div>
-        </div>
-        @endforeach
-
-        <!-- 1 New Demo -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:#e6e632">
-                <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="summary-cell">
-            <div class="demo-avatar">
-                @if ($newDemoCount[$day]['oneDemo'] < 6)
-                    @foreach ($rows as $salesperson)
-                        @if ($salesperson['newDemo'][$day]==1)
-                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                @else
-                    @php
-                        $count = 0;
-                        $i = 0;
-                    @endphp
-                    @while ($count < 5 && $i < count($rows))
-                        @if ($rows[$i]['newDemo'][$day] == 1)
-                            <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                            @php $count++; @endphp
-                        @endif
-                        @php $i++; @endphp
-                    @endwhile
-                    <div class="hover-container" style="position: relative">
-                        <div class="circle-bg">
-                            <i class="fa-solid fa-plus"></i>
-                        </div>
-                        <div class="hover-content">
-
-                            @foreach ($rows as $salesperson)
-                                @if ($salesperson['newDemo'][$day] == 1)
-                                <div class="hover-content-flexcontainer">
-                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
-                                </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-            </div>
-        </div>
-        @endforeach
-
-        <!-- 2 New Demo -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color: #30ad2a">
-                <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="summary-cell">
-            <div class="demo-avatar">
-                @if ($newDemoCount[$day]['twoDemo'] < 6)
-                    @foreach ($rows as $salesperson)
-                        @if ($salesperson['newDemo'][$day]==2)
-                            <img data-tooltip="{{ $salesperson['salespersonName'] }}" src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                @else
-                    @php
-                        $count = 0;
-                        $i = 0;
-                    @endphp
-                @while ($count < 5 && $i < count($rows))
-                    @if ($rows[$i]['newDemo'][$day] == 2)
-                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}" src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @php $count++; @endphp
-                    @endif
-                    @php $i++; @endphp
-                @endwhile
-                    <div class="hover-container" style="position: relative">
-                        <div class="circle-bg">
-                            <i class="fa-solid fa-plus"></i>
-                        </div>
-                        <div class="hover-content">
-
-                            @foreach ($rows as $salesperson)
-                                @if ($salesperson['newDemo'][$day] == 2)
-                                <div class="hover-content-flexcontainer">
-                                    <img src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar" style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;" data-tooltip="{{ $salesperson['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                                    <span style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
-                                </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-            </div>
-        </div>
-        @endforeach
-
-        <!-- On Leave -->
-        <div class="summary-cell">
-            <img src={{ asset('img/leave-icon-white.svg') }} alt="TT Leave Icon">
-        </div>
-        @for ($day = 1; $day < 6; $day++) <div class="summary-cell">
-            <div class="demo-avatar">
-                @foreach ($leaves as $leave)
-                @if ($leave['day_of_week'] == $day)
-                <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar" data-tooltip="{{ $leave['salespersonName'] }}" @mouseover="show($event)" @mousemove="updatePosition($event)" @mouseout="hide()" />
-                @endif
                 @endforeach
-            </div>
-    </div>
-    @endfor
-    @endif
+
+                <!-- 1 New Demo -->
+                <div class="summary-cell">
+                    <div class="circle-bg" style="background-color:#e6e632">
+                        <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
+                    </div>
+                </div>
+                @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+                    <div class="summary-cell">
+                        <div class="demo-avatar">
+                            @if ($newDemoCount[$day]['oneDemo'] < 6)
+                                @foreach ($rows as $salesperson)
+                                    @if ($salesperson['newDemo'][$day] == 1)
+                                        <img data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                            src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                    @endif
+                                @endforeach
+                            @else
+                                @php
+                                    $count = 0;
+                                    $i = 0;
+                                @endphp
+                                @while ($count < 5 && $i < count($rows))
+                                    @if ($rows[$i]['newDemo'][$day] == 1)
+                                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                            src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                        @php $count++; @endphp
+                                    @endif
+                                    @php $i++; @endphp
+                                @endwhile
+                                <div class="hover-container" style="position: relative">
+                                    <div class="circle-bg">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </div>
+                                    <div class="hover-content">
+
+                                        @foreach ($rows as $salesperson)
+                                            @if ($salesperson['newDemo'][$day] == 1)
+                                                <div class="hover-content-flexcontainer">
+                                                    <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                        alt="Salesperson Avatar"
+                                                        style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
+                                                        data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                        @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                        @mouseout="hide()" />
+                                                    <span
+                                                        style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+
+                <!-- 2 New Demo -->
+                <div class="summary-cell">
+                    <div class="circle-bg" style="background-color: #30ad2a">
+                        <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
+                    </div>
+                </div>
+
+                @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+                    <div class="summary-cell">
+                        <div class="demo-avatar">
+                            @if ($newDemoCount[$day]['twoDemo'] < 6)
+                                @foreach ($rows as $salesperson)
+                                    @if ($salesperson['newDemo'][$day] == 2)
+                                        <img data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                            src="{{ $salesperson['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                    @endif
+                                @endforeach
+                            @else
+                                @php
+                                    $count = 0;
+                                    $i = 0;
+                                @endphp
+                                @while ($count < 5 && $i < count($rows))
+                                    @if ($rows[$i]['newDemo'][$day] == 2)
+                                        <img data-tooltip="{{ $rows[$i]['salespersonName'] }}"
+                                            src="{{ $rows[$i]['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                            @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                            @mouseout="hide()" />
+                                        @php $count++; @endphp
+                                    @endif
+                                    @php $i++; @endphp
+                                @endwhile
+                                <div class="hover-container" style="position: relative">
+                                    <div class="circle-bg">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </div>
+                                    <div class="hover-content">
+
+                                        @foreach ($rows as $salesperson)
+                                            @if ($salesperson['newDemo'][$day] == 2)
+                                                <div class="hover-content-flexcontainer">
+                                                    <img src="{{ $salesperson['salespersonAvatar'] }}"
+                                                        alt="Salesperson Avatar"
+                                                        style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
+                                                        data-tooltip="{{ $salesperson['salespersonName'] }}"
+                                                        @mouseover="show($event)" @mousemove="updatePosition($event)"
+                                                        @mouseout="hide()" />
+                                                    <span
+                                                        style="width: 70%;flex: 1;text-align: left">{{ $salesperson['salespersonName'] }}</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+
+                <!-- On Leave -->
+                <div class="summary-cell">
+                    <img src={{ asset('img/leave-icon-white.svg') }} alt="TT Leave Icon">
+                </div>
+                @for ($day = 1; $day < 6; $day++)
+                    <div class="summary-cell">
+                        <div class="demo-avatar">
+                            @foreach ($leaves as $leave)
+                                @if ($leave['day_of_week'] == $day)
+                                    <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar"
+                                        data-tooltip="{{ $leave['salespersonName'] }}" @mouseover="show($event)"
+                                        @mousemove="updatePosition($event)" @mouseout="hide()" />
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endfor
+        @endif
 </div>
 
 
@@ -909,58 +1004,59 @@
     </div>
 
     @if (isset($holidays['1']))
-    <div style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-        <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-        <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
-    </div>
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
+        </div>
     @endif
     @if (isset($holidays['2']))
-    <div style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-        <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-        <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
-    </div>
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
+        </div>
     @endif
     @if (isset($holidays['3']))
-    <div style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-        <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-        <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
-    </div>
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
+        </div>
     @endif
     @if (isset($holidays['4']))
-    <div style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-        <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-        <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
-    </div>
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
+        </div>
     @endif
     @if (isset($holidays['5']))
-    <div style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-        <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-        <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
-    </div>
+        <div
+            style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
+        </div>
     @endif
 
-   <!-- SalesPerson Row -->
-@foreach ($rows as $row)
-    <div class="time">
-        <div class="flex-container">
-            <div class="image-container">
-                <img
-                    style="border-radius: 50%;"
-                    src="{{ $row['salespersonAvatar'] }}"
-                    data-tooltip="{{ $row['salespersonName'] }}"
-                    @mouseover="show($event)"
-                    @mousemove="updatePosition($event)"
-                    @mouseout="hide()">
+    <!-- SalesPerson Row -->
+    @foreach ($rows as $row)
+        <div class="time">
+            <div class="flex-container">
+                <div class="image-container">
+                    <img style="border-radius: 50%;" src="{{ $row['salespersonAvatar'] }}"
+                        data-tooltip="{{ $row['salespersonName'] }}" @mouseover="show($event)"
+                        @mousemove="updatePosition($event)" @mouseout="hide()">
+                </div>
             </div>
+
         </div>
 
-    </div>
-
-    @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="day">
-            @if (isset($row['leave'][$loop->iteration]))
-                <div
-                    style="
+        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+            <div class="day">
+                @if (isset($row['leave'][$loop->iteration]))
+                    <div
+                        style="
                         padding-block: 1rem;
                         width: 100%;
                         background-color: #E9EBF0;
@@ -969,37 +1065,34 @@
                         align-items: center;
                         margin-block:0.5rem;
                     ">
-                    <div style="flex:1; text-align: center;">
-                        <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                        <div style="font-size: 0.8rem;font-style: italic;">
-                            {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                        </div>
-                        <div style="font-size: 0.8rem;">
-                            {{ $row['leave'][$loop->iteration]['status'] }} |
-                            @if ($row['leave'][$loop->iteration]['session'] === 'full')
-                                Full Day
-                            @elseif($row['leave'][$loop->iteration]['session'] === 'am')
-                                Half AM
-                            @else
-                                Half PM
-                            @endif
+                        <div style="flex:1; text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                            <div style="font-size: 0.8rem;font-style: italic;">
+                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                            </div>
+                            <div style="font-size: 0.8rem;">
+                                {{ $row['leave'][$loop->iteration]['status'] }} |
+                                @if ($row['leave'][$loop->iteration]['session'] === 'full')
+                                    Full Day
+                                @elseif($row['leave'][$loop->iteration]['session'] === 'am')
+                                    Half AM
+                                @else
+                                    Half PM
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endif
-            {{-- @else --}}
+                @endif
+                {{-- @else --}}
                 <div x-data="{ expanded: false }">
                     @if (count($row[$day . 'Appointments']) <= 4)
                         @foreach ($row[$day . 'Appointments'] as $appointment)
-                            <div
-                                class="appointment-card"
-                                @if ($appointment->status === 'Done')
-                                    style="background-color: var(--bg-demo-green)"
+                            <div class="appointment-card"
+                                @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                 @elseif ($appointment->status == 'New')
                                     style="background-color: var(--bg-demo-yellow)"
                                 @else
-                                    style="background-color: var(--bg-demo-red)"
-                                @endif>
+                                    style="background-color: var(--bg-demo-red)" @endif>
                                 <div class="appointment-card-bar"></div>
                                 <div class="appointment-card-info">
                                     <div class="appointment-demo-type">{{ $appointment->type }}</div>
@@ -1012,7 +1105,8 @@
                                             {{ $appointment->company_name }}
                                         </a>
                                     </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                        {{ $appointment->end_time }}</div>
                                 </div>
                             </div>
                         @endforeach
@@ -1021,30 +1115,29 @@
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
                                     @if ($loop->index < 3)
-                                        <div
-                                            class="appointment-card"
-                                            @if ($appointment->status === 'Done')
-                                                style="background-color: var(--bg-demo-green)"
+                                        <div class="appointment-card"
+                                            @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                             @elseif ($appointment->status == 'New')
                                                 style="background-color: var(--bg-demo-yellow)"
                                             @else
-                                                style="background-color: var(--bg-demo-red)"
-                                            @endif>
+                                                style="background-color: var(--bg-demo-red)" @endif>
                                             <div class="appointment-card-bar"></div>
                                             <div class="appointment-card-info">
                                                 <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                                <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                                                <div class="appointment-appointment-type">
+                                                    {{ $appointment->appointment_type }}</div>
                                                 <div class="appointment-company-name">
-                                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                    <a target="_blank" rel="noopener noreferrer"
+                                                        href={{ $appointment->url }}>
                                                         {{ $appointment->company_name }}
                                                     </a>
                                                 </div>
-                                                <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                                <div class="appointment-time">{{ $appointment->start_time }} -
+                                                    {{ $appointment->end_time }}</div>
                                             </div>
                                         </div>
                                     @elseif($loop->index === 3)
-                                        <div
-                                            class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
+                                        <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
                                             @click="expanded = true">
                                             +{{ count($row[$day . 'Appointments']) - 3 }} more
                                         </div>
@@ -1056,30 +1149,29 @@
                         <template x-if="expanded">
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    <div
-                                        class="appointment-card"
-                                        @if ($appointment->status === 'Done')
-                                            style="background-color: var(--bg-demo-green)"
+                                    <div class="appointment-card"
+                                        @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                         @elseif ($appointment->status == 'New')
                                             style="background-color: var(--bg-demo-yellow)"
                                         @else
-                                            style="background-color: var(--bg-demo-red)"
-                                        @endif>
+                                            style="background-color: var(--bg-demo-red)" @endif>
                                         <div class="appointment-card-bar"></div>
                                         <div class="appointment-card-info">
                                             <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                            <div class="appointment-appointment-type">{{ $appointment->appointment_type }}</div>
+                                            <div class="appointment-appointment-type">
+                                                {{ $appointment->appointment_type }}</div>
                                             <div class="appointment-company-name">
-                                                <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                <a target="_blank" rel="noopener noreferrer"
+                                                    href={{ $appointment->url }}>
                                                     {{ $appointment->company_name }}
                                                 </a>
                                             </div>
-                                            <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                            <div class="appointment-time">{{ $appointment->start_time }} -
+                                                {{ $appointment->end_time }}</div>
                                         </div>
                                     </div>
                                 @endforeach
-                                <div
-                                    class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
+                                <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
                                     @click="expanded = false">
                                     Hide
                                 </div>
@@ -1087,15 +1179,16 @@
                         </template>
                     @endif
                 </div>
-            {{-- @endif --}}
-        </div>
+                {{-- @endif --}}
+            </div>
+        @endforeach
     @endforeach
-@endforeach
 
 </div>
 
 <!-- Global tooltip container -->
-<div x-show="showTooltip" :style="tooltipStyle" class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
+<div x-show="showTooltip" :style="tooltipStyle"
+    class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
     <span x-text="tooltip"></span>
 </div>
 
@@ -1143,7 +1236,6 @@
             }
         }
     }
-
 </script>
 
 </div>

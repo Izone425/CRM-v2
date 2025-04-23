@@ -30,6 +30,9 @@ class Calendar extends Component
     public $weekDate;
     public $newDemoCount;
 
+    //Dropdown
+    public $showDropdown = true;
+
     // Badge
     public $totalDemos;
 

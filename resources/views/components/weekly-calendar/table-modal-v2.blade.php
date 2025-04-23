@@ -51,5 +51,8 @@
 
         <h2 style="font-weight:bold">Demo Type</h2>
         <div>{{ $value['type'] }}</div>
+
+        <h2 style="font-weight:bold">Appointment Type</h2>
+        <div>{{ $value['appointment_type'] }}</div>
     </div>
 </div>
