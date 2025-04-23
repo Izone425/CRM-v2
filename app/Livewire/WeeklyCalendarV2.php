@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserLeave;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class WeeklyCalendarV2 extends Component
@@ -21,14 +22,28 @@ class WeeklyCalendarV2 extends Component
     public $currentDate;
     public $startDate;
     public $endDate;
+    public $disablePrevWeek = false;
 
     public $weekDateArr;
 
     public function mount()
     {
         $this->currentDate = Carbon::now();
-        // $this->currentDate = Carbon::parse("12-03-2025");
+        // $this->currentDate = Carbon::parse("1-05-2025");
     }
+
+    public function prevWeek()
+    {
+        $this->currentDate->subDays(7);
+
+    }
+
+    public function nextWeek()
+    {
+        $this->currentDate->addDays(7);
+    }
+
+ 
 
     private function loadStartEndDate()
     {
@@ -79,14 +94,13 @@ class WeeklyCalendarV2 extends Component
         
         
         $result = array_map(function($appointment){
-
-            //Group Webinar Demo
-            if($appointment['type'] == "WEBINAR DEMO"){
-
-            }
-
             $appointment['carbonDate'] = Carbon::parse($appointment['date']);
             $appointment['carbonStartTime'] = Carbon::parse($appointment['start_time'])->format('H:i');
+
+            // $appointment['past'] = false;
+            // if($appointment['carbonDate']->isBefore(Carbon::today())){
+            //     $appointment['past'] = true;
+            // }
             return $appointment;
         },$result);
 
@@ -99,6 +113,8 @@ class WeeklyCalendarV2 extends Component
             
             return $weekDate;
         },$this->weekDateArr);
+
+        $newArray['today'] = Carbon::today();
         return $newArray;
     }
 
@@ -137,7 +153,7 @@ class WeeklyCalendarV2 extends Component
     public function loadModalArray(){
         $appointments = DB::table('appointments')
         ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
-        ->select('company_details.*','appointments.type',"appointments.status")
+        ->select('company_details.*','appointments.type',"appointments.status",'appointments.appointment_type')
         ->where("appointments.date",$this->modalProp["date"])
         ->where("appointments.start_time",$this->modalProp["startTime"])
         ->where("appointments.end_time",$this->modalProp["endTime"])
@@ -146,13 +162,11 @@ class WeeklyCalendarV2 extends Component
         ->get()
         ->toArray();
         
-        // dd($appointments);
-
         $result = array_map(function ($value) {
             $value->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($value->lead_id)]);
-
             return (array)$value;
         }, $appointments);
+
         $this->modalArray = $result;
     }
 
@@ -161,6 +175,13 @@ class WeeklyCalendarV2 extends Component
     {
         $this->loadStartEndDate(); //Load start and end date
         $this->loadTableArray();
+
+        
+        if($this->currentDate->copy()->startOfWeek()->isBefore(Carbon::today())){
+            $this->disablePrevWeek = true;
+        }
+        else
+            $this->disablePrevWeek = false;
         return view('livewire.weekly-calendar-v2');
     }
 }
