@@ -19,4 +19,9 @@ class WeeklyCalendarV2 extends Page
     {
         return __("");
     }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()->role_id != '2';
+    }
 }
