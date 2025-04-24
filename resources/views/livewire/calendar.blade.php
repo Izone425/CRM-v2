@@ -679,10 +679,12 @@
                     </div>
                 </form>
             </div>
-            <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
-                    <input type="checkbox" wire:model.change="showDropdown">
-                    <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
-            </div>
+            @if(auth()->user()->role_id !== 2)
+                <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
+                        <input type="checkbox" wire:model.change="showDropdown">
+                        <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
+                </div>
+            @endif
         </div>
 
         <!-- Demo Columns -->
