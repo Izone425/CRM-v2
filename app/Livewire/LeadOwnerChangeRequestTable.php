@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Mail\LeadOwnerChangedNotification;
 use App\Models\ActivityLog;
 use App\Models\Request;
 use App\Models\Lead;
@@ -17,6 +18,8 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\Action;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTable
 {
@@ -26,7 +29,7 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
     public function getTableQuery()
     {
         return Request::query()
-            ->where('status', '!=', 'approved') // 👈 exclude pending status
+            ->where('status', '=', 'pending') // 👈 exclude pending status
             ->with(['lead', 'requestedBy', 'currentOwner', 'requestedOwner']);
     }
 
@@ -72,42 +75,74 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                         ->modalWidth('md')
                         ->color('warning'),
 
-                    Action::make('approve')
+                        Action::make('approve')
                         ->label('Approve')
                         ->icon('heroicon-o-check')
                         ->requiresConfirmation()
                         ->action(function ($record) {
-                            // Update the lead's owner
                             $lead = Lead::find($record->lead_id);
                             $newOwner = User::find($record->requested_owner_id);
+                            $previousOwner = User::find($record->current_owner_id);
 
-                            if ($lead && $newOwner) {
+                            if ($lead && $newOwner && $previousOwner) {
+                                // Update lead owner
                                 $lead->update([
                                     'lead_owner' => $newOwner->name,
                                 ]);
 
+                                // Update activity log
                                 $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                                    ->orderByDesc('created_at')
+                                    ->first();
 
-                                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+                                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . $newOwner->name) {
                                     $latestActivityLog->update([
                                         'description' => 'Change Lead Owner has been Approved by Manager',
                                     ]);
 
                                     activity()
                                         ->causedBy(auth()->user())
-                                        ->performedOn($record);
+                                        ->performedOn($lead)
+                                        ->log('Lead Owner Changed via Approval');
                                 }
+
+                                // Mark the request as approved
                                 $record->update([
                                     'status' => 'approved',
                                 ]);
 
-                                Notification::make()
-                                    ->title('Lead Owner Updated')
-                                    ->body("Lead owner changed to {$newOwner->name}.")
-                                    ->success()
-                                    ->send();
+                                // Prepare email content
+                                $emailContent = [
+                                    'previousOwnerName' => $previousOwner->name,
+                                    'newOwnerName' => $newOwner->name,
+                                    'lead' => [
+                                        'lead_code' => $lead->lead_code,
+                                        'company' => $lead->companyDetail->company_name ?? $lead->name,
+                                        'phone' => $lead->companyDetail->phone ?? $lead->phone,
+                                        'email' => $lead->companyDetail->email ?? $lead->email,
+                                        'salespersonEmail' => 'faiz@timeteccloud.com',
+                                        'salespersonName' => 'Faiz',
+                                    ],
+                                ];
+
+                                try {
+                                    Mail::to([$previousOwner->email, $newOwner->email, 'faiz@timeteccloud.com'])
+                                        ->send(new LeadOwnerChangedNotification($emailContent, 'faiz@timeteccloud.com'));
+
+                                    Notification::make()
+                                        ->title('Lead Owner Updated')
+                                        ->body("Lead owner changed to {$newOwner->name}. Notification email sent.")
+                                        ->success()
+                                        ->send();
+                                } catch (\Exception $e) {
+                                    Log::error("Failed to send lead owner change email: " . $e->getMessage());
+
+                                    Notification::make()
+                                        ->title('Lead Owner Updated (Email Failed)')
+                                        ->body("Lead owner changed, but email notification failed.")
+                                        ->danger()
+                                        ->send();
+                                }
                             }
                         })
                         ->color('success'),
@@ -124,24 +159,61 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                             ]);
 
                             $lead = Lead::find($record->lead_id);
+                            $requestedOwner = User::find($record->requested_owner_id);
+                            $currentOwner = User::find($record->current_owner_id);
 
                             if ($lead) {
+                                // Log activity on the lead
                                 activity()
                                     ->causedBy(auth()->user())
-                                    ->performedOn($lead) // 🔄 log activity on the Lead model
+                                    ->performedOn($lead)
                                     ->withProperties([
                                         'requested_owner' => $record->requested_owner_id,
                                         'current_owner' => $record->current_owner_id,
                                         'reason' => $record->reason,
                                     ])
                                     ->log('Lead Owner Change Request Rejected');
-                            }
 
-                            Notification::make()
-                                ->title('Request Rejected')
-                                ->body('The lead owner change request has been rejected.')
-                                ->danger()
-                                ->send();
+                                // Prepare email content
+                                $emailContent = [
+                                    'previousOwnerName' => $currentOwner?->name ?? 'Unknown',
+                                    'newOwnerName' => $requestedOwner?->name ?? 'Unknown',
+                                    'lead' => [
+                                        'lead_code' => $lead->lead_code,
+                                        'company' => $lead->companyDetail->company_name ?? $lead->name,
+                                        'phone' => $lead->companyDetail->phone ?? $lead->phone,
+                                        'email' => $lead->companyDetail->email ?? $lead->email,
+                                        'salespersonEmail' => 'faiz@timeteccloud.com',
+                                        'salespersonName' => 'Faiz',
+                                    ],
+                                    'rejected' => true,
+                                    'reason' => $record->reason,
+                                ];
+
+                                try {
+                                    // Send to both involved users and Faiz
+                                    Mail::to([
+                                            $currentOwner?->email,
+                                            $requestedOwner?->email,
+                                            'faiz@timeteccloud.com'
+                                        ])
+                                        ->send(new LeadOwnerChangedNotification($emailContent, 'faiz@timeteccloud.com'));
+
+                                    Notification::make()
+                                        ->title('Request Rejected')
+                                        ->body('The lead owner change request has been rejected. Notification email sent.')
+                                        ->danger()
+                                        ->send();
+                                } catch (\Exception $e) {
+                                    Log::error("Failed to send rejection email: " . $e->getMessage());
+
+                                    Notification::make()
+                                        ->title('Request Rejected (Email Failed)')
+                                        ->body('Request was rejected, but the email could not be sent.')
+                                        ->danger()
+                                        ->send();
+                                }
+                            }
                         })
                         ->color('danger'),
                 ])->button()
