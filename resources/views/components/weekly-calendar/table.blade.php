@@ -52,10 +52,10 @@
                 <div class="grid-cell" style="background-color:#bfbbbb;color:black">{{ $date['holiday']['name'] }}</div>
 
             @elseif($date['carbonDate']->isBefore($tableData['today']))
-                <div class="grid-cell" style="background-color:#474747;color:white">PAST DAY</div>
-                <div class="grid-cell" style="background-color:#474747;color:white">PAST DAY</div>
-                <div class="grid-cell" style="background-color:#474747;color:white">PAST DAY</div>
-                <div class="grid-cell" style="background-color:#474747;color:white">PAST DAY</div>
+                <div class="grid-cell" style="background-color:#474747;color:white"></div>
+                <div class="grid-cell" style="background-color:#474747;color:white"></div>
+                <div class="grid-cell" style="background-color:#474747;color:white"></div>
+                <div class="grid-cell" style="background-color:#474747;color:white"></div>
 
             @elseif(!empty($date['leave']) && $date['leave'][0]['session'] == 'full')
                 @foreach ($date['leave'] as $leave)
