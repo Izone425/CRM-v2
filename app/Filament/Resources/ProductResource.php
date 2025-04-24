@@ -24,7 +24,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use Illuminate\Validation\Rule;
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
@@ -60,10 +60,43 @@ class ProductResource extends Resource
                 Toggle::make('is_active')
                         ->label('Is Active?')
                         ->inline(false),
+                Select::make('package_group')
+                    ->label('Package Group')
+                    ->placeholder('Select a group')
+                    ->options([
+                        'Package 1' => 'Package 1',
+                        'Package 2' => 'Package 2',
+                        'Package 3' => 'Package 3',
+                        'Other' => 'Other',
+                    ])
+                    ->searchable()
+                    ->nullable()
+                    ->helperText('Used to group products into predefined package groups.'),
                 TextInput::make('sort_order')
-                        ->label('Sort Order')
-                        ->numeric()
-                        ->helperText('Lower numbers appear first in dropdowns.')
+                    ->label('Sort Order')
+                    ->numeric()
+                    ->default(function ($record) {
+                        // If editing, use existing value
+                        if ($record?->sort_order) return $record->sort_order;
+
+                        // If creating, return max sort_order within the same solution + 1
+                        $solution = request()->input('data.solution') ?? $record?->solution;
+                        return Product::where('solution', $solution)->max('sort_order') + 1;
+                    })
+                    ->helperText('Lower numbers appear first in dropdowns.')
+                    ->rules(function ($record) {
+                        return [
+                            Rule::unique('products', 'sort_order')
+                                ->ignore($record?->id)
+                                ->where(function ($query) use ($record) {
+                                    $solution = request()->input('data.solution') ?? $record?->solution;
+                                    $query->where('solution', $solution);
+                                }),
+                        ];
+                    })
+                    ->validationMessages([
+                        'unique' => 'This sort order is already in use for this solution type.',
+                    ])
             ])
             ->columns(2);
     }
@@ -77,6 +110,10 @@ class ProductResource extends Resource
             ->columns([
                 TextColumn::make('sort_order')->label('Order')->sortable(),
                 TextColumn::make('code')->width(100),
+                TextColumn::make('package_group')
+                    ->label('Package Group')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('solution')->width(100),
                 TextColumn::make('description')->html()->width(500)->wrap(),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
@@ -84,6 +121,19 @@ class ProductResource extends Resource
                 ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
             ])
             ->filters([
+                Filter::make('package_group')
+                    ->form([
+                        Select::make('package_group')
+                            ->options([
+                                'Package 1' => 'Package 1',
+                                'Package 2' => 'Package 2',
+                                'Package 3' => 'Package 3',
+                            ])
+                            ->searchable()
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['package_group'], fn ($q) => $q->where('package_group', $data['package_group']));
+                    }),
                 Filter::make('code')
                     ->form([
                         Select::make('code')

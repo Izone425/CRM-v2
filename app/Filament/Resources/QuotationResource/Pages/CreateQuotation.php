@@ -119,7 +119,7 @@ class CreateQuotation extends CreateRecord
                 // $this->record->quotation_reference_no = $year . sprintf('%04d',$num) . '/' . Str::upper(auth()->user()->code);
                 // $this->record->save();
         }
-        $this->redirect(QuotationResource::getUrl('send-quotation-email', ['record' => $this->record->id]));
+        // $this->redirect(QuotationResource::getUrl('send-quotation-email', ['record' => $this->record->id]));
     }
 
     protected function getRedirectUrl(): string
