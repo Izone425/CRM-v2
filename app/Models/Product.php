@@ -14,6 +14,7 @@ class Product extends Model
         'description',
         'solution',
         'unit_price',
+        'package_group',
         'taxable',
         'is_active',
         'sort_order'

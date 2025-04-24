@@ -159,6 +159,36 @@ class QuotationResource extends Resource
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
                             }),
+                        Select::make('package_group')
+                            ->label('Package')
+                            ->placeholder('Select a package')
+                            ->options(
+                                \App\Models\Product::whereNotNull('package_group')
+                                    ->distinct()
+                                    ->pluck('package_group', 'package_group')
+                                    ->toArray()
+                            )
+                            ->searchable()
+                            ->live()
+                            ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product') // Only for 'product'
+                            ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
+                                if ($state) {
+                                    $products = \App\Models\Product::where('package_group', $state)->get();
+
+                                    $set('items', $products->map(function ($product) use ($get) {
+                                        return [
+                                            'product_id' => $product->id,
+                                            'quantity' => 1,
+                                            'unit_price' => $product->unit_price,
+                                            'subscription_period' => $product->solution === 'software'
+                                                ? ($get('subscription_period') ?? 1)
+                                                : null,
+                                        ];
+                                    })->toArray());
+
+                                    QuotationResource::recalculateAllRowsFromParent($get, $set);
+                                }
+                            }),
                         // Select::make('status')
                         //     ->label('Status')
                         //     ->options([
@@ -485,7 +515,20 @@ class QuotationResource extends Resource
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Lead')
-                    ->formatStateUsing(fn($state): string => Str::upper($state)),
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = Str::upper($state ?? 'N/A'); // Convert to UPPERCASE
+                        $shortened = Str::limit($fullName, 30, '...'); // Limit for display
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
+                    ->html(),
                 TextColumn::make('currency')
                     ->alignCenter(),
                 TextColumn::make('items_sum_total_after_tax')
