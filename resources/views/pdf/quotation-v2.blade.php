@@ -108,9 +108,9 @@
                             @endif
                                 <br>
 
-                                <span><span style="font-weight:bold;" >Attention: </span>{{ $quotation->lead->companyDetail->name }}</span><br />
-                                <span><span style="font-weight:bold;">Tel: </span>{{ $quotation->lead->companyDetail->contact_no }}</span><br />
-                                <span><span style="font-weight:bold;" >Email: </span>{{ $quotation->lead->companyDetail->email }}</span><br />
+                                <span><span style="font-weight:bold;" >Attention: </span>{{ optional($quotation->lead->companyDetail)->name ?? $quotation->lead->name }}</span><br />
+                                <span><span style="font-weight:bold;">Tel: </span>{{ optional($quotation->lead->companyDetail)->contact_no ?? $quotation->lead->phone }}</span><br />
+                                <span><span style="font-weight:bold;" >Email: </span>{{ optional($quotation->lead->companyDetail)->email ?? $quotation->lead->email }}</span><br />
                             </div>
                             <div class="col-4 pull-right">
                                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />

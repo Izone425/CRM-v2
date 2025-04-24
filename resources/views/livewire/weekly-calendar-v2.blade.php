@@ -27,12 +27,12 @@
 
     </div>
     <div class="small" style="display:flex; flex-direction:row;justify-content: space-around;">
-        <div style="display:flex;width:45%;flex-direction:column;">
+        <div style="display:flex;width:45%;flex-direction:column;gap:2rem;">
             @foreach (array_slice($tableArray, 0, 4) as $key => $value)
                 <x-weekly-calendar.table :tableData="$tableArray[$key]" />
             @endforeach
         </div>
-        <div style="display:flex;width:45%;flex-direction:column;">
+        <div style="display:flex;width:45%;flex-direction:column;gap:2rem;">
             @foreach (array_slice($tableArray, 4, 4) as $key => $value)
                 <x-weekly-calendar.table :tableData="$tableArray[$key + 4]" />
             @endforeach

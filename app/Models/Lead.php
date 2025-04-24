@@ -37,6 +37,8 @@ class Lead extends Model
         'pickup_date',
         'remark',
         'demo_appointment',
+        'customer_type',
+        'region',
         'follow_up_needed',
         'follow_up_counter',
         'follow_up_count',

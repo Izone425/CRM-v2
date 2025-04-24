@@ -22,7 +22,7 @@
     }
 
     .header {
-        background-color: #f0f0f0;
+        background-color: #e5f8fd;
         font-weight: bold;
         display: flex;
         flex-direction: column;
@@ -33,11 +33,11 @@
 <div x-data="{ open: false }">
     <div class="grid-table">
         <!-- Header Row -->
-        <div x-on:click="open = ! open" class="grid-cell header">{{ $tableData['name'] }}</div>
-        <div class="grid-cell">Session 1</div>
-        <div class="grid-cell">Session 2</div>
-        <div class="grid-cell">Session 3</div>
-        <div class="grid-cell">Session 4</div>
+        <div x-on:click="open = ! open" class="grid-cell header" style="background-color:#dff0f7;">{{ $tableData['name'] }}</div>
+        <div class="grid-cell" style="background-color:#f2f2f2;">Session 1</div>
+        <div class="grid-cell" style="background-color:#f2f2f2;">Session 2</div>
+        <div class="grid-cell" style="background-color:#f2f2f2;">Session 3</div>
+        <div class="grid-cell" style="background-color:#f2f2f2;">Session 4</div>
 
         @foreach ($tableData['weekDateArr'] as $date)
             <div class="grid-cell header">

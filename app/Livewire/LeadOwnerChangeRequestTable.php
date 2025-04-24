@@ -111,6 +111,39 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                             }
                         })
                         ->color('success'),
+
+                    Action::make('reject')
+                        ->label('Reject')
+                        ->icon('heroicon-o-x-circle')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reject Lead Owner Change Request')
+                        ->modalDescription('Are you sure you want to reject this request?')
+                        ->action(function ($record) {
+                            $record->update([
+                                'status' => 'rejected',
+                            ]);
+
+                            $lead = Lead::find($record->lead_id);
+
+                            if ($lead) {
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead) // 🔄 log activity on the Lead model
+                                    ->withProperties([
+                                        'requested_owner' => $record->requested_owner_id,
+                                        'current_owner' => $record->current_owner_id,
+                                        'reason' => $record->reason,
+                                    ])
+                                    ->log('Lead Owner Change Request Rejected');
+                            }
+
+                            Notification::make()
+                                ->title('Request Rejected')
+                                ->body('The lead owner change request has been rejected.')
+                                ->danger()
+                                ->send();
+                        })
+                        ->color('danger'),
                 ])->button()
             ]);
     }

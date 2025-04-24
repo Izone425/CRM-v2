@@ -169,37 +169,37 @@ class QuotationResource extends Resource
                         //     ])
                         //     ->default('new')
                         //     ->hidden(fn (Page $livewire): bool => $livewire instanceof CreateRecord),
-                        TextInput::make('subscription_period')
-                            ->label('Subscription Period')
-                            ->numeric()
-                            ->required()
-                            ->live(onBlur:true)
-                            ->afterStateUpdated(
-                                function(Forms\Get $get, Forms\Set $set, $state) {
-                                    $set('base_subscription', $state);
-                                    self::recalculateAllRowsFromParent($get,  $set);
-                                    // info("Base Subscription (atas): {$state}");
-                                    // self::updateSubscriptionPeriodInAllRows($get, $set, $state);
-                                }
-                            )
-                            // ->readOnlyOn('edit')
-                            ->hidden(function(Forms\Get $get) {
-                                if ($get('quotation_type') == 'product') {
-                                    return false;
-                                }
-                                return true;
-                            }),
+                        // TextInput::make('subscription_period')
+                        //     ->label('Subscription Period')
+                        //     ->numeric()
+                        //     ->required()
+                        //     ->live(onBlur:true)
+                        //     ->afterStateUpdated(
+                        //         function(Forms\Get $get, Forms\Set $set, $state) {
+                        //             $set('base_subscription', $state);
+                        //             self::recalculateAllRowsFromParent($get,  $set);
+                        //             // info("Base Subscription (atas): {$state}");
+                        //             // self::updateSubscriptionPeriodInAllRows($get, $set, $state);
+                        //         }
+                        //     )
+                        //     // ->readOnlyOn('edit')
+                        //     ->hidden(function(Forms\Get $get) {
+                        //         if ($get('quotation_type') == 'product') {
+                        //             return false;
+                        //         }
+                        //         return true;
+                        //     }),
                         // For 'product' type
-                        TextInput::make('headcount')
-                            ->label('Headcount')
-                            ->numeric()
-                            ->required()
-                            ->live(onBlur:true)
-                            ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set, $state) {
-                                $set('headcount', $state);
-                                QuotationResource::recalculateAllRowsFromParent($get, $set);
-                            })
-                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'product'),
+                        // TextInput::make('headcount')
+                        //     ->label('Headcount')
+                        //     ->numeric()
+                        //     ->required()
+                        //     ->live(onBlur:true)
+                        //     ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set, $state) {
+                        //         $set('headcount', $state);
+                        //         QuotationResource::recalculateAllRowsFromParent($get, $set);
+                        //     })
+                        //     ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'product'),
 
                         // For 'hrdf' type
                         TextInput::make('num_of_participant')

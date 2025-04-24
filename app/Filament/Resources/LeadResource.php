@@ -248,7 +248,7 @@ class LeadResource extends Resource
                                                                     Actions\Action::make('request_change_lead_owner')
                                                                         ->label('Request Change Lead Owner')
                                                                         ->icon('heroicon-o-paper-airplane')
-                                                                        ->visible(fn () => auth()->user()?->role_id !== 3) // Only visible to non-manager roles
+                                                                        ->visible(fn () => auth()->user()?->role_id == 1) // Only visible to non-manager roles
                                                                         ->form([
                                                                             \Filament\Forms\Components\Select::make('requested_owner_id')
                                                                                 ->label('New Lead Owner')
