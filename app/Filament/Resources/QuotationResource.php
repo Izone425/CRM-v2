@@ -143,17 +143,15 @@ class QuotationResource extends Resource
                                 if ($state === 'hrdf') {
                                     $unitPrice = $get('unit_price') ?? 0;
 
-                                    $set('items', [
-                                        [
-                                            'product_id' => 16,
-                                        ],
-                                        [
-                                            'product_id' => 17,
-                                        ],
-                                        [
-                                            'product_id' => 18,
-                                        ],
-                                    ]);
+                                    $items = collect([
+                                        ['product_id' => 16],
+                                        ['product_id' => 17],
+                                        ['product_id' => 18],
+                                    ])->mapWithKeys(fn ($item) => [
+                                        (string) \Illuminate\Support\Str::uuid() => $item
+                                    ])->toArray();
+                                    
+                                    $set('items', $items);                                    
 
                                     // Trigger recalculation if needed
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
@@ -170,25 +168,34 @@ class QuotationResource extends Resource
                             )
                             ->searchable()
                             ->live()
-                            ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product') // Only for 'product'
+                            ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product')
                             ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                 if ($state) {
-                                    $products = \App\Models\Product::where('package_group', $state)->get();
-
-                                    $set('items', $products->map(function ($product) use ($get) {
+                                    $products = \App\Models\Product::where('package_group', $state)
+                                        ->orderBy('package_sort_order')
+                                        ->get();
+                        
+                                    $mappedItems = $products->map(function ($product) use ($get) {
                                         return [
                                             'product_id' => $product->id,
-                                            'quantity' => 1,
+                                            'quantity' => in_array($product->solution, ['software', 'hardware']) 
+                                                ? ($product->quantity ?? 1)
+                                                : ($get('num_of_participant') ?? 1),
                                             'unit_price' => $product->unit_price,
-                                            'subscription_period' => $product->solution === 'software'
-                                                ? ($get('subscription_period') ?? 1)
-                                                : null,
+                                            'subscription_period' => $product->subscription_period,
+                                            'description' => $product->description,
                                         ];
-                                    })->toArray());
-
+                                    });
+                        
+                                    $finalItems = collect($mappedItems)->mapWithKeys(fn($item) => [
+                                        (string) \Illuminate\Support\Str::uuid() => $item
+                                    ])->toArray();
+                        
+                                    $set('items', $finalItems);
+                        
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
-                            }),
+                            }),                        
                         // Select::make('status')
                         //     ->label('Status')
                         //     ->options([
@@ -339,11 +346,24 @@ class QuotationResource extends Resource
                                     //->preload()
                                     ->required()
                                     ->reactive()
-                                    ->afterStateUpdated(
-                                        function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                            // self::updateFields('product_id', $get, $set, $state);
+                                    ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
+                                        if ($state) {
+                                            $product = Product::find($state); // 🛠 Fetch Product from DB
+                                
+                                            if ($product) {
+                                                $set('unit_price', $product->unit_price); // Set unit price from DB
+                                                $set('description', $product->description); // Set description from DB
+                                
+                                                if ($product->solution === 'software') {
+                                                    $set('subscription_period', $product->subscription_period); // ✨ Set subscription period from DB
+                                                } else {
+                                                    $set('subscription_period', null); // Not needed for hardware/hrdf
+                                                }
+                                            }
+                                
                                             self::recalculateAllRows($get, $set, 'product_id', $state);
-                                        })
+                                        }
+                                    })
                                     ->columnSpan([
                                         'md' => 1
                                     ]),
@@ -379,7 +399,6 @@ class QuotationResource extends Resource
                                     // ->live(debounce:500)
                                     // ->readOnly()
                                     ->visible(function(Forms\Get $get)  {
-                                        //info("Subscription Period: {$get('../../quotation_type')}");
                                         $productId = $get('product_id');
                                         if ($productId != null) {
                                             $product = Product::find($productId);
@@ -387,7 +406,6 @@ class QuotationResource extends Resource
                                                 return true;
                                             }
                                         }
-
                                         return false;
                                     }),
                                 TextInput::make('unit_price')
@@ -445,8 +463,9 @@ class QuotationResource extends Resource
                             ->defaultItems(1)
                             ->columns(7)
                             ->collapsible()
-                            ->reorderable()
-                            ->reorderableWithDragAndDrop()
+                            ->reorderable(false)
+                            // ->reorderable()
+                            // ->reorderableWithDragAndDrop()
                             ->itemLabel(
                                 function(?array $state): ?string {
                                     if ($state != null && isset($state['product_id'])) {
@@ -531,9 +550,12 @@ class QuotationResource extends Resource
                     ->html(),
                 TextColumn::make('currency')
                     ->alignCenter(),
-                TextColumn::make('items_sum_total_after_tax')
-                    ->label('Value')
-                    ->sum('items','total_after_tax')
+                TextColumn::make('items_sum_total_before_tax')
+                    ->label('Value (Before Tax)')
+                    ->sum('items','total_before_tax')
+                // TextColumn::make('items_sum_total_after_tax')
+                //     ->label('Value')
+                //     ->sum('items','total_after_tax')
                     // ->summarize([
                     //     Sum::make()
                     //         ->label('Total')
@@ -873,110 +895,223 @@ class QuotationResource extends Resource
     }
 
 
-    public static function recalculateAllRows($get, $set, $field=null, $state=null): void
+    // public static function recalculateAllRows($get, $set, $field=null, $state=null): void
+    // {
+    //     $items = $get('../../items');
+
+    //     $subtotal = 0;
+    //     $grandTotal = 0;
+    //     $totalTax = 0;
+    //     $product = null;
+
+    //     foreach ($items as $index => $item) {
+
+    //         if (array_key_exists('product_id',$item)) {
+    //             info("Product ID: {$item['product_id']}");
+    //             if ($item['product_id']) {
+    //                 $product_id = $item['product_id'];
+    //                 $product = Product::find($product_id);
+    //                 $set("../../description", $product->description);
+    //                 $set("../../items.{$index}.description", $product->description);
+    //             } else {
+    //                 $quantity = 0;
+    //                 $unit_price = 0;
+    //             }
+    //         }
+
+    //         if ($product?->solution == 'hrdf') {
+    //             // $itemQuantity = $get("../../items.{$index}.quantity");
+    //             $itemQuantity = 0;
+    //             if ($item['product_id'] != null) {
+    //                 $itemQuantity = $get("../../items.{$index}.quantity");
+    //             }
+    //             info("Quantity: {$itemQuantity}");
+    //             // $set("../../items.{$index}.quantity",$get("../../number_of_participant"));
+    //             $set("../../items.{$index}.quantity", $itemQuantity);
+    //         }
+
+    //         if ($product?->solution == 'software' || $product?->solution == 'hardware') {
+    //             // $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity"));
+    //             $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity") ?? $product?->quantity);
+    //             if ($get("../../items.{$index}.subscription_period") == 0) {
+    //                 $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
+    //             }
+    //         }
+
+    //         $quantity = (float) $get("../../items.{$index}.quantity");
+    //         if (!$quantity) {
+    //             $quantity = (float) $get("../../headcount");
+    //             $set("../../items.{$index}.quantity", $quantity);
+    //         }
+    //         $subscription_period =  $get("../../items.{$index}.subscription_period");
+    //         // info("Unit Price: {$item['unit_price']}");
+    //         $unit_price = 0;
+    //         if (array_key_exists('unit_price',$item)) {
+    //             $unit_price = (float) $item['unit_price'];
+    //             //info("Unit Price 1: {$unit_price} ({$index})");
+    //             if ($item['unit_price'] == 0.00 && $item['product_id'] != null) {
+    //                 $unit_price = (float) $product?->unit_price;
+    //                 //info("Unit Price 2: {$unit_price} ({$index})");
+    //             }
+    //         }
+
+    //         $set("../../items.{$index}.unit_price", $unit_price);
+
+    //         // Calculate total before tax
+    //         $total_before_tax = (int) $quantity * (float) $unit_price;
+    //         if ($product && $product->solution == 'software') {
+    //             /**
+    //              * include subscription period in calculation for software
+    //              */
+    //             $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
+    //         }
+
+    //         $subtotal += $total_before_tax;
+    //         // Calculate taxation amount
+    //         $taxation_amount = 0;
+    //         if ($product?->taxable) {
+    //             $sstRate = $get('../../sst_rate');
+    //             $taxation_amount = $total_before_tax * ($sstRate / 100);
+    //             $totalTax += $taxation_amount;
+    //         }
+
+    //         if (array_key_exists('description',$item)) {
+    //             $description = trim($item['description']);
+    //             if (Str::length($description) == 0 && $field == 'product_id') {
+    //                 $description = $product?->description;
+    //             }
+    //         } else {
+    //             $description = $product?->description;
+    //         }
+
+    //         $set("../../items.{$index}.description", $product?->description);
+    //         $set("../../description", $product?->description);
+    //         // Calculate total after tax
+    //         $total_after_tax = $total_before_tax + $taxation_amount;
+    //         $grandTotal += $total_after_tax;
+    //         // Update the form values
+    //         $set("../../items.{$index}.unit_price", number_format($unit_price, 2, '.', ''));
+    //         $set("../../items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
+    //         $set("../../items.{$index}.taxation", number_format($taxation_amount, 2, '.', ''));
+    //         $set("../../items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));
+    //     }
+
+    //     /**
+    //      * Update summary
+    //      */
+    //     $set('../../sub_total', number_format($subtotal, 2, '.', ''));
+    //     $set('../../tax_amount', number_format($totalTax, 2, '.', ''));
+    //     $set('../../total', number_format($grandTotal, 2, '.', ''));
+    // }
+
+    public static function recalculateAllRows($get, $set, $field = null, $state = null): void
     {
         $items = $get('../../items');
 
         $subtotal = 0;
         $grandTotal = 0;
         $totalTax = 0;
-        $product = null;
 
         foreach ($items as $index => $item) {
+            // $product = null;
 
-            if (array_key_exists('product_id',$item)) {
-                info("Product ID: {$item['product_id']}");
-                if ($item['product_id']) {
-                    $product_id = $item['product_id'];
-                    $product = Product::find($product_id);
-                    $set("../../description", $product->description);
-                    $set("../../items.{$index}.description", $product->description);
-                } else {
-                    $quantity = 0;
-                    $unit_price = 0;
-                }
+            // if (!empty($item['product_id'])) {
+            //     $product = Product::find($item['product_id']);
+            // }
+
+            // // Handle quantity based on type
+            // if ($product?->solution === 'hrdf') {
+            //     $itemQuantity = $get("../../items.{$index}.quantity") ?? 0;
+            //     $set("../../items.{$index}.quantity", $itemQuantity);
+            // }
+
+            // if ($product?->solution === 'software' || $product?->solution === 'hardware') {
+            //     $set("../../items.{$index}.quantity", $get("../../items.{$index}.quantity") ?? $product?->quantity);
+            //     if ((int) $get("../../items.{$index}.subscription_period") === 0) {
+            //         $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
+            //     }
+            // }
+
+            // $quantity = (float) $get("../../items.{$index}.quantity") ?: (float) $get("../../headcount");
+            // $set("../../items.{$index}.quantity", $quantity);
+
+            // $subscriptionPeriod = $get("../../items.{$index}.subscription_period");
+            // $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
+
+            // // Auto-fill unit price if zero
+            // if ($unitPrice === 0.00 && $product?->unit_price) {
+            //     $unitPrice = $product->unit_price;
+            // }
+            // $set("../../items.{$index}.unit_price", $unitPrice);
+
+            // // Total before tax
+            // $totalBeforeTax = $quantity * $unitPrice;
+            // if ($product?->solution === 'software') {
+            //     $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
+            // }
+            $product = null;
+
+            if (!empty($item['product_id'])) {
+                $product = Product::find($item['product_id']);
             }
 
-            if ($product?->solution == 'hrdf') {
-                // $itemQuantity = $get("../../items.{$index}.quantity");
-                $itemQuantity = 0;
-                if ($item['product_id'] != null) {
-                    $itemQuantity = $get("../../items.{$index}.quantity");
-                }
-                info("Quantity: {$itemQuantity}");
-                // $set("../../items.{$index}.quantity",$get("../../number_of_participant"));
+            // Handle quantity based on type
+            if ($product?->solution === 'hrdf') {
+                $itemQuantity = $get("../../items.{$index}.quantity") ?? 0;
                 $set("../../items.{$index}.quantity", $itemQuantity);
             }
 
-            if ($product?->solution == 'software' || $product?->solution == 'hardware') {
-                // $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity"));
-                $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity") ?? $product?->quantity);
-                if ($get("../../items.{$index}.subscription_period") == 0) {
+            if ($product?->solution === 'software' || $product?->solution === 'hardware') {
+                $set("../../items.{$index}.quantity", $get("../../items.{$index}.quantity") ?? $product?->quantity);
+                if ((int) $get("../../items.{$index}.subscription_period") === 0) {
                     $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
                 }
             }
 
-            $quantity = (float) $get("../../items.{$index}.quantity");
-            if (!$quantity) {
-                $quantity = (float) $get("../../headcount");
-                $set("../../items.{$index}.quantity", $quantity);
-            }
-            $subscription_period =  $get("../../items.{$index}.subscription_period");
-            // info("Unit Price: {$item['unit_price']}");
-            $unit_price = 0;
-            if (array_key_exists('unit_price',$item)) {
-                $unit_price = (float) $item['unit_price'];
-                //info("Unit Price 1: {$unit_price} ({$index})");
-                if ($item['unit_price'] == 0.00 && $item['product_id'] != null) {
-                    $unit_price = (float) $product?->unit_price;
-                    //info("Unit Price 2: {$unit_price} ({$index})");
-                }
-            }
+            $quantity = (float) $get("../../items.{$index}.quantity") ?: (float) $get("../../headcount");
+            $set("../../items.{$index}.quantity", $quantity);
 
-            $set("../../items.{$index}.unit_price", $unit_price);
+            $subscriptionPeriod = $get("../../items.{$index}.subscription_period");
+            $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
 
-            // Calculate total before tax
-            $total_before_tax = (int) $quantity * (float) $unit_price;
-            if ($product && $product->solution == 'software') {
-                /**
-                 * include subscription period in calculation for software
-                 */
-                $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
+            // Auto-fill unit price if zero
+            if ($unitPrice === 0.00 && $product?->unit_price) {
+                $unitPrice = $product->unit_price;
             }
+            $set("../../items.{$index}.unit_price", $unitPrice);
 
-            $subtotal += $total_before_tax;
-            // Calculate taxation amount
-            $taxation_amount = 0;
+            // Total before tax
+            $totalBeforeTax = $quantity * $unitPrice;
+            if ($product?->solution === 'software') {
+                $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
+            }
+            
+            $subtotal += $totalBeforeTax;
+
+            // Tax
+            $taxAmount = 0;
             if ($product?->taxable) {
                 $sstRate = $get('../../sst_rate');
-                $taxation_amount = $total_before_tax * ($sstRate / 100);
-                $totalTax += $taxation_amount;
+                $taxAmount = $totalBeforeTax * ($sstRate / 100);
+                $totalTax += $taxAmount;
             }
 
-            if (array_key_exists('description',$item)) {
-                $description = trim($item['description']);
-                if (Str::length($description) == 0 && $field == 'product_id') {
-                    $description = $product?->description;
-                }
-            } else {
-                $description = $product?->description;
+            // Preserve manually edited descriptions
+            $currentDescription = $get("../../items.{$index}.description") ?? '';
+            if (blank($currentDescription) || ($field === 'product_id' && $state)) {
+                $set("../../items.{$index}.description", $product?->description);
             }
 
-            $set("../../items.{$index}.description", $product?->description);
-            $set("../../description", $product?->description);
-            // Calculate total after tax
-            $total_after_tax = $total_before_tax + $taxation_amount;
-            $grandTotal += $total_after_tax;
-            // Update the form values
-            $set("../../items.{$index}.unit_price", number_format($unit_price, 2, '.', ''));
-            $set("../../items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
-            $set("../../items.{$index}.taxation", number_format($taxation_amount, 2, '.', ''));
-            $set("../../items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));
+            $totalAfterTax = $totalBeforeTax + $taxAmount;
+            $grandTotal += $totalAfterTax;
+
+            // Format and set totals
+            $set("../../items.{$index}.total_before_tax", number_format($totalBeforeTax, 2, '.', ''));
+            $set("../../items.{$index}.taxation", number_format($taxAmount, 2, '.', ''));
+            $set("../../items.{$index}.total_after_tax", number_format($totalAfterTax, 2, '.', ''));
         }
 
-        /**
-         * Update summary
-         */
+        // Summary totals
         $set('../../sub_total', number_format($subtotal, 2, '.', ''));
         $set('../../tax_amount', number_format($totalTax, 2, '.', ''));
         $set('../../total', number_format($grandTotal, 2, '.', ''));
@@ -1130,7 +1265,9 @@ class QuotationResource extends Resource
             $set("items.{$index}.quantity",$get("num_of_participant") ?? 0);
             if ($product?->solution == 'software' || $product?->solution == 'hardware') {
                 $set("items.{$index}.quantity",$get("items.{$index}.quantity"));
-                $set("items.{$index}.subscription_period", $get("base_subscription"));
+                if (!isset($item['subscription_period']) || $item['subscription_period'] == 0) {
+                    $set("items.{$index}.subscription_period", $product?->subscription_period ?? 1);
+                }
             }
 
             $quantity = $get("items.{$index}.quantity");
@@ -1165,8 +1302,12 @@ class QuotationResource extends Resource
                 $totalTax += $taxation_amount;
             }
 
-            $set("items.{$index}.description", $product?->description);
+            $currentDescription = $get("items.{$index}.description") ?? '';
 
+            if (blank($currentDescription)) {
+                $set("items.{$index}.description", $product?->description);
+            }
+            
             // Calculate total after tax
             $total_after_tax = $total_before_tax + $taxation_amount;
             $grandTotal += $total_after_tax;

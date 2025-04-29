@@ -36,6 +36,7 @@ class EditProfile extends BaseEditProfile
                     ->disk('public')
                     ->directory('uploads/photos')
                     ->image()
+                    ->imagePreviewHeight('200px')
                     ->extraAttributes([
                         'class' => 'mx-auto',
                         'style' => 'border-radius: 0; width: 100%; height: auto;', // Removes circular shape and makes it rectangular

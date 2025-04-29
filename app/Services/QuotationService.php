@@ -123,7 +123,7 @@ class QuotationService
          * It is used for displaying quotation total value after tax
          * in the quotation listing only............................................
          */
-        $newQuotation->offsetUnset('items_sum_total_after_tax');
+        $newQuotation->offsetUnset('items_sum_total_before_tax');
         /**
          * set newly cloned quotation status and date
          */

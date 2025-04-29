@@ -543,6 +543,7 @@ class LeadResource extends Resource
                                                                 Actions::make([
                                                                     Action::make('archive')
                                                                         ->label(__('Edit'))
+                                                                        ->visible(fn(Lead $record) => !empty($record->salesperson) || !empty($record->lead_owner))
                                                                         ->modalHeading('Mark Lead as Inactive')
                                                                         ->form([
                                                                             Placeholder::make('')
@@ -662,38 +663,38 @@ class LeadResource extends Resource
                                                                                 ->body('You have successfully marked the lead as inactive.')
                                                                                 ->send();
                                                                         }),
-                                                                    Action::make('edit_deal_amount')
-                                                                        ->label(__('Edit Deal Amount'))
-                                                                        ->modalHeading('Mark Lead as Inactive')
-                                                                        ->form([
-                                                                            // Deal Amount Field - Visible only when status is Closed
-                                                                            TextInput::make('deal_amount')
-                                                                                ->label('Close Deal Amount')
-                                                                                ->numeric(),
-                                                                        ])
-                                                                        ->action(function (Lead $record, array $data) {
-                                                                            $lead = $record;
+                                                                    // Action::make('edit_deal_amount')
+                                                                    //     ->label(__('Edit Deal Amount'))
+                                                                    //     ->modalHeading('Mark Lead as Inactive')
+                                                                    //     ->form([
+                                                                    //         // Deal Amount Field - Visible only when status is Closed
+                                                                    //         TextInput::make('deal_amount')
+                                                                    //             ->label('Close Deal Amount')
+                                                                    //             ->numeric(),
+                                                                    //     ])
+                                                                    //     ->action(function (Lead $record, array $data) {
+                                                                    //         $lead = $record;
 
-                                                                            $updateData['deal_amount'] = $data['deal_amount'] ?? null;
+                                                                    //         $updateData['deal_amount'] = $data['deal_amount'] ?? null;
 
-                                                                            $lead->update($updateData);
+                                                                    //         $lead->update($updateData);
 
-                                                                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                                                                ->orderByDesc('created_at')
-                                                                                ->first();
+                                                                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                                                    //             ->orderByDesc('created_at')
+                                                                    //             ->first();
 
-                                                                            if ($latestActivityLog) {
-                                                                                $latestActivityLog->update([
-                                                                                    'description' => 'Deal Amount Updated: ' . $data['deal_amount'],
-                                                                                ]);
-                                                                            }
+                                                                    //         if ($latestActivityLog) {
+                                                                    //             $latestActivityLog->update([
+                                                                    //                 'description' => 'Deal Amount Updated: ' . $data['deal_amount'],
+                                                                    //             ]);
+                                                                    //         }
 
-                                                                            Notification::make()
-                                                                                ->title('Deal Amount Updated')
-                                                                                ->success()
-                                                                                ->body('You have successfully updated deal amount')
-                                                                                ->send();
-                                                                        }),
+                                                                    //         Notification::make()
+                                                                    //             ->title('Deal Amount Updated')
+                                                                    //             ->success()
+                                                                    //             ->body('You have successfully updated deal amount')
+                                                                    //             ->send();
+                                                                    //     }),
                                                                 ])
                                                             ]),
                                                     ])

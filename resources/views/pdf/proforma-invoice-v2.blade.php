@@ -108,7 +108,7 @@
                                 <span><span class="fw-bold">Date: </span>{{ $quotation->quotation_date->format('j M Y')}}</span><br />
                                 <span><span class="fw-bold">Prepared By: </span>{{ $quotation->sales_person->name }}</span><br />
                                 <span><span class="fw-bold">Email: </span>{{ $quotation->sales_person->email }}</span><br />
-                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person->mobile_no }}</span><br /><br />
+                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person->mobile_number }}</span><br /><br />
                                 <span><span class="fw-bold">P.Invoice No: </span>{{ $quotation->pi_reference_no }}</span><br />
                                 <span><span class="fw-bold">Status </span>{!! $quotation->payment_status ? '<strong style="color: green">PAID</strong>' : '<strong style="color:red;">UNPAID</strong>' !!}</span>
                             </div>

@@ -208,40 +208,39 @@ class LeadActions
         ->requiresConfirmation()
         ->modalDescription('')
         ->form(function (?Lead $record) {
-            // Find duplicate leads based on company name or email
             $duplicateLeads = Lead::query()
                 ->where(function ($query) use ($record) {
                     if (optional($record?->companyDetail)->company_name) {
                         $query->where('company_name', $record->companyDetail->company_name);
                     }
-
-                    if (!empty($record?->email)) {  // ✅ Ensures email is not null
+        
+                    if (!empty($record?->email)) {
                         $query->orWhere('email', $record->email);
+                    }
+        
+                    if (!empty($record?->phone)) {
+                        $query->orWhere('phone', $record->phone);
                     }
                 })
                 ->where('id', '!=', optional($record)->id)
                 ->where(function ($query) {
-                    $query->whereNull('company_name') // ✅ Include NULL company names
-                        ->orWhereRaw("company_name NOT LIKE '%Sdn Bhd%'"); // ✅ Exclude "Sdn Bhd"
+                    $query->whereNull('company_name')
+                        ->orWhereRaw("company_name NOT LIKE '%Sdn Bhd%'");
                 })
                 ->get(['id']);
-
-            // Check if duplicates exist
+        
             $isDuplicate = $duplicateLeads->isNotEmpty();
-
-            // Format duplicate lead IDs for display
+        
             $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
                 ->implode("\n\n");
-
-            // Define content message
+        
             $content = $isDuplicate
-                ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?\n\n$duplicateIds"
+                ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
                 : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
-
-
+        
             return [
                 Placeholder::make('warning')
-                    ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString()) // Convert new lines to HTML <br>
+                    ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
                     ->hiddenLabel()
                     ->extraAttributes([
                         'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',

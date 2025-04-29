@@ -177,7 +177,7 @@ class ChatRoom extends Page
                   ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), $companyNames);
             });
         }
-
+        
         // SQL-level filter for unreplied messages
         if ($this->filterUnreplied) {
             $query->where('chat_messages.is_from_customer', true)
@@ -291,7 +291,7 @@ class ChatRoom extends Page
                 $companyDetail = \App\Models\CompanyDetail::create([
                     'lead_id' => $lead->id,
                     'contact_no' => $chatParticipant,
-                    'company_name' => 'Unknown',
+                    'company_name' => $lastMessage->profile_name ?? 'Unknown',
                     'name' => $lastMessage->profile_name ?? 'Unknown',
                 ]);
 

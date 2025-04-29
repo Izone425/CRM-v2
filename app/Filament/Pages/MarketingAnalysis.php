@@ -1240,6 +1240,21 @@ class MarketingAnalysis extends Page
             }
         }
 
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+
         // Fetch leads with demo appointments
         $leads = $query->with('demoAppointment', 'companyDetail')->get();
 
@@ -1373,6 +1388,21 @@ class MarketingAnalysis extends Page
             }
         }
 
+        $query->where(function ($q) {
+            $q->whereIn('lead_status', [
+                'Closed',
+                'Demo-Assigned',
+                'RFQ-Follow Up',
+                'Hot',
+                'Warm',
+                'Cold',
+            ])
+            ->orWhere(function ($sub) {
+                $sub->whereIn('lead_status', ['Lost', 'No Response'])
+                    ->whereNotNull('demo_appointment');
+            });
+        });
+        
         $leads = $query->get();
 
         $filteredLeads = [];
