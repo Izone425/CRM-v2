@@ -72,6 +72,24 @@ class ProductResource extends Resource
                     ->searchable()
                     ->nullable()
                     ->helperText('Used to group products into predefined package groups.'),
+                TextInput::make('package_sort_order')
+                    ->label('Package Sort Order')
+                    ->numeric()
+                    ->nullable()
+                    ->helperText('Sort order within this package group. Lower numbers appear first.')
+                    ->rules(function ($record) {
+                        return [
+                            Rule::unique('products', 'package_sort_order')
+                                ->ignore($record?->id)
+                                ->where(function ($query) use ($record) {
+                                    $package = request()->input('data.package_group') ?? $record?->package_group;
+                                    return $query->where('package_group', $package);
+                                }),
+                        ];
+                    })
+                    ->validationMessages([
+                        'unique' => 'This sort order is already in use for this package group.',
+                    ]),  
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
@@ -104,7 +122,7 @@ class ProductResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->reorderable('sort_order')
+            // ->reorderable('sort_order')
             ->defaultSort('sort_order')
             ->recordUrl(false)
             ->columns([
@@ -112,8 +130,12 @@ class ProductResource extends Resource
                 TextColumn::make('code')->width(100),
                 TextColumn::make('package_group')
                     ->label('Package Group')
+                    ->sortable(),
+                TextColumn::make('package_sort_order')
+                    ->label('Pkg Order')
                     ->sortable()
-                    ->searchable(),
+                    ->visible(fn ($record) => !empty($record->package_group))
+                    ->width(80),                
                 TextColumn::make('solution')->width(100),
                 TextColumn::make('description')->html()->width(500)->wrap(),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),

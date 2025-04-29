@@ -173,8 +173,10 @@ class QuotationResource extends Resource
                             ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product') // Only for 'product'
                             ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                 if ($state) {
-                                    $products = \App\Models\Product::where('package_group', $state)->get();
-
+                                    $products = \App\Models\Product::where('package_group', $state)
+                                        ->orderBy('package_sort_order') // 👈 ORDER BY CUSTOM PACKAGE ORDER FIELD
+                                        ->get();
+                                
                                     $set('items', $products->map(function ($product) use ($get) {
                                         return [
                                             'product_id' => $product->id,
@@ -531,9 +533,12 @@ class QuotationResource extends Resource
                     ->html(),
                 TextColumn::make('currency')
                     ->alignCenter(),
-                TextColumn::make('items_sum_total_after_tax')
-                    ->label('Value')
-                    ->sum('items','total_after_tax')
+                TextColumn::make('items_sum_total_before_tax')
+                    ->label('Value (Before Tax)')
+                    ->sum('items','total_before_tax')
+                // TextColumn::make('items_sum_total_after_tax')
+                //     ->label('Value')
+                //     ->sum('items','total_after_tax')
                     // ->summarize([
                     //     Sum::make()
                     //         ->label('Total')
@@ -873,114 +878,191 @@ class QuotationResource extends Resource
     }
 
 
-    public static function recalculateAllRows($get, $set, $field=null, $state=null): void
-    {
-        $items = $get('../../items');
+    // public static function recalculateAllRows($get, $set, $field=null, $state=null): void
+    // {
+    //     $items = $get('../../items');
 
-        $subtotal = 0;
-        $grandTotal = 0;
-        $totalTax = 0;
+    //     $subtotal = 0;
+    //     $grandTotal = 0;
+    //     $totalTax = 0;
+    //     $product = null;
+
+    //     foreach ($items as $index => $item) {
+
+    //         if (array_key_exists('product_id',$item)) {
+    //             info("Product ID: {$item['product_id']}");
+    //             if ($item['product_id']) {
+    //                 $product_id = $item['product_id'];
+    //                 $product = Product::find($product_id);
+    //                 $set("../../description", $product->description);
+    //                 $set("../../items.{$index}.description", $product->description);
+    //             } else {
+    //                 $quantity = 0;
+    //                 $unit_price = 0;
+    //             }
+    //         }
+
+    //         if ($product?->solution == 'hrdf') {
+    //             // $itemQuantity = $get("../../items.{$index}.quantity");
+    //             $itemQuantity = 0;
+    //             if ($item['product_id'] != null) {
+    //                 $itemQuantity = $get("../../items.{$index}.quantity");
+    //             }
+    //             info("Quantity: {$itemQuantity}");
+    //             // $set("../../items.{$index}.quantity",$get("../../number_of_participant"));
+    //             $set("../../items.{$index}.quantity", $itemQuantity);
+    //         }
+
+    //         if ($product?->solution == 'software' || $product?->solution == 'hardware') {
+    //             // $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity"));
+    //             $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity") ?? $product?->quantity);
+    //             if ($get("../../items.{$index}.subscription_period") == 0) {
+    //                 $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
+    //             }
+    //         }
+
+    //         $quantity = (float) $get("../../items.{$index}.quantity");
+    //         if (!$quantity) {
+    //             $quantity = (float) $get("../../headcount");
+    //             $set("../../items.{$index}.quantity", $quantity);
+    //         }
+    //         $subscription_period =  $get("../../items.{$index}.subscription_period");
+    //         // info("Unit Price: {$item['unit_price']}");
+    //         $unit_price = 0;
+    //         if (array_key_exists('unit_price',$item)) {
+    //             $unit_price = (float) $item['unit_price'];
+    //             //info("Unit Price 1: {$unit_price} ({$index})");
+    //             if ($item['unit_price'] == 0.00 && $item['product_id'] != null) {
+    //                 $unit_price = (float) $product?->unit_price;
+    //                 //info("Unit Price 2: {$unit_price} ({$index})");
+    //             }
+    //         }
+
+    //         $set("../../items.{$index}.unit_price", $unit_price);
+
+    //         // Calculate total before tax
+    //         $total_before_tax = (int) $quantity * (float) $unit_price;
+    //         if ($product && $product->solution == 'software') {
+    //             /**
+    //              * include subscription period in calculation for software
+    //              */
+    //             $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
+    //         }
+
+    //         $subtotal += $total_before_tax;
+    //         // Calculate taxation amount
+    //         $taxation_amount = 0;
+    //         if ($product?->taxable) {
+    //             $sstRate = $get('../../sst_rate');
+    //             $taxation_amount = $total_before_tax * ($sstRate / 100);
+    //             $totalTax += $taxation_amount;
+    //         }
+
+    //         if (array_key_exists('description',$item)) {
+    //             $description = trim($item['description']);
+    //             if (Str::length($description) == 0 && $field == 'product_id') {
+    //                 $description = $product?->description;
+    //             }
+    //         } else {
+    //             $description = $product?->description;
+    //         }
+
+    //         $set("../../items.{$index}.description", $product?->description);
+    //         $set("../../description", $product?->description);
+    //         // Calculate total after tax
+    //         $total_after_tax = $total_before_tax + $taxation_amount;
+    //         $grandTotal += $total_after_tax;
+    //         // Update the form values
+    //         $set("../../items.{$index}.unit_price", number_format($unit_price, 2, '.', ''));
+    //         $set("../../items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
+    //         $set("../../items.{$index}.taxation", number_format($taxation_amount, 2, '.', ''));
+    //         $set("../../items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));
+    //     }
+
+    //     /**
+    //      * Update summary
+    //      */
+    //     $set('../../sub_total', number_format($subtotal, 2, '.', ''));
+    //     $set('../../tax_amount', number_format($totalTax, 2, '.', ''));
+    //     $set('../../total', number_format($grandTotal, 2, '.', ''));
+    // }
+
+    public static function recalculateAllRows($get, $set, $field = null, $state = null): void
+{
+    $items = $get('../../items');
+
+    $subtotal = 0;
+    $grandTotal = 0;
+    $totalTax = 0;
+
+    foreach ($items as $index => $item) {
         $product = null;
 
-        foreach ($items as $index => $item) {
-
-            if (array_key_exists('product_id',$item)) {
-                info("Product ID: {$item['product_id']}");
-                if ($item['product_id']) {
-                    $product_id = $item['product_id'];
-                    $product = Product::find($product_id);
-                    $set("../../description", $product->description);
-                    $set("../../items.{$index}.description", $product->description);
-                } else {
-                    $quantity = 0;
-                    $unit_price = 0;
-                }
-            }
-
-            if ($product?->solution == 'hrdf') {
-                // $itemQuantity = $get("../../items.{$index}.quantity");
-                $itemQuantity = 0;
-                if ($item['product_id'] != null) {
-                    $itemQuantity = $get("../../items.{$index}.quantity");
-                }
-                info("Quantity: {$itemQuantity}");
-                // $set("../../items.{$index}.quantity",$get("../../number_of_participant"));
-                $set("../../items.{$index}.quantity", $itemQuantity);
-            }
-
-            if ($product?->solution == 'software' || $product?->solution == 'hardware') {
-                // $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity"));
-                $set("../../items.{$index}.quantity",$get("../../items.{$index}.quantity") ?? $product?->quantity);
-                if ($get("../../items.{$index}.subscription_period") == 0) {
-                    $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
-                }
-            }
-
-            $quantity = (float) $get("../../items.{$index}.quantity");
-            if (!$quantity) {
-                $quantity = (float) $get("../../headcount");
-                $set("../../items.{$index}.quantity", $quantity);
-            }
-            $subscription_period =  $get("../../items.{$index}.subscription_period");
-            // info("Unit Price: {$item['unit_price']}");
-            $unit_price = 0;
-            if (array_key_exists('unit_price',$item)) {
-                $unit_price = (float) $item['unit_price'];
-                //info("Unit Price 1: {$unit_price} ({$index})");
-                if ($item['unit_price'] == 0.00 && $item['product_id'] != null) {
-                    $unit_price = (float) $product?->unit_price;
-                    //info("Unit Price 2: {$unit_price} ({$index})");
-                }
-            }
-
-            $set("../../items.{$index}.unit_price", $unit_price);
-
-            // Calculate total before tax
-            $total_before_tax = (int) $quantity * (float) $unit_price;
-            if ($product && $product->solution == 'software') {
-                /**
-                 * include subscription period in calculation for software
-                 */
-                $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
-            }
-
-            $subtotal += $total_before_tax;
-            // Calculate taxation amount
-            $taxation_amount = 0;
-            if ($product?->taxable) {
-                $sstRate = $get('../../sst_rate');
-                $taxation_amount = $total_before_tax * ($sstRate / 100);
-                $totalTax += $taxation_amount;
-            }
-
-            if (array_key_exists('description',$item)) {
-                $description = trim($item['description']);
-                if (Str::length($description) == 0 && $field == 'product_id') {
-                    $description = $product?->description;
-                }
-            } else {
-                $description = $product?->description;
-            }
-
-            $set("../../items.{$index}.description", $product?->description);
-            $set("../../description", $product?->description);
-            // Calculate total after tax
-            $total_after_tax = $total_before_tax + $taxation_amount;
-            $grandTotal += $total_after_tax;
-            // Update the form values
-            $set("../../items.{$index}.unit_price", number_format($unit_price, 2, '.', ''));
-            $set("../../items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
-            $set("../../items.{$index}.taxation", number_format($taxation_amount, 2, '.', ''));
-            $set("../../items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));
+        if (!empty($item['product_id'])) {
+            $product = Product::find($item['product_id']);
         }
 
-        /**
-         * Update summary
-         */
-        $set('../../sub_total', number_format($subtotal, 2, '.', ''));
-        $set('../../tax_amount', number_format($totalTax, 2, '.', ''));
-        $set('../../total', number_format($grandTotal, 2, '.', ''));
+        // Handle quantity based on type
+        if ($product?->solution === 'hrdf') {
+            $itemQuantity = $get("../../items.{$index}.quantity") ?? 0;
+            $set("../../items.{$index}.quantity", $itemQuantity);
+        }
+
+        if ($product?->solution === 'software' || $product?->solution === 'hardware') {
+            $set("../../items.{$index}.quantity", $get("../../items.{$index}.quantity") ?? $product?->quantity);
+            if ((int) $get("../../items.{$index}.subscription_period") === 0) {
+                $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
+            }
+        }
+
+        $quantity = (float) $get("../../items.{$index}.quantity") ?: (float) $get("../../headcount");
+        $set("../../items.{$index}.quantity", $quantity);
+
+        $subscriptionPeriod = $get("../../items.{$index}.subscription_period");
+        $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
+
+        // Auto-fill unit price if zero
+        if ($unitPrice === 0.00 && $product?->unit_price) {
+            $unitPrice = $product->unit_price;
+        }
+        $set("../../items.{$index}.unit_price", $unitPrice);
+
+        // Total before tax
+        $totalBeforeTax = $quantity * $unitPrice;
+        if ($product?->solution === 'software') {
+            $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
+        }
+
+        $subtotal += $totalBeforeTax;
+
+        // Tax
+        $taxAmount = 0;
+        if ($product?->taxable) {
+            $sstRate = $get('../../sst_rate');
+            $taxAmount = $totalBeforeTax * ($sstRate / 100);
+            $totalTax += $taxAmount;
+        }
+
+        // Preserve manually edited descriptions
+        $currentDescription = $get("../../items.{$index}.description") ?? '';
+        if (blank($currentDescription) || ($field === 'product_id' && $state)) {
+            $set("../../items.{$index}.description", $product?->description);
+        }
+
+        $totalAfterTax = $totalBeforeTax + $taxAmount;
+        $grandTotal += $totalAfterTax;
+
+        // Format and set totals
+        $set("../../items.{$index}.total_before_tax", number_format($totalBeforeTax, 2, '.', ''));
+        $set("../../items.{$index}.taxation", number_format($taxAmount, 2, '.', ''));
+        $set("../../items.{$index}.total_after_tax", number_format($totalAfterTax, 2, '.', ''));
     }
+
+    // Summary totals
+    $set('../../sub_total', number_format($subtotal, 2, '.', ''));
+    $set('../../tax_amount', number_format($totalTax, 2, '.', ''));
+    $set('../../total', number_format($grandTotal, 2, '.', ''));
+}
 
     public static function updateSubscriptionPeriodInAllRows(Forms\Get $get, Forms\Set $set, ?string $state): void
     {
@@ -1165,8 +1247,12 @@ class QuotationResource extends Resource
                 $totalTax += $taxation_amount;
             }
 
-            $set("items.{$index}.description", $product?->description);
+            $currentDescription = $get("items.{$index}.description") ?? '';
 
+            if (blank($currentDescription)) {
+                $set("items.{$index}.description", $product?->description);
+            }
+            
             // Calculate total after tax
             $total_after_tax = $total_before_tax + $taxation_amount;
             $grandTotal += $total_after_tax;

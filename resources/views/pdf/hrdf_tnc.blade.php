@@ -56,9 +56,9 @@
                 </span>
                 <br>
 
-                <span><span style="font-weight:bold;" >Attention: </span>{{ $quotation->lead->companyDetail->name }}</span><br />
-                <span><span style="font-weight:bold;">Tel: </span>{{ $quotation->lead->companyDetail->contact_no }}</span><br />
-                <span><span style="font-weight:bold;" >Email: </span>{{ $quotation->lead->companyDetail->email }}</span><br />
+                <span><span style="font-weight:bold;" >Attention: </span>{{ optional($quotation->lead->companyDetail)->name ?? $quotation->lead->name }}</span><br />
+                <span><span style="font-weight:bold;">Tel: </span>{{ optional($quotation->lead->companyDetail)->contact_no ?? $quotation->lead->phone }}</span><br />
+                <span><span style="font-weight:bold;" >Email: </span>{{ optional($quotation->lead->companyDetail)->email ?? $quotation->lead->email }}</span><br />
             </div>
             <div class="col-4 pull-right">
                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />
@@ -200,9 +200,9 @@
                 </span>
                 <br>
 
-                <span><span style="font-weight:bold;" >Attention: </span>{{ $quotation->lead->companyDetail->name }}</span><br />
-                <span><span style="font-weight:bold;">Tel: </span>{{ $quotation->lead->companyDetail->contact_no }}</span><br />
-                <span><span style="font-weight:bold;" >Email: </span>{{ $quotation->lead->companyDetail->email }}</span><br />
+                <span><span style="font-weight:bold;" >Attention: </span>{{ optional($quotation->lead->companyDetail)->name ?? $quotation->lead->name }}</span><br />
+                <span><span style="font-weight:bold;">Tel: </span>{{ optional($quotation->lead->companyDetail)->contact_no ?? $quotation->lead->phone }}</span><br />
+                <span><span style="font-weight:bold;" >Email: </span>{{ optional($quotation->lead->companyDetail)->email ?? $quotation->lead->email }}</span><br />
             </div>
             <div class="col-4 pull-right">
                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />
@@ -231,7 +231,7 @@
             <td style="height: 150px;">
                 <div class="pull-left" style="padding-top:30px;">
                     <div>Prepared By:</div>
-                    <div style="position:absolute; padding-top:35px;"><img src="{{ $signature }}" style="width:70%;"></div>
+                    <div style="position:absolute; padding-top:35px;"><img src="{{ $signature }}" style="height: 60px; width: auto;"></div>
                     <div style="border-top: 1px solid #000;margin-top:100px; width:200px;">{{ $quotation->sales_person->name }}</div>
                     <div>Business Development Executive</div>
                     <div><span style="font-weight:bold;">Email: </span>{{ $quotation->sales_person->email }}</div>

@@ -32,7 +32,7 @@ class ProformaInvoiceController extends Controller
          * if signature image exists
          */
         if ($quotation->sales_person->signature) {
-            $signatureImg = public_path('/img/'.$quotation->sales_person->signature);
+            $signatureImg = storage_path('app/public/uploads/photos/' . $quotation->sales_person->signature);
             if (file_exists($signatureImg)) {
                 $image3 = file_get_contents($signatureImg);
                 $img_base_64_3 = base64_encode($image3);
