@@ -83,7 +83,7 @@ class UpdateUserLeave extends Command
                             }
                             else {
                                 $convertedEndTime = Carbon::parse($row["EndTime"])->hour;
-                                if($convertedEndTime < 13){
+                                if($convertedEndTime < 14){
                                     $session = "am";
                                 }
                                 else
