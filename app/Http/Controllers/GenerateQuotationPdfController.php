@@ -54,7 +54,7 @@ class GenerateQuotationPdfController extends Controller
          */
         //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' . Str::lower($quotation->sales_person->code) . '.pdf';
         //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' .
-        $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($quotation->lead->company_name));
+        $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($quotation->lead->companyDetail->company_name));
         $quotationFilename = Str::upper($quotationFilename) . '.pdf';
         $pdf->save(public_path('/storage/quotations/'.$quotationFilename));
 

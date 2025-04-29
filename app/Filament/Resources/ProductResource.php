@@ -60,6 +60,11 @@ class ProductResource extends Resource
                 Toggle::make('is_active')
                         ->label('Is Active?')
                         ->inline(false),
+                TextInput::make('subscription_period')
+                    ->label('Subscription Period (Months)')
+                    ->numeric()
+                    ->nullable()
+                    ->helperText('Enter the subscription period in months, if applicable.'),
                 Select::make('package_group')
                     ->label('Package Group')
                     ->placeholder('Select a group')
@@ -139,6 +144,7 @@ class ProductResource extends Resource
                 TextColumn::make('solution')->width(100),
                 TextColumn::make('description')->html()->width(500)->wrap(),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
+                TextColumn::make('subscription_period')->label('Sub Period (Months)')->width(150),
                 ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(),
                 ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
             ])

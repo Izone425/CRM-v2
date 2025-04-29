@@ -100,29 +100,46 @@ class FetchZohoLeads extends Command
             }
 
             foreach ($leadsData['data'] as $lead) {
-                // ✅ Skip leads that don't have the required product
-                // if (!in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products'] ?? [])) {
-                //     continue;
-                // }
-
-                // ✅ Skip leads if 'Status_Division' is NOT NULL
                 if (!empty($lead['Status_Division'])) {
                     continue;
                 }
-
-                // ✅ Skip leads if 'Tag' does NOT contain "HR Malaysia"
+            
+                // ✅ Check if Tag is present
                 $hasHRMalaysiaTag = false;
+                $hasBDRefereeTag = false;
+            
                 if (!empty($lead['Tag']) && is_array($lead['Tag'])) {
                     foreach ($lead['Tag'] as $tag) {
-                        if (isset($tag['name']) && $tag['name'] === 'HR Malaysia') {
-                            $hasHRMalaysiaTag = true;
-                            break;
+                        if (isset($tag['name'])) {
+                            if ($tag['name'] === 'HR Malaysia') {
+                                $hasHRMalaysiaTag = true;
+                            }
+                            if ($tag['name'] === 'BD Referee') {
+                                $hasBDRefereeTag = true;
+                            }
                         }
                     }
                 }
-
+            
+                // ✅ If HR Malaysia tag exists, ACCEPT immediately
                 if (!$hasHRMalaysiaTag) {
-                    continue; // ✅ Skip if "HR Malaysia" tag is not found
+                    // Otherwise if BD Referee, need extra checking
+                    if ($hasBDRefereeTag) {
+                        // Must have TimeTec_Products = HR
+                        $hasHRProduct = false;
+                        if (!empty($lead['TimeTec_Products']) && is_array($lead['TimeTec_Products'])) {
+                            $hasHRProduct = in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products']);
+                        }
+            
+                        // Must be Malaysia
+                        $isMalaysia = ($lead['Country'] ?? '') === 'Malaysia';
+            
+                        if (!$hasHRProduct || !$isMalaysia) {
+                            continue; // Skip if BD Referee but fail Product/Country check
+                        }
+                    } else {
+                        continue; // ❌ No HR Malaysia tag and no BD Referee tag => skip
+                    }
                 }
 
                 $phoneNumber = null;
