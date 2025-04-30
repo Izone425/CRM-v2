@@ -411,4 +411,36 @@ class SalesAdminAnalysisV3 extends Page
         $this->leadList = $query->with('companyDetail')->get();
         $this->showSlideOver = true;
     }
+
+    public function fetchInactiveCallAttemptStatsByLeadOwner()
+    {
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        $leadOwners = User::where('role_id', 1)->pluck('id', 'name')->toArray();
+
+        $result = [];
+        foreach ($leadOwners as $name => $userId) {
+            $count = ActivityLog::query()
+                ->where('description', 'Transfer to Inactive Follow Up 2, Done Call')
+                ->whereBetween('created_at', [$start, $end])
+                ->where('causer_id', $userId)
+                ->count();
+
+            if ($count > 0) {
+                $result[$name] = ['count' => $count];
+            }
+        }
+
+        $total = collect($result)->sum('count');
+        $this->totalCallAttempts = $total;
+
+        foreach ($result as $name => $data) {
+            $result[$name]['percentage'] = $total > 0
+                ? round(($data['count'] / $total) * 100, 2)
+                : 0;
+        }
+
+        $this->callAttemptStatsByLeadOwner = $result;
+    }
 }

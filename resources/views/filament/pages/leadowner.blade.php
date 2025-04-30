@@ -16,5 +16,9 @@
 <livewire:call-attempt-big-comp-table />
 <livewire:salesperson-small-comp-table />
 <livewire:salesperson-big-comp-table />
+<livewire:inactive-small-comp-table1 />
+<livewire:inactive-big-comp-table1 />
+<livewire:inactive-small-comp-table2 />
+<livewire:inactive-big-comp-table2 />
 <livewire:inactive-small-comp-table />
 <livewire:inactive-big-comp-table />

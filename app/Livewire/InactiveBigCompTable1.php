@@ -20,17 +20,18 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 
-class InactiveSmallCompTable extends Component implements HasForms, HasTable
+class InactiveBigCompTable1 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public function getInactiveSmallCompanyLeads()
+    public function getInactiveBigCompanyLeads()
     {
         return Lead::query()
             ->where('categories', 'Inactive') // Only Inactive leads
-            ->where('company_size', '=', '1-24') // Only small companies (1-24)
-            ->whereNotNull('salesperson')
+            ->where('done_call', '0')
+            ->whereNull('salesperson')
+            ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }
 
@@ -38,10 +39,10 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('10s')
-            ->query($this->getInactiveSmallCompanyLeads())
+            ->query($this->getInactiveBigCompanyLeads())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            // ->heading(fn () => 'Inactive (1-24) - ' . $this->getInactiveSmallCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Inactive (25 Above) - ' . $this->getInactiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
@@ -62,21 +63,12 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
-                TextColumn::make('company_size_label')
-                    ->label('Company Size')
-                    ->sortable(query: function ($query, $direction) {
-                        return $query->orderByRaw("
-                            CASE
-                                WHEN company_size = '1-24' THEN 1
-                                WHEN company_size = '25-99' THEN 2
-                                WHEN company_size = '100-500' THEN 3
-                                WHEN company_size = '501 and Above' THEN 4
-                                ELSE 5
-                            END $direction
-                        ");
-                    }),
-                TextColumn::make('lead_status')
-                    ->label('Status')
+                TextColumn::make('created_at')
+                    ->label('Created Time')
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('j F Y, g:i A')),
+                TextColumn::make('call_attempt')
+                    ->label('Call Attempt')
                     ->sortable(),
                 // TextColumn::make('pending_days')
                 //     ->label('Pending Days')
@@ -88,14 +80,15 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
                 ActionGroup::make([
                     LeadActions::getLeadDetailAction(),
                     LeadActions::getViewAction(),
+                    LeadActions::getInactiveTransferCallAttempt(),
                 ])
                 ->button()
-                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger')
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'primary')
             ]);
     }
 
     public function render()
     {
-        return view('livewire.inactive-small-comp-table');
+        return view('livewire.inactive-big-comp-table1');
     }
 }

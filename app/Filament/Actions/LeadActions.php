@@ -213,11 +213,11 @@ class LeadActions
                     if (optional($record?->companyDetail)->company_name) {
                         $query->where('company_name', $record->companyDetail->company_name);
                     }
-        
+
                     if (!empty($record?->email)) {
                         $query->orWhere('email', $record->email);
                     }
-        
+
                     if (!empty($record?->phone)) {
                         $query->orWhere('phone', $record->phone);
                     }
@@ -228,16 +228,16 @@ class LeadActions
                         ->orWhereRaw("company_name NOT LIKE '%Sdn Bhd%'");
                 })
                 ->get(['id']);
-        
+
             $isDuplicate = $duplicateLeads->isNotEmpty();
-        
+
             $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
                 ->implode("\n\n");
-        
+
             $content = $isDuplicate
                 ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
                 : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
-        
+
             return [
                 Placeholder::make('warning')
                     ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
@@ -733,7 +733,7 @@ class LeadActions
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                             $templateSelector = new TemplateSelector();
                             $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
-                            
+
                             $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();
 
@@ -1046,9 +1046,9 @@ class LeadActions
                         ])
                         ->default(fn ($record) => $record->lead_status ?? 'Hot')
                         ->required()
-                        ->visible(fn (?Lead $record) => 
-                            $record 
-                            && in_array(Auth::user()->role_id, [2, 3]) 
+                        ->visible(fn (?Lead $record) =>
+                            $record
+                            && in_array(Auth::user()->role_id, [2, 3])
                             && ($record->stage ?? '') === 'Follow Up'
                         ),
 
@@ -1057,9 +1057,9 @@ class LeadActions
                         ->numeric()
                         ->required()
                         ->default(fn (?Lead $record) => $record ? $record->deal_amount : null)
-                        ->visible(fn (?Lead $record) => 
-                            $record 
-                            && in_array(Auth::user()->role_id, [2, 3]) 
+                        ->visible(fn (?Lead $record) =>
+                            $record
+                            && in_array(Auth::user()->role_id, [2, 3])
                             && ($record->stage ?? '') === 'Follow Up'
                         ),
                 ])
@@ -1142,7 +1142,7 @@ class LeadActions
         ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
         ->action(function (Lead $record, array $data) {
             $lead = $record;
-        
+
             $lead->update([
                 'follow_up_count' => 1,
                 'follow_up_needed' => 1,
@@ -1150,29 +1150,29 @@ class LeadActions
                 'remark' => null,
                 'follow_up_date' => null
             ]);
-        
+
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                 ->orderByDesc('created_at')
                 ->first();
-        
+
             if ($latestActivityLog) {
                 $latestActivityLog->update([
                     'description' => 'Automation Enabled',
                 ]);
             }
-        
+
             // Load template using service
             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
             $templateSelector = new TemplateSelector();
             $template = $templateSelector->getTemplate($utmCampaign, 1); // first follow-up
-        
+
             $viewName = $template['email'];
             $contentTemplateSid = $template['sid'];
             $followUpDescription = '1st Automation Follow Up';
-        
+
             try {
                 $leadowner = User::where('name', $lead->lead_owner)->first();
-        
+
                 $emailContent = [
                     'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
                     'leadOwnerEmail' => $leadowner->email ?? 'N/A',
@@ -1189,29 +1189,29 @@ class LeadActions
                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                     ],
                 ];
-        
+
                 Mail::to($lead->companyDetail->email ?? $lead->email)
                     ->send(new FollowUpNotification($emailContent, $viewName));
             } catch (\Exception $e) {
                 Log::error("Email Error: {$e->getMessage()}");
             }
-        
+
             $lead->updateQuietly([
                 'follow_up_date' => now()->next('Tuesday'),
             ]);
-        
+
             ActivityLog::create([
                 'description' => $followUpDescription,
                 'subject_id' => $lead->id,
                 'causer_id' => auth()->id(),
             ]);
-        
+
             Notification::make()
                 ->title('Automation Applied')
                 ->success()
                 ->body('Will auto send email to lead every Tuesday 10am in 3 times')
                 ->send();
-        
+
             try {
                 $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
                 $variables = [$lead->name, $lead->lead_owner];
@@ -1220,7 +1220,7 @@ class LeadActions
             } catch (\Exception $e) {
                 Log::error("WhatsApp Error: {$e->getMessage()}");
             }
-        });        
+        });
     }
 
     public static function getArchiveAction(): Action
@@ -1374,6 +1374,39 @@ class LeadActions
                         'done_call' => true,
                     ])
                     ->log('Transfer to Call Attempt, Done Call');
+
+                Notification::make()
+                    ->title('Call Attempt Recorded')
+                    ->success()
+                    ->body('The call attempt count has been increased.')
+                    ->send();
+            });
+    }
+
+    public static function getInactiveTransferCallAttempt()
+    {
+        return Action::make('transfer_call_attempt')
+            ->label('Transfer to Follow Up 2')
+            ->requiresConfirmation()
+            ->icon('heroicon-o-paper-airplane')
+            ->modalHeading('Transfer to Follow Up 2')
+            ->modalDescription('Do you want to transfer this lead to Inactive Follow Up 2 Section? Make sure you have contacted the lead before you transfer')
+            ->color('success')
+            ->action(function (Lead $record) {
+                $record->timestamps = false; // Avoid updating updated_at
+                $record->call_attempt += 1;
+                $record->done_call = 1;
+                $record->saveQuietly(); // Regular save with event firing
+
+                // ✅ Log activity
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($record)
+                    ->withProperties([
+                        'call_attempt' => $record->call_attempt,
+                        'done_call' => true,
+                    ])
+                    ->log('Transfer to Inactive Follow Up 2, Done Call');
 
                 Notification::make()
                     ->title('Call Attempt Recorded')
@@ -1553,9 +1586,9 @@ class LeadActions
                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                     $templateSelector = new TemplateSelector();
                     $template = $templateSelector->getTemplate($utmCampaign, 5);
-                    
+
                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
-                    
+
                     $emailContent = [
                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                         'lead' => [
@@ -1997,7 +2030,7 @@ class LeadActions
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                             $templateSelector = new TemplateSelector();
                             $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
-                            
+
                             $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();
 
