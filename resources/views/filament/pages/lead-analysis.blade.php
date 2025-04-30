@@ -615,21 +615,21 @@
     </div>
     <!-- Outer Overlay -->
     <div
-    x-data="{ open: @entangle('showSlideOver') }"
-    x-show="open"
-    @keydown.window.escape="open = false"
-    class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-    x-transition:enter="transition ease-out duration-200"
-    x-transition:enter-start="opacity-0"
-    x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-100"
-    x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
+        x-data="{ open: @entangle('showSlideOver') }"
+        x-show="open"
+        @keydown.window.escape="open = false"
+        class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
     >
         <!-- Slide-over content -->
         <div
             class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
-            @click.away="open = false"  <!-- ✅ Close when clicking outside -->
+            @click.away="open = false" 
         >
             <!-- Header -->
             <br><br>

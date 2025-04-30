@@ -59,11 +59,13 @@ class QuotationRelationManager extends RelationManager
             ->poll('10s')
             ->headerActions([
                 Action::make('createQuotation')
-                ->label('Add Quotation')
-                ->url(fn () => route('filament.admin.resources.quotations.create', [
-                    'lead_id' => Encryptor::encrypt($this->getOwnerRecord()->id),
-                ]), true)
-                ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3])),
+                    ->label('Add Quotation')
+                    ->url(fn () => route('filament.admin.resources.quotations.create', [
+                        'lead_id' => Encryptor::encrypt($this->getOwnerRecord()->id),
+                    ]), true)
+                    ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
+                    ->disabled(fn () => $this->isCompanyAddressIncomplete())
+                    ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3])),
             ])
             ->recordUrl(null)
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -711,5 +713,19 @@ class QuotationRelationManager extends RelationManager
         $set('sub_total', number_format($subtotal, 2, '.', ''));
         $set('tax_amount', number_format($totalTax, 2, '.', ''));
         $set('total', number_format($grandTotal, 2, '.', ''));
+    }
+
+    protected function isCompanyAddressIncomplete(): bool
+    {
+        $company = $this->getOwnerRecord()?->companyDetail;
+
+        if (!$company) return true;
+
+        $isEmpty = fn ($value) => blank($value) || $value === '-';
+
+        return $isEmpty($company->company_address1)
+            && $isEmpty($company->company_address2)
+            && $isEmpty($company->state)
+            && $isEmpty($company->postcode);
     }
 }

@@ -14,8 +14,8 @@ class PrintPdfController extends Controller
 {
     public function __invoke(Quotation $quotation)
     {
-        info(auth('web')->user()->role);
-        info($quotation->sales_person_id);
+        // info(auth('web')->user()->role);
+        // info($quotation->sales_person_id);
         if (auth('web')->user()->role == User::IS_USER && auth('web')->user()->id <> $quotation->sales_person_id) {
             abort(401);
         }

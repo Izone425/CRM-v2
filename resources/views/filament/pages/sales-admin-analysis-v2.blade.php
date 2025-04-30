@@ -389,6 +389,10 @@
                 visibility: hidden;
                 transition: opacity 0.3sease-in-out;
             }
+            .cursor-pointer:hover {
+                transform: scale(1.02);
+                transition: all 0.2s;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -423,7 +427,7 @@
                             ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
                             ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da']
                         ] as $data)
-                            <div class="relative text-center group">
+                            <div class="relative text-center group cursor-pointer" wire:click="openLeadBreakdownSlideOver('{{ $data['label'] }}')">
                                 <div class="relative w-28 h-28">
                                     <svg width="130" height="130" viewBox="0 0 36 36">
                                         <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
@@ -474,7 +478,7 @@
                                 @php
                                     $percentage = $totalLeads > 0 ? round(($data['count'] / $totalLeads) * 100, 2) : 0;
                                 @endphp
-                                <div class="relative text-center group">
+                                <div class="relative text-center group cursor-pointer" wire:click="openLeadCategorySlideOver('{{ $data['label'] }}')">
                                     <div class="relative w-28 h-28">
                                         <svg width="100" height="100" viewBox="0 0 36 36">
                                             <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
@@ -537,15 +541,16 @@
                             $barBgColor = $categoryBgColors[$category] ?? '#E5E7EB';
                         @endphp
 
-                        <!-- Category Name & Count -->
-                        <div class="progress-info">
-                            <span>{{ ucfirst($category) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <!-- Clickable Slide-Over Trigger -->
+                        <div class="cursor-pointer" wire:click="openJajaLeadCategorySlideOver('{{ $category }}')">
+                            <div class="progress-info">
+                                <span>{{ ucfirst($category) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <!-- Progress Bar -->
-                        <div class="progress-bar" style="background-color: {{ $barBgColor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -577,7 +582,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openActiveLeadsJajaSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -629,7 +634,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openTransferLeadsJajaSlideOver('{{ $stage }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -683,7 +688,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openInactiveLeadsJajaSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -749,15 +754,17 @@
                             $barBgColor = $categoryBgColors[$category] ?? '#E5E7EB';
                         @endphp
 
-                        <!-- Category Name & Count -->
-                        <div class="progress-info">
-                            <span>{{ ucfirst($category) }}</span>
-                            <span>{{ $count }} ({{ $percentage }}%)</span>
-                        </div>
+                        <div class="cursor-pointer" wire:click="openAfifahLeadCategorySlideOver('{{ $category }}')">
+                            <!-- Category Name & Count -->
+                            <div class="progress-info">
+                                <span>{{ ucfirst($category) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
 
-                        <!-- Progress Bar -->
-                        <div class="progress-bar" style="background-color: {{ $barBgColor }};">
-                            <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            <!-- Progress Bar -->
+                            <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -788,7 +795,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openActiveLeadsAfifahSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -841,7 +848,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openTransferLeadsAfifahSlideOver('{{ $stage }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -895,7 +902,7 @@
                         };
                     @endphp
 
-                    <div class="relative text-center group">
+                    <div wire:click="openInactiveLeadsAfifahSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
                         <div class="relative w-28 h-28">
                             <svg width="130" height="130" viewBox="0 0 36 36">
                                 <!-- Background Circle -->
@@ -921,6 +928,53 @@
                         </p>
                     </div>
                 @endforeach
+            </div>
+        </div>
+    </div>
+    <!-- Slide-over Modal -->
+    <div
+        x-data="{ open: @entangle('showSlideOver') }"
+        x-show="open"
+        @keydown.window.escape="open = false"
+        class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+        <div
+            class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
+            @click.away="open = false"
+        >
+            <!-- Header -->
+            <br><br>
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                <button @click="open = false" class="text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+
+            <!-- Scrollable content -->
+            <div class="flex-1 p-4 space-y-2 overflow-y-auto">
+                @forelse ($leadList as $lead)
+                    @php
+                        $companyName = $lead->companyDetail->company_name ?? 'N/A';
+                        $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+                    @endphp
+
+                    <a
+                        href="{{ url('admin/leads/' . $encryptedId) }}"
+                        target="_blank"
+                        title="{{ $companyName }}"
+                        class="block px-4 py-2 text-sm font-medium text-blue-600 transition border rounded bg-gray-50 hover:bg-blue-50 hover:text-blue-800"
+                    >
+                        {{ $shortened }}
+                    </a>
+                @empty
+                    <div class="text-sm text-gray-500">No data found.</div>
+                @endforelse
             </div>
         </div>
     </div>

@@ -22,6 +22,11 @@
                 opacity: 1;
                 visibility: visible;
             }
+
+            .cursor-pointer:hover {
+                transform: scale(1.02);
+                transition: all 0.2s;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
