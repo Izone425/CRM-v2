@@ -256,7 +256,7 @@
             <td style="height: 150px;">
                 <div class="pull-left" style="padding-top:30px;">
                     <div>Prepared By:</div>
-                    <div style="position:absolute; padding-top:35px;"><img src="{{ $signature }}" style="width:70%;"></div>
+                    <div style="position:absolute; padding-top:35px;"><img src="{{ $signature }}" style="height: 60px; width: auto;"></div>
                     <div style="border-top: 1px solid #000;margin-top:100px; width:200px;">{{ $quotation->sales_person->name }}</div>
                     <div>Business Development Executive</div>
                     <div><span style="font-weight:bold;">Email: </span>{{ $quotation->sales_person->email }}</div>
