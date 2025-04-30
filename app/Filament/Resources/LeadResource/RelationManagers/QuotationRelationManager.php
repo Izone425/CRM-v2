@@ -60,12 +60,27 @@ class QuotationRelationManager extends RelationManager
             ->headerActions([
                 Action::make('createQuotation')
                     ->label('Add Quotation')
-                    ->url(fn () => route('filament.admin.resources.quotations.create', [
-                        'lead_id' => Encryptor::encrypt($this->getOwnerRecord()->id),
-                    ]), true)
                     ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
-                    ->disabled(fn () => $this->isCompanyAddressIncomplete())
-                    ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3])),
+                    ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3]))
+                    ->action(function () {
+                        // Check if company address is incomplete
+                        if ($this->isCompanyAddressIncomplete()) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Incomplete Company Address')
+                                ->body('Please complete the company address details before creating a quotation. (At least 1 field)')
+                                ->send();
+
+                            return;
+                        }
+
+                        // If address is complete, redirect to the quotation creation page
+                        $leadId = Encryptor::encrypt($this->getOwnerRecord()->id);
+                        $url = route('filament.admin.resources.quotations.create', ['lead_id' => $leadId]);
+
+                        // Use JavaScript to open in a new tab
+                        $this->js("window.open('{$url}', '_blank')");
+                    }),
             ])
             ->recordUrl(null)
             ->emptyState(fn () => view('components.empty-state-question'))
