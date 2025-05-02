@@ -28,22 +28,28 @@
             </div>
         </div>
         &nbsp;&nbsp;
-        <div>
+        <div class="relative">
             <input
                 type="text"
                 wire:model.debounce.500ms="searchCompany"
                 placeholder="Search company name..."
-                class="mt-1 border-gray-300 rounded-md shadow-sm"
+                class="pr-8 mt-1 border-gray-300 rounded-md shadow-sm"
             />
+            <div wire:loading wire:target="searchCompany" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                <i class="text-sm fas fa-spinner fa-spin"></i>
+            </div>
         </div>
-        &nbsp;&nbsp;
-        <div>
+        &nbsp;&nbsp;&nbsp;
+        <div class="relative">
             <input
                 type="text"
                 wire:model.debounce.500ms="searchPhone"
                 placeholder="Search by phone number..."
-                class="mt-1 border-gray-300 rounded-md shadow-sm"
+                class="pr-8 mt-1 border-gray-300 rounded-md shadow-sm"
             />
+            <div wire:loading wire:target="searchPhone" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                <i class="text-sm fas fa-spinner fa-spin"></i>
+            </div>
         </div>
     </div>
     <div class="flex h-screen bg-white border border-gray-200 rounded-lg">

@@ -197,13 +197,13 @@ class MarketingAnalysis extends Page
         $query = \App\Models\UtmDetail::query();
 
         if (!empty($this->utmCampaign)) {
-            $query->where('utm_campaign', 'like', '%' . $this->utmCampaign . '%');
+            $query->where('utm_campaign', '=', $this->utmCampaign);
         }
         if (!empty($this->utmAdgroup)) {
-            $query->where('utm_adgroup', 'like', '%' . $this->utmAdgroup . '%');
+            $query->where('utm_adgroup', '=', $this->utmAdgroup);
         }
         if (!empty($this->utmTerm)) {
-            $query->where('utm_term', 'like', '%' . $this->utmTerm . '%');
+            $query->where('utm_term', '=', $this->utmTerm);
         }
         if (!empty($this->utmMatchtype)) {
             $query->where('utm_matchtype', 'like', '%' . $this->utmMatchtype . '%');
@@ -215,7 +215,7 @@ class MarketingAnalysis extends Page
             $query->where('device', 'like', '%' . $this->device . '%');
         }
         if (!empty($this->utmCreative)) {
-            $query->where('utm_creative', 'like', '%' . $this->utmCreative . '%');
+            $query->where('utm_creative', '=', $this->utmCreative);
         }
         return $query->pluck('lead_id')->toArray();
     }

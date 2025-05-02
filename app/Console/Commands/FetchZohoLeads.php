@@ -103,11 +103,11 @@ class FetchZohoLeads extends Command
                 if (!empty($lead['Status_Division'])) {
                     continue;
                 }
-            
+
                 // ✅ Check if Tag is present
                 $hasHRMalaysiaTag = false;
                 $hasBDRefereeTag = false;
-            
+
                 if (!empty($lead['Tag']) && is_array($lead['Tag'])) {
                     foreach ($lead['Tag'] as $tag) {
                         if (isset($tag['name'])) {
@@ -120,7 +120,7 @@ class FetchZohoLeads extends Command
                         }
                     }
                 }
-            
+
                 // ✅ If HR Malaysia tag exists, ACCEPT immediately
                 if (!$hasHRMalaysiaTag) {
                     // Otherwise if BD Referee, need extra checking
@@ -130,10 +130,10 @@ class FetchZohoLeads extends Command
                         if (!empty($lead['TimeTec_Products']) && is_array($lead['TimeTec_Products'])) {
                             $hasHRProduct = in_array('HR (Attendance, Leave, Claim, Payroll, Hire, Profile)', $lead['TimeTec_Products']);
                         }
-            
+
                         // Must be Malaysia
                         $isMalaysia = ($lead['Country'] ?? '') === 'Malaysia';
-            
+
                         if (!$hasHRProduct || !$isMalaysia) {
                             continue; // Skip if BD Referee but fail Product/Country check
                         }
@@ -170,6 +170,14 @@ class FetchZohoLeads extends Command
 
                 if (empty($leadSource) && !empty($lead['utm_matchtype'])) {
                     $leadSource = 'Google AdWords';
+                }
+
+                if (empty($leadSource) && !empty($lead['referrername2'])) {
+                    $referrerName = $lead['referrername2'];
+                    if ($referrerName === 'https://www.timeteccloud.com/grant' ||
+                        $referrerName === 'https://www.timeteccloud.com/request-demo') {
+                        $leadSource = 'Website';
+                    }
                 }
 
                 // ✅ Create a new lead (no updates for existing ones)
