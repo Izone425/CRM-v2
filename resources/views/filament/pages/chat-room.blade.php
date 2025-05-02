@@ -36,6 +36,15 @@
                 class="mt-1 border-gray-300 rounded-md shadow-sm"
             />
         </div>
+        &nbsp;&nbsp;
+        <div>
+            <input
+                type="text"
+                wire:model.debounce.500ms="searchPhone"
+                placeholder="Search by phone number..."
+                class="mt-1 border-gray-300 rounded-md shadow-sm"
+            />
+        </div>
     </div>
     <div class="flex h-screen bg-white border border-gray-200 rounded-lg">
         <!-- Left Sidebar - Chat List -->

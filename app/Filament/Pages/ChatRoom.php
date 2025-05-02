@@ -40,6 +40,7 @@ class ChatRoom extends Page
     public ?string $startDate = null;
     public ?string $endDate = null;
     public string $searchCompany = '';
+    public string $searchPhone = '';
 
     public function mount()
     {
@@ -177,7 +178,32 @@ class ChatRoom extends Page
                   ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), $companyNames);
             });
         }
-        
+
+        // Then modify the fetchContacts method where it uses this property (around line 154-168)
+        if (!empty($this->searchPhone)) {
+            // Search by phone number directly in sender/receiver or in lead/company records
+            $phoneSearch = '%' . $this->searchPhone . '%';
+
+            $query->where(function ($q) use ($phoneSearch) {
+                // Search in chat messages (sender or receiver)
+                $q->where(DB::raw("LEAST(sender, receiver)"), 'LIKE', $phoneSearch)
+                ->orWhere(DB::raw("GREATEST(sender, receiver)"), 'LIKE', $phoneSearch)
+                // Search in leads
+                ->orWhereExists(function ($subq) use ($phoneSearch) {
+                    $subq->select(DB::raw(1))
+                        ->from('leads')
+                        ->whereRaw('leads.phone LIKE ?', [$phoneSearch])
+                        ->whereRaw('(leads.phone = LEAST(chat_messages.sender, chat_messages.receiver) OR leads.phone = GREATEST(chat_messages.sender, chat_messages.receiver))');
+                })
+                // Search in company details
+                ->orWhereExists(function ($subq) use ($phoneSearch) {
+                    $subq->select(DB::raw(1))
+                        ->from('company_details')
+                        ->whereRaw('company_details.contact_no LIKE ?', [$phoneSearch])
+                        ->whereRaw('(company_details.contact_no = LEAST(chat_messages.sender, chat_messages.receiver) OR company_details.contact_no = GREATEST(chat_messages.sender, chat_messages.receiver))');
+                });
+            });
+        }
         // SQL-level filter for unreplied messages
         if ($this->filterUnreplied) {
             $query->where('chat_messages.is_from_customer', true)
