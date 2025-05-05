@@ -92,7 +92,7 @@ class CreateLead extends CreateRecord
             // Set fixed recipient
             $recipients = collect([
                 (object)[
-                    'email' => 'faiz@ttc', // ✅ Your desired recipient
+                    'email' => 'faiz@timeteccloud.com',
                     'name' => 'Faiz'
                 ]
             ]);
