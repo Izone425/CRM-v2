@@ -7,7 +7,7 @@
     <p>Dear {{ $leadOwnerName }},</p>
     <p>This is an automated email.</p>
 
-    <p>We have a new lead.</p>
+    <p>We have a new lead created by {{ $lead['creator'] }}</p>
     <p>Please follow up on the leads below:</p>
 
     <ul>
@@ -18,6 +18,7 @@
         <li><strong>Phone:</strong> {{ $lead['phone'] }}</li>
         <li><strong>Email:</strong> {{ $lead['email'] }}</li>
         <li><strong>Country:</strong> {{ $lead['country'] }}</li>
+        <li><strong>Lead Source:</strong> {{ $lead['lead_code'] }}</li>
     </ul>
 
     <p><strong>Product:</strong> {{ $formatted_products }}</p>

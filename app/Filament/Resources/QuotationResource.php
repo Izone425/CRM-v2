@@ -132,6 +132,7 @@ class QuotationResource extends Resource
                             ->live(onBlur:true),
                         Select::make('quotation_type')
                             ->label('Type')
+                            ->required()
                             ->placeholder('Select a type')
                             ->options([
                                 'product' => 'Product',

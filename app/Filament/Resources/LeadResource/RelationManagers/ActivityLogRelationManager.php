@@ -1012,7 +1012,16 @@ class ActivityLogRelationManager extends RelationManager
                                 ->required()
                                 ->placeholder('Enter remarks here...')
                                 ->maxLength(500)
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
 
                             Grid::make(3) // 2 columns grid
                                 ->schema([

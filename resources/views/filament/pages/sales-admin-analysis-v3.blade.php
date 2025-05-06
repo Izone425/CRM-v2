@@ -27,6 +27,45 @@
                 transform: scale(1.02);
                 transition: all 0.2s;
             }
+            
+            .data-container {
+                display: flex;
+                gap: 10px;
+                width: 800px;
+                flex-wrap: wrap;
+            }
+            
+            .data-item {
+                flex-grow: 1;
+                text-align: center;
+            }
+            
+            .data-block {
+                padding: 10px 15px;
+                border-radius: 8px;
+                color: white;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                height: 100%;
+            }
+            
+            /* When there's only one item */
+            .data-container.items-1 .data-item {
+                flex-basis: 100%;
+            }
+            
+            /* When there are two items */
+            .data-container.items-2 .data-item {
+                flex-basis: calc(50% - 5px);
+            }
+            
+            /* When there are three or more items */
+            .data-container.items-3 .data-item,
+            .data-container.items-many .data-item {
+                flex-basis: calc(33.33% - 7px);
+                min-width: 150px;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -38,6 +77,28 @@
         </div>
     </div>
     <div style="display: flex; flex-direction: column; gap: 10px; background-color: white; align-items: center;"  wire:poll.1s>
+
+        @php
+            // Create a mapping of lead owners to consistent colors
+            $ownerColors = [];
+            $colorOptions = ['#38b2ac', '#f6ad55', '#7f9cf5', '#f56565', '#68d391', '#d69e2e'];
+            
+            // Get all unique lead owners from all data sets
+            $allOwners = collect([])
+                ->merge(array_keys($this->leadOwnerPickupCounts ?? []))
+                ->merge(array_keys($this->demoStatsByLeadOwner ?? []))
+                ->merge(array_keys($this->rfqTransferStatsByLeadOwner ?? []))
+                ->merge(array_keys($this->automationStatsByLeadOwner ?? []))
+                ->merge(array_keys($this->archiveStatsByLeadOwner ?? []))
+                ->merge(array_keys($this->callAttemptStatsByLeadOwner ?? []))
+                ->unique();
+                
+            $colorIndex = 0;
+            foreach ($allOwners as $owner) {
+                $ownerColors[$owner] = $colorOptions[$colorIndex % count($colorOptions)];
+                $colorIndex++;
+            }
+        @endphp
 
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px; font-weight: bold;">Leads Incoming</div>
@@ -71,26 +132,21 @@
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Leads Pickup</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->leadOwnerPickupCounts))
+            @if (count($this->leadOwnerPickupCounts))
+                @php
+                    $itemCount = count($this->leadOwnerPickupCounts);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->leadOwnerPickupCounts as $owner => $data)
                     <div
                         wire:click="openSlideOver('pickup', '{{ $owner }}')"
-                        class="relative cursor-pointer group"
-                        style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                        class="relative cursor-pointer group data-item"
                     >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -99,7 +155,8 @@
                         </div>
                     </div>
                     @endforeach
-                @else
+                </div>
+            @else
                 <div style="
                     background-color: #e2e8f0;
                     color: #4a5568;
@@ -110,34 +167,28 @@
                 ">
                     No Data Found
                 </div>
-                @endif
-            </div>
+            @endif
         </div>
 
         {{-- Add Demo --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Demo Assigned</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->demoStatsByLeadOwner))
+            @if (count($this->demoStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->demoStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->demoStatsByLeadOwner as $owner => $data)
                         <div
                             wire:click="openSlideOver('demo', '{{ $owner }}')"
-                            class="relative cursor-pointer group"
-                            style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                            class="relative cursor-pointer group data-item"
                         >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -146,45 +197,40 @@
                         </div>
                     </div>
                     @endforeach
-                @else
-                    <div style="
-                        background-color: #e2e8f0;
-                        color: #4a5568;
-                        padding: 10px 20px;
-                        border-radius: 8px;
-                        width: 800px;
-                        text-align: center;
-                    ">
-                        No Data Found
-                    </div>
-                @endif
-            </div>
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
         </div>
 
         {{-- Add RFQ --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Add RFQs</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->rfqTransferStatsByLeadOwner))
+            @if (count($this->rfqTransferStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->rfqTransferStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->rfqTransferStatsByLeadOwner as $owner => $data)
                     <div
                         wire:click="openSlideOver('rfq', '{{ $owner }}')"
-                        class="relative cursor-pointer group"
-                        style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                        class="relative cursor-pointer group data-item"
                     >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -193,45 +239,40 @@
                         </div>
                     </div>
                     @endforeach
-                @else
-                    <div style="
-                        background-color: #e2e8f0;
-                        color: #4a5568;
-                        padding: 10px 20px;
-                        border-radius: 8px;
-                        width: 800px;
-                        text-align: center;
-                    ">
-                        No Data Found
-                    </div>
-                @endif
-            </div>
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
         </div>
 
         {{-- Add Automation --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Automation Enabled</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->automationStatsByLeadOwner))
+            @if (count($this->automationStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->automationStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->automationStatsByLeadOwner as $owner => $data)
                     <div
                         wire:click="openSlideOver('automation', '{{ $owner }}')"
-                        class="relative cursor-pointer group"
-                        style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                        class="relative cursor-pointer group data-item"
                     >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -240,45 +281,40 @@
                         </div>
                     </div>
                     @endforeach
-                @else
-                    <div style="
-                        background-color: #e2e8f0;
-                        color: #4a5568;
-                        padding: 10px 20px;
-                        border-radius: 8px;
-                        width: 800px;
-                        text-align: center;
-                    ">
-                        No Data Found
-                    </div>
-                @endif
-            </div>
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
         </div>
 
         {{-- Archive --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Archived Leads</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->archiveStatsByLeadOwner))
+            @if (count($this->archiveStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->archiveStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->archiveStatsByLeadOwner as $owner => $data)
                     <div
                         wire:click="openSlideOver('archive', '{{ $owner }}')"
-                        class="relative cursor-pointer group"
-                        style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                        class="relative cursor-pointer group data-item"
                     >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -287,45 +323,40 @@
                         </div>
                     </div>
                     @endforeach
-                @else
-                    <div style="
-                        background-color: #e2e8f0;
-                        color: #4a5568;
-                        padding: 10px 20px;
-                        border-radius: 8px;
-                        width: 800px;
-                        text-align: center;
-                    ">
-                        No Data Found
-                    </div>
-                @endif
-            </div>
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
         </div>
 
         {{-- Call Attempt --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Call Attempt</div>
 
-            <div style="display: flex; gap: 10px; width: 800px;">
-                @if (count($this->callAttemptStatsByLeadOwner))
+            @if (count($this->callAttemptStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->callAttemptStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+                
+                <div class="{{ $containerClass }}">
                     @foreach ($this->callAttemptStatsByLeadOwner as $owner => $data)
                     <div
                         wire:click="openSlideOver('call', '{{ $owner }}')"
-                        class="relative cursor-pointer group"
-                        style="width: calc({{ $data['percentage'] }}%); min-width: 70px;"
+                        class="relative cursor-pointer group data-item"
                     >
-                        <div style="
-                            background-color: {{
-                                $loop->index % 3 === 0 ? '#38b2ac' :
-                                ($loop->index % 3 === 1 ? '#f6ad55' : '#7f9cf5')
-                            }};
-                            color: white;
-                            padding: 10px 20px;
-                            border-radius: 8px;
-                            text-align: center;
-                            overflow: hidden;
-                            white-space: nowrap;
-                            ">
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
                             {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
                         </div>
 
@@ -334,19 +365,19 @@
                         </div>
                     </div>
                     @endforeach
-                @else
-                    <div style="
-                        background-color: #e2e8f0;
-                        color: #4a5568;
-                        padding: 10px 20px;
-                        border-radius: 8px;
-                        width: 800px;
-                        text-align: center;
-                    ">
-                        No Data Found
-                    </div>
-                @endif
-            </div>
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
         </div>
     </div>
 
@@ -365,7 +396,7 @@
         <!-- Slide-over content -->
         <div
             class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
-            @click.away="open = false"  <!-- ✅ Close when clicking outside -->
+            @click.away="open = false"
         >
             <!-- Header -->
             <br><br>

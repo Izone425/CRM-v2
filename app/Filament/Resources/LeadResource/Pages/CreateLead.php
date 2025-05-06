@@ -102,6 +102,7 @@ class CreateLead extends CreateRecord
                     'leadOwnerName' => $recipient->name ?? 'Unknown Person',
                     'lead' => [
                         'lead_code' => 'CRM',
+                        'creator' => $lead->salesperson ? User::find($lead->salesperson)?->name : $lead->lead_owner,
                         'lastName' => $lead->name ?? 'N/A',
                         'company' => $lead->companyDetail->company_name ?? 'N/A',
                         'companySize' => $lead->company_size ?? 'N/A',

@@ -20,7 +20,7 @@ class NewLeadNotification extends Mailable
     public function build()
     {
         return $this->view($this->viewName) // Use the selected template dynamically
-                    ->subject("New HR Lead | TimeTec ")
+                    ->subject("Manual Created in CRM | New Lead")
                     ->with([
                         'lead' => $this->content['lead'],
                         'leadOwnerName' => $this->content['leadOwnerName'], // Lead Owner/Manager Name
