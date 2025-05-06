@@ -30,6 +30,7 @@ use App\Filament\Resources\LeadSourceResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
+use App\Filament\Resources\ResellerResource;
 use App\Filament\Widgets\LeadChartWidget;
 use Filament\Pages;
 use Filament\Panel;
@@ -90,6 +91,7 @@ class AdminPanelProvider extends PanelProvider
                 LeadSourceResource::class,
                 InvalidLeadReasonResource::class,
                 UserResource::class,
+                ResellerResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

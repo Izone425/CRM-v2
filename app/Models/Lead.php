@@ -50,6 +50,7 @@ class Lead extends Model
         'salesperson_assigned_date',
         'deal_amount',
         'contact_id',
+        'reseller_id',
         'created_at',
         'updated_at'
     ];
@@ -90,6 +91,7 @@ class Lead extends Model
                 'closing_date',
                 'deal_amount',
                 'contact_id',
+                'reseller_id',
                 'created_at',
                 'updated_at'
             ]);
@@ -226,6 +228,11 @@ class Lead extends Model
     public function utmDetail(): HasOne
     {
         return $this->hasOne(UtmDetail::class);
+    }
+
+    public function reseller(): HasOne
+    {
+        return $this->hasOne(Reseller::class);
     }
 
     public function salespersonUser()

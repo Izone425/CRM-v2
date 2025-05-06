@@ -311,7 +311,7 @@ class LeadResource extends Resource
                                     ->icon('heroicon-o-puzzle-piece')
                                     ->headerActions([
                                         Action::make('edit_utm_details')
-                                            ->label('Edit') // Modal button
+                                            ->label('Edit') // Modal buttonF
                                             ->icon('heroicon-o-pencil')
                                             ->modalHeading('Edit UTM Details')
                                             ->modalSubmitActionLabel('Save Changes')
@@ -700,6 +700,57 @@ class LeadResource extends Resource
                                                     ])
                                             ])->columnSpan(1),
                                         ]),
+                                    Section::make('Reseller Details')
+                                        ->icon('heroicon-o-building-storefront')
+                                        ->extraAttributes([
+                                            'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                        ])
+                                        ->schema([
+                                            Grid::make(1)
+                                                ->schema([
+                                                    View::make('components.reseller-details')
+                                                        ->extraAttributes(fn ($record) => ['record' => $record]),
+                                                ]),
+                                        ])
+                                        ->headerActions([
+                                            Action::make('assign_reseller')
+                                                ->label('Assign Reseller')
+                                                ->icon('heroicon-o-link')
+                                                ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                                ->modalHeading('Assign Reseller to Lead')
+                                                ->modalSubmitActionLabel('Assign')
+                                                ->form([
+                                                    Select::make('reseller_id')
+                                                        ->label('Reseller')
+                                                        ->options(function () {
+                                                            return \App\Models\Reseller::pluck('company_name', 'id')
+                                                                ->toArray();
+                                                        })
+                                                        ->searchable()
+                                                        ->preload()
+                                                        ->required(),
+                                                ])
+                                                ->action(function (Lead $lead, array $data) {
+                                                    // Update the lead with reseller information
+                                                    $lead->updateQuietly([
+                                                        'reseller_id' => $data['reseller_id'],
+                                                    ]);
+                                                    
+                                                    $resellerName = \App\Models\Reseller::find($data['reseller_id'])->company_name ?? 'Unknown Reseller';
+                                                    
+                                                    // Log this action
+                                                    activity()
+                                                        ->causedBy(auth()->user())
+                                                        ->performedOn($lead)
+                                                        ->log('Assigned to reseller: ' . $resellerName);
+                                                    
+                                                    Notification::make()
+                                                        ->title('Reseller Assigned')
+                                                        ->success()
+                                                        ->body('This lead has been assigned to ' . $resellerName)
+                                                        ->send();
+                                                }),
+                                        ])
                             ]),
                             Tab::make('System')
                                 ->schema([

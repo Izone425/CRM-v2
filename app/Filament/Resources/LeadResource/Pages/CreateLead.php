@@ -20,6 +20,7 @@ use Ysfkaya\FilamentPhoneInput\Infolists\PhoneEntry;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
+use App\Models\Lead;
 
 class CreateLead extends CreateRecord
 {
@@ -40,6 +41,74 @@ class CreateLead extends CreateRecord
     protected function getCreatedNotificationMessage(): ?string
     {
         return 'New lead created successfully';
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Store values for duplicate checking
+        $this->companyName = $data['company_name'] ?? null;
+        $this->emailAddress = $data['email'] ?? null;
+        $this->phoneNumber = $data['phone'] ?? null;
+        
+        // Check for duplicates
+        $this->checkForDuplicates();
+        
+        return $data;
+    }
+    
+    protected function checkForDuplicates(): void
+    {
+        // First get the actual company name from the CompanyDetail relation
+        $companyNameToCheck = null;
+        if ($this->companyName) {
+            // Since company_name contains the CompanyDetail ID at this point, we need to get the actual name
+            $companyDetail = \App\Models\CompanyDetail::find($this->companyName);
+            if ($companyDetail) {
+                $companyNameToCheck = $companyDetail->company_name;
+            }
+        }
+        
+        $duplicateLeads = Lead::query()
+            ->where(function ($query) use ($companyNameToCheck) {
+                if ($companyNameToCheck) {
+                    // Get base company name without SDN BHD suffix
+                    $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', $companyNameToCheck);
+                    
+                    // Search for any company that starts with the base name (ignoring suffix)
+                    $query->whereHas('companyDetail', function ($q) use ($baseCompanyName) {
+                        $q->where('company_name', 'LIKE', $baseCompanyName . '%');
+                    });
+                }
+
+                if ($this->emailAddress) {
+                    $query->orWhere('email', $this->emailAddress);
+                }
+
+                if ($this->phoneNumber) {
+                    $query->orWhere('phone', $this->phoneNumber);
+                }
+            })
+            ->get(['id']);
+
+        $this->hasDuplicates = $duplicateLeads->isNotEmpty();
+        
+        if ($this->hasDuplicates) {
+            $this->duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
+                ->implode("\n\n");
+                
+            // Show notification about duplicates
+            Notification::make()
+                ->title('Duplicate Lead Warning')
+                ->warning()
+                ->body("This lead may be a duplicate based on company name, email, or phone.\n\nDuplicate IDs:\n" . $this->duplicateIds)
+                ->persistent()
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('proceed')
+                        ->label('Proceed Anyway')
+                        ->close(),
+                ])
+                ->send();
+        }
     }
 
     protected function afterCreate(): void
@@ -83,6 +152,14 @@ class CreateLead extends CreateRecord
                 'lead_status' => 'RFQ-Transfer',
                 'categories' => 'Active',
             ]);
+        }
+
+        // If this was a duplicate lead, log it
+        if ($this->hasDuplicates) {
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($this->record)
+                ->log('Created duplicate lead. Duplicate IDs: ' . $this->duplicateIds);
         }
 
         try {

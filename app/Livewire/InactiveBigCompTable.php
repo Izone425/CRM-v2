@@ -30,6 +30,7 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
         return Lead::query()
             ->where('categories', 'Inactive') // Only Inactive leads
             ->whereNotNull('salesperson')
+            ->where('lead_status', '!=', 'Closed') 
             ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }

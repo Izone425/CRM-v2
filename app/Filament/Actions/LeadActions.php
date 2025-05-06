@@ -225,7 +225,8 @@ class LeadActions
                 ->where('id', '!=', optional($record)->id)
                 ->where(function ($query) {
                     $query->whereNull('company_name')
-                        ->orWhereRaw("company_name NOT LIKE '%Sdn Bhd%'");
+                        ->orWhereRaw("company_name NOT LIKE '%SDN BHD%'")
+                        ->orWhereRaw("company_name NOT LIKE '%SDN. BHD.%'");
                 })
                 ->get(['id']);
 

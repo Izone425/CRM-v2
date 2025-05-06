@@ -19,6 +19,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\SelectFilter;
 
 class InactiveBigCompTable1 extends Component implements HasForms, HasTable
 {
@@ -29,6 +30,7 @@ class InactiveBigCompTable1 extends Component implements HasForms, HasTable
     {
         return Lead::query()
             ->where('categories', 'Inactive') // Only Inactive leads
+            ->where('lead_status', '!=', 'Closed') 
             ->where('done_call', '0')
             ->whereNull('salesperson')
             ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
@@ -45,6 +47,24 @@ class InactiveBigCompTable1 extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Inactive (25 Above) - ' . $this->getInactiveBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                // Filter for Lead Owner
+                SelectFilter::make('lead_owner')
+                    ->label('')
+                    ->multiple()
+                    ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
+                    ->placeholder('Select Lead Owner'),
+                SelectFilter::make('lead_status')
+                    ->label('')
+                    ->multiple()
+                    ->options([
+                        'Junk' => 'Junk',
+                        'On Hold' => 'On Hold',
+                        'Lost' => 'Lost',
+                        'No Response' => 'No Response',
+                    ])
+                    ->placeholder('Select Lead Status'),
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
@@ -67,8 +87,8 @@ class InactiveBigCompTable1 extends Component implements HasForms, HasTable
                     ->label('Created Time')
                     ->sortable()
                     ->formatStateUsing(fn ($state) => \Carbon\Carbon::parse($state)->format('j F Y, g:i A')),
-                TextColumn::make('call_attempt')
-                    ->label('Call Attempt')
+                TextColumn::make('lead_status')
+                    ->label('Lead Status')
                     ->sortable(),
                 // TextColumn::make('pending_days')
                 //     ->label('Pending Days')

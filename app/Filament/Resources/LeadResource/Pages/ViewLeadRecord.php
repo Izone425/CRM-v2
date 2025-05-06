@@ -12,6 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 
 class ViewLeadRecord extends ViewRecord
@@ -97,19 +98,40 @@ class ViewLeadRecord extends ViewRecord
                 ->modalDescription('')
                 ->size(ActionSize::Large)
                 ->form(function (Lead $record) {
-                    $isDuplicate = Lead::query()
-                        ->where('company_name', $record->companyDetail->company_name)
-                        ->orWhere('email', $record->email)
-                        ->where('id', '!=', $record->id) // Exclude the current lead
-                        ->exists();
+                    $duplicateLeads = Lead::query()
+                        ->where(function ($query) use ($record) {
+                            if (optional($record?->companyDetail)->company_name) {
+                                $query->where('company_name', $record->companyDetail->company_name);
+                            }
+
+                            if (!empty($record?->email)) {
+                                $query->orWhere('email', $record->email);
+                            }
+
+                            if (!empty($record?->phone)) {
+                                $query->orWhere('phone', $record->phone);
+                            }
+                        })
+                        ->where('id', '!=', optional($record)->id)
+                        ->where(function ($query) {
+                            $query->whereNull('company_name')
+                                ->orWhereRaw("company_name NOT LIKE '%SDN BHD%'")
+                                ->orWhereRaw("company_name NOT LIKE '%SDN. BHD.%'");
+                        })
+                        ->get(['id']);
+
+                    $isDuplicate = $duplicateLeads->isNotEmpty();
+
+                    $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
+                        ->implode("\n\n");
 
                     $content = $isDuplicate
-                        ? '⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name or email. Do you want to assign this lead to yourself?'
-                        : 'Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.';
+                        ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
+                        : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
 
                     return [
                         Placeholder::make('warning')
-                            ->content($content)
+                            ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
                             ->hiddenLabel()
                             ->extraAttributes([
                                 'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
