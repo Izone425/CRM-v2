@@ -21,7 +21,10 @@ class ResellerResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == '3'; // Hides the resource from all users
+        $user = auth()->user();
+        
+        // Allow access if user has role_id 3 OR if user's ID is 20
+        return $user->role_id == '3' || $user->id == 20;
     }
     
     public static function form(Form $form): Form
