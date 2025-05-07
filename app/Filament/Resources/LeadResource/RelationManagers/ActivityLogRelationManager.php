@@ -534,33 +534,53 @@ class ActivityLogRelationManager extends RelationManager
                                     //     'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
                                     // ]),
                             ])
-                        ->visible(function (ActivityLog $record) {
-                            // Decode properties once and retrieve relevant attributes
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                            ->visible(function (ActivityLog $record) {
+                                // Get the current lead data directly from the relationship
+                                $lead = $record->lead;
 
-                            $category = data_get($attributes, 'categories');
-                            $stage = data_get($attributes, 'stage');
-                            $leadStatus = data_get($attributes, 'lead_status');
+                                // Check core conditions directly from the lead model
+                                if (!$lead) {
+                                    return false;
+                                }
 
-                            // Define invalid categories, stages, and statuses
-                            $invalidCategories = [LeadCategoriesEnum::INACTIVE->value];
-                            $invalidStages = [LeadStageEnum::DEMO->value, LeadStageEnum::FOLLOW_UP->value];
-                            $invalidLeadStatuses = [LeadStatusEnum::RFQ_FOLLOW_UP->value];
+                                // First check if the category is Inactive - if so, hide the action
+                                if ($lead->categories === LeadCategoriesEnum::INACTIVE->value) {
+                                    return false;
+                                }
 
-                            $lead = $record->lead;
+                                // Check if user role is lead owner with assigned salesperson - hide if true
+                                if (auth()->user()->role_id === 1 && !is_null($lead->salesperson)) {
+                                    return false;
+                                }
 
-                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                                // Check for invalid stages - hide if found
+                                if (in_array($lead->stage, [
+                                    LeadStageEnum::DEMO->value,
+                                    LeadStageEnum::FOLLOW_UP->value
+                                ])) {
+                                    return false;
+                                }
 
-                            // Return visibility based on the conditions
-                            return !(auth()->user()->role_id === 1 && !is_null($lead->salesperson)) &&
-                                   !in_array($category, $invalidCategories) &&
-                                   !in_array($stage, $invalidStages) &&
-                                   !in_array($leadStatus, $invalidLeadStatuses) &&
-                                   $latestActivityLog->description !== 'Demo Cancelled. 4th Demo Cancelled Follow Up';
-                        })
+                                // Check for invalid lead statuses - hide if found
+                                if (in_array($lead->lead_status, [
+                                    LeadStatusEnum::RFQ_FOLLOW_UP->value
+                                ])) {
+                                    return false;
+                                }
 
+                                // Check for specific latest activity log description
+                                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                    ->orderByDesc('created_at')
+                                    ->first();
+
+                                if ($latestActivityLog &&
+                                    $latestActivityLog->description === 'Demo Cancelled. 4th Demo Cancelled Follow Up') {
+                                    return false;
+                                }
+
+                                // If all checks pass, show the action
+                                return true;
+                            })
                     ->color('success')
                     // ->modalSubmitAction(false)
                     ->modalCancelAction(false)
@@ -838,12 +858,18 @@ class ActivityLogRelationManager extends RelationManager
                     Tables\Actions\Action::make('addRFQ')
                         ->label(__('Add RFQ'))
                         ->visible(function (ActivityLog $record) {
-                            // Decode properties once and retrieve relevant attributes
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                            // Get the current lead data directly from the relationship
+                            $lead = $record->lead;
 
-                            $leadStatus = data_get($attributes, 'lead_status');
-                            $category = data_get($attributes, 'categories');
-                            $stage = data_get($attributes, 'stage');
+                            // Check core conditions directly from the lead model
+                            if (!$lead) {
+                                return false;
+                            }
+
+                            // First check if the category is Inactive - if so, hide the action
+                            if ($lead->categories === LeadCategoriesEnum::INACTIVE->value) {
+                                return false;
+                            }
 
                             // Define invalid lead statuses and stages
                             $invalidLeadStatuses = [
@@ -861,10 +887,10 @@ class ActivityLogRelationManager extends RelationManager
                                 LeadStageEnum::FOLLOW_UP->value,
                             ];
 
-                            // Return visibility based on the conditions
-                            return !in_array($leadStatus, $invalidLeadStatuses) &&
-                                $category !== LeadCategoriesEnum::INACTIVE->value &&
-                                !in_array($stage, $invalidStages) && $record->lead->salesperson == null;
+                            // Check all conditions against the current lead data
+                            return !in_array($lead->lead_status, $invalidLeadStatuses) &&
+                                !in_array($lead->stage, $invalidStages) &&
+                                $lead->salesperson == null;
                         })
                         ->form([
                             Placeholder::make('')
@@ -1121,12 +1147,18 @@ class ActivityLogRelationManager extends RelationManager
                         ->color('primary')
                         ->icon('heroicon-o-cog-8-tooth')
                         ->visible(function (ActivityLog $record) {
-                            // Decode properties once and retrieve relevant attributes
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
+                            // Get the current lead data directly from the relationship
+                            $lead = $record->lead;
 
-                            $leadStatus = data_get($attributes, 'lead_status');
-                            $category = data_get($attributes, 'categories');
-                            $stage = data_get($attributes, 'stage');
+                            // Check core conditions directly from the lead model
+                            if (!$lead) {
+                                return false;
+                            }
+
+                            // First check if category is Inactive - if so, hide the action
+                            if ($lead->categories === LeadCategoriesEnum::INACTIVE->value) {
+                                return false;
+                            }
 
                             // Define invalid lead statuses and stages
                             $invalidLeadStatuses = [
@@ -1144,10 +1176,11 @@ class ActivityLogRelationManager extends RelationManager
                                 LeadStageEnum::FOLLOW_UP->value,
                             ];
 
-                            // Return visibility based on the conditions
-                            return auth()->user()->role_id !== 2 && $record->lead->follow_up_needed==0 &&!in_array($leadStatus, $invalidLeadStatuses) &&
-                                $category !== LeadCategoriesEnum::INACTIVE->value &&
-                                !in_array($stage, $invalidStages);
+                            // Check conditions against current lead data
+                            return auth()->user()->role_id !== 2 &&
+                                $lead->follow_up_needed == 0 &&
+                                !in_array($lead->lead_status, $invalidLeadStatuses) &&
+                                !in_array($lead->stage, $invalidStages);
                         })
                         ->form([
                             Placeholder::make('confirmation')
@@ -1179,20 +1212,19 @@ class ActivityLogRelationManager extends RelationManager
                             $followUpDescription = '1st Automation Follow Up';
                             try {
                                 $emailContent = [
-                                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                                    'leadOwnerEmail' => $leadowner->email ?? 'N/A',
                                     'lead' => [
-                                        'lastName' => $lead->name ?? 'N/A', // Lead's Last Name
-                                        'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                                        'companySize' => $lead->company_size ?? 'N/A', // Company Size
-                                        'phone' => $lead->phone ?? 'N/A', // Lead's Phone
-                                        'email' => $lead->email ?? 'N/A', // Lead's Email
-                                        'country' => $lead->country ?? 'N/A', // Lead's Country
-                                        'products' => $lead->products ?? 'N/A', // Products
-                                        'position' => $salespersonUser->position ?? 'N/A', // position
+                                        'lastName' => $lead->name ?? 'N/A',
+                                        'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                        'companySize' => $lead->company_size ?? 'N/A',
+                                        'phone' => $lead->phone ?? 'N/A',
+                                        'email' => $lead->email ?? 'N/A',
+                                        'country' => $lead->country ?? 'N/A',
+                                        'products' => $lead->products ?? 'N/A',
+                                        'position' => $salespersonUser->position ?? 'N/A',
                                         'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                        'leadOwnerEmail' => $leadowner->mobile_number ?? 'N/A',
-                                        // 'solutions' => $lead->solutions ?? 'N/A', // Solutions
                                     ],
                                 ];
 
@@ -1222,14 +1254,17 @@ class ActivityLogRelationManager extends RelationManager
                         ->color('warning')
                         ->icon('heroicon-o-pencil-square')
                         ->visible(function (ActivityLog $record) {
-                            $attributes = json_decode($record->properties, true)['attributes'] ?? [];
-
-                            $categories = data_get($attributes, 'categories');
-
+                            // Get the lead directly from the relationship
                             $lead = $record->lead;
 
-                            return  auth()->user()->role_id === 1 && is_null($lead->salesperson) &&
-                                    $categories !== LeadCategoriesEnum::INACTIVE->value;
+                            // Return false if lead doesn't exist
+                            if (!$lead) {
+                                return false;
+                            }
+
+                            return auth()->user()->role_id === 1 &&
+                                   is_null($lead->salesperson) &&
+                                   $lead->categories !== LeadCategoriesEnum::INACTIVE->value;
                         })
                         ->form([
                             Placeholder::make('')
@@ -1528,10 +1563,6 @@ class ActivityLogRelationManager extends RelationManager
                                     ->success()
                                     ->send();
                             }
-
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead);
                         })
                         ->visible(function (ActivityLog $record) {
                             $lead = $record->lead;

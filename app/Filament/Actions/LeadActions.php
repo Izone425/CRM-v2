@@ -1492,7 +1492,7 @@ class LeadActions
                 // Update the Lead model
                 $lead->update([
                     'stage' => 'Follow Up',
-                    'lead_status' => 'RFQ-Follow Up',
+                    'lead_status' => 'Hot',
                     'remark' => $data['remark'] ?? null,
                 ]);
 
