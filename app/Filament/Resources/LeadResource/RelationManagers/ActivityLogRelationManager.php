@@ -1211,6 +1211,8 @@ class ActivityLogRelationManager extends RelationManager
                             $viewName = 'emails.email_blasting_1st';
                             $followUpDescription = '1st Automation Follow Up';
                             try {
+                                $leadowner = User::where('name', $lead->lead_owner)->first();
+
                                 $emailContent = [
                                     'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
                                     'leadOwnerEmail' => $leadowner->email ?? 'N/A',
