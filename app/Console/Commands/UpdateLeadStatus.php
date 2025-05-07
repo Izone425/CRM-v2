@@ -11,7 +11,7 @@ use Carbon\Carbon;
 class UpdateLeadStatus extends Command
 {
     protected $signature = 'leads:update-status';
-    protected $description = 'Update leads from Demo-Assigned to RFQ-Follow Up the day after the demo appointment';
+    protected $description = 'Update leads from Demo-Assigned to Hot the day after the demo appointment';
 
     public function handle()
     {
@@ -40,12 +40,12 @@ class UpdateLeadStatus extends Command
             // Update lead if in 'Demo' category
             if ($lead && $lead->stage === 'Demo') {
                 $lead->updateQuietly([
-                    'lead_status' => 'RFQ-Follow Up',
+                    'lead_status' => 'Hot',
                     'stage' => 'Follow Up',
                 ]);
 
                 ActivityLog::create([
-                    'description' => 'Lead auto-updated to RFQ-Follow Up after overdue demo',
+                    'description' => 'Lead auto-updated to Hot status after overdue demo',
                     'subject_id' => $lead->id,
                     'causer_id' => null,
                 ]);

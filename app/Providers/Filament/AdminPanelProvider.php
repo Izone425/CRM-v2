@@ -79,6 +79,7 @@ class AdminPanelProvider extends PanelProvider
             ->assets([
                 Css::make('styles', public_path('/css/app/styles.css')),
             ])
+            // ->navigation(false)
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
             // ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

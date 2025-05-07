@@ -27,19 +27,19 @@
                 transform: scale(1.02);
                 transition: all 0.2s;
             }
-            
+
             .data-container {
                 display: flex;
                 gap: 10px;
                 width: 800px;
                 flex-wrap: wrap;
             }
-            
+
             .data-item {
                 flex-grow: 1;
                 text-align: center;
             }
-            
+
             .data-block {
                 padding: 10px 15px;
                 border-radius: 8px;
@@ -49,17 +49,17 @@
                 text-overflow: ellipsis;
                 height: 100%;
             }
-            
+
             /* When there's only one item */
             .data-container.items-1 .data-item {
                 flex-basis: 100%;
             }
-            
+
             /* When there are two items */
             .data-container.items-2 .data-item {
                 flex-basis: calc(50% - 5px);
             }
-            
+
             /* When there are three or more items */
             .data-container.items-3 .data-item,
             .data-container.items-many .data-item {
@@ -82,7 +82,7 @@
             // Create a mapping of lead owners to consistent colors
             $ownerColors = [];
             $colorOptions = ['#38b2ac', '#f6ad55', '#7f9cf5', '#f56565', '#68d391', '#d69e2e'];
-            
+
             // Get all unique lead owners from all data sets
             $allOwners = collect([])
                 ->merge(array_keys($this->leadOwnerPickupCounts ?? []))
@@ -92,7 +92,7 @@
                 ->merge(array_keys($this->archiveStatsByLeadOwner ?? []))
                 ->merge(array_keys($this->callAttemptStatsByLeadOwner ?? []))
                 ->unique();
-                
+
             $colorIndex = 0;
             foreach ($allOwners as $owner) {
                 $ownerColors[$owner] = $colorOptions[$colorIndex % count($colorOptions)];
@@ -137,7 +137,7 @@
                     $itemCount = count($this->leadOwnerPickupCounts);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->leadOwnerPickupCounts as $owner => $data)
                     <div
@@ -179,7 +179,7 @@
                     $itemCount = count($this->demoStatsByLeadOwner);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->demoStatsByLeadOwner as $owner => $data)
                         <div
@@ -221,7 +221,7 @@
                     $itemCount = count($this->rfqTransferStatsByLeadOwner);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->rfqTransferStatsByLeadOwner as $owner => $data)
                     <div
@@ -263,7 +263,7 @@
                     $itemCount = count($this->automationStatsByLeadOwner);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->automationStatsByLeadOwner as $owner => $data)
                     <div
@@ -305,7 +305,7 @@
                     $itemCount = count($this->archiveStatsByLeadOwner);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->archiveStatsByLeadOwner as $owner => $data)
                     <div
@@ -340,18 +340,60 @@
 
         {{-- Call Attempt --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Call Attempt</div>
+            <div style="width: 150px;">Call Attempt (Active)</div>
 
             @if (count($this->callAttemptStatsByLeadOwner))
                 @php
                     $itemCount = count($this->callAttemptStatsByLeadOwner);
                     $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
                 @endphp
-                
+
                 <div class="{{ $containerClass }}">
                     @foreach ($this->callAttemptStatsByLeadOwner as $owner => $data)
                     <div
                         wire:click="openSlideOver('call', '{{ $owner }}')"
+                        class="relative cursor-pointer group data-item"
+                    >
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                        ">
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                        </div>
+
+                        <div class="hover-message">
+                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
+        </div>
+
+        {{-- Inactive Call Attempt --}}
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 150px;">Call Attempt (Inactive)</div>
+
+            @if (count($this->inactiveCallAttemptStatsByLeadOwner))
+                @php
+                    $itemCount = count($this->inactiveCallAttemptStatsByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+
+                <div class="{{ $containerClass }}">
+                    @foreach ($this->inactiveCallAttemptStatsByLeadOwner as $owner => $data)
+                    <div
+                        wire:click="openSlideOver('inactivecall', '{{ $owner }}')"
                         class="relative cursor-pointer group data-item"
                     >
                         <div class="data-block" style="
