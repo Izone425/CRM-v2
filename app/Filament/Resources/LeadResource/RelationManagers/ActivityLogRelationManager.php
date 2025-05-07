@@ -1208,6 +1208,11 @@ class ActivityLogRelationManager extends RelationManager
                                     'description' => 'Automation Enabled',
                                 ]);
                             }
+
+                            $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                            $templateSelector = new TemplateSelector();
+                            $template = $templateSelector->getTemplate($utmCampaign, 1);
+
                             $viewName = 'emails.email_blasting_1st';
                             $contentTemplateSid = $template['sid'];
                             $followUpDescription = '1st Automation Follow Up';
