@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
 use App\Models\Lead;
 use App\Models\User;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -19,6 +20,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 
 class InactiveBigCompTable2 extends Component implements HasForms, HasTable
@@ -63,6 +65,31 @@ class InactiveBigCompTable2 extends Component implements HasForms, HasTable
                         'No Response' => 'No Response',
                     ])
                     ->placeholder('Select Lead Status'),
+                Filter::make('created_month')
+                    ->form([
+                        TextInput::make('created_month')
+                            ->type('month')
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query->when($data['created_month'], function ($query, $date) {
+                            // Extract month and year from the selected date
+                            $month = Carbon::parse($date)->format('m');
+                            $year = Carbon::parse($date)->format('Y');
+
+                            // Filter records for the entire month
+                            return $query->whereYear('created_at', $year)
+                                        ->whereMonth('created_at', $month);
+                        });
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['created_month'] ?? null) {
+                            $indicators['created_month'] = 'Created in ' . Carbon::parse($data['created_month'])->format('F Y');
+                        }
+
+                        return $indicators;
+                    })
             ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
