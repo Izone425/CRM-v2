@@ -1209,6 +1209,7 @@ class ActivityLogRelationManager extends RelationManager
                                 ]);
                             }
                             $viewName = 'emails.email_blasting_1st';
+                            $contentTemplateSid = $template['sid'];
                             $followUpDescription = '1st Automation Follow Up';
                             try {
                                 $leadowner = User::where('name', $lead->lead_owner)->first();
@@ -1249,6 +1250,15 @@ class ActivityLogRelationManager extends RelationManager
                                 ->success()
                                 ->body('Will auto send email to lead every Tuesday 10am in 3 times')
                                 ->send();
+
+                            try {
+                                $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+                                $variables = [$lead->name, $lead->lead_owner];
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                            } catch (\Exception $e) {
+                                Log::error("WhatsApp Error: {$e->getMessage()}");
+                            }
                         }),
                     Tables\Actions\Action::make('archive')
                         ->label(__('Archive'))
