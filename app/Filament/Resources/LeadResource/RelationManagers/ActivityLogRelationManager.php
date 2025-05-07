@@ -1569,14 +1569,27 @@ class ActivityLogRelationManager extends RelationManager
                             $previousData = data_get(json_decode($activityLog->properties, true), 'old');
 
                             if (!$previousData) {
+                                // Instead of showing an error, use default reactivation values
+                                $lead->updateQuietly([
+                                    'categories' => 'Active',
+                                    'lead_status' => 'New',
+                                    'stage' => 'Transfer',
+                                    'remark' => $data['remark']
+                                ]);
+
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Lead reactivated with default active status.');
+
                                 Notification::make()
-                                    ->title('Failed to restore: No previous data found')
-                                    ->danger()
+                                    ->title('Lead has been reactivated')
+                                    ->success()
                                     ->send();
                                 return;
                             }
 
-                            // Update lead with old data
+                            // Update lead with old data if available
                             $lead->updateQuietly(array_merge($previousData, [
                                 'remark' => $data['remark'], // override remark with new input
                             ]));

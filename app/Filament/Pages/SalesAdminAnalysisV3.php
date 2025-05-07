@@ -63,7 +63,8 @@ class SalesAdminAnalysisV3 extends Page
     public $totalAutomationEnabled = 0;
     public $archiveStatsByLeadOwner = [];
     public $totalArchivedLeads = 0;
-
+    public $inactiveCallAttemptStatsByLeadOwner = [];
+    public $totalInactiveCallAttempts = 0;
     //Slide Modal Variables
     public $showSlideOver = false;
     public $slideOverTitle = '';
@@ -94,6 +95,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchDemoStatsByLeadOwner();
         $this->fetchRfqTransferStatsByLeadOwner();
         $this->fetchCallAttemptStatsByLeadOwner();
+        $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
     }
@@ -107,6 +109,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchDemoStatsByLeadOwner();
         $this->fetchRfqTransferStatsByLeadOwner();
         $this->fetchCallAttemptStatsByLeadOwner();
+        $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
     }
@@ -131,7 +134,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchLeadOwnerPickups();
         $this->fetchDemoStatsByLeadOwner();
         $this->fetchRfqTransferStatsByLeadOwner();
-        $this->fetchCallAttemptStatsByLeadOwner();
+        $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
     }
@@ -277,6 +280,38 @@ class SalesAdminAnalysisV3 extends Page
         $this->callAttemptStatsByLeadOwner = $result;
     }
 
+    public function fetchInactiveCallAttemptStatsByLeadOwner()
+    {
+        $start = Carbon::parse($this->startDate)->startOfDay();
+        $end = Carbon::parse($this->endDate)->endOfDay();
+
+        $leadOwners = User::where('role_id', 1)->pluck('id', 'name')->toArray();
+
+        $result = [];
+        foreach ($leadOwners as $name => $userId) {
+            $count = ActivityLog::query()
+                ->where('description', 'Transfer to Inactive Follow Up 2, Done Call')
+                ->whereBetween('created_at', [$start, $end])
+                ->where('causer_id', $userId)
+                ->count();
+
+            if ($count > 0) {
+                $result[$name] = ['count' => $count];
+            }
+        }
+
+        $total = collect($result)->sum('count');
+        $this->totalInactiveCallAttempts = $total; // Use a separate property for inactive call attempts
+
+        foreach ($result as $name => $data) {
+            $result[$name]['percentage'] = $total > 0
+                ? round(($data['count'] / $total) * 100, 2)
+                : 0;
+        }
+
+        $this->inactiveCallAttemptStatsByLeadOwner = $result; // Store in a separate property
+    }
+
     public function fetchArchivedStatsByLeadOwner()
     {
         $leadOwners = User::where('role_id', 1)->pluck('id', 'name')->toArray();
@@ -406,41 +441,18 @@ class SalesAdminAnalysisV3 extends Page
                 ->toArray();
 
             $query = Lead::whereIn('id', $leadIds);
+        } elseif ($type === 'inactivecall') {
+            $leadIds = ActivityLog::query()
+                ->where('description', 'Transfer to Inactive Follow Up 2, Done Call')
+                ->whereBetween('created_at', [$start, $end])
+                ->where('causer_id', $userId)
+                ->pluck('subject_id')
+                ->toArray();
+
+            $query = Lead::whereIn('id', $leadIds);
         }
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->showSlideOver = true;
-    }
-
-    public function fetchInactiveCallAttemptStatsByLeadOwner()
-    {
-        $start = Carbon::parse($this->startDate)->startOfDay();
-        $end = Carbon::parse($this->endDate)->endOfDay();
-
-        $leadOwners = User::where('role_id', 1)->pluck('id', 'name')->toArray();
-
-        $result = [];
-        foreach ($leadOwners as $name => $userId) {
-            $count = ActivityLog::query()
-                ->where('description', 'Transfer to Inactive Follow Up 2, Done Call')
-                ->whereBetween('created_at', [$start, $end])
-                ->where('causer_id', $userId)
-                ->count();
-
-            if ($count > 0) {
-                $result[$name] = ['count' => $count];
-            }
-        }
-
-        $total = collect($result)->sum('count');
-        $this->totalCallAttempts = $total;
-
-        foreach ($result as $name => $data) {
-            $result[$name]['percentage'] = $total > 0
-                ? round(($data['count'] / $total) * 100, 2)
-                : 0;
-        }
-
-        $this->callAttemptStatsByLeadOwner = $result;
     }
 }

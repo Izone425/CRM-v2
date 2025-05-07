@@ -295,7 +295,8 @@ class LeadAnalysis extends Page
         }
 
         // Define expected statuses
-        $followUpStatuses = ['RFQ-Follow Up', 'Hot', 'Warm', 'Cold'];
+        // $followUpStatuses = ['RFQ-Follow Up', 'Hot', 'Warm', 'Cold'];
+        $followUpStatuses = ['Hot', 'Warm', 'Cold'];
 
         // Count total leads in the "Follow Up" stage
         $this->totalFollowUpLeads = $query->count();

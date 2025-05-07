@@ -229,7 +229,7 @@ class MarketingAnalysis extends Page
 
         $activeStatuses = [
             'None','New','RFQ-Transfer','Pending Demo','Under Review','Demo Cancelled',
-            'Demo-Assigned','RFQ-Follow Up','Hot','Warm','Cold'
+            'Demo-Assigned','Hot','Warm','Cold'
         ];
 
         $otherStatuses = ['Closed', 'No Response', 'Junk', 'On Hold', 'Lost'];
@@ -1402,7 +1402,7 @@ class MarketingAnalysis extends Page
                     ->whereNotNull('demo_appointment');
             });
         });
-        
+
         $leads = $query->get();
 
         $filteredLeads = [];
