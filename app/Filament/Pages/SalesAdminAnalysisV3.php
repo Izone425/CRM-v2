@@ -134,6 +134,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchLeadOwnerPickups();
         $this->fetchDemoStatsByLeadOwner();
         $this->fetchRfqTransferStatsByLeadOwner();
+        $this->fetchCallAttemptStatsByLeadOwner();
         $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
