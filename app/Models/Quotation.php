@@ -20,6 +20,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'lead_id',
+        'mark_as_final',
         'headcount',
         'quotation_date',
         'quotation_reference_no',

@@ -43,6 +43,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Illuminate\Support\HtmlString;
+use Filament\Forms\Components\View as ViewComponent;
+use Filament\Notifications\Livewire\Notifications;
+use Filament\Support\Enums\Alignment;
+use Filament\Tables\Columns\Summarizers\Sum;
+use Illuminate\Support\Collection;
 
 class QuotationRelationManager extends RelationManager
 {
@@ -403,9 +409,64 @@ class QuotationRelationManager extends RelationManager
                 ->button(),
             ])
             ->bulkActions([
-                // Tables\Actions\BulkActionGroup::make([
-                //     Tables\Actions\DeleteBulkAction::make(),
-                // ]),
+                Tables\Actions\BulkAction::make('markAsFinal')
+                    ->label('Mark as Final Quotation')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Mark Selected Quotations as Final')
+                    ->modalDescription('Are you sure you want to mark the selected quotations as final? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Mark as Final')
+                    ->action(function (Collection $records): void {
+                        $count = 0;
+
+                        foreach ($records as $quotation) {
+                            // Only update if not already marked as final
+                            if (!$quotation->mark_as_final) {
+                                $quotation->mark_as_final = 1;
+                                $quotation->save();
+                                $count++;
+                            }
+                        }
+
+                        // Display a notification with the results
+                        Notification::make()
+                            ->title("Quotations Marked as Final")
+                            ->body("{$count} quotation(s) have been successfully marked as final.")
+                            ->success()
+                            ->duration(5000)
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                Tables\Actions\BulkAction::make('resetFinalQuotations')
+                    ->label('Reset Final Status')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Final Status for Selected Quotations')
+                    ->modalDescription('Are you sure you want to reset the final status for the selected quotations? This will remove them from the "Final Quotations" list.')
+                    ->modalSubmitActionLabel('Yes, Reset Status')
+                    ->action(function (Collection $records): void {
+                        $count = 0;
+
+                        foreach ($records as $quotation) {
+                            // Only update if currently marked as final
+                            if ($quotation->mark_as_final) {
+                                $quotation->mark_as_final = 0;
+                                $quotation->save();
+                                $count++;
+                            }
+                        }
+
+                        // Display a notification with the results
+                        Notification::make()
+                            ->title("Final Status Reset")
+                            ->body("{$count} quotation(s) have been removed from final status.")
+                            ->success()
+                            ->duration(5000)
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion()
             ]);
     }
 
