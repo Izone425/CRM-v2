@@ -747,6 +747,7 @@ class LeadResource extends Resource
                                         Section::make('E-Invoice Details')
                                         ->icon('heroicon-o-document-text')
                                         ->collapsible()
+                                        ->collapsed()
                                         ->headerActions([
                                             Action::make('edit_einvoice_details')
                                                 ->label('Edit')

@@ -64,17 +64,26 @@ class CreateQuotation extends CreateRecord
         if (!$this->record->quotation_reference_no) {
             $quotationService = new QuotationService;
             $this->record->quotation_reference_no = $quotationService->update_reference_no($this->record);
-            $this->record->save();
 
             $lead = $this->record->lead; // Assuming the 'lead' relationship exists in Quotation
+
             if ($lead) {
+                // Check if this is the first quotation for this lead
+                $quotationCount = $lead->quotations()->count();
+
+                // If this is the first quotation (counting this one), mark it as final
+                if ($quotationCount <= 1) {
+                    $this->record->mark_as_final = 1;
+                }
+
+                // Update lead status based on current status
                 if ($lead->lead_status === 'RFQ-Transfer') {
                     $lead->update([
                         'lead_status' => 'Pending Demo',
                         'remark' => null,
                         'follow_up_date' => today(),
                     ]);
-                }else if($lead->lead_status === 'RFQ-Follow Up'){
+                } else if($lead->lead_status === 'RFQ-Follow Up') {
                     $lead->update([
                         'lead_status' => 'Hot',
                         'remark' => null,
@@ -82,6 +91,9 @@ class CreateQuotation extends CreateRecord
                     ]);
                 }
             }
+
+            // Save the quotation with updated values
+            $this->record->save();
 
             // Step 3: Update the latest ActivityLog for this Lead
             $latestActivityLog = ActivityLog::where('subject_id', $lead->id ?? null)
@@ -107,19 +119,7 @@ class CreateQuotation extends CreateRecord
                         ]);
                 }
             }
-                // $max_num = 9999;
-
-                // $starting_number = 1000;
-                // $reference_number = $starting_number + $this->record->id;
-
-                // $year = now()->format('y');
-
-                // $num = $reference_number%$max_num == 0 ? $max_num : ($reference_number%$max_num);
-
-                // $this->record->quotation_reference_no = $year . sprintf('%04d',$num) . '/' . Str::upper(auth()->user()->code);
-                // $this->record->save();
         }
-        // $this->redirect(QuotationResource::getUrl('send-quotation-email', ['record' => $this->record->id]));
     }
 
     protected function getRedirectUrl(): string
