@@ -74,41 +74,41 @@ class SoftwareHandoverRelationManager extends RelationManager
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
-            Tables\Actions\Action::make('EInvoiceWarning')
-                ->label('Add Software Handover')
-                ->icon('heroicon-o-pencil')
-                ->color('gray')
-                ->visible(fn () => $isEInvoiceIncomplete)
-                ->action(function () {
-                    Notification::make()
-                        ->warning()
-                        ->title('Action Required')
-                        ->body('Please collect all e-invoices information before proceeding with the handover process.')
-                        ->persistent()
-                        ->actions([
-                            \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
-                                ->label('Copy E-Invoice Link')
-                                ->button()
-                                ->color('primary')
-                                // ->url(route('filament.admin.resources.leads.edit', [
-                                //     'record' => Encryptor::encrypt($this->getOwnerRecord()->id),
-                                //     'activeTab' => 'einvoice'
-                                // ]), true)
-                                // ->openUrlInNewTab()
-                                ->close(),
-                            \Filament\Notifications\Actions\Action::make('cancel')
-                                ->label('Cancel')
-                                ->close(),
-                        ])
-                        ->send();
-                }),
+            // Tables\Actions\Action::make('EInvoiceWarning')
+            //     ->label('Add Software Handover')
+            //     ->icon('heroicon-o-pencil')
+            //     ->color('gray')
+            //     ->visible(fn () => $isEInvoiceIncomplete)
+            //     ->action(function () {
+            //         Notification::make()
+            //             ->warning()
+            //             ->title('Action Required')
+            //             ->body('Please collect all e-invoices information before proceeding with the handover process.')
+            //             ->persistent()
+            //             ->actions([
+            //                 \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
+            //                     ->label('Copy E-Invoice Link')
+            //                     ->button()
+            //                     ->color('primary')
+            //                     // ->url(route('filament.admin.resources.leads.edit', [
+            //                     //     'record' => Encryptor::encrypt($this->getOwnerRecord()->id),
+            //                     //     'activeTab' => 'einvoice'
+            //                     // ]), true)
+            //                     // ->openUrlInNewTab()
+            //                     ->close(),
+            //                 \Filament\Notifications\Actions\Action::make('cancel')
+            //                     ->label('Cancel')
+            //                     ->close(),
+            //             ])
+            //             ->send();
+            //     }),
 
             // Action 2: Actual form when e-invoice is complete
             Tables\Actions\Action::make('AddSoftwareHandover')
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-pencil')
                 ->color('primary')
-                ->visible(fn () => !$isEInvoiceIncomplete)
+                // ->visible(fn () => !$isEInvoiceIncomplete)
                 ->slideOver()
                 ->modalHeading('Add Software Handover')
                 ->modalWidth(MaxWidth::SevenExtraLarge)

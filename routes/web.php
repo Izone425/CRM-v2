@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuotePdfController;
 use App\Models\LeadSource;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CustomerAuthController;
 use App\Http\Controllers\GenerateHardwareHandoverPdfController;
 use App\Http\Controllers\GenerateProformaInvoicePdfController;
 use App\Http\Controllers\GenerateQuotationPdfController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\PrintPdfController;
 use App\Http\Controllers\ProformaInvoiceController;
 use App\Http\Controllers\WhatsAppController;
 use App\Http\Livewire\DemoRequest;
+use App\Livewire\Customer\Login;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -141,6 +143,25 @@ Route::post('/webhook/whatsapp', function (Request $request) {
     }
 });
 
+//CUSTOMER
+Route::prefix('customer')->name('customer.')->group(function () {
+    // Public routes
+    Route::get('/login', Login::class)
+        ->name('login')
+        ->middleware('guest:customer');
+
+    // Auth routes
+    Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+
+    // Protected routes for authenticated customers
+    Route::middleware('auth:customer')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('customer.dashboard');
+        })->name('dashboard');
+
+        // Add more customer routes as needed
+    });
+});
 // Route::get('/zoho/auth', function (Request $request) {
 //     $clientId = env('ZOHO_CLIENT_ID');
 //     $clientSecret = env('ZOHO_CLIENT_SECRET');
