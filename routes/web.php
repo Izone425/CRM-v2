@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuotePdfController;
 use App\Models\LeadSource;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\GenerateHardwareHandoverPdfController;
 use App\Http\Controllers\GenerateProformaInvoicePdfController;
 use App\Http\Controllers\GenerateQuotationPdfController;
+use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Http\Controllers\MicrosoftAuthController;
 use App\Http\Controllers\PrintPdfController;
 use App\Http\Controllers\ProformaInvoiceController;
@@ -45,6 +47,14 @@ Route::middleware('signed')
 Route::middleware('signed')
     ->get('quotes/{quote}/pdf', QuotePdfController::class)
     ->name('quotes.pdf');
+
+Route::get('software-handover/{softwareHandover}/pdf', GenerateSoftwareHandoverPdfController::class)
+    ->name('software-handover.pdf')
+    ->middleware(['auth']);
+
+Route::get('hardware-handover/{hardwareHandover}/pdf', GenerateHardwareHandoverPdfController::class)
+    ->name('hardware-handover.pdf')
+    ->middleware(['auth']);
 
 Route::get('/demo-request/{lead_code}', function ($lead_code) {
     // Check if the lead_code exists in the database

@@ -151,8 +151,8 @@ class QuotationResource extends Resource
                                     ])->mapWithKeys(fn ($item) => [
                                         (string) \Illuminate\Support\Str::uuid() => $item
                                     ])->toArray();
-                                    
-                                    $set('items', $items);                                    
+
+                                    $set('items', $items);
 
                                     // Trigger recalculation if needed
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
@@ -175,11 +175,11 @@ class QuotationResource extends Resource
                                     $products = \App\Models\Product::where('package_group', $state)
                                         ->orderBy('package_sort_order')
                                         ->get();
-                        
+
                                     $mappedItems = $products->map(function ($product) use ($get) {
                                         return [
                                             'product_id' => $product->id,
-                                            'quantity' => in_array($product->solution, ['software', 'hardware']) 
+                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
                                                 ? ($product->quantity ?? 1)
                                                 : ($get('num_of_participant') ?? 1),
                                             'unit_price' => $product->unit_price,
@@ -187,16 +187,16 @@ class QuotationResource extends Resource
                                             'description' => $product->description,
                                         ];
                                     });
-                        
+
                                     $finalItems = collect($mappedItems)->mapWithKeys(fn($item) => [
                                         (string) \Illuminate\Support\Str::uuid() => $item
                                     ])->toArray();
-                        
+
                                     $set('items', $finalItems);
-                        
+
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
-                            }),                        
+                            }),
                         // Select::make('status')
                         //     ->label('Status')
                         //     ->options([
@@ -350,18 +350,18 @@ class QuotationResource extends Resource
                                     ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                         if ($state) {
                                             $product = Product::find($state); // 🛠 Fetch Product from DB
-                                
+
                                             if ($product) {
                                                 $set('unit_price', $product->unit_price); // Set unit price from DB
                                                 $set('description', $product->description); // Set description from DB
-                                
+
                                                 if ($product->solution === 'software') {
                                                     $set('subscription_period', $product->subscription_period); // ✨ Set subscription period from DB
                                                 } else {
                                                     $set('subscription_period', null); // Not needed for hardware/hrdf
                                                 }
                                             }
-                                
+
                                             self::recalculateAllRows($get, $set, 'product_id', $state);
                                         }
                                     })
@@ -1086,7 +1086,7 @@ class QuotationResource extends Resource
             if ($product?->solution === 'software') {
                 $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
             }
-            
+
             $subtotal += $totalBeforeTax;
 
             // Tax
@@ -1308,7 +1308,7 @@ class QuotationResource extends Resource
             if (blank($currentDescription)) {
                 $set("items.{$index}.description", $product?->description);
             }
-            
+
             // Calculate total after tax
             $total_after_tax = $total_before_tax + $taxation_amount;
             $grandTotal += $total_after_tax;

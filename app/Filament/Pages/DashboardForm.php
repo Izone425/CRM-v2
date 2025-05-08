@@ -14,22 +14,28 @@ class DashboardForm extends Page
 
     protected static ?string $navigationIcon = 'heroicon-o-home';
     protected static ?string $navigationLabel = 'Dashboard';
-    protected static ?string $title = 'Dashboard';
+    protected static ?string $title = '';
     protected static string $view = 'filament.pages.dashboard-form';
     public $users; // List of users to select from
     public $selectedUser; // Selected user's ID
     public $selectedUserRole;
     public $assignToMeModalVisible = false;
     public $currentLeadId;
+    public $selectedAdditionalRole;
 
     public function mount()
     {
         $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
-        $this->currentDashboard = 'Manager';
+
+        // Set default to LeadOwner
+        $this->currentDashboard = session('currentDashboard', 'LeadOwner');
 
         // Default selectedUser to 7 (Your Own Dashboard) when the page loads
         $this->selectedUser = session('selectedUser') == 7;
         session(['selectedUser' => $this->selectedUser]); // Store it in session
+
+        // Initialize additional role from session
+        $this->selectedAdditionalRole = session('selectedAdditionalRole');
 
         if (request()->has('page') && request()->get('page') != 1) {
             return redirect()->to(url()->current() . '?page=1');
@@ -41,6 +47,7 @@ class DashboardForm extends Page
     public function toggleDashboard($dashboard)
     {
         $this->currentDashboard = $dashboard;
+        session(['currentDashboard' => $dashboard]);
     }
 
     public function updatedSelectedUser($userId)
@@ -69,5 +76,57 @@ class DashboardForm extends Page
         }
 
         $this->dispatch('updateTablesForUser', selectedUser: $userId);
+    }
+
+    public function updatedSelectedAdditionalRole($additionalRoleId)
+    {
+        $this->selectedAdditionalRole = $additionalRoleId;
+        session(['selectedAdditionalRole' => $additionalRoleId]);
+
+        if (in_array($additionalRoleId, ['implementer', 'sales-manager', 'team-lead'])) {
+            // Handle specific predefined role groups
+            switch ($additionalRoleId) {
+                case 'implementer':
+                    $this->toggleDashboard('Implementer');
+                    break;
+                case 'sales-manager':
+                    $this->toggleDashboard('SalesManager');
+                    break;
+                case 'team-lead':
+                    $this->toggleDashboard('TeamLead');
+                    break;
+                default:
+                    $this->toggleDashboard('Manager');
+            }
+        } else {
+            // Handle specific additional role IDs
+            $role = \App\Models\Role::find($additionalRoleId);
+
+            if ($role) {
+                if ($role->name === 'Implementer') {
+                    $this->toggleDashboard('Implementer');
+                } elseif ($role->name === 'Sales Manager') {
+                    $this->toggleDashboard('SalesManager');
+                } elseif ($role->name === 'Team Lead') {
+                    $this->toggleDashboard('TeamLead');
+                } else {
+                    // Default view for other roles
+                    $this->toggleDashboard('Manager');
+                }
+            } else {
+                // Fallback to default view
+                $this->toggleDashboard('Manager');
+            }
+        }
+
+        // Dispatch event to update tables based on the selected additional role
+        $this->dispatch('updateTablesForAdditionalRole', selectedAdditionalRole: $additionalRoleId);
+    }
+
+    // New method for toggling between Lead Owner, Software Handover, and Hardware Handover
+    public function toggleHandoverView($view)
+    {
+        $this->toggleDashboard($view);
+        session(['currentDashboard' => $view]);
     }
 }

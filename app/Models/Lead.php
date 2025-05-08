@@ -230,6 +230,21 @@ class Lead extends Model
         return $this->hasOne(UtmDetail::class);
     }
 
+    public function eInvoiceDetail()
+    {
+        return $this->hasOne(EInvoiceDetail::class);
+    }
+
+    public function softwareHandover()
+    {
+        return $this->hasMany(SoftwareHandover::class);
+    }
+
+    public function hardwareHandover()
+    {
+        return $this->hasMany(HardwareHandover::class);
+    }
+
     public function reseller(): HasOne
     {
         return $this->hasOne(Reseller::class);
