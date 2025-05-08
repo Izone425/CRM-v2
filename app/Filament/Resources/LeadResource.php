@@ -744,195 +744,195 @@ class LeadResource extends Resource
                                                     ])
                                             ])->columnSpan(1),
                                         ]),
-                                        Section::make('E-Invoice Details')
-                                        ->icon('heroicon-o-document-text')
-                                        ->collapsible()
-                                        ->collapsed()
-                                        ->headerActions([
-                                            Action::make('edit_einvoice_details')
-                                                ->label('Edit')
-                                                ->icon('heroicon-o-pencil')
-                                                ->modalHeading('Edit E-Invoice Details')
-                                                ->modalSubmitActionLabel('Save Changes')
-                                                ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                                ->form([
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            TextInput::make('pic_email')
-                                                                ->label('1. PIC Email Address')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->pic_email ?? null)
-                                                                ->helperText('(Note: we will contact via this email if we need further information)'),
+                                        // Section::make('E-Invoice Details')
+                                        // ->icon('heroicon-o-document-text')
+                                        // ->collapsible()
+                                        // ->collapsed()
+                                        // ->headerActions([
+                                        //     Action::make('edit_einvoice_details')
+                                        //         ->label('Edit')
+                                        //         ->icon('heroicon-o-pencil')
+                                        //         ->modalHeading('Edit E-Invoice Details')
+                                        //         ->modalSubmitActionLabel('Save Changes')
+                                        //         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        //         ->form([
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     TextInput::make('pic_email')
+                                        //                         ->label('1. PIC Email Address')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->pic_email ?? null)
+                                        //                         ->helperText('(Note: we will contact via this email if we need further information)'),
 
-                                                            TextInput::make('tin_no')
-                                                                ->label('2. Tax Identification Number (TIN No.)')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null)
-                                                                ->helperText('Note: TIN No. must consist of a combination of the TIN Code and set of number'),
+                                        //                     TextInput::make('tin_no')
+                                        //                         ->label('2. Tax Identification Number (TIN No.)')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null)
+                                        //                         ->helperText('Note: TIN No. must consist of a combination of the TIN Code and set of number'),
 
-                                                            TextInput::make('new_business_reg_no')
-                                                                ->label('3. New Business Registration Number')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->new_business_reg_no ?? null)
-                                                                ->helperText('(Note: New ROC No. eg 198701006539. If Foreign Country, please input N/A)'),
-                                                        ]),
+                                        //                     TextInput::make('new_business_reg_no')
+                                        //                         ->label('3. New Business Registration Number')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->new_business_reg_no ?? null)
+                                        //                         ->helperText('(Note: New ROC No. eg 198701006539. If Foreign Country, please input N/A)'),
+                                        //                 ]),
 
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            TextInput::make('old_business_reg_no')
-                                                                ->label('4. Old Business Registration Number')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->old_business_reg_no ?? null)
-                                                                ->helperText('(Note: Old ROC No. eg 123456T. If Foreign Country, please input NA)'),
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     TextInput::make('old_business_reg_no')
+                                        //                         ->label('4. Old Business Registration Number')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->old_business_reg_no ?? null)
+                                        //                         ->helperText('(Note: Old ROC No. eg 123456T. If Foreign Country, please input NA)'),
 
-                                                            TextInput::make('registration_name')
-                                                                ->label('5. Registration Name')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->registration_name ?? null)
-                                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                                                ->helperText('(Note: Type only in CAPITAL letter) (as per Business Registration/MyKad/Passport)'),
+                                        //                     TextInput::make('registration_name')
+                                        //                         ->label('5. Registration Name')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->registration_name ?? null)
+                                        //                         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                        //                         ->helperText('(Note: Type only in CAPITAL letter) (as per Business Registration/MyKad/Passport)'),
 
-                                                            Select::make('identity_type')
-                                                                ->label('6. Identity Type')
-                                                                ->options([
-                                                                    'MyKAD' => 'MyKAD',
-                                                                    'MyPR' => 'MyPR',
-                                                                    'MyKAS' => 'MyKAS',
-                                                                    'MyTen' => 'MyTen',
-                                                                    'PassP' => 'PassP',
-                                                                ])
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->identity_type ?? null)
-                                                                ->helperText('(Note: For company, please choose MyKAD option)'),
-                                                        ]),
+                                        //                     Select::make('identity_type')
+                                        //                         ->label('6. Identity Type')
+                                        //                         ->options([
+                                        //                             'MyKAD' => 'MyKAD',
+                                        //                             'MyPR' => 'MyPR',
+                                        //                             'MyKAS' => 'MyKAS',
+                                        //                             'MyTen' => 'MyTen',
+                                        //                             'PassP' => 'PassP',
+                                        //                         ])
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->identity_type ?? null)
+                                        //                         ->helperText('(Note: For company, please choose MyKAD option)'),
+                                        //                 ]),
 
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            Radio::make('tax_classification')
-                                                                ->label('7. Tax Classification')
-                                                                ->options([
-                                                                    '0' => 'Individual (0)',
-                                                                    '1' => 'Business (1)',
-                                                                    '2' => 'Government (2)',
-                                                                ])
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->tax_classification ?? null)
-                                                                ->helperText('(Note: 0 - Individual  1 - Business   2 - Government)'),
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     Radio::make('tax_classification')
+                                        //                         ->label('7. Tax Classification')
+                                        //                         ->options([
+                                        //                             '0' => 'Individual (0)',
+                                        //                             '1' => 'Business (1)',
+                                        //                             '2' => 'Government (2)',
+                                        //                         ])
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->tax_classification ?? null)
+                                        //                         ->helperText('(Note: 0 - Individual  1 - Business   2 - Government)'),
 
-                                                            TextInput::make('sst_reg_no')
-                                                                ->label('8. Sales and Service Tax (SST) Registration Number')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null)
-                                                                ->helperText('(Note: No. eg J31-1808-22000109. If don\'t have, please input N/A)'),
+                                        //                     TextInput::make('sst_reg_no')
+                                        //                         ->label('8. Sales and Service Tax (SST) Registration Number')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null)
+                                        //                         ->helperText('(Note: No. eg J31-1808-22000109. If don\'t have, please input N/A)'),
 
-                                                            TextInput::make('msic_code')
-                                                                ->label('9. Business MSIC Code')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null)
-                                                                ->helperText('(Note: The value must be in 5 characters) (as per Form C / Annual Return)'),
-                                                        ]),
+                                        //                     TextInput::make('msic_code')
+                                        //                         ->label('9. Business MSIC Code')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null)
+                                        //                         ->helperText('(Note: The value must be in 5 characters) (as per Form C / Annual Return)'),
+                                        //                 ]),
 
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            TextInput::make('msic_code_2')
-                                                                ->label('10. Business MSIC Code 2')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->msic_code_2 ?? null)
-                                                                ->helperText('If more than 1 MSIC Code, If don\'t have, please input N/A (5 characters)'),
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     TextInput::make('msic_code_2')
+                                        //                         ->label('10. Business MSIC Code 2')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_2 ?? null)
+                                        //                         ->helperText('If more than 1 MSIC Code, If don\'t have, please input N/A (5 characters)'),
 
-                                                            TextInput::make('msic_code_3')
-                                                                ->label('11. Business MSIC Code 3')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->msic_code_3 ?? null)
-                                                                ->helperText('If more than 2 MSIC Code, If don\'t have, please input N/A (5 characters)'),
+                                        //                     TextInput::make('msic_code_3')
+                                        //                         ->label('11. Business MSIC Code 3')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_3 ?? null)
+                                        //                         ->helperText('If more than 2 MSIC Code, If don\'t have, please input N/A (5 characters)'),
 
-                                                            TextInput::make('business_address')
-                                                                ->label('12. Business Address')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->business_address ?? null),
-                                                        ]),
+                                        //                     TextInput::make('business_address')
+                                        //                         ->label('12. Business Address')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->business_address ?? null),
+                                        //                 ]),
 
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            TextInput::make('postcode')
-                                                                ->label('13. Postcode')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->postcode ?? null),
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     TextInput::make('postcode')
+                                        //                         ->label('13. Postcode')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->postcode ?? null),
 
-                                                            TextInput::make('contact_number')
-                                                                ->label('14. Contact Number')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->contact_number ?? null)
-                                                                ->helperText('(Finance/Account Department)'),
+                                        //                     TextInput::make('contact_number')
+                                        //                         ->label('14. Contact Number')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->contact_number ?? null)
+                                        //                         ->helperText('(Finance/Account Department)'),
 
-                                                            TextInput::make('email_address')
-                                                                ->label('15. Email address')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null)
-                                                                ->helperText('(Note: this email will be receiving e-invoice from IRBM)'),
-                                                        ]),
+                                        //                     TextInput::make('email_address')
+                                        //                         ->label('15. Email address')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null)
+                                        //                         ->helperText('(Note: this email will be receiving e-invoice from IRBM)'),
+                                        //                 ]),
 
-                                                    Grid::make(3)
-                                                        ->schema([
-                                                            TextInput::make('city')
-                                                                ->label('16. City')
-                                                                ->required()
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->city ?? null),
+                                        //             Grid::make(3)
+                                        //                 ->schema([
+                                        //                     TextInput::make('city')
+                                        //                         ->label('16. City')
+                                        //                         ->required()
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->city ?? null),
 
-                                                            Select::make('country')
-                                                                ->label('17. Country')
-                                                                ->options([
-                                                                    'MYS' => 'Malaysia (MYS)',
-                                                                ])
-                                                                ->default('MYS')
-                                                                ->required(),
+                                        //                     Select::make('country')
+                                        //                         ->label('17. Country')
+                                        //                         ->options([
+                                        //                             'MYS' => 'Malaysia (MYS)',
+                                        //                         ])
+                                        //                         ->default('MYS')
+                                        //                         ->required(),
 
-                                                            Select::make('state')
-                                                                ->label('18. State')
-                                                                ->options(function () {
-                                                                    $filePath = storage_path('app/public/json/StateCodes.json');
+                                        //                     Select::make('state')
+                                        //                         ->label('18. State')
+                                        //                         ->options(function () {
+                                        //                             $filePath = storage_path('app/public/json/StateCodes.json');
 
-                                                                    if (file_exists($filePath)) {
-                                                                        $countriesContent = file_get_contents($filePath);
-                                                                        $countries = json_decode($countriesContent, true);
+                                        //                             if (file_exists($filePath)) {
+                                        //                                 $countriesContent = file_get_contents($filePath);
+                                        //                                 $countries = json_decode($countriesContent, true);
 
-                                                                        return collect($countries)->mapWithKeys(function ($country) {
-                                                                            return [$country['Code'] => ucfirst(strtolower($country['State']))];
-                                                                        })->toArray();
-                                                                    }
+                                        //                                 return collect($countries)->mapWithKeys(function ($country) {
+                                        //                                     return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                        //                                 })->toArray();
+                                        //                             }
 
-                                                                    return [];
-                                                                })
-                                                                ->default(fn ($record) => $record->eInvoiceDetail->state ?? null)
-                                                                ->searchable()
-                                                                ->preload(),
-                                                        ]),
-                                                ])
-                                                ->action(function (Lead $lead, array $data) {
-                                                    $record = $lead->eInvoiceDetail;
-                                                    if ($record) {
-                                                        // Update the existing record
-                                                        $record->update($data);
+                                        //                             return [];
+                                        //                         })
+                                        //                         ->default(fn ($record) => $record->eInvoiceDetail->state ?? null)
+                                        //                         ->searchable()
+                                        //                         ->preload(),
+                                        //                 ]),
+                                        //         ])
+                                        //         ->action(function (Lead $lead, array $data) {
+                                        //             $record = $lead->eInvoiceDetail;
+                                        //             if ($record) {
+                                        //                 // Update the existing record
+                                        //                 $record->update($data);
 
-                                                        Notification::make()
-                                                            ->title('E-Invoice Details Updated')
-                                                            ->success()
-                                                            ->send();
-                                                    } else {
-                                                        // Create a new record
-                                                        $lead->eInvoiceDetail()->create($data);
+                                        //                 Notification::make()
+                                        //                     ->title('E-Invoice Details Updated')
+                                        //                     ->success()
+                                        //                     ->send();
+                                        //             } else {
+                                        //                 // Create a new record
+                                        //                 $lead->eInvoiceDetail()->create($data);
 
-                                                        Notification::make()
-                                                            ->title('E-Invoice Details Created')
-                                                            ->success()
-                                                            ->send();
-                                                    }
-                                                }),
-                                            ])
-                                        ->schema([
-                                            View::make('components.e-invoice-details')
-                                            ->extraAttributes(['poll' => true])
-                                        ]),
+                                        //                 Notification::make()
+                                        //                     ->title('E-Invoice Details Created')
+                                        //                     ->success()
+                                        //                     ->send();
+                                        //             }
+                                        //         }),
+                                        //     ])
+                                        // ->schema([
+                                        //     View::make('components.e-invoice-details')
+                                        //     ->extraAttributes(['poll' => true])
+                                        // ]),
                                     Section::make('Reseller Details')
                                         ->icon('heroicon-o-building-storefront')
                                         ->extraAttributes([
