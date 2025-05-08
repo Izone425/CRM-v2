@@ -746,6 +746,7 @@ class LeadResource extends Resource
                                         ]),
                                         Section::make('E-Invoice Details')
                                         ->icon('heroicon-o-document-text')
+                                        ->collapsible()
                                         ->headerActions([
                                             Action::make('edit_einvoice_details')
                                                 ->label('Edit')
@@ -1514,6 +1515,7 @@ class LeadResource extends Resource
                     10 => 'Abdul Aziz',
                     11 => 'Muhammad Khoirul Bariah',
                     12 => 'Vince Leong',
+                    18 => 'Jonathan',
                 ])
                 ->placeholder('Select Salesperson')
                 ->query(function ($query, $data) {
