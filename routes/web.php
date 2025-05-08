@@ -141,176 +141,176 @@ Route::post('/webhook/whatsapp', function (Request $request) {
     }
 });
 
-Route::get('/zoho/auth', function (Request $request) {
-    $clientId = env('ZOHO_CLIENT_ID');
-    $clientSecret = env('ZOHO_CLIENT_SECRET');
-    $redirectUri = env('ZOHO_REDIRECT_URI');
+// Route::get('/zoho/auth', function (Request $request) {
+//     $clientId = env('ZOHO_CLIENT_ID');
+//     $clientSecret = env('ZOHO_CLIENT_SECRET');
+//     $redirectUri = env('ZOHO_REDIRECT_URI');
 
-    // ✅ Check if a valid access token exists
-    if (Cache::has('zoho_access_token')) {
-        return response()->json([
-            'message' => 'Using cached Zoho access token',
-            'access_token' => Cache::get('zoho_access_token')
-        ]);
-    }
+//     // ✅ Check if a valid access token exists
+//     if (Cache::has('zoho_access_token')) {
+//         return response()->json([
+//             'message' => 'Using cached Zoho access token',
+//             'access_token' => Cache::get('zoho_access_token')
+//         ]);
+//     }
 
-    // ✅ If no access token, check if a refresh token exists to refresh it
-    if (Cache::has('zoho_refresh_token')) {
-        $refreshToken = Cache::get('zoho_refresh_token');
-        $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
-            'refresh_token' => $refreshToken,
-            'client_id'     => $clientId,
-            'client_secret' => $clientSecret,
-            'grant_type'    => 'refresh_token',
-        ]);
+//     // ✅ If no access token, check if a refresh token exists to refresh it
+//     if (Cache::has('zoho_refresh_token')) {
+//         $refreshToken = Cache::get('zoho_refresh_token');
+//         $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+//             'refresh_token' => $refreshToken,
+//             'client_id'     => $clientId,
+//             'client_secret' => $clientSecret,
+//             'grant_type'    => 'refresh_token',
+//         ]);
 
-        $tokenData = $tokenResponse->json();
-        Log::info('Zoho Token Refresh Response:', $tokenData);
+//         $tokenData = $tokenResponse->json();
+//         Log::info('Zoho Token Refresh Response:', $tokenData);
 
-        if (isset($tokenData['access_token'])) {
-            Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
-            return response()->json([
-                'message' => 'Zoho access token refreshed',
-                'access_token' => $tokenData['access_token']
-            ]);
-        }
-    }
+//         if (isset($tokenData['access_token'])) {
+//             Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+//             return response()->json([
+//                 'message' => 'Zoho access token refreshed',
+//                 'access_token' => $tokenData['access_token']
+//             ]);
+//         }
+//     }
 
-    // ✅ If no refresh token, redirect user to Zoho authentication
-    $authUrl = "https://accounts.zoho.com/oauth/v2/auth?" . http_build_query([
-        'client_id'     => $clientId,
-        'response_type' => 'code',
-        'scope'         => 'ZohoCRM.modules.all',
-        'redirect_uri'  => $redirectUri,
-        'access_type'   => 'offline',
-        'prompt'        => 'consent',
-    ]);
+//     // ✅ If no refresh token, redirect user to Zoho authentication
+//     $authUrl = "https://accounts.zoho.com/oauth/v2/auth?" . http_build_query([
+//         'client_id'     => $clientId,
+//         'response_type' => 'code',
+//         'scope'         => 'ZohoCRM.modules.all',
+//         'redirect_uri'  => $redirectUri,
+//         'access_type'   => 'offline',
+//         'prompt'        => 'consent',
+//     ]);
 
-    return redirect()->away($authUrl);
-});
+//     return redirect()->away($authUrl);
+// });
 
-Route::get('/zoho/callback', function (Request $request) {
-    Log::info('Incoming Zoho Callback Data:', $request->all());
+// Route::get('/zoho/callback', function (Request $request) {
+//     Log::info('Incoming Zoho Callback Data:', $request->all());
 
-    $code = $request->query('code');
-    if (!$code) {
-        return response()->json(['error' => 'No authorization code received'], 400);
-    }
+//     $code = $request->query('code');
+//     if (!$code) {
+//         return response()->json(['error' => 'No authorization code received'], 400);
+//     }
 
-    $clientId = env('ZOHO_CLIENT_ID');
-    $clientSecret = env('ZOHO_CLIENT_SECRET');
-    $redirectUri = env('ZOHO_REDIRECT_URI');
+//     $clientId = env('ZOHO_CLIENT_ID');
+//     $clientSecret = env('ZOHO_CLIENT_SECRET');
+//     $redirectUri = env('ZOHO_REDIRECT_URI');
 
-    // Exchange Code for Access Token
-    $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
-        'code'          => $code,
-        'client_id'     => $clientId,
-        'client_secret' => $clientSecret,
-        'redirect_uri'  => $redirectUri,
-        'grant_type'    => 'authorization_code',
-    ]);
+//     // Exchange Code for Access Token
+//     $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+//         'code'          => $code,
+//         'client_id'     => $clientId,
+//         'client_secret' => $clientSecret,
+//         'redirect_uri'  => $redirectUri,
+//         'grant_type'    => 'authorization_code',
+//     ]);
 
-    $tokenData = $tokenResponse->json();
-    Log::info('Zoho Token Response:', $tokenData);
+//     $tokenData = $tokenResponse->json();
+//     Log::info('Zoho Token Response:', $tokenData);
 
-    if (!isset($tokenData['access_token'])) {
-        return response()->json(['error' => 'Failed to get access token', 'details' => $tokenData], 400);
-    }
+//     if (!isset($tokenData['access_token'])) {
+//         return response()->json(['error' => 'Failed to get access token', 'details' => $tokenData], 400);
+//     }
 
-    // ✅ Store access token & refresh token
-    Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
-    if (isset($tokenData['refresh_token'])) {
-        Cache::forever('zoho_refresh_token', $tokenData['refresh_token']);
-    }
+//     // ✅ Store access token & refresh token
+//     Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+//     if (isset($tokenData['refresh_token'])) {
+//         Cache::forever('zoho_refresh_token', $tokenData['refresh_token']);
+//     }
 
-    return response()->json([
-        'message' => 'Zoho authentication successful',
-        'access_token' => $tokenData['access_token'],
-        'refresh_token' => $tokenData['refresh_token'] ?? 'Already stored',
-    ]);
-});
+//     return response()->json([
+//         'message' => 'Zoho authentication successful',
+//         'access_token' => $tokenData['access_token'],
+//         'refresh_token' => $tokenData['refresh_token'] ?? 'Already stored',
+//     ]);
+// });
 
-Route::get('/zoho/leads', function (Request $request) {
-    $accessToken = Cache::get('zoho_access_token');
-    $apiDomain = 'https://www.zohoapis.com';
+// Route::get('/zoho/leads', function (Request $request) {
+//     $accessToken = Cache::get('zoho_access_token');
+//     $apiDomain = 'https://www.zohoapis.com';
 
-    if (!$accessToken) {
-        return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
-    }
+//     if (!$accessToken) {
+//         return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
+//     }
 
-    // ✅ Get the sorting parameter from the request (default to 'id')
-    $sortBy = $request->query('sort_by', 'id'); // Possible values: id, Created_Time, Modified_Time
+//     // ✅ Get the sorting parameter from the request (default to 'id')
+//     $sortBy = $request->query('sort_by', 'id'); // Possible values: id, Created_Time, Modified_Time
 
-    // Fetch Leads from Zoho with sorting
-    $response = Http::withHeaders([
-        'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
-        'Content-Type'  => 'application/json',
-    ])->get($apiDomain . '/crm/v2/Leads', [
-        'page'     => 1,
-        'per_page' => 200, // ✅ Max limit is 200, not 300
-        'criteria' => '(Created_Time:after:2025-03-01)'
-    ]);
+//     // Fetch Leads from Zoho with sorting
+//     $response = Http::withHeaders([
+//         'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+//         'Content-Type'  => 'application/json',
+//     ])->get($apiDomain . '/crm/v2/Leads', [
+//         'page'     => 1,
+//         'per_page' => 200, // ✅ Max limit is 200, not 300
+//         'criteria' => '(Created_Time:after:2025-03-01)'
+//     ]);
 
-    return($leadsData = $response->json());
-});
+//     return($leadsData = $response->json());
+// });
 
-Route::get('/zoho/deals', function () {
-    $accessToken = Cache::get('zoho_access_token');
-    $apiDomain = 'https://www.zohoapis.com';
+// Route::get('/zoho/deals', function () {
+//     $accessToken = Cache::get('zoho_access_token');
+//     $apiDomain = 'https://www.zohoapis.com';
 
-    if (!$accessToken) {
-        return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
-    }
+//     if (!$accessToken) {
+//         return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
+//     }
 
-    $allDeals = [];
-    $perPage = 200;
-    $page = 1;
-    $pageToken = null;
+//     $allDeals = [];
+//     $perPage = 200;
+//     $page = 1;
+//     $pageToken = null;
 
-    while (true) {
-        // ✅ API query parameters
-        $queryParams = [
-            'per_page' => $perPage,
-            'criteria' => '(Created_Time:after:2025-03-01)',
-        ];
+//     while (true) {
+//         // ✅ API query parameters
+//         $queryParams = [
+//             'per_page' => $perPage,
+//             'criteria' => '(Created_Time:after:2025-03-01)',
+//         ];
 
-        if ($pageToken) {
-            $queryParams['page_token'] = $pageToken; // ✅ Use page_token for large data
-        } else {
-            $queryParams['page'] = $page; // ✅ Use normal page-based pagination first
-        }
+//         if ($pageToken) {
+//             $queryParams['page_token'] = $pageToken; // ✅ Use page_token for large data
+//         } else {
+//             $queryParams['page'] = $page; // ✅ Use normal page-based pagination first
+//         }
 
-        // ✅ Fetch Deals from Zoho
-        $response = Http::withHeaders([
-            'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
-            'Content-Type'  => 'application/json',
-        ])->get($apiDomain . '/crm/v2/Deals', $queryParams);
+//         // ✅ Fetch Deals from Zoho
+//         $response = Http::withHeaders([
+//             'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+//             'Content-Type'  => 'application/json',
+//         ])->get($apiDomain . '/crm/v2/Deals', $queryParams);
 
-        $dealsData = $response->json();
+//         $dealsData = $response->json();
 
-        if (!isset($dealsData['data']) || empty($dealsData['data'])) {
-            break; // ✅ Stop if no more deals
-        }
+//         if (!isset($dealsData['data']) || empty($dealsData['data'])) {
+//             break; // ✅ Stop if no more deals
+//         }
 
-        // ✅ Merge deals into $allDeals
-        $allDeals = array_merge($allDeals, $dealsData['data']);
+//         // ✅ Merge deals into $allDeals
+//         $allDeals = array_merge($allDeals, $dealsData['data']);
 
-        // ✅ Check if next_page_token exists
-        if (isset($dealsData['info']['next_page_token'])) {
-            $pageToken = $dealsData['info']['next_page_token'];
-        } else {
-            break; // ✅ Stop if no next page
-        }
+//         // ✅ Check if next_page_token exists
+//         if (isset($dealsData['info']['next_page_token'])) {
+//             $pageToken = $dealsData['info']['next_page_token'];
+//         } else {
+//             break; // ✅ Stop if no next page
+//         }
 
-        $page++;
-    }
+//         $page++;
+//     }
 
-    return response()->json([
-        'message' => 'All deals retrieved successfully',
-        'total_deals' => count($allDeals),
-        'deals' => $allDeals
-    ]);
-});
+//     return response()->json([
+//         'message' => 'All deals retrieved successfully',
+//         'total_deals' => count($allDeals),
+//         'deals' => $allDeals
+//     ]);
+// });
 
 // Route::get('/demo-request', DemoRequest::class)->name('demo-request');
 
