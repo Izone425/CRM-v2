@@ -402,6 +402,101 @@ class QuotationRelationManager extends RelationManager
                         ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice-v2', $quotation))
                         ->openUrlInNewTab()
                         ->hidden(fn(Quotation $quotation) => $quotation->status != QuotationStatusEnum::accepted),
+                    Tables\Actions\Action::make('send_quotation')
+                        ->label('Send Quotation')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->modalHeading('Send Quotation')
+                        ->modalDescription(function (Quotation $record) {
+                            $email = $record->lead?->companyDetail?->email ?? $record->lead?->email ?? null;
+                            if (!$email) {
+                                return 'Lead has no email address. Please update the lead details first.';
+                            }
+                            return "This will send the quotation to {$email}.\n\nYou can add a personalized message below:";
+                        })
+                        ->modalSubmitActionLabel('Send')
+                        ->form([
+                            Forms\Components\Textarea::make('message')
+                                ->label('Message (Optional)')
+                                ->placeholder('Add a personalized message to include in the email...')
+                                ->columnSpanFull(),
+                            Forms\Components\Checkbox::make('cc_self')
+                                ->label('Send a copy to myself')
+                                ->default(true),
+                        ])
+                        ->action(function (Quotation $record, array $data) {
+                            $email = $record->lead?->companyDetail?->email ?? $record->lead?->email ?? null;
+
+                            if (!$email) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Missing Email Address')
+                                    ->body('The lead has no email address. Please update the lead details first.')
+                                    ->send();
+                                return;
+                            }
+
+                            try {
+                                // Generate the PDF (you can use your existing service)
+                                $pdfPath = $this->generateQuotationPdf($record);
+
+                                // Send the email with the quotation
+                                $this->sendQuotationEmail(
+                                    $record,
+                                    $email,
+                                    $data['message'] ?? '',
+                                    $pdfPath,
+                                    $data['cc_self'] ?? false
+                                );
+
+                                // Update quotation status to email_sent
+                                $record->status = QuotationStatusEnum::email_sent;
+                                $record->save();
+
+                                // Create activity log for the lead
+                                ActivityLog::create([
+                                    'subject_id' => $record->lead->id,
+                                    'description' => 'Quotation ' . $record->quotation_reference_no . ' sent to client via email.',
+                                    'causer_id' => auth()->id(),
+                                    'causer_type' => get_class(auth()->user()),
+                                    'properties' => json_encode([
+                                        'attributes' => [
+                                            'quotation_reference_no' => $record->quotation_reference_no,
+                                            'email' => $email,
+                                        ],
+                                    ]),
+                                ]);
+
+                                // Log activity for auditing
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($record->lead)
+                                    ->withProperties([
+                                        'attributes' => [
+                                            'quotation_reference_no' => $record->quotation_reference_no,
+                                            'email' => $email,
+                                        ],
+                                    ]);
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Quotation Sent')
+                                    ->body('The quotation has been successfully sent to ' . $email)
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error Sending Quotation')
+                                    ->body('An error occurred: ' . $e->getMessage())
+                                    ->send();
+                            }
+                        })
+                        ->visible(function (Quotation $record) {
+                            // Only show for quotations that haven't been sent yet or are in "new" status
+                            return $record->status === QuotationStatusEnum::new;
+                        })
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->size(ActionSize::ExtraSmall)

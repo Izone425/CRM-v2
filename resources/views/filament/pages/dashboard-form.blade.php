@@ -80,8 +80,13 @@
             </div>
 
         @elseif (auth()->user()->role_id == 2)
-            @include('filament.pages.salesperson')
-
+            <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
+                <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Dashboard</h1>
+            </div>
+            <br>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                @include('filament.pages.salesperson')
+            </div>
         @elseif (auth()->user()->role_id == 3)
         <div class="space-y-4">
             <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
