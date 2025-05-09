@@ -64,9 +64,9 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                     ->formatStateUsing(fn($state): string => Str::upper($state)),
                 TextColumn::make('currency')
                     ->alignCenter(),
-                TextColumn::make('items_sum_total_after_tax')
-                    ->label('Value')
-                    ->sum('items','total_after_tax')
+                TextColumn::make('items_sum_total_before_tax')
+                    ->label('Value (Before Tax)')
+                    ->sum('items','total_before_tax')
                     // ->summarize([
                     //     Sum::make()
                     //         ->label('Total')
