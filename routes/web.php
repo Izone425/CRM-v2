@@ -14,6 +14,7 @@ use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Http\Controllers\MicrosoftAuthController;
 use App\Http\Controllers\PrintPdfController;
 use App\Http\Controllers\ProformaInvoiceController;
+use App\Http\Controllers\SoftwareHandoverExportController;
 use App\Http\Controllers\WhatsAppController;
 use App\Http\Livewire\DemoRequest;
 use App\Livewire\Customer\Login;
@@ -57,6 +58,10 @@ Route::get('software-handover/{softwareHandover}/pdf', GenerateSoftwareHandoverP
 
 Route::get('hardware-handover/{hardwareHandover}/pdf', GenerateHardwareHandoverPdfController::class)
     ->name('hardware-handover.pdf')
+    ->middleware(['auth']);
+
+Route::get('/software-handover/export-customer/{lead}', [App\Http\Controllers\SoftwareHandoverExportController::class, 'exportCustomerCSV'])
+    ->name('software-handover.export-customer')
     ->middleware(['auth']);
 
 Route::get('/demo-request/{lead_code}', function ($lead_code) {

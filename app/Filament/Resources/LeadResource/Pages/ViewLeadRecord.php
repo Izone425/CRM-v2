@@ -49,7 +49,7 @@ class ViewLeadRecord extends ViewRecord
             'On Hold' => '#E5E4E2',
             'Lost' => '#E5E4E2',
             'No Response' => '#E5E4E2',
-            'Closed' => '#E5E4E2',
+            'Closed' => '#00ff3e',
             default => '#cccccc',
         };
 

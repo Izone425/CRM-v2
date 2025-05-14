@@ -12,9 +12,17 @@
         // Get the total amount from quotation items (before tax)
         $totalDealAmount += $quotation->items->sum('total_before_tax');
     }
+
+    if ($lead->deal_amount != $totalDealAmount && $totalDealAmount > 0) {
+        // Using a database transaction to ensure data integrity
+        \Illuminate\Support\Facades\DB::transaction(function() use ($lead, $totalDealAmount) {
+            $lead->deal_amount = $totalDealAmount;
+            $lead->save();
+        });
+    }
 @endphp
 
-<div class="grid gap-6">
+<div class="grid gap-6" wire:poll.1s>
     {{-- Row: Deal Amount + Quotations --}}
     <div style="display: grid; gap: 24px;" class="grid gap-6 md:grid-cols-3">
         {{-- Deal Amount --}}

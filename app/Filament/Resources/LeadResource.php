@@ -151,6 +151,8 @@ class LeadResource extends Resource
                                                                 ->color('primary')
                                                                 ->button()
                                                                 ->visible(function ($record) {
+                                                                    return false;
+
                                                                     // Only show for leads with company details and email
                                                                     return $record &&
                                                                            $record->companyDetail &&
@@ -548,6 +550,15 @@ class LeadResource extends Resource
                                                                         ->required()
 
                                                                 ]),
+                                                            Grid::make(2) // Create a 3-column grid
+                                                                ->schema([
+                                                                    TextInput::make('reg_no_new')
+                                                                        ->label('New Registration No.')
+                                                                        ->default(fn ($record) => $record->companyDetail->reg_no_new ?? '-'),
+                                                                    TextInput::make('reg_no_old')
+                                                                        ->label('Old Registration No.')
+                                                                        ->default(fn ($record) => $record->companyDetail->reg_no_ ?? '-'),
+                                                                ]),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {
                                                             $record = $lead->companyDetail;
@@ -692,11 +703,11 @@ class LeadResource extends Resource
                                                                                 }),
 
                                                                             // Deal Amount Field - Visible only when status is Closed
-                                                                            TextInput::make('deal_amount')
-                                                                                ->label('Close Deal Amount')
-                                                                                ->numeric()
-                                                                                ->hidden(fn (callable $get) => $get('status') !== 'Closed')
-                                                                                ->required(fn (callable $get) => $get('status') === 'Closed'),
+                                                                            // TextInput::make('deal_amount')
+                                                                            //     ->label('Close Deal Amount')
+                                                                            //     ->numeric()
+                                                                            //     ->hidden(fn (callable $get) => $get('status') !== 'Closed')
+                                                                            //     ->required(fn (callable $get) => $get('status') === 'Closed'),
 
                                                                             Textarea::make('remark')
                                                                                 ->label('Remarks')
