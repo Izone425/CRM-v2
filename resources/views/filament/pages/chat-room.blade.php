@@ -78,7 +78,7 @@
                         <div class="flex items-center justify-between">
                             <!-- 👤 Name on the left -->
                             <span class="font-medium text-gray-900 truncate">
-                                {{ \Illuminate\Support\Str::limit($contact->participant_name, 20, '...') }}
+                                {{ \Illuminate\Support\Str::limit($contact->participant_name, 17, '...') }}
                             </span>
 
                             <!-- 🔴 Red dot + Timestamp on the right -->
@@ -315,7 +315,9 @@
                         <i class="fa fa-user-circle" aria-hidden="true"></i>&nbsp;&nbsp;
                         <p class="text-sm text-gray-500">Name</p>
                     </div>
-                    <p class="text-lg font-semibold text-gray-900">{{ $details['name'] }}</p>
+                    <p class="text-lg font-semibold text-gray-900" title="{{ $details['name'] }}">
+                        {{ \Illuminate\Support\Str::limit($details['name'], 17, '...') }}
+                    </p>
                 </div>
 
                 <div class="p-4 bg-white rounded-lg shadow">
@@ -325,7 +327,7 @@
                     </div>
                     <p class="text-lg font-semibold text-gray-900" style="color:#338cf0;">
                         <a href="mailto:{{ $details['email'] }}" class="text-blue-600 hover:underline" title="{{ $details['email'] }}">
-                            {{ \Illuminate\Support\Str::limit($details['email'], 25) }}
+                            {{ \Illuminate\Support\Str::limit($details['email'], 20) }}
                         </a>
                     </p>
                 </div>
@@ -362,7 +364,6 @@
                     <p class="text-lg font-semibold text-gray-900">{{ $details['source'] }}</p>
                 </div>
 
-                <div class="p-4 bg-white rounded-lg shadow">
                     {{-- <button
                         wire:click="markMessagesAsRead({ 'user1': '{{ $selectedChat['user1'] }}', 'user2': '{{ $selectedChat['user2'] }}' })"
                         wire:loading.attr="disabled"
@@ -424,69 +425,68 @@
                         </span>
                     </button> --}}
                     <button
-    wire:click="markMessagesAsRead({ 'user1': '{{ $selectedChat['user1'] }}', 'user2': '{{ $selectedChat['user2'] }}' })"
-    wire:loading.attr="disabled"
-    id="toggle-read-button"
-    class="flex items-center justify-center w-full px-4 py-2 transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-    x-data="{
-        isRead: true,
-        init() {
-            // Check initial state
-            this.checkReadState();
+                        wire:click="markMessagesAsRead({ 'user1': '{{ $selectedChat['user1'] }}', 'user2': '{{ $selectedChat['user2'] }}' })"
+                        wire:loading.attr="disabled"
+                        id="toggle-read-button"
+                        class="flex items-center justify-center w-full px-4 py-2 transition-colors rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        x-data="{
+                            isRead: true,
+                            init() {
+                                // Check initial state
+                                this.checkReadState();
 
-            // Listen for updates from Livewire
-            Livewire.on('read-state-updated', (data) => {
-                if (data.user1 === '{{ $selectedChat['user1'] }}' &&
-                    data.user2 === '{{ $selectedChat['user2'] }}') {
-                    this.isRead = data.isRead;
-                    this.updateButtonStyle();
-                }
-            });
+                                // Listen for updates from Livewire
+                                Livewire.on('read-state-updated', (data) => {
+                                    if (data.user1 === '{{ $selectedChat['user1'] }}' &&
+                                        data.user2 === '{{ $selectedChat['user2'] }}') {
+                                        this.isRead = data.isRead;
+                                        this.updateButtonStyle();
+                                    }
+                                });
 
-            // For immediate visual feedback
-            this.$el.addEventListener('click', () => {
-                // Toggle state on click for immediate visual feedback
-                setTimeout(() => {
-                    this.isRead = !this.isRead;
-                    this.updateButtonStyle();
-                }, 10);
-            });
-        },
-        checkReadState() {
-            // Call a Livewire method to check if there are unread messages
-            @this.checkHasUnreadMessages('{{ $selectedChat['user1'] }}', '{{ $selectedChat['user2'] }}')
-                .then(result => {
-                    this.isRead = !result;
-                    this.updateButtonStyle();
-                });
-        },
-        updateButtonStyle() {
-            // Use inline styles for more reliable color updates
-            if (this.isRead) {
-                this.$el.style.backgroundColor = '#16a34a'; // green-600
-                this.$el.style.color = 'white';
-            } else {
-                this.$el.style.backgroundColor = '#dc2626'; // red-600
-                this.$el.style.color = 'white';
-            }
-        }
-    }"
-    x-init="init()"
-    style="background-color: #16a34a; color: white;"
->
-    <span x-show="isRead" class="flex items-center">
-        <i class="mr-2 fas fa-check-double"></i>
-        <span wire:loading.remove wire:target="markMessagesAsRead">Mark as Unread</span>
-    </span>
-    <span x-show="!isRead" class="flex items-center">
-        <i class="mr-2 fas fa-envelope"></i>
-        <span wire:loading.remove wire:target="markMessagesAsRead">Mark as Read</span>
-    </span>
-    <span wire:loading wire:target="markMessagesAsRead">
-        <i class="mr-1 fas fa-spinner fa-spin"></i> Updating...
-    </span>
-</button>
-                </div>
+                                // For immediate visual feedback
+                                this.$el.addEventListener('click', () => {
+                                    // Toggle state on click for immediate visual feedback
+                                    setTimeout(() => {
+                                        this.isRead = !this.isRead;
+                                        this.updateButtonStyle();
+                                    }, 10);
+                                });
+                            },
+                            checkReadState() {
+                                // Call a Livewire method to check if there are unread messages
+                                @this.checkHasUnreadMessages('{{ $selectedChat['user1'] }}', '{{ $selectedChat['user2'] }}')
+                                    .then(result => {
+                                        this.isRead = !result;
+                                        this.updateButtonStyle();
+                                    });
+                            },
+                            updateButtonStyle() {
+                                // Use inline styles for more reliable color updates
+                                if (this.isRead) {
+                                    this.$el.style.backgroundColor = '#16a34a'; // green-600
+                                    this.$el.style.color = 'white';
+                                } else {
+                                    this.$el.style.backgroundColor = '#dc2626'; // red-600
+                                    this.$el.style.color = 'white';
+                                }
+                            }
+                        }"
+                        x-init="init()"
+                        style="background-color: #16a34a; color: white;"
+                    >
+                        <span x-show="isRead" class="flex items-center">
+                            <i class="mr-2 fas fa-check-double"></i>
+                            <span wire:loading.remove wire:target="markMessagesAsRead">Mark as Unread</span>
+                        </span>
+                        <span x-show="!isRead" class="flex items-center">
+                            <i class="mr-2 fas fa-envelope"></i>
+                            <span wire:loading.remove wire:target="markMessagesAsRead">Mark as Read</span>
+                        </span>
+                        <span wire:loading wire:target="markMessagesAsRead">
+                            <i class="mr-1 fas fa-spinner fa-spin"></i> Updating...
+                        </span>
+                    </button>
             </div>
         </div>
         @endif

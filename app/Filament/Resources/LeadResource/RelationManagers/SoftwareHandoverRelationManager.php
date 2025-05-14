@@ -16,6 +16,7 @@ use App\Models\Quotation;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\SoftwareHandover;
+use App\Services\CategoryService;
 use App\Services\QuotationService;
 use Carbon\Carbon;
 use Coolsam\FilamentFlatpickr\Forms\Components\Flatpickr;
@@ -59,6 +60,8 @@ use Illuminate\View\View;
 class SoftwareHandoverRelationManager extends RelationManager
 {
     protected static string $relationship = 'softwareHandover'; // Define the relationship name in the Lead model
+    protected static ?int $indexRepeater = 0;
+    protected static ?int $indexRepeater2 = 0;
 
     // use InteractsWithTable;
     // use InteractsWithForms;
@@ -74,148 +77,90 @@ class SoftwareHandoverRelationManager extends RelationManager
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
-            // Tables\Actions\Action::make('EInvoiceWarning')
-            //     ->label('Add Software Handover')
-            //     ->icon('heroicon-o-pencil')
-            //     ->color('gray')
-            //     ->visible(fn () => $isEInvoiceIncomplete)
-            //     ->action(function () {
-            //         Notification::make()
-            //             ->warning()
-            //             ->title('Action Required')
-            //             ->body('Please collect all e-invoices information before proceeding with the handover process.')
-            //             ->persistent()
-            //             ->actions([
-            //                 \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
-            //                     ->label('Copy E-Invoice Link')
-            //                     ->button()
-            //                     ->color('primary')
-            //                     // ->url(route('filament.admin.resources.leads.edit', [
-            //                     //     'record' => Encryptor::encrypt($this->getOwnerRecord()->id),
-            //                     //     'activeTab' => 'einvoice'
-            //                     // ]), true)
-            //                     // ->openUrlInNewTab()
-            //                     ->close(),
-            //                 \Filament\Notifications\Actions\Action::make('cancel')
-            //                     ->label('Cancel')
-            //                     ->close(),
-            //             ])
-            //             ->send();
-            //     }),
+            Tables\Actions\Action::make('EInvoiceWarning')
+                ->label('Add Software Handover')
+                ->icon('heroicon-o-pencil')
+                ->color('gray')
+                ->visible(function () {
+                    $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+                    // $isEInvoiceIncomplete = $this->isEInvoiceDetailsIncomplete();
+
+                    // Only show this warning if:
+                    // 1. The lead status is NOT closed, AND
+                    // 2. The e-invoice information is incomplete
+                    // return $leadStatus !== 'Closed' && $isEInvoiceIncomplete;
+                    return $leadStatus !== 'Closed';
+                })
+                ->action(function () {
+                    Notification::make()
+                        ->warning()
+                        ->title('Action Required')
+                        ->body('Please close the lead before proceeding with the software handover.')
+                        ->persistent()
+                        // ->actions([
+                        //     \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
+                        //         ->label('Copy E-Invoice Link')
+                        //         ->button()
+                        //         ->color('primary')
+                        //         ->close(),
+                        //     \Filament\Notifications\Actions\Action::make('cancel')
+                        //         ->label('Cancel')
+                        //         ->close(),
+                        // ])
+                        ->send();
+                }),
 
             // Action 2: Actual form when e-invoice is complete
             Tables\Actions\Action::make('AddSoftwareHandover')
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-pencil')
                 ->color('primary')
-                // ->visible(fn () => !$isEInvoiceIncomplete)
+                ->visible(function () {
+                    $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+                    return $leadStatus === 'Closed';
+                })
                 ->slideOver()
                 ->modalHeading('Add Software Handover')
                 ->modalWidth(MaxWidth::SevenExtraLarge)
                 ->modalSubmitActionLabel('Save')
                 ->form([
-                    Section::make('Section 1: Company Details')
-                        ->description('Add contact name and email information, for admin to use')
+                    Section::make('Section 1: DATABASE - NON PAYROLL')
+                        ->collapsible()
                         ->schema([
                             Grid::make(2)
                                 ->schema([
                                     TextInput::make('company_name')
                                         ->label('Company Name')
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                    TextInput::make('industry')
-                                        ->label('Industry')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->industry ?? null),
+                                    TextInput::make('salesperson')
+                                        ->readOnly()
+                                        ->label('Salesperson')
+                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
                                 ]),
                             Grid::make(2)
                                 ->schema([
                                     TextInput::make('headcount')
-                                        ->label('Headcount')
-                                        ->default(fn () => $this->getOwnerRecord()->company_size ?? null),
-                                    Select::make('country')
-                                        ->label('Country')
-                                        ->default(fn () => $this->getOwnerRecord()->country ?? null)
-                                        ->options(function () {
-                                            $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                                            if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                // Map 3-letter country codes to full country names
-                                                return collect($countries)->mapWithKeys(function ($country) {
-                                                    return [$country['Code'] => ucfirst(strtolower($country['Country']))];
-                                                })->toArray();
-                                            }
-
-                                            return [];
+                                        ->numeric()
+                                        ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
+                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
+                                            /**
+                                             * set this company's category based on head count
+                                             */
+                                            $set('category', $category->retrieve($state));
                                         })
-                                        ->dehydrateStateUsing(function ($state) {
-                                            // Convert the selected code to the full country name
-                                            $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                                            if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                foreach ($countries as $country) {
-                                                    if ($country['Code'] === $state) {
-                                                        return ucfirst(strtolower($country['Country']));
-                                                    }
-                                                }
-                                            }
-
-                                            return $state; // Fallback to the original state if mapping fails
-                                        })
-                                        ->searchable()
-                                        ->preload(),
+                                        ->required(),
+                                    TextInput::make('category')
+                                        ->autocapitalize()
+                                        ->placeholder('Select a category')
+                                        // ->options([
+                                        //     'small' => 'SMALL',
+                                        //     'medium' => 'MEDIUM',
+                                        //     'large' => 'LARGE',
+                                        //     'enterprise' => 'ENTERPRISE'
+                                        // ])
+                                        // ->searchable()
+                                        ->readOnly(),
                                 ]),
-                            Grid::make(2)
-                                ->schema([
-                                    Select::make('state')
-                                        ->label('State')
-                                        ->default(fn () => $this->getOwnerRecord()->state ?? $this->getOwnerRecord()->companyDetail->state ?? null)
-                                        ->options(function () {
-                                            $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                            if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                // Map 3-letter country codes to full country names
-                                                return collect($countries)->mapWithKeys(function ($country) {
-                                                    return [$country['Code'] => ucfirst(strtolower($country['State']))];
-                                                })->toArray();
-                                            }
-
-                                            return [];
-                                        })
-                                        ->dehydrateStateUsing(function ($state) {
-                                            // Convert the selected code to the full country name
-                                            $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                            if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                foreach ($countries as $country) {
-                                                    if ($country['Code'] === $state) {
-                                                        return ucfirst(strtolower($country['State']));
-                                                    }
-                                                }
-                                            }
-
-                                            return $state; // Fallback to the original state if mapping fails
-                                        })
-                                        ->searchable()
-                                        ->preload(),
-                                    TextInput::make('salesperson')
-                                        ->label('Salesperson')
-                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
-                                ]),
-                        ]),
-
-                    Section::make('Section 2: Superadmin Details')
-                        ->schema([
                             Grid::make(2)
                                 ->schema([
                                     TextInput::make('pic_name')
@@ -225,69 +170,44 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->label('PIC HP No.')
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                 ]),
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('email')
-                                        ->label('Email Address')
-                                        ->email()
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email),
-                                    TextInput::make('password')
-                                        ->label('Password'),
-                                ]),
                         ]),
 
-                    Section::make('Section 3: Invoice Details')
-                        ->description('Add all required billing information, for admin to use')
+                    Section::make('Section 2: DATABASE - PAYROLL')
                         ->schema([
                             Grid::make(2)
                                 ->schema([
-                                    TextInput::make('company_name_invoice')
-                                        ->label('Company Name (Invoice)')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                    TextInput::make('company_address')
-                                        ->label('Company Address')
+                                    TextInput::make('account_name')
+                                        ->label('Account Name')
+                                        ->readOnly()
                                         ->default(function () {
-                                            $record = $this->getOwnerRecord();
-                                            $companyDetail = $record->companyDetail ?? null;
+                                            // For new records, get the next ID by counting existing records + 1
+                                            $nextId = \App\Models\SoftwareHandover::count() + 1;
 
-                                            if (!$companyDetail) {
-                                                return null;
-                                            }
-
-                                            $address = [];
-
-                                            if (!empty($companyDetail->company_address1)) {
-                                                $address[] = $companyDetail->company_address1;
-                                            }
-
-                                            if (!empty($companyDetail->company_address2)) {
-                                                $address[] = $companyDetail->company_address2;
-                                            }
-
-                                            if (!empty($companyDetail->postcode)) {
-                                                $address[] = $companyDetail->postcode;
-                                            }
-
-                                            return !empty($address) ? implode(', ', $address) : null;
+                                            // Format with TTC prefix and ID
+                                            return "TTC{$nextId}";
                                         }),
+                                    TextInput::make('company_name')
+                                        ->label('Company Name')
+                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                 ]),
-                            Grid::make(2)
+                        ]),
+
+                    Section::make('Section 3: INVOICE INFOFORMATION')
+                        ->schema([
+                            Grid::make(1)
                                 ->schema([
-                                    TextInput::make('salesperson_invoice')
-                                        ->label('Salesperson (Invoice)')
-                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
-                                    TextInput::make('pic_name_invoice')
-                                        ->label('PIC Name (Invoice)')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                ]),
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('pic_email_invoice')
-                                        ->label('PIC Email (Invoice)')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email),
-                                    TextInput::make('pic_phone_invoice')
-                                        ->label('PIC HP No. (Invoice)')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
+                                    Forms\Components\Actions::make([
+                                        Forms\Components\Actions\Action::make('export_invoice_info')
+                                            ->label('Export Invoice Information to Excel')
+                                            ->color('success')
+                                            ->icon('heroicon-o-document-arrow-down')
+                                            ->url(function () {
+                                                $leadId = $this->getOwnerRecord()->id;
+                                                return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($leadId)]);
+                                            })
+                                            ->openUrlInNewTab(),
+                                    ])
+                                    ->extraAttributes(['class' => 'space-y-2']),
                                 ]),
                         ]),
 
@@ -306,105 +226,72 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->label('Email Address')
                                         ->email(),
                                 ])
+                                ->itemLabel(fn() => __('PIC') . ' ' . ++self::$indexRepeater)
                                 ->columns(2),
                         ]),
 
-                    Section::make('Section 5: Module Subscription')
-                        ->schema([
-                            Forms\Components\Repeater::make('modules')
-                                ->label('Modules')
-                                ->schema([
-                                    Select::make('module_name')
-                                        ->label('Module Name')
-                                        ->options([
-                                            'Attendance' => 'Attendance',
-                                            'Leave' => 'Leave',
-                                            'Claim' => 'Claim',
-                                            'Payroll' => 'Payroll',
-                                            'Appraisal' => 'Appraisal',
-                                            'Recruitment' => 'Recruitment',
-                                            'Power BI' => 'Power BI',
-                                        ]),
-                                    TextInput::make('headcount')
-                                        ->numeric()
-                                        ->label('Headcount'),
-                                    TextInput::make('subscription_months')
-                                        ->numeric()
-                                        ->label('Subscription Months'),
-                                    Select::make('purchase_type')
-                                        ->label('Purchase Type')
-                                        ->options(SoftwareHandover::getPurchaseTypeOptions()),
-                                ])
-                                ->columns(4),
-                        ]),
+                    Section::make('Section 5: REMARK INFORMATION')
+                            ->schema([
+                                Forms\Components\Repeater::make('remarks')
+                                    ->label('Remarks')
+                                    ->schema([
+                                        Textarea::make('remark')
+                                            ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                // Get the current array key from the state path
+                                                $statePath = $livewire->getFormStatePath();
+                                                $matches = [];
+                                                if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                    $index = (int) $matches[1];
+                                                    return 'Remark ' . ($index + 1);
+                                                }
 
-                    Section::make('Section 6: Other Details')
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('customization_details')
-                                        ->label('Customization Details'),
-                                    Textarea::make('enhancement_details')
-                                        ->label('Enhancement Details'),
-                                ]),
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('special_remark')
-                                        ->label('Special Remark'),
-                                    Textarea::make('device_integration')
-                                        ->label('Device Integration'),
-                                ]),
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('existing_hr_system')
-                                        ->label('Existing HR System'),
-                                    Textarea::make('experience_implementing_hr_system')
-                                        ->label('Experience Implementing Any HR System'),
-                                ]),
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('vip_package')
-                                        ->label('VIP Package'),
-                                    Textarea::make('fingertec_device')
-                                        ->label('FingerTec Device'),
-                                ]),
-                        ]),
+                                                return 'Remark';
+                                            })
+                                            ->placeholder('Enter remark here')
+                                            ->rows(3),
+                                    ])
+                                    ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
+                                    ->addActionLabel('Add Another Remark')
+                                    ->defaultItems(1),
+                            ]),
 
-                    Section::make('Section 7: Onsite Package')
-                        ->schema([
-                            Grid::make(3)
-                                ->schema([
-                                    Checkbox::make('onsite_kick_off_meeting')
-                                        ->label('Onsite Kick Off Meeting'),
-                                    Checkbox::make('onsite_webinar_training')
-                                        ->label('Onsite Webinar Training'),
-                                    Checkbox::make('onsite_briefing')
-                                        ->label('Onsite Briefing'),
-                                ]),
-                        ]),
+
                     Grid::make(3)
                         ->schema([
-                            Section::make('Section 8: Payment Terms')
+                            Section::make('Section 6: TRAINING')
+                            ->columnSpan(1)
+                            ->schema([
+                                Forms\Components\Radio::make('training_type')
+                                    ->label('')
+                                    ->options([
+                                        'onsite_webinar_training' => 'Onsite Webinar Training',
+                                        'online_hrdf_training' => 'Onsite HRDF Training',
+                                    ])
+                                    ->inline()
+                                    ->required(),
+                            ]),
+                            Section::make('Section 7: PROFORMA INVOICE')
                                 ->columnSpan(1) // Ensure it spans one column
                                 ->schema([
-                                    Forms\Components\Radio::make('payment_term') // Change Select to Radio
-                                        ->label('Select Payment Terms')
-                                        ->options([
-                                            'full_payment' => 'Full Payment',
-                                            'payment_via_hrdf' => 'Payment via HRDF',
-                                            'payment_via_term' => 'Payment via Term',
-                                        ])
-                                        ->reactive(), // Make it reactive to trigger changes
-                                ]),
-
-                            Section::make('Section 9: Proforma Invoices')
-                                ->columnSpan(1) // Ensure it spans one column
-                                ->schema([
-                                    Select::make('proforma_invoice_number')
-                                        ->label('Proforma Invoice Number')
+                                    Select::make('proforma_invoice_product')
+                                        ->label('Proforma Invoice Product')
                                         ->options(function (RelationManager $livewire) {
                                             $leadId = $livewire->getOwnerRecord()->id;
                                             return \App\Models\Quotation::where('lead_id', $leadId)
+                                                ->where('quotation_type', 'product')
+                                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                ->pluck('pi_reference_no', 'id')
+                                                ->toArray();
+                                        })
+                                        ->multiple()
+                                        ->searchable()
+                                        ->preload(),
+                                    Select::make('proforma_invoice_hrdf')
+                                        ->label('Proforma Invoice HRDF')
+                                        ->options(function (RelationManager $livewire) {
+                                            $leadId = $livewire->getOwnerRecord()->id;
+                                            return \App\Models\Quotation::where('lead_id', $leadId)
+                                                ->where('quotation_type', 'hrdf')
                                                 ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                                 ->pluck('pi_reference_no', 'id')
                                                 ->toArray();
@@ -414,7 +301,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->preload(),
                                 ]),
 
-                            Section::make('Section 10: Attachments')
+                            Section::make('Section 8: ATTACHMENTS')
                                 ->columnSpan(1) // Ensure it spans one column
                                 ->schema([
                                     Grid::make(1)
@@ -428,16 +315,24 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             ->maxFiles(3)
                                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
 
+                                        FileUpload::make('hrdf_grant_file')
+                                            ->label('Upload HRDF Grant Approval Letter')
+                                            ->disk('public')
+                                            ->directory('handovers/hrdf_grant')
+                                            ->visibility('public')
+                                            ->multiple()
+                                            ->maxFiles(3)
+                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+
                                         FileUpload::make('payment_slip_file')
-                                            ->label(fn (callable $get) => $get('payment_term') === 'payment_via_hrdf' ? 'Upload HRDF Approval Letter' : 'Upload Payment Slip')
+                                            ->label('Upload Payment Slip')
                                             ->disk('public')
                                             ->live(debounce:500)
                                             ->directory('handovers/payment_slips')
                                             ->visibility('public')
                                             ->multiple()
                                             ->maxFiles(3)
-                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                            ->helperText(fn (callable $get) => $get('payment_term') === 'payment_via_hrdf' ? 'Only PDF, JPEG, or PNG format, max 10MB (HRDF Approval Letter)' : 'Only PDF, JPEG, or PNG format, max 10MB'),
+                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
                                         ])
                                 ]),
                     ]),
@@ -456,10 +351,13 @@ class SoftwareHandoverRelationManager extends RelationManager
                         $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
                     }
 
-                    if (isset($data['proforma_invoice_number']) && is_array($data['proforma_invoice_number'])) {
-                        $data['proforma_invoice_number'] = json_encode($data['proforma_invoice_number']);
+                    if (isset($data['proforma_invoice_hrdf']) && is_array($data['proforma_invoice_hrdf'])) {
+                        $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
                     }
 
+                    if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
+                        $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
+                    }
                     // Create the handover record
                     $handover = SoftwareHandover::create($data);
 
@@ -534,292 +432,98 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->slideOver()
                         ->form([
-                            Section::make('Section 1: Company Details')
-                                ->description('Add contact name and email information, for admin to use')
+                            Section::make('Section 1: DATABASE - NON PAYROLL')
+                                ->collapsible()
                                 ->schema([
                                     Grid::make(2)
                                         ->schema([
                                             TextInput::make('company_name')
                                                 ->label('Company Name')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->company_name) {
-                                                        return $record->company_name;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->company_name ?? null;
-                                                }),
-                                            Select::make('industry')
-                                                ->label('Industry')
-                                                ->placeholder('Select an industry')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->industry) {
-                                                        return $record->industry;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->industry ?? null;
-                                                })
-                                                ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
-                                                ->searchable()
-                                                ->required()
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                                            TextInput::make('salesperson')
+                                                ->readOnly()
+                                                ->label('Salesperson')
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
                                         ]),
                                     Grid::make(2)
                                         ->schema([
                                             TextInput::make('headcount')
-                                                ->label('Headcount')
-                                                ->default(function (SoftwareHandover $record) {
+                                                ->numeric()
+                                                ->live(debounce:550)
+                                                ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
+                                                    $set('category', $category->retrieve($state));
+                                                })
+                                                ->default(fn (SoftwareHandover $record) => $record->headcount ?? null)
+                                                ->required(),
+                                            TextInput::make('category')
+                                                ->autocapitalize()
+                                                ->live(debounce:550)
+                                                ->placeholder('Select a category')
+                                                ->default(function (SoftwareHandover $record, CategoryService $category) {
+                                                    // If record exists with headcount, calculate category from headcount
                                                     if ($record && $record->headcount) {
-                                                        return $record->headcount;
+                                                        return $category->retrieve($record->headcount);
                                                     }
-                                                    return $this->getOwnerRecord()->companyDetail->company_size ?? null;
-                                                }),
-                                            Select::make('country')
-                                                ->label('Country')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->country) {
-                                                        return $record->country;
+                                                    // If record has a saved category, use that
+                                                    if ($record && $record->category) {
+                                                        return $record->category;
                                                     }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->country ?? null;
+                                                    return null;
                                                 })
-                                                ->options(function () {
-                                                    $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                                                    if (file_exists($filePath)) {
-                                                        $countriesContent = file_get_contents($filePath);
-                                                        $countries = json_decode($countriesContent, true);
-
-                                                        // Map 3-letter country codes to full country names
-                                                        return collect($countries)->mapWithKeys(function ($country) {
-                                                            return [$country['Code'] => ucfirst(strtolower($country['Country']))];
-                                                        })->toArray();
-                                                    }
-
-                                                    return [];
-                                                })
-                                                ->dehydrateStateUsing(function ($state) {
-                                                    // Convert the selected code to the full country name
-                                                    $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                                                    if (file_exists($filePath)) {
-                                                        $countriesContent = file_get_contents($filePath);
-                                                        $countries = json_decode($countriesContent, true);
-
-                                                        foreach ($countries as $country) {
-                                                            if ($country['Code'] === $state) {
-                                                                return ucfirst(strtolower($country['Country']));
-                                                            }
-                                                        }
-                                                    }
-
-                                                    return $state; // Fallback to the original state if mapping fails
-                                                })
-                                                ->searchable()
-                                                ->preload(),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            Select::make('state')
-                                                ->label('State')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->state) {
-                                                        return $record->state;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->state ?? null;
-                                                })
-                                                ->options(function () {
-                                                    $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                                    if (file_exists($filePath)) {
-                                                        $countriesContent = file_get_contents($filePath);
-                                                        $countries = json_decode($countriesContent, true);
-
-                                                        // Map 3-letter country codes to full country names
-                                                        return collect($countries)->mapWithKeys(function ($country) {
-                                                            return [$country['Code'] => ucfirst(strtolower($country['State']))];
-                                                        })->toArray();
-                                                    }
-
-                                                    return [];
-                                                })
-                                                ->dehydrateStateUsing(function ($state) {
-                                                    // Convert the selected code to the full country name
-                                                    $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                                    if (file_exists($filePath)) {
-                                                        $countriesContent = file_get_contents($filePath);
-                                                        $countries = json_decode($countriesContent, true);
-
-                                                        foreach ($countries as $country) {
-                                                            if ($country['Code'] === $state) {
-                                                                return ucfirst(strtolower($country['State']));
-                                                            }
-                                                        }
-                                                    }
-
-                                                    return $state; // Fallback to the original state if mapping fails
-                                                })
-                                                ->searchable()
-                                                ->preload(),
-                                            TextInput::make('salesperson')
-                                                ->label('Salesperson')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->salesperson) {
-                                                        return $record->salesperson;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->salesperson ?? null;
-                                                }),
-                                        ]),
-                                ]),
-
-                            Section::make('Section 2: Superadmin Details')
-                                ->schema([
+                                                ->readOnly(),
+                                       ]),
                                     Grid::make(2)
                                         ->schema([
                                             TextInput::make('pic_name')
                                                 ->label('PIC Name')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->pic_name) {
-                                                        return $record->pic_name;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name;
-                                                }),
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                             TextInput::make('pic_phone')
                                                 ->label('PIC HP No.')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->pic_phone) {
-                                                        return $record->pic_phone;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone;
-                                                }),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('email')
-                                                ->label('Email Address')
-                                                ->email()
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if ($record && $record->email) {
-                                                        return $record->email;
-                                                    }
-                                                    return $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email;
-                                                }),
-                                            TextInput::make('password')
-                                                ->label('Password')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // Only include this if you're storing passwords in plaintext,
-                                                    // which you generally shouldn't do
-                                                    if ($record && $record->password) {
-                                                        return $record->password;
-                                                    }
-                                                    return null;
-                                                }),
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                         ]),
                                 ]),
 
-                            Section::make('Section 3: Invoice Details')
-                                ->description('Add all required billing information, for admin to use')
+                            Section::make('Section 2: DATABASE - PAYROLL')
                                 ->schema([
                                     Grid::make(2)
                                         ->schema([
-                                            TextInput::make('company_name_invoice')
-                                                ->label('Company Name (Invoice)')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->company_name_invoice) {
-                                                        return $record->company_name_invoice;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->company_name ?? null;
+                                            TextInput::make('account_name')
+                                                ->label('Account Name')
+                                                ->readOnly()
+                                                ->default(function () {
+                                                    // For new records, get the next ID by counting existing records + 1
+                                                    $nextId = \App\Models\SoftwareHandover::count() + 1;
+
+                                                    // Format with TTC prefix and ID
+                                                    return "TTC{$nextId}";
                                                 }),
-                                            TextInput::make('company_address')
-                                                ->label('Company Address')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->company_address) {
-                                                        return $record->company_address;
-                                                    }
-
-                                                    // Otherwise fall back to owner record
-                                                    $record = $this->getOwnerRecord();
-                                                    $companyDetail = $record->companyDetail ?? null;
-
-                                                    if (!$companyDetail) {
-                                                        return null;
-                                                    }
-
-                                                    $address = [];
-
-                                                    if (!empty($companyDetail->company_address1)) {
-                                                        $address[] = $companyDetail->company_address1;
-                                                    }
-
-                                                    if (!empty($companyDetail->company_address2)) {
-                                                        $address[] = $companyDetail->company_address2;
-                                                    }
-
-                                                    if (!empty($companyDetail->postcode)) {
-                                                        $address[] = $companyDetail->postcode;
-                                                    }
-
-                                                    return !empty($address) ? implode(', ', $address) : null;
-                                                }),
+                                            TextInput::make('company_name')
+                                                ->label('Company Name')
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                         ]),
-                                    Grid::make(2)
+                                ]),
+
+                            Section::make('Section 3: INVOICE INFOFORMATION')
+                                ->schema([
+                                    Grid::make(1)
                                         ->schema([
-                                            TextInput::make('salesperson_invoice')
-                                                ->label('Salesperson (Invoice)')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->salesperson_invoice) {
-                                                        return $record->salesperson_invoice;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null;
-                                                }),
-                                            TextInput::make('pic_name_invoice')
-                                                ->label('PIC Name (Invoice)')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->pic_name_invoice) {
-                                                        return $record->pic_name_invoice;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name;
-                                                }),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('pic_email_invoice')
-                                                ->label('PIC Email (Invoice)')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->pic_email_invoice) {
-                                                        return $record->pic_email_invoice;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email;
-                                                }),
-                                            TextInput::make('pic_phone_invoice')
-                                                ->label('PIC HP No. (Invoice)')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    // If we have a record (editing), use it
-                                                    if ($record && $record->pic_phone_invoice) {
-                                                        return $record->pic_phone_invoice;
-                                                    }
-                                                    // Otherwise fall back to owner record
-                                                    return $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone;
-                                                }),
+                                            Forms\Components\Actions::make([
+                                                Forms\Components\Actions\Action::make('export_invoice_info')
+                                                    ->label('Export Invoice Information to Excel')
+                                                    ->color('success')
+                                                    ->icon('heroicon-o-document-arrow-down')
+                                                    ->url(function () {
+                                                        $leadId = $this->getOwnerRecord()->id;
+                                                        return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($leadId)]);
+                                                    })
+                                                    ->openUrlInNewTab(),
+                                            ])
+                                            ->extraAttributes(['class' => 'space-y-2']),
                                         ]),
                                 ]),
 
@@ -838,8 +542,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->label('Email Address')
                                                 ->email(),
                                         ])
+                                        ->itemLabel(fn() => __('PIC') . ' ' . ++self::$indexRepeater)
                                         ->columns(2)
-                                        ->defaultItems(1)
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->implementation_pics) {
                                                 // If it's a string, decode it
@@ -851,341 +555,191 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                     return $record->implementation_pics;
                                                 }
                                             }
-                                            // Default empty item
-                                            return [[
-                                                'pic_name_impl' => null,
-                                                'position' => null,
-                                                'pic_phone_impl' => null,
-                                                'pic_email_impl' => null
-                                            ]];
+                                            return [];
                                         }),
                                 ]),
 
-                            Section::make('Section 5: Module Subscription')
+                            Section::make('Section 5: REMARK INFORMATION')
                                 ->schema([
-                                    Forms\Components\Repeater::make('modules')
-                                        ->label('Modules')
+                                    Forms\Components\Repeater::make('remarks')
+                                        ->label('Remarks')
                                         ->schema([
-                                            Select::make('module_name')
-                                                ->label('Module Name')
-                                                ->options([
-                                                    'Attendance' => 'Attendance',
-                                                    'Leave' => 'Leave',
-                                                    'Claim' => 'Claim',
-                                                    'Payroll' => 'Payroll',
-                                                    'Appraisal' => 'Appraisal',
-                                                    'Recruitment' => 'Recruitment',
-                                                    'Power BI' => 'Power BI',
-                                                ]),
-                                            TextInput::make('headcount')
-                                                ->numeric()
-                                                ->label('Headcount'),
-                                            TextInput::make('subscription_months')
-                                                ->numeric()
-                                                ->label('Subscription Months'),
-                                            Select::make('purchase_type')
-                                                ->label('Purchase Type')
-                                                ->options(SoftwareHandover::getPurchaseTypeOptions()),
-                                        ])
-                                        ->columns(4)
-                                        ->default(function (SoftwareHandover $record) {
-                                            if (!$record) {
-                                                return [];
-                                            }
-
-                                            // First try to get modules directly from the 'modules' field
-                                            if ($record->modules) {
-                                                // If it's a string, try to decode it
-                                                if (is_string($record->modules)) {
-                                                    $decodedModules = json_decode($record->modules, true);
-                                                    if (is_array($decodedModules) && !empty($decodedModules)) {
-                                                        return $decodedModules;
+                                            Textarea::make('remark')
+                                                ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                    // Get the current array key from the state path
+                                                    $statePath = $livewire->getFormStatePath();
+                                                    $matches = [];
+                                                    if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                        $index = (int) $matches[1];
+                                                        return 'Remark ' . ($index + 1);
                                                     }
+                                                    return 'Remark';
+                                                })
+                                                ->placeholder('Enter remark here')
+                                                ->rows(3),
+                                        ])
+                                        ->itemLabel(function (array $state, Forms\Components\Component $component) {
+                                            // Extract the index from the state path using regex
+                                            $statePath = $component->getStatePath();
+                                            $matches = [];
+                                            if (preg_match('/remarks\.(\d+)/', $statePath, $matches)) {
+                                                $index = (int) $matches[1];
+                                                return 'Remark ' . ($index + 1);
+                                            }
+                                            return 'Remark';
+                                        })
+                                        ->addActionLabel('Add Another Remark')
+                                        ->default(function (SoftwareHandover $record) {
+                                            if ($record && $record->remarks) {
+                                                // If it's a string, decode it
+                                                if (is_string($record->remarks)) {
+                                                    return json_decode($record->remarks, true);
                                                 }
-
                                                 // If it's already an array, return it
-                                                if (is_array($record->modules) && !empty($record->modules)) {
-                                                    return $record->modules;
+                                                if (is_array($record->remarks)) {
+                                                    return $record->remarks;
                                                 }
                                             }
-
-                                            // If no modules found in the main field, try to build from individual fields
-                                            $moduleData = [];
-                                            $moduleNames = ['attendance', 'leave', 'claim', 'payroll', 'appraisal', 'recruitment', 'power_bi'];
-
-                                            foreach ($moduleNames as $module) {
-                                                $headcountField = "{$module}_module_headcount";
-                                                $subscriptionField = "{$module}_subscription_months";
-                                                $purchaseTypeField = "{$module}_purchase_type";
-
-                                                if (!empty($record->$headcountField) ||
-                                                    !empty($record->$subscriptionField) ||
-                                                    !empty($record->$purchaseTypeField)) {
-
-                                                    $moduleData[] = [
-                                                        'module_name' => ucfirst($module === 'power_bi' ? 'Power BI' : $module),
-                                                        'headcount' => $record->$headcountField ?? '',
-                                                        'subscription_months' => $record->$subscriptionField ?? '',
-                                                        'purchase_type' => $record->$purchaseTypeField ?? '',
-                                                    ];
-                                                }
-                                            }
-
-                                            return $moduleData;
+                                            return [];
                                         }),
                                 ]),
 
-                            Section::make('Section 6: Other Details')
-                                ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('customization_details')
-                                                ->label('Customization Details')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->customization_details ?? '-';
-                                                }),
-                                            Textarea::make('enhancement_details')
-                                                ->label('Enhancement Details')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->enhancement_details ?? '-';
-                                                }),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('special_remark')
-                                                ->label('Special Remark')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->special_remark ?? '-';
-                                                }),
-                                            Textarea::make('device_integration')
-                                                ->label('Device Integration')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->device_integration ?? '-';
-                                                }),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('existing_hr_system')
-                                                ->label('Existing HR System')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->existing_hr_system ?? '-';
-                                                }),
-                                            Textarea::make('experience_implementing_hr_system')
-                                                ->label('Experience Implementing Any HR System')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->experience_implementing_hr_system ?? '-';
-                                                }),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('vip_package')
-                                                ->label('VIP Package')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->vip_package ?? '-';
-                                                }),
-                                            Textarea::make('fingertec_device')
-                                                ->label('FingerTec Device')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->fingertec_device ?? '-';
-                                                }),
-                                        ]),
-                                ]),
-
-                            Section::make('Section 7: Onsite Package')
-                                ->schema([
-                                    Grid::make(3)
-                                        ->schema([
-                                            Checkbox::make('onsite_kick_off_meeting')
-                                                ->label('Onsite Kick Off Meeting')
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->onsite_kick_off_meeting ?? false;
-                                                }),
-                                            Checkbox::make('onsite_webinar_training')
-                                                ->label('Onsite Webinar Training')
-                                                ->default(function (SoftwareHandover $record ) {
-                                                    return $record?->onsite_webinar_training ?? false;
-                                                }),
-                                            Checkbox::make('onsite_briefing')
-                                                ->label('Onsite Briefing')
-                                                ->default(function (SoftwareHandover $record ) {
-                                                    return $record?->onsite_briefing ?? false;
-                                                }),
-                                        ]),
-                                ]),
                             Grid::make(3)
                                 ->schema([
-                                    Section::make('Section 8: Payment Terms')
-                                        ->columnSpan(1) // Ensure it spans one column
-                                        ->schema([
-                                            Forms\Components\Radio::make('payment_term') // Change Select to Radio
-                                                ->label('Select Payment Terms')
-                                                ->options([
-                                                    'full_payment' => 'Full Payment',
-                                                    'payment_via_hrdf' => 'Payment via HRDF',
-                                                    'payment_via_term' => 'Payment via Term',
-                                                ])
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $record?->payment_term ?? 'full_payment';
-                                                })
-                                                ->reactive(), // Make it reactive to trigger changes
-                                        ]),
+                                    Section::make('Section 6: TRAINING')
+                                    ->columnSpan(1)
+                                    ->schema([
+                                        Forms\Components\Radio::make('training_type')
+                                            ->label('')
+                                            ->options([
+                                                'onsite_webinar_training' => 'Onsite Webinar Training',
+                                                'online_hrdf_training' => 'Onsite HRDF Training',
+                                            ])
+                                            ->inline()
+                                            ->default(fn (SoftwareHandover $record) => $record->training_type ?? null)
+                                            ->required(),
+                                    ]),
 
-                                    Section::make('Section 9: Proforma Invoices')
-                                        ->columnSpan(1) // Ensure it spans one column
+                                    Section::make('Section 7: PROFORMA INVOICE')
+                                        ->columnSpan(1)
                                         ->schema([
-                                            Select::make('proforma_invoice_number')
-                                                ->label('Proforma Invoice Number')
+                                            Select::make('proforma_invoice_product')
+                                                ->label('Proforma Invoice Product')
                                                 ->options(function (RelationManager $livewire) {
                                                     $leadId = $livewire->getOwnerRecord()->id;
                                                     return \App\Models\Quotation::where('lead_id', $leadId)
+                                                        ->where('quotation_type', 'product')
                                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                                         ->pluck('pi_reference_no', 'id')
                                                         ->toArray();
                                                 })
+                                                ->multiple()
+                                                ->searchable()
+                                                ->preload()
                                                 ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->proforma_invoice_number) {
+                                                    if (!$record || !$record->proforma_invoice_product) {
                                                         return [];
                                                     }
-
-                                                    // Handle string JSON format
-                                                    if (is_string($record->proforma_invoice_number)) {
-                                                        try {
-                                                            $decoded = json_decode($record->proforma_invoice_number, true);
-                                                            if (is_array($decoded)) {
-                                                                return $decoded;
-                                                            }
-                                                        } catch (\Exception $e) {
-                                                            // If JSON decode fails, treat as a single value
-                                                        }
-
-                                                        // If not JSON or decode failed, handle as a single string
-                                                        return [$record->proforma_invoice_number];
+                                                    if (is_string($record->proforma_invoice_product)) {
+                                                        return json_decode($record->proforma_invoice_product, true) ?? [];
                                                     }
-
-                                                    // If already an array, return as is
-                                                    if (is_array($record->proforma_invoice_number)) {
-                                                        return $record->proforma_invoice_number;
-                                                    }
-
-                                                    // If a single non-string/non-array value
-                                                    return [$record->proforma_invoice_number];
+                                                    return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                                                }),
+                                            Select::make('proforma_invoice_hrdf')
+                                                ->label('Proforma Invoice HRDF')
+                                                ->options(function (RelationManager $livewire) {
+                                                    $leadId = $livewire->getOwnerRecord()->id;
+                                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                                        ->where('quotation_type', 'hrdf')
+                                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                        ->pluck('pi_reference_no', 'id')
+                                                        ->toArray();
                                                 })
                                                 ->multiple()
                                                 ->searchable()
-                                                ->preload(),
+                                                ->preload()
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->proforma_invoice_hrdf) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->proforma_invoice_hrdf)) {
+                                                        return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                                    }
+                                                    return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                                                }),
                                         ]),
 
-                                    Section::make('Section 10: Attachments')
-                                        ->columnSpan(1) // Ensure it spans one column
+                                    Section::make('Section 8: ATTACHMENTS')
+                                        ->columnSpan(1)
                                         ->schema([
                                             Grid::make(1)
                                                 ->schema([
-                                                FileUpload::make('confirmation_order_file')
-                                                    ->label('Upload Confirmation Order')
-                                                    ->disk('public')
-                                                    ->directory('handovers/confirmation_orders')
-                                                    ->visibility('public')
-                                                    ->multiple()
-                                                    ->maxFiles(3)
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                    ->default(function (SoftwareHandover $record) {
-                                                        if (!$record || !$record->confirmation_order_file) {
-                                                            return [];
-                                                        }
-
-                                                        // Handle JSON encoded file paths
-                                                        if (is_string($record->confirmation_order_file)) {
-                                                            try {
-                                                                $decodedFiles = json_decode($record->confirmation_order_file, true);
-                                                                if (is_array($decodedFiles)) {
-                                                                    return $decodedFiles;
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                // If JSON decode fails, return as single item
+                                                    FileUpload::make('confirmation_order_file')
+                                                        ->label('Upload Confirmation Order')
+                                                        ->disk('public')
+                                                        ->directory('handovers/confirmation_orders')
+                                                        ->visibility('public')
+                                                        ->multiple()
+                                                        ->maxFiles(3)
+                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            if (!$record || !$record->confirmation_order_file) {
+                                                                return [];
                                                             }
-
-                                                            // If not JSON or decode failed, handle as a single item
-                                                            return [$record->confirmation_order_file];
-                                                        }
-
-                                                        // If already an array
-                                                        if (is_array($record->confirmation_order_file)) {
-                                                            return $record->confirmation_order_file;
-                                                        }
-
-                                                        return [];
-                                                    }),
-                                                FileUpload::make('payment_slip_file')
-                                                    ->label(fn (callable $get) => $get('payment_term') === 'payment_via_hrdf' ? 'Upload HRDF Approval Letter' : 'Upload Payment Slip')
-                                                    ->disk('public')
-                                                    ->live(debounce:500)
-                                                    ->directory('handovers/payment_slips')
-                                                    ->visibility('public')
-                                                    ->multiple()
-                                                    ->maxFiles(3)
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                    ->helperText(fn (callable $get) => $get('payment_term') === 'payment_via_hrdf' ? 'Only PDF, JPEG, or PNG format, max 10MB (HRDF Approval Letter)' : 'Only PDF, JPEG, or PNG format, max 10MB')
-                                                    ->default(function (SoftwareHandover $record) {
-                                                        if (!$record || !$record->payment_slip_file) {
-                                                            return [];
-                                                        }
-
-                                                        // Handle JSON encoded file paths
-                                                        if (is_string($record->payment_slip_file)) {
-                                                            try {
-                                                                $decodedFiles = json_decode($record->payment_slip_file, true);
-                                                                if (is_array($decodedFiles)) {
-                                                                    return $decodedFiles;
-                                                                }
-                                                            } catch (\Exception $e) {
-                                                                // If JSON decode fails, return as single item
+                                                            if (is_string($record->confirmation_order_file)) {
+                                                                return json_decode($record->confirmation_order_file, true) ?? [];
                                                             }
+                                                            return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
+                                                        }),
 
-                                                            // If not JSON or decode failed, handle as a single item
-                                                            return [$record->payment_slip_file];
-                                                        }
+                                                    FileUpload::make('hrdf_grant_file')
+                                                        ->label('Upload HRDF Grant Approval Letter')
+                                                        ->disk('public')
+                                                        ->directory('handovers/hrdf_grant')
+                                                        ->visibility('public')
+                                                        ->multiple()
+                                                        ->maxFiles(3)
+                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            if (!$record || !$record->hrdf_grant_file) {
+                                                                return [];
+                                                            }
+                                                            if (is_string($record->hrdf_grant_file)) {
+                                                                return json_decode($record->hrdf_grant_file, true) ?? [];
+                                                            }
+                                                            return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
+                                                        }),
 
-                                                        // If already an array
-                                                        if (is_array($record->payment_slip_file)) {
-                                                            return $record->payment_slip_file;
-                                                        }
-
-                                                        return [];
-                                                    }),
-                                                ])
+                                                    FileUpload::make('payment_slip_file')
+                                                        ->label('Upload Payment Slip')
+                                                        ->disk('public')
+                                                        ->live(debounce:500)
+                                                        ->directory('handovers/payment_slips')
+                                                        ->visibility('public')
+                                                        ->multiple()
+                                                        ->maxFiles(3)
+                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            if (!$record || !$record->payment_slip_file) {
+                                                                return [];
+                                                            }
+                                                            if (is_string($record->payment_slip_file)) {
+                                                                return json_decode($record->payment_slip_file, true) ?? [];
+                                                            }
+                                                            return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                                                        }),
+                                                ]),
                                         ]),
-                            ]),
-                            Forms\Components\Radio::make('save_type')
-                                ->label('Save As')
-                                ->options([
-                                    'new' => 'Save',
-                                    'draft' => 'Save as Draft',
-                                ])
-                                ->default('new')
-                                ->inline()
-                                ->required(),
+                                ]),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
-                            // Store modules as JSON
-                            if (isset($data['modules']) && is_array($data['modules'])) {
-                                // First create a copy of the array for iteration
-                                $modulesArray = $data['modules'];
-
-                                // Loop through the array before JSON encoding it
-                                foreach ($modulesArray as $module) {
-                                    $moduleName = strtolower(str_replace(' ', '_', $module['module_name']));
-                                    $data["{$moduleName}_module_headcount"] = $module['headcount'] ?? null;
-                                    $data["{$moduleName}_subscription_months"] = $module['subscription_months'] ?? null;
-                                    $data["{$moduleName}_purchase_type"] = $module['purchase_type'] ?? null;
-                                }
-
-                                // Then encode to JSON after processing the array
-                                $data['modules'] = json_encode($modulesArray);
-                            }
-
                             // Handle file array encodings
                             if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                                 $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
+                            }
+
+                            if (isset($data['hrdf_grant_file']) && is_array($data['hrdf_grant_file'])) {
+                                $data['hrdf_grant_file'] = json_encode($data['hrdf_grant_file']);
                             }
 
                             if (isset($data['payment_slip_file']) && is_array($data['payment_slip_file'])) {
@@ -1196,16 +750,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 $data['implementation_pics'] = json_encode($data['implementation_pics']);
                             }
 
-                            if (isset($data['proforma_invoice_number']) && is_array($data['proforma_invoice_number'])) {
-                                $data['proforma_invoice_number'] = json_encode($data['proforma_invoice_number']);
+                            if (isset($data['remarks']) && is_array($data['remarks'])) {
+                                $data['remarks'] = json_encode($data['remarks']);
                             }
 
-                            // Update status if saving as draft
-                            if (isset($data['save_type'])) {
-                                if ($data['save_type'] === 'draft') {
-                                    $data['status'] = 'Draft';
-                                }
-                                unset($data['save_type']);
+                            if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
+                                $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
+                            }
+
+                            if (isset($data['proforma_invoice_hrdf']) && is_array($data['proforma_invoice_hrdf'])) {
+                                $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
                             }
 
                             // Update the record

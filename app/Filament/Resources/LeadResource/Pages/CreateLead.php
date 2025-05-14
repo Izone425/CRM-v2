@@ -25,6 +25,11 @@ use App\Models\Lead;
 class CreateLead extends CreateRecord
 {
     protected static string $resource = LeadResource::class;
+    protected ?string $companyName = null;
+    protected ?string $emailAddress = null;
+    protected ?string $phoneNumber = null;
+    protected bool $hasDuplicates = false;
+    protected string $duplicateIds = '';
 
     public function form(Form $form): Form
     {
@@ -49,13 +54,13 @@ class CreateLead extends CreateRecord
         $this->companyName = $data['company_name'] ?? null;
         $this->emailAddress = $data['email'] ?? null;
         $this->phoneNumber = $data['phone'] ?? null;
-        
+
         // Check for duplicates
         $this->checkForDuplicates();
-        
+
         return $data;
     }
-    
+
     protected function checkForDuplicates(): void
     {
         // First get the actual company name from the CompanyDetail relation
@@ -67,13 +72,13 @@ class CreateLead extends CreateRecord
                 $companyNameToCheck = $companyDetail->company_name;
             }
         }
-        
+
         $duplicateLeads = Lead::query()
             ->where(function ($query) use ($companyNameToCheck) {
                 if ($companyNameToCheck) {
                     // Get base company name without SDN BHD suffix
                     $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', $companyNameToCheck);
-                    
+
                     // Search for any company that starts with the base name (ignoring suffix)
                     $query->whereHas('companyDetail', function ($q) use ($baseCompanyName) {
                         $q->where('company_name', 'LIKE', $baseCompanyName . '%');
@@ -91,11 +96,11 @@ class CreateLead extends CreateRecord
             ->get(['id']);
 
         $this->hasDuplicates = $duplicateLeads->isNotEmpty();
-        
+
         if ($this->hasDuplicates) {
             $this->duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
                 ->implode("\n\n");
-                
+
             // Show notification about duplicates
             Notification::make()
                 ->title('Duplicate Lead Warning')

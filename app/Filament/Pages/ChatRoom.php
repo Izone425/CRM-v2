@@ -103,19 +103,11 @@ class ChatRoom extends Page
         $user1 = preg_replace('/[^0-9]/', '', $user1);
         $user2 = preg_replace('/[^0-9]/', '', $user2);
 
-        // Debug the input values
-        \Illuminate\Support\Facades\Log::info('Mark as Read/Unread - Input values:', [
-            'user1' => $user1,
-            'user2' => $user2,
-        ]);
-
         // Get our Twilio WhatsApp number (or whatever system number you use)
         $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
-        \Illuminate\Support\Facades\Log::info('Twilio Number (digits only): ' . $twilioNumber);
 
         // Determine which user is the customer
         $customerNumber = ($user1 === $twilioNumber) ? $user2 : $user1;
-        \Illuminate\Support\Facades\Log::info('Customer Number: ' . $customerNumber);
 
         try {
             // First, check the current read status for toggle
@@ -125,15 +117,7 @@ class ChatRoom extends Page
                 ->where('is_read', false)
                 ->exists();
 
-            // FIX HERE: If forceState is provided, use it. Otherwise, if there are unread messages,
-            // we should mark them as read (true), not unread (false)
             $markAsRead = $forceState ?? $hasUnreadMessages;
-
-            // Log the action we're taking
-            \Illuminate\Support\Facades\Log::info(
-                'Current state: ' . ($hasUnreadMessages ? 'HAS unread' : 'ALL read') .
-                ' - Action: Mark as ' . ($markAsRead ? 'READ' : 'UNREAD')
-            );
 
             if ($markAsRead) {
                 // Mark as READ
@@ -155,8 +139,6 @@ class ChatRoom extends Page
                 $actionText = 'marked as unread';
                 $actionType = 'warning';
             }
-
-            \Illuminate\Support\Facades\Log::info('Updated ' . $updated . ' messages, ' . $actionText);
 
             // Send notification
             $this->dispatch('notify', [

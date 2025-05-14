@@ -10,6 +10,20 @@
     // Format the company name with color highlight
     $companyName = $record->company_name ?? 'Software Handover';
 
+    // Get product proforma invoice IDs
+    $productPiIds = $record->proforma_invoice_product ?
+        (is_string($record->proforma_invoice_product) ? json_decode($record->proforma_invoice_product, true) : $record->proforma_invoice_product) :
+        [];
+
+    // Get HRDF proforma invoice IDs
+    $hrdfPiIds = $record->proforma_invoice_hrdf ?
+        (is_string($record->proforma_invoice_hrdf) ? json_decode($record->proforma_invoice_hrdf, true) : $record->proforma_invoice_hrdf) :
+        [];
+
+    // Load the quotations to get the reference numbers
+    $productQuotations = \App\Models\Quotation::whereIn('id', $productPiIds)->get();
+    $hrdfQuotations = \App\Models\Quotation::whereIn('id', $hrdfPiIds)->get();
+
     // Define key-value pairs for the main information
     $mainInfo = [
         [
@@ -37,7 +51,8 @@
 
     // Get attachment files
     $confirmationFiles = $record->confirmation_order_file ? (is_string($record->confirmation_order_file) ? json_decode($record->confirmation_order_file, true) : $record->confirmation_order_file) : [];
-    $paymentFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
+    $paymentSlipFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
+    $hrdfGrantFiles = $record->hrdf_grant_file ? (is_string($record->hrdf_grant_file) ? json_decode($record->hrdf_grant_file, true) : $record->hrdf_grant_file) : [];
 @endphp
 
 <div class="p-2">
@@ -121,42 +136,59 @@
                 </div>
             @endif
 
-            <!-- Proforma Invoice -->
-            @if(isset($record->proforma_invoice_number) && $record->proforma_invoice_number)
-                @php
-                    $piNumbers = is_string($record->proforma_invoice_number) ?
-                        json_decode($record->proforma_invoice_number, true) :
-                        (is_array($record->proforma_invoice_number) ? $record->proforma_invoice_number : [$record->proforma_invoice_number]);
-                @endphp
-
-                @foreach($piNumbers as $index => $piNumber)
-                    @if($piNumber)
-                        <div class="flex items-center">
-                            <span class="mr-2 text-blue-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </span>
-                            <a href="{{ url('proforma-invoice/' . $piNumber) }}" target="_blank" class="text-blue-500 hover:underline">
-                                Proforma Invoice {{ $index > 0 ? $index + 1 : '' }}
-                            </a>
-                        </div>
-                    @endif
+            <!-- Product Proforma Invoices -->
+            @if($productQuotations->count() > 0)
+                @foreach($productQuotations as $index => $quotation)
+                    <div class="flex items-center">
+                        <span class="mr-2 text-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </span>
+                        <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" class="text-blue-500 hover:underline">
+                            Product PI: {{ $quotation->pi_reference_no }}
+                        </a>
+                    </div>
                 @endforeach
-                @else
+            @else
                 <div class="flex items-center">
                     <span class="mr-2 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                     </span>
-                    <span class="text-gray-400">No Proforma Invoice attached</span>
+                    <span class="text-gray-400">No Product Proforma Invoice attached</span>
+                </div>
+            @endif
+
+            <!-- HRDF Proforma Invoices -->
+            @if($hrdfQuotations->count() > 0)
+                @foreach($hrdfQuotations as $index => $quotation)
+                    <div class="flex items-center">
+                        <span class="mr-2 text-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </span>
+                        <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" class="text-blue-500 hover:underline">
+                            HRDF PI: {{ $quotation->pi_reference_no }}
+                        </a>
+                    </div>
+                @endforeach
+            @else
+                <div class="flex items-center">
+                    <span class="mr-2 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </span>
+                    <span class="text-gray-400">No HRDF Proforma Invoice attached</span>
                 </div>
             @endif
 
             <!-- Payment Files / HRDF Approval Letter -->
-            @if(is_array($paymentFiles) && count($paymentFiles) > 0)
-                @foreach($paymentFiles as $index => $file)
+            @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
+                @foreach($paymentSlipFiles as $index => $file)
                     <div class="flex items-center">
                         <span class="mr-2 text-blue-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -164,18 +196,43 @@
                             </svg>
                         </span>
                         <a href="{{ url('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
-                            {{ $record->payment_term === 'payment_via_hrdf' ? 'HRDF Grant Approval Letter' : 'Payment Slip' }}{{ $index > 0 ? ' ' . ($index + 1) : '' }}
+                            Payment Slip{{ $index > 0 ? ' ' . ($index + 1) : '' }}
                         </a>
                     </div>
                 @endforeach
-                @else
+            @else
                 <div class="flex items-center">
                     <span class="mr-2 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                     </span>
-                    <span class="text-gray-400">No {{ $record->payment_term === 'payment_via_hrdf' ? 'HRDF Grant Approval Letter' : 'Payment Slip' }} attached</span>
+                    <span class="text-gray-400">No Payment Slip attached</span>
+                </div>
+            @endif
+
+            <!-- HRDF Grant Approval Letter Files -->
+            @if(is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0)
+                @foreach($hrdfGrantFiles as $index => $file)
+                    <div class="flex items-center">
+                        <span class="mr-2 text-blue-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </span>
+                        <a href="{{ url('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
+                            HRDF Grant Approval Letter{{ $index > 0 ? ' ' . ($index + 1) : '' }}
+                        </a>
+                    </div>
+                @endforeach
+            @else
+                <div class="flex items-center">
+                    <span class="mr-2 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </span>
+                    <span class="text-gray-400">No HRDF Grant Approval Letter attached</span>
                 </div>
             @endif
         </div>

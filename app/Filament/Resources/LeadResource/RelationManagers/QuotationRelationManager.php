@@ -493,10 +493,11 @@ class QuotationRelationManager extends RelationManager
                                     ->send();
                             }
                         })
-                        ->visible(function (Quotation $record) {
-                            // Only show for quotations that haven't been sent yet or are in "new" status
-                            return $record->status === QuotationStatusEnum::new;
-                        })
+                        ->visible(false)
+                        // ->visible(function (Quotation $record) {
+                        //     // Only show for quotations that haven't been sent yet or are in "new" status
+                        //     return $record->status === QuotationStatusEnum::new;
+                        // })
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->size(ActionSize::ExtraSmall)

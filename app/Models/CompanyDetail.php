@@ -23,6 +23,8 @@ class CompanyDetail extends Model
         'company_address1',
         'company_address2',
         'postcode',
+        'reg_no_new',
+        'reg_no_old',
         'state',
         'name',
         'contact_no',
