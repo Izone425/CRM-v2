@@ -142,6 +142,59 @@ class LeadResource extends Resource
                                                     ->schema([
                                                         View::make('components.progress')
                                                             ->extraAttributes(fn ($record) => ['record' => $record]), // Pass record to view
+
+                                                        // Add Customer Portal Activation Button
+                                                        Actions::make([
+                                                            Action::make('send_customer_activation')
+                                                                ->label('Send Customer Portal Activation')
+                                                                ->icon('heroicon-o-envelope')
+                                                                ->color('primary')
+                                                                ->button()
+                                                                ->visible(function ($record) {
+                                                                    // Only show for leads with company details and email
+                                                                    return $record &&
+                                                                           $record->companyDetail &&
+                                                                           $record->email &&
+                                                                           !empty($record->companyDetail->company_name);
+                                                                })
+                                                                ->modalHeading('Send Customer Portal Activation Email')
+                                                                ->modalDescription('This will send an activation email to the customer to set up their portal account.')
+                                                                ->modalSubmitActionLabel('Send Activation Email')
+                                                                ->action(function ($record) {
+                                                                    $controller = app(\App\Http\Controllers\CustomerActivationController::class);
+
+                                                                    try {
+                                                                        $controller->sendActivationEmail($record->id);
+
+                                                                        Notification::make()
+                                                                            ->title('Activation Email Sent')
+                                                                            ->success()
+                                                                            ->body('The customer portal activation email has been sent to ' . $record->companyDetail->email)
+                                                                            ->send();
+
+                                                                        // Log the activity
+                                                                        activity()
+                                                                            ->causedBy(auth()->user())
+                                                                            ->performedOn($record)
+                                                                            ->withProperties([
+                                                                                'email' => $record->email,
+                                                                                'name' => $record->companyDetail->name ?? $record->name
+                                                                            ])
+                                                                            ->log('Customer portal activation email sent');
+
+                                                                    } catch (\Exception $e) {
+                                                                        Notification::make()
+                                                                            ->title('Error')
+                                                                            ->danger()
+                                                                            ->body('Failed to send activation email: ' . $e->getMessage())
+                                                                            ->send();
+                                                                    }
+                                                                })
+                                                            ]),
+                                                        // ->visible(function ($record) {
+                                                        //     // Only show for leads with appropriate status
+                                                        //     return in_array($record->lead_status, ['Pending Demo', 'Demo Scheduled', 'Hot', 'Quotation Sent', 'Closed']);
+                                                        // }),
                                                     ]),
                                             ])
                                             ->columnSpan(1),

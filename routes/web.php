@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuotePdfController;
 use App\Models\LeadSource;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CustomerActivationController;
 use App\Http\Controllers\CustomerAuthController;
 use App\Http\Controllers\GenerateHardwareHandoverPdfController;
 use App\Http\Controllers\GenerateProformaInvoicePdfController;
@@ -146,21 +147,30 @@ Route::post('/webhook/whatsapp', function (Request $request) {
 //CUSTOMER
 Route::prefix('customer')->name('customer.')->group(function () {
     // Public routes
-    Route::get('/login', Login::class)
-        ->name('login')
-        ->middleware('guest:customer');
-
-    // Auth routes
+    Route::get('/login', \App\Livewire\Customer\Login::class)->name('login')->middleware('guest:customer');
+    Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit')->middleware('guest:customer');
     Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+
+    // Password Reset Routes
+    Route::get('/forgot-password', \App\Livewire\Customer\ForgotPassword::class)->name('password.request');
+    Route::get('/reset-password/{token}', \App\Livewire\Customer\ResetPassword::class)->name('password.reset');
+
+    // Account Activation
+    Route::get('/activate/{token}', [CustomerActivationController::class, 'activateAccount'])->name('activate');
+    Route::post('/activate/{token}', [CustomerActivationController::class, 'completeActivation'])->name('complete-activation');
 
     // Protected routes for authenticated customers
     Route::middleware('auth:customer')->group(function () {
         Route::get('/dashboard', function () {
             return view('customer.dashboard');
         })->name('dashboard');
-
-        // Add more customer routes as needed
     });
+});
+
+// Admin routes for sending activation emails
+Route::middleware(['auth'])->group(function () {
+    Route::post('/admin/leads/{lead}/send-activation', [CustomerActivationController::class, 'sendActivationEmail'])
+         ->name('admin.leads.send-activation');
 });
 // Route::get('/zoho/auth', function (Request $request) {
 //     $clientId = env('ZOHO_CLIENT_ID');

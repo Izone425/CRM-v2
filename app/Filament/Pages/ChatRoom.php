@@ -83,11 +83,132 @@ class ChatRoom extends Page
             'user2' => $user2
         ];
 
-        ChatMessage::where('sender', $user1)
-        ->where('receiver', $user2)
-        ->where('is_from_customer', true)
-        ->where('is_read', false)
-        ->update(['is_read' => true]);
+        // ChatMessage::where('sender', $user1)
+        // ->where('receiver', $user2)
+        // ->where('is_from_customer', true)
+        // ->where('is_read', false)
+        // ->update(['is_read' => true]);
+    }
+
+    public function markMessagesAsRead($data, $forceState = null)
+    {
+        $user1 = $data['user1'] ?? null;
+        $user2 = $data['user2'] ?? null;
+
+        if (!$user1 || !$user2) {
+            return;
+        }
+
+        // Clean phone numbers by removing any prefixes
+        $user1 = preg_replace('/[^0-9]/', '', $user1);
+        $user2 = preg_replace('/[^0-9]/', '', $user2);
+
+        // Debug the input values
+        \Illuminate\Support\Facades\Log::info('Mark as Read/Unread - Input values:', [
+            'user1' => $user1,
+            'user2' => $user2,
+        ]);
+
+        // Get our Twilio WhatsApp number (or whatever system number you use)
+        $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+        \Illuminate\Support\Facades\Log::info('Twilio Number (digits only): ' . $twilioNumber);
+
+        // Determine which user is the customer
+        $customerNumber = ($user1 === $twilioNumber) ? $user2 : $user1;
+        \Illuminate\Support\Facades\Log::info('Customer Number: ' . $customerNumber);
+
+        try {
+            // First, check the current read status for toggle
+            $hasUnreadMessages = \App\Models\ChatMessage::where('sender', $customerNumber)
+                ->where('receiver', $twilioNumber)
+                ->where('is_from_customer', true)
+                ->where('is_read', false)
+                ->exists();
+
+            // FIX HERE: If forceState is provided, use it. Otherwise, if there are unread messages,
+            // we should mark them as read (true), not unread (false)
+            $markAsRead = $forceState ?? $hasUnreadMessages;
+
+            // Log the action we're taking
+            \Illuminate\Support\Facades\Log::info(
+                'Current state: ' . ($hasUnreadMessages ? 'HAS unread' : 'ALL read') .
+                ' - Action: Mark as ' . ($markAsRead ? 'READ' : 'UNREAD')
+            );
+
+            if ($markAsRead) {
+                // Mark as READ
+                $updated = \App\Models\ChatMessage::where('sender', $customerNumber)
+                    ->where('receiver', $twilioNumber)
+                    ->where('is_from_customer', true)
+                    ->where('is_read', false)
+                    ->update(['is_read' => true]);
+
+                $actionText = 'marked as read';
+                $actionType = 'success';
+            } else {
+                // Mark as UNREAD
+                $updated = \App\Models\ChatMessage::where('sender', $customerNumber)
+                    ->where('receiver', $twilioNumber)
+                    ->where('is_from_customer', true)
+                    ->update(['is_read' => false]);
+
+                $actionText = 'marked as unread';
+                $actionType = 'warning';
+            }
+
+            \Illuminate\Support\Facades\Log::info('Updated ' . $updated . ' messages, ' . $actionText);
+
+            // Send notification
+            $this->dispatch('notify', [
+                'title' => 'Success',
+                'message' => $updated . ' messages ' . $actionText,
+                'type' => $actionType,
+            ]);
+
+            // Refresh the contacts list to update the UI
+            $this->fetchContacts();
+
+            // Send read state info to update button appearance
+            $this->dispatch('read-state-updated', [
+                'isRead' => $markAsRead,
+                'user1' => $data['user1'],
+                'user2' => $data['user2'],
+                'hasUnread' => !$markAsRead,
+            ]);
+        } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Error toggling read status: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            // Send error notification
+            $this->dispatch('notify', [
+                'title' => 'Error',
+                'message' => 'Failed to update read status: ' . $e->getMessage(),
+                'type' => 'error',
+            ]);
+        }
+    }
+
+    public function checkHasUnreadMessages($user1, $user2)
+    {
+        // Clean phone numbers
+        $user1 = preg_replace('/[^0-9]/', '', $user1);
+        $user2 = preg_replace('/[^0-9]/', '', $user2);
+
+        // Get Twilio number
+        $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+
+        // Determine which user is the customer
+        $customerNumber = ($user1 === $twilioNumber) ? $user2 : $user1;
+
+        // Check for unread messages
+        $hasUnread = \App\Models\ChatMessage::where('sender', $customerNumber)
+            ->where('receiver', $twilioNumber)
+            ->where('is_from_customer', true)
+            ->where('is_read', false)
+            ->exists();
+
+        return $hasUnread;
     }
 
     public function checkNewMessages()

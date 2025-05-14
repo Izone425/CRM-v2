@@ -1,65 +1,119 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/livewire/customer/login.blade.php -->
-<div class="flex items-center justify-center min-h-screen px-4 py-12 bg-gray-50 sm:px-6 lg:px-8">
-    <div class="w-full max-w-md space-y-8">
-        <div>
-            <h2 class="mt-6 text-3xl font-extrabold text-center text-gray-900">
-                Customer Login
-            </h2>
-            <p class="mt-2 text-sm text-center text-gray-600">
-                Enter your credentials to access your account
-            </p>
+<!-- filepath: /var/www/html/timeteccrm/resources/views/customer/login.blade.php -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Your TimeTec Account</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F7FAFD;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex flex-col items-center justify-center min-h-screen">
+        <div class="w-full max-w-2xl mx-auto mt-8 overflow-hidden bg-white shadow-lg rounded-3xl">
+            <!-- Header -->
+            <div class="relative h-[270px]">
+                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-3xl font-semibold text-[#305edf] z-10">
+                    Customer Portal
+                </div>
+                <img src="https://www.timeteccloud.com/temp/web_portal/images/img-welcometimetec.svg" alt="Welcome Banner" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-[70%] z-5">
+            </div>
+
+            <!-- Body -->
+            <div class="px-8 py-10">
+                @if (session('success'))
+                    <div class="relative px-4 py-3 mb-4 text-green-700 bg-green-100 border border-green-400 rounded" role="alert">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded" role="alert">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                @if($errors->any())
+                    <div class="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded" role="alert">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+
+                <form class="space-y-6" action="{{ route('customer.login.submit') }}" method="POST">
+                    @csrf
+                    <div>
+                        <label for="email" class="block text-sm text-gray-600">Email</label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required
+                               class="w-full px-4 py-3 mt-1 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        @error('email')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm text-gray-600">Password</label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                   class="w-full px-4 py-3 pr-12 mt-1 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <div id="togglePassword" class="absolute inset-y-0 flex items-center text-gray-500 cursor-pointer right-4">
+                                <i class="fa fa-eye" aria-hidden="true"></i>
+                            </div>
+                            @error('password')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" name="remember" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="remember" class="block ml-2 text-sm text-gray-600">
+                            Remember me
+                        </label>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-[#31c6f6] to-[#107eff] hover:opacity-90 text-white text-sm rounded-full transition duration-300">
+                        Login
+                    </button>
+                </form>
+
+                <p class="mt-8 text-xs text-center text-gray-600">
+                    Forgot your password?
+                    <a href="{{ route('customer.password.request') }}" class="text-blue-600 underline break-words">Reset here</a>.
+                </p>
+            </div>
         </div>
 
-        <form class="mt-8 space-y-6" wire:submit.prevent="login">
-            <div class="-space-y-px rounded-md shadow-sm">
-                <div>
-                    <label for="email" class="sr-only">Email address</label>
-                    <input wire:model="email" id="email" name="email" type="email" autocomplete="email" required
-                        class="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-none appearance-none rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                        placeholder="Email address">
-                    @error('email')
-                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-                <div>
-                    <label for="password" class="sr-only">Password</label>
-                    <input wire:model="password" id="password" name="password" type="password" autocomplete="current-password" required
-                        class="relative block w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-none appearance-none rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                        placeholder="Password">
-                    @error('password')
-                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <input wire:model="remember" id="remember-me" name="remember-me" type="checkbox"
-                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                    <label for="remember-me" class="block ml-2 text-sm text-gray-900">
-                        Remember me
-                    </label>
-                </div>
-
-                <div class="text-sm">
-                    <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
-                        Forgot your password?
-                    </a>
-                </div>
-            </div>
-
-            <div>
-                <button type="submit"
-                    class="relative flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md group hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                        <!-- Heroicon name: solid/lock-closed -->
-                        <svg class="w-5 h-5 text-indigo-500 group-hover:text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                        </svg>
-                    </span>
-                    Sign in
-                </button>
-            </div>
-        </form>
+        <!-- Footer -->
+        <div class="py-4 text-xs text-center text-gray-500">
+            TimeTec © {{ date('Y') }}, All Rights Reserved.
+        </div>
     </div>
-</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', function() {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+
+                    // Toggle icon
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

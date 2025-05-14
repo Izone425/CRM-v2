@@ -11,12 +11,19 @@ class Customer extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $guard = 'customer';
+
     protected $fillable = [
         'name',
         'email',
         'password',
         'company_name',
         'phone',
+        'activation_token',
+        'token_expires_at',
+        'status',
+        'email_verified_at',
+        'last_login_at',
     ];
 
     protected $hidden = [
@@ -26,14 +33,8 @@ class Customer extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'token_expires_at' => 'datetime',
+        'last_login_at' => 'datetime',
         'password' => 'hashed',
     ];
-
-    // Add any relationships here
-    public function lead()
-    {
-        return $this->hasOne(Lead::class);
-    }
-
-    // Add any other relationships as needed
 }
