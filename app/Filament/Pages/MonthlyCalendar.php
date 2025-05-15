@@ -11,4 +11,15 @@ class MonthlyCalendar extends Page
     protected static ?string $navigationLabel = "Monthly Calendar";
 
     protected static string $view = 'filament.pages.monthly-calendar';
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.monthly-calendar');
+    }
 }

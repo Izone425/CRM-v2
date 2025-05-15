@@ -63,6 +63,17 @@ class LeadResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     public $modules;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.leads.index');
+    }
+
     public static function form(Form $form): Form
     {
         return $form

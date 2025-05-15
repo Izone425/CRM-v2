@@ -72,7 +72,13 @@ class SalesAdminAnalysisV3 extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id !== 2; // Hides the resource from all users
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.sales-admin-analysis-v3');
     }
 
     public function mount()

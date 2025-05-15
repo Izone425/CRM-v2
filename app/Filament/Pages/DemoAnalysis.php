@@ -48,6 +48,17 @@ class DemoAnalysis extends Page
     public $slideOverTitle = '';
     public $slideOverList = [];
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.demo-analysis');
+    }
+
     public function mount()
     {
         $authUser = auth()->user();

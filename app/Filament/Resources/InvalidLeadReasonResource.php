@@ -22,7 +22,13 @@ class InvalidLeadReasonResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == '3';
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.invalid-lead-reasons.index');
     }
 
     public static function form(Form $form): Form

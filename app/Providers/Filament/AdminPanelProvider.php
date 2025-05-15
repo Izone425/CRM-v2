@@ -78,8 +78,42 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->assets([
                 Css::make('styles', public_path('/css/app/styles.css')),
+                Css::make('sidebar', public_path('/css/custom-sidebar.css')),
+                \Filament\Support\Assets\Js::make('sidebar-js', public_path('/js/custom-sidebar.js')),
             ])
-            // ->navigation(false)
+            ->renderHook(
+                'panels::body.start',  // This is critical - it needs to be panels::body.start
+                fn (): string => view('layouts.custom-sidebar')->render()
+            )
+            ->renderHook(
+                'panels::body.start',
+                function (): string {
+                    // Only render the sidebar for authenticated users
+                    if (auth()->check()) {
+                        return view('layouts.custom-sidebar')->render();
+                    }
+                    return ''; // Return empty string for unauthenticated users
+                }
+            )
+            ->renderHook(
+                'panels::content.start',
+                function (): string {
+                    if (auth()->check()) {
+                        return '<div class="custom-content-wrapper">';
+                    }
+                    return '';
+                }
+            )
+            ->renderHook(
+                'panels::content.end',
+                function (): string {
+                    if (auth()->check()) {
+                        return '</div>';
+                    }
+                    return '';
+                }
+            )
+            ->navigation(false)
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()
             // ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

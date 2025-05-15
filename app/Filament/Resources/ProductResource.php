@@ -31,9 +31,20 @@ class ProductResource extends Resource
     protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
+    // public static function canAccess(): bool
+    // {
+    //     return auth()->user()->role_id == 3 || in_array(auth()->id(), [4, 5]);
+    // }
+
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == 3 || in_array(auth()->id(), [4, 5]);
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.products.index');
     }
 
     public static function form(Form $form): Form
@@ -94,7 +105,7 @@ class ProductResource extends Resource
                     })
                     ->validationMessages([
                         'unique' => 'This sort order is already in use for this package group.',
-                    ]),  
+                    ]),
                 TextInput::make('sort_order')
                     ->label('Sort Order')
                     ->numeric()
@@ -140,7 +151,7 @@ class ProductResource extends Resource
                     ->label('Pkg Order')
                     ->sortable()
                     ->visible(fn ($record) => !empty($record->package_group))
-                    ->width(80),                
+                    ->width(80),
                 TextColumn::make('solution')->width(100),
                 TextColumn::make('description')->html()->width(500)->wrap(),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),

@@ -19,14 +19,25 @@ class ResellerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Settings';
 
+    // public static function canAccess(): bool
+    // {
+    //     $user = auth()->user();
+
+    //     // Allow access if user has role_id 3 OR if user's ID is 20
+    //     return $user->role_id == '3' || $user->id == 20;
+    // }
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
-        
-        // Allow access if user has role_id 3 OR if user's ID is 20
-        return $user->role_id == '3' || $user->id == 20;
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.resellers.index');
     }
-    
+
     public static function form(Form $form): Form
     {
         return $form

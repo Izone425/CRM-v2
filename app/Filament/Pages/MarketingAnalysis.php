@@ -85,7 +85,13 @@ class MarketingAnalysis extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == '3'; // Hides the resource from all users
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.marketing-analysis');
     }
 
     public function mount()
