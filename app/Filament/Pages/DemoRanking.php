@@ -12,7 +12,13 @@ class DemoRanking extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id == '3' || auth()->user()->id == 1 || auth()->user()->id == 25;
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.demo-ranking');
     }
 
     protected static string $view = 'filament.pages.demo-ranking';

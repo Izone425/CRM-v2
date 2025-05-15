@@ -42,6 +42,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'email',
         'password',
         'role_id',
+        'route_permissions',
         'avatar_path',
         'signature_path',
         'msteam_link',
@@ -67,6 +68,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'route_permissions' => 'array',
     ];
 
     public function canAccessPanel(Panel $panel): bool
@@ -98,5 +100,45 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             return Storage::url($this->avatar_path);
         }
         return "https://ui-avatars.com/api" . '?' .  http_build_query(["name" => $this->name, "background" => "random"]);
+    }
+
+    public function hasRouteAccess(string $routeName): bool
+    {
+        // Admin (role_id = 3) always has access
+        if ($this->role_id == 3) {
+            return true;
+        }
+
+        // Check permissions in the JSON column
+        $permissions = $this->route_permissions ?? [];
+
+        // If route not found in permissions, deny access
+        if (!isset($permissions[$routeName])) {
+            return false;
+        }
+
+        return (bool) $permissions[$routeName];
+    }
+
+    /**
+     * Check if the user has access to any of the routes in a group
+     *
+     * @param array $routeNames
+     * @return bool
+     */
+    public function hasAccessToAny(array $routeNames): bool
+    {
+        // Admin (role_id = 3) always has access
+        if ($this->role_id == 3) {
+            return true;
+        }
+
+        foreach ($routeNames as $routeName) {
+            if ($this->hasRouteAccess($routeName)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

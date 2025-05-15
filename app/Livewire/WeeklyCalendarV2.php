@@ -26,6 +26,17 @@ class WeeklyCalendarV2 extends Component
 
     public $weekDateArr;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.weekly-calendar-v2');
+    }
+
     public function mount()
     {
         $this->currentDate = Carbon::now();
@@ -43,7 +54,7 @@ class WeeklyCalendarV2 extends Component
         $this->currentDate->addDays(7);
     }
 
- 
+
 
     private function loadStartEndDate()
     {
@@ -67,7 +78,7 @@ class WeeklyCalendarV2 extends Component
             $weekDays[$i]["day"] = $startOfWeek->copy()->addDays($i)->format('l');  // Format as Fri,Sat,Mon
             $weekDays[$i]["date"] = $startOfWeek->copy()->addDays($i)->format('d-M');  // Format as Date
             $weekDays[$i]['carbonDate'] = $startOfWeek->copy()->addDays($i);
-            
+
             foreach($holidays as $holiday){
                 if(Carbon::parse($holiday['date'])->eq($weekDays[$i]['carbonDate']))
                     $weekDays[$i]['holiday']=$holiday;
@@ -91,8 +102,8 @@ class WeeklyCalendarV2 extends Component
             ->get()
             ->toArray();
 
-        
-        
+
+
         $result = array_map(function($appointment){
             $appointment['carbonDate'] = Carbon::parse($appointment['date']);
             $appointment['carbonStartTime'] = Carbon::parse($appointment['start_time'])->format('H:i');
@@ -104,13 +115,13 @@ class WeeklyCalendarV2 extends Component
             return $appointment;
         },$result);
 
-        
+
         $newArray['appointment'] = $result;
         $newArray['weekDateArr'] = array_map(function($weekDate) use ($salesperson){
             $temp = UserLeave::getUserLeavesByDate($salesperson['id'],$weekDate['carbonDate']);
             if(isset($temp))
                 $weekDate['leave'] = $temp;
-            
+
             return $weekDate;
         },$this->weekDateArr);
 
@@ -161,7 +172,7 @@ class WeeklyCalendarV2 extends Component
         ->whereNot("appointments.status","Cancelled")
         ->get()
         ->toArray();
-        
+
         $result = array_map(function ($value) {
             $value->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($value->lead_id)]);
             return (array)$value;
@@ -176,7 +187,7 @@ class WeeklyCalendarV2 extends Component
         $this->loadStartEndDate(); //Load start and end date
         $this->loadTableArray();
 
-        
+
         if($this->currentDate->copy()->startOfWeek()->isBefore(Carbon::today())){
             $this->disablePrevWeek = true;
         }

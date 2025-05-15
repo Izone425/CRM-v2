@@ -1,0 +1,540 @@
+/* Edge trigger */
+.edge-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 100vh;
+    z-index: 99;
+}
+
+/* Main sidebar container */
+.custom-sidebar {
+    width: 0;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: linear-gradient(
+        to bottom,
+        #381a87 0%,
+        #4526a0 20%,
+        #5234b9 40%,
+        #5e42d2 60%,
+        #6a50e8 80%,
+        #7761f5 100%
+    );
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    /* Ensure no gaps with explicit settings */
+    padding: 0;
+    margin: 0;
+}
+
+/* Edge trigger hover effect */
+.edge-trigger:hover + .custom-sidebar,
+.custom-sidebar:hover {
+    width: 75px;
+}
+
+/* When hovering, show the text */
+.edge-trigger:hover + .custom-sidebar .sidebar-item span,
+.edge-trigger:hover + .custom-sidebar .profile-info,
+.custom-sidebar:hover .sidebar-item span,
+.custom-sidebar:hover .profile-info {
+    opacity: 1;
+    display: block;
+}
+
+/* Logo section */
+.sidebar-logo {
+    padding: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Make background transparent to let gradient show through */
+    background: transparent;
+    height: 70px;
+    min-height: 70px;
+    z-index: 2;
+    /* Remove all borders */
+    border: none;
+    border-bottom: none;
+    /* Remove any margins that might create gaps */
+    margin: 0;
+    position: relative;
+}
+
+/* Optional: Add a subtle separator if needed */
+.sidebar-logo:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 5%;
+    width: 90%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo img {
+    max-width: 60px;
+    max-height: 60px;
+}
+
+/* Navigation section */
+.sidebar-nav {
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    z-index: 2;
+    position: relative;
+    /* Remove any gaps */
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: white;
+    text-decoration: none;
+    position: relative;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+    /* No margins between items */
+    margin: 0;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Sidebar items */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: white;
+    text-decoration: none;
+    position: relative;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-item:before {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 1000;
+    pointer-events: none; /* Prevents the tooltip from interfering with clicks */
+}
+
+/* Add a small arrow pointing to the sidebar */
+.sidebar-item:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 68px;
+    margin-top: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent rgba(0, 0, 0, 0.8) transparent transparent;
+    transform: rotate(180deg);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    pointer-events: none;
+}
+
+.sidebar-item.active {
+    background-color: rgba(
+        255,
+        255,
+        255,
+        0.15
+    ); /* Slightly more opaque for better visibility */
+    border-left-color: #a28fff; /* Lighter purple accent */
+}
+
+.sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+}
+
+.sidebar-icon i {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: white;
+}
+
+.sidebar-item span {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    margin-left: 10px;
+    font-size: 14px;
+    display: none;
+}
+
+/* Level 1 Dropdown styles */
+.sidebar-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-trigger {
+    cursor: pointer;
+    position: relative;
+}
+
+/* Level 2 - Horizontal dropdown specific styles */
+.dropdown-content {
+    position: fixed;
+    left: 75px; /* Match expanded sidebar width */
+    top: 0 !important; /* Always at top */
+    height: 100vh; /* Full height */
+    background: linear-gradient(
+        to bottom,
+        #43249a 0%,
+        #4e2eb3 20%,
+        #5a3ccc 40%,
+        #664ae5 60%,
+        #7358ff 80%,
+        #8570ff 100%
+    ); /* Slightly lighter gradient */
+    width: 250px;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 99;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px; /* Add some padding at the top */
+}
+
+/* Show level 2 dropdown on hover */
+.edge-trigger:hover + .custom-sidebar .sidebar-dropdown:hover .dropdown-content,
+.custom-sidebar:hover .sidebar-dropdown:hover .dropdown-content {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Level 3 - Nested dropdown styles */
+.nested-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.nested-dropdown-trigger {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    /* justify-content: space-between; */
+    padding-right: 15px;
+}
+
+.nested-dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s;
+    display: inline-block;
+}
+
+/* Show arrow when dropdown is open or on hover */
+.nested-dropdown:hover .nested-dropdown-arrow,
+.nested-dropdown.open .nested-dropdown-arrow {
+    transform: rotate(90deg);
+}
+
+/* Position nested dropdown content directly below trigger */
+.nested-dropdown-content {
+    position: relative;
+    left: auto;
+    top: auto;
+    background-color: rgba(0, 0, 0, 0.15);
+    width: 100%;
+    box-shadow: none;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s, visibility 0.2s;
+    z-index: 1;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+/* Show nested dropdown content on hover */
+.nested-dropdown:hover .nested-dropdown-content,
+.nested-dropdown.open .nested-dropdown-content {
+    max-height: 500px; /* Allow enough room for content */
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Add left padding to nested items for indentation */
+.nested-dropdown-content .dropdown-item {
+    padding-left: 35px; /* Indent items */
+    position: relative;
+}
+
+/* Add small dot before nested items */
+.nested-dropdown-content .dropdown-item:before {
+    content: "•";
+    position: absolute;
+    left: 20px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Make the category heading smaller for nested content */
+.nested-dropdown-content .dropdown-category-heading {
+    font-size: 14px;
+    padding: 10px 15px 10px 35px;
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+/* Ensure the nested dropdown is visible when hovering level 2 */
+.edge-trigger:hover
+    + .custom-sidebar
+    .sidebar-dropdown:hover
+    .dropdown-content
+    .nested-dropdown:hover
+    .nested-dropdown-content,
+.custom-sidebar:hover
+    .sidebar-dropdown:hover
+    .dropdown-content
+    .nested-dropdown:hover
+    .nested-dropdown-content {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Parent Category Heading */
+.dropdown-category-heading {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Dropdown items */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    /* justify-content: space-between; */
+    padding: 12px 20px;
+    color: white;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    opacity: 0.85;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    opacity: 1;
+}
+
+/* Selected/active item */
+.dropdown-item.active {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-left: 3px solid #a28fff; /* Match sidebar active accent */
+}
+
+/* Hide arrow by default */
+.dropdown-arrow,
+.nested-dropdown-arrow {
+    display: none;
+}
+
+/* For hover effect and highlighting the parent when expanded */
+.sidebar-dropdown:hover .dropdown-trigger,
+.nested-dropdown:hover .nested-dropdown-trigger {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nested-dropdown-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* User profile section */
+.sidebar-footer {
+    padding: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    /* Use a gradient that matches the bottom of the sidebar gradient */
+    background: linear-gradient(
+        to bottom,
+        #7158f0 0%,
+        #765ef3 50%,
+        #7761f5 100%
+    );
+    z-index: 2;
+}
+
+.profile-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+}
+
+.profile-avatar {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #4dabf7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-info {
+    margin-left: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+    display: none;
+}
+
+/* Adjust main content */
+.filament-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    transition: margin-left 0.3s, width 0.3s;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .edge-trigger {
+        display: none;
+    }
+
+    .mobile-sidebar-toggle {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 101;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(
+            135deg,
+            #381a87,
+            #6a50e8
+        ); /* Match sidebar gradient */
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .custom-sidebar {
+        transform: translateX(-100%);
+        width: 240px;
+    }
+
+    .custom-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .custom-sidebar.mobile-open .sidebar-item span,
+    .custom-sidebar.mobile-open .profile-info {
+        opacity: 1;
+        display: block;
+    }
+
+    /* Show arrows on mobile */
+    .dropdown-arrow,
+    .nested-dropdown-arrow {
+        display: block;
+        opacity: 1;
+        margin-left: auto;
+        transition: transform 0.3s;
+    }
+
+    .sidebar-dropdown.open .dropdown-arrow,
+    .nested-dropdown.open .nested-dropdown-arrow {
+        transform: rotate(90deg);
+    }
+
+    /* Change dropdown to vertical for mobile */
+    .dropdown-content,
+    .nested-dropdown-content {
+        background-color: rgba(
+            79,
+            42,
+            155,
+            0.9
+        ); /* Semi-transparent version of desktop color */
+    }
+
+    .sidebar-dropdown.open .dropdown-content,
+    .nested-dropdown.open .nested-dropdown-content {
+        opacity: 1;
+        visibility: visible;
+        max-height: 500px;
+    }
+
+    .dropdown-item {
+        padding-left: 35px;
+    }
+
+    .dropdown-category-heading {
+        padding-left: 20px;
+    }
+
+    .nested-dropdown-content .dropdown-item {
+        padding-left: 50px;
+    }
+
+    .nested-dropdown-content .dropdown-category-heading {
+        padding-left: 35px;
+    }
+}

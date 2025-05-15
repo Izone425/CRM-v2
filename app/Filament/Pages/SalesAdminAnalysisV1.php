@@ -52,7 +52,13 @@ class SalesAdminAnalysisV1 extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id != '2';
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.sales-admin-analysis-v1');
     }
 
     public function mount()
@@ -89,8 +95,8 @@ class SalesAdminAnalysisV1 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        }        
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         $leads = $query->get();
         $this->totalLeads = $leads->count();
@@ -104,7 +110,7 @@ class SalesAdminAnalysisV1 extends Page
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
         $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0;
-        $this->nonePercentage = $this->totalLeads > 0 ? round(($this->noneLeads / $this->totalLeads) * 100, 2) : 0; 
+        $this->nonePercentage = $this->totalLeads > 0 ? round(($this->noneLeads / $this->totalLeads) * 100, 2) : 0;
     }
 
     public function fetchLeadsByCategory()
@@ -154,7 +160,7 @@ class SalesAdminAnalysisV1 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
         // Define default company size labels
@@ -316,9 +322,9 @@ class SalesAdminAnalysisV1 extends Page
     public function openLeadOwnerSlideOver($label)
     {
         $user = Auth::user();
-    
+
         $query = Lead::query();
-    
+
         // Apply owner filter based on label
         switch ($label) {
             case 'Jaja':
@@ -348,7 +354,7 @@ class SalesAdminAnalysisV1 extends Page
                 $this->showSlideOver = true;
                 return;
         }
-    
+
         // Apply month filter
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -357,11 +363,11 @@ class SalesAdminAnalysisV1 extends Page
                 $date->endOfMonth()->format('Y-m-d'),
             ]);
         }
-    
+
         // Get results with relationship
         $this->leadList = $query->with('companyDetail')->get();
         $this->showSlideOver = true;
-    }    
+    }
 
     public function openCategorySlideOver($category)
     {

@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\UserResource\Pages;
 
-use App\Filament\Resources\InvalidLeadReasonResource;
 use App\Filament\Resources\UserResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ManageRecords;
+use App\Models\User;
 
 class ManageUser extends ManageRecords
 {
@@ -15,10 +15,11 @@ class ManageUser extends ManageRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('New User')
-                ->modalHeading('Create New User')
-                ->closeModalByClickingAway(false)
-                ->createAnother(false),
+                ->mutateFormDataUsing(function (array $data): array {
+                    return UserResource::processPermissionsForSave($data);
+                }),
+            Actions\Action::make('edit')
+                ->url(fn (User $record): string => route('filament.admin.resources.users.edit', $record)),
         ];
     }
 }

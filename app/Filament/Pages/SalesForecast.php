@@ -26,10 +26,16 @@ class SalesForecast extends Page
     public $users;
     public Carbon $currentDate;
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id != 2;
-    // }
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.sales-forecast');
+    }
 
     /**
      * Lifecycle hook - runs when the component is initialized

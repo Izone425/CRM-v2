@@ -70,7 +70,13 @@ class SalesAdminAnalysisV2 extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->role_id != '2';
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.sales-admin-analysis-v2');
     }
 
     public function mount()
@@ -115,8 +121,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         $leads = $query->get();
         $this->totalLeads = $leads
@@ -196,8 +202,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         $leadCategories = ['Active', 'Sales', 'Inactive'];
 
@@ -238,8 +244,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         $leadCategories = ['Active', 'Sales', 'Inactive'];
 
@@ -280,8 +286,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBase->where('lead_owner', 'Nurul Najaa Nadiah');
@@ -324,13 +330,13 @@ class SalesAdminAnalysisV2 extends Page
     public function fetchActiveLeadsAfifah()
     {
         $queryBase = Lead::query();
-        
+
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBase->where('lead_owner', 'Siti Afifah');
@@ -378,8 +384,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBaseJaja->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBaseJaja->where('lead_owner', 'Nurul Najaa Nadiah');
@@ -412,13 +418,13 @@ class SalesAdminAnalysisV2 extends Page
     public function fetchTransferLeadsAfifah()
     {
         $queryBaseAfifah = Lead::query();
-        
+
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBaseAfifah->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBaseAfifah->where('lead_owner', 'Siti Afifah');
@@ -454,8 +460,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBaseJaja->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBaseJaja->where('lead_owner', 'Nurul Najaa Nadiah');
@@ -492,8 +498,8 @@ class SalesAdminAnalysisV2 extends Page
             $date = Carbon::parse($this->selectedMonth);
 
             $queryBaseAfifah->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());            
-        } 
+                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
 
         // Filter for specific lead owner
         $queryBaseAfifah->where('lead_owner', 'Siti Afifah');
@@ -696,17 +702,17 @@ class SalesAdminAnalysisV2 extends Page
     public function openActiveLeadsAfifahSlideOver($label)
     {
         $query = Lead::query();
-    
+
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
             $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
-    
+
         $query->where('lead_owner', 'Siti Afifah')
               ->whereNull('salesperson')
               ->where('categories', '=', 'Active');
-    
+
         if ($label === 'Active 24 Below') {
             $query->where('company_size', '1-24')
                   ->where('done_call', '=', '0');
@@ -725,12 +731,12 @@ class SalesAdminAnalysisV2 extends Page
             $this->showSlideOver = true;
             return;
         }
-    
+
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = "{$label} (Afifah)";
         $this->showSlideOver = true;
     }
-    
+
     public function openTransferLeadsJajaSlideOver($label)
     {
         $query = Lead::query();

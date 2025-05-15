@@ -49,15 +49,16 @@ class QuotationResource extends Resource
 
     public $lead;
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id != '1';
-    // }
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
 
-    // public static function canAccess(): bool
-    // {
-    //     return auth()->user()->role_id == '3'; // Hides the resource from all users
-    // }
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.quotations.index');
+    }
 
     public function mount($lead_id): void
     {
