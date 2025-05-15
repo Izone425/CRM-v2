@@ -444,8 +444,7 @@ class UserResource extends Resource
                                         }
                                     }),
                             ])
-                            ->columns(2)
-                            ->visible(fn (Forms\Get $get) => $get('role_id') == 3),
+                            ->columns(2),
                     ]),
             ]);
     }
