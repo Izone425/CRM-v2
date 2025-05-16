@@ -180,6 +180,101 @@ class FetchZohoLeads extends Command
                     }
                 }
 
+                $existingLead = null;
+
+                // Check for duplicate by email or phone within 1 day timeframe
+                $oneDayAgo = null;
+                $oneDayAfter = null;
+
+                if (isset($lead['Created_Time'])) {
+                    $leadCreationTime = Carbon::parse($lead['Created_Time']);
+                    $oneDayAgo = (clone $leadCreationTime)->subDay()->format('Y-m-d H:i:s');
+                    $oneDayAfter = (clone $leadCreationTime)->addDay()->format('Y-m-d H:i:s');
+                }
+
+                // Only proceed with duplicate check if we have email, phone, or both
+                if (!empty($lead['Email']) || !empty($phoneNumber)) {
+                    $query = Lead::query();
+
+                    // Build query to find leads with matching email OR phone
+                    if (!empty($lead['Email'])) {
+                        $query->where('email', $lead['Email']);
+                    }
+
+                    if (!empty($phoneNumber)) {
+                        if (!empty($lead['Email'])) {
+                            $query->orWhere('phone', $phoneNumber);
+                        } else {
+                            $query->where('phone', $phoneNumber);
+                        }
+                    }
+
+                    // Add date range condition if we have creation time
+                    if ($oneDayAgo && $oneDayAfter) {
+                        $query->whereBetween('created_at', [$oneDayAgo, $oneDayAfter]);
+                    }
+
+                    $existingLead = $query->first();
+                }
+
+                // If we found an existing lead (by email/phone within the timeframe)
+                if ($existingLead) {
+                    // Update the existing lead instead of creating a new one
+                    // $existingLead->update([
+                    //     'zoho_id'      => $lead['id'] ?? $existingLead->zoho_id, // Keep the existing Zoho ID if new one is null
+                    //     'name'         => $lead['Full_Name'] ?? $existingLead->name,
+                    //     'email'        => $lead['Email'] ?? $existingLead->email,
+                    //     'country'      => $lead['Country'] ?? $existingLead->country,
+                    //     'company_size' => isset($lead['Company_Size'])
+                    //                     ? $this->normalizeCompanySize($lead['Company_Size'])
+                    //                     : $existingLead->company_size,
+                    //     'phone'        => $phoneNumber ?? $existingLead->phone,
+                    //     'products'     => isset($lead['TimeTec_Products'])
+                    //                     ? json_encode($lead['TimeTec_Products'])
+                    //                     : $existingLead->products,
+                    // ]);
+
+                    // Log the update action
+                    // ActivityLog::create([
+                    //     'subject_type' => Lead::class,
+                    //     'subject_id'   => $existingLead->id,
+                    //     'description'  => 'Lead updated from Zoho CRM',
+                    //     'causer_id'    => null, // System action
+                    //     'causer_type'  => null,
+                    //     'properties'   => json_encode([
+                    //         'zoho_id'  => $lead['id'] ?? null,
+                    //         'matched_by' => !empty($lead['Email']) && $existingLead->email == $lead['Email'] ? 'email' : 'phone',
+                    //         'updated_at' => now()->toDateTimeString()
+                    //     ]),
+                    // ]);
+
+                    // // Update company details if they exist
+                    // if (!empty($lead['Company']) && $existingLead->company_name) {
+                    //     $companyDetail = CompanyDetail::find($existingLead->company_name);
+                    //     if ($companyDetail) {
+                    //         $companyDetail->update([
+                    //             'company_name' => $lead['Company'],
+                    //         ]);
+                    //     }
+                    // } else if (!empty($lead['Company']) && !$existingLead->company_name) {
+                    //     // Create company detail if it doesn't exist
+                    //     $companyDetail = CompanyDetail::create([
+                    //         'company_name' => $lead['Company'],
+                    //         'lead_id'      => $existingLead->id,
+                    //     ]);
+
+                    //     $existingLead->updateQuietly([
+                    //         'company_name' => $companyDetail->id ?? null,
+                    //     ]);
+                    // }
+
+                    // // Skip to next lead
+                    // $this->info("Updated existing lead ID: {$existingLead->id} (matched by " .
+                    //             (!empty($lead['Email']) && $existingLead->email == $lead['Email'] ? 'email' : 'phone') . ")");
+
+                    continue;
+                }
+
                 // ✅ Create a new lead (no updates for existing ones)
                 $newLead = Lead::create([
                     'zoho_id'      => $lead['id'] ?? null,
