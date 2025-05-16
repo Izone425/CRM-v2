@@ -27,6 +27,14 @@ class DashboardForm extends Page
     {
         $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
 
+        $currentUser = auth()->user();
+        $defaultDashboard = match($currentUser->role_id) {
+            1 => 'LeadOwner',
+            2 => 'Salesperson',
+            3 => 'Manager',
+            default => 'LeadOwner',
+        };
+
         // Set default to LeadOwner
         $this->currentDashboard = session('currentDashboard', 'LeadOwner');
 
@@ -46,8 +54,21 @@ class DashboardForm extends Page
 
     public function toggleDashboard($dashboard)
     {
-        $this->currentDashboard = $dashboard;
-        session(['currentDashboard' => $dashboard]);
+        // Add the new dashboard options to the valid list
+        $validDashboards = [
+            'LeadOwner',
+            'Salesperson',
+            'Manager',
+            'SoftwareHandover',
+            'HardwareHandover',
+            'SoftwareAdmin',   // New
+            'HardwareAdmin'    // New
+        ];
+
+        if (in_array($dashboard, $validDashboards)) {
+            $this->currentDashboard = $dashboard;
+            session(['currentDashboard' => $dashboard]);
+        }
     }
 
     public function updatedSelectedUser($userId)

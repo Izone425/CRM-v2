@@ -122,7 +122,7 @@
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-calendar4-week"></i>
-                            <span>Weekly Calendar</span> &nbsp; <i class="bi bi-chevron-right"></i>
+                            <span>Weekly Calendar</span> &nbsp;&nbsp; <i class="fas fa-caret-down" style="font-size: 12px;"></i></i>
                         </div>
 
                         <!-- Level 3 dropdown content -->
@@ -211,7 +211,7 @@
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-bar-chart-steps"></i>
-                            <span>Sales Admin Analysis <i class="bi bi-chevron-right"></i></span>
+                            <span>Sales Admin Analysis &nbsp;&nbsp; <i class="fas fa-caret-down" style="font-size: 12px;"></i></span>
                         </div>
 
                         <!-- Level 3 dropdown content -->

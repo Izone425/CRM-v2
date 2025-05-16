@@ -885,6 +885,50 @@
                 </div>
             </div>
         </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bar-chart-fill" viewBox="0 0 16 16">
+                    <path d="M1 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3zm5-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V2z"/>
+                </svg>&nbsp;&nbsp;
+                <h2 class="text-lg font-bold text-gray-800">Close Won by Lead Source</h2>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-8 overflow-visible">
+                @php
+                    // Find maximum amount for percentage calculation
+                    $maxAmount = count($closedWonBySource) > 0 ? max(array_column($closedWonBySource, 'amount')) : 1;
+                    $barColors = ['#D7C7F4', '#B9D6F8', '#4cc5fd', '#65E4EA', '#B4F7F7', '#FFE99E'];
+                    $barBgColors = ['#F3EEFC', '#EDF5FD', '#E6F2FC', '#E0FBFC', '#ECFFFE', '#FFF8E0'];
+                @endphp
+
+                @foreach ($closedWonBySource as $source => $data)
+                    @php
+                        $amount = $data['amount'];
+                        $percentage = $data['percentage'];
+                        $heightPercent = $maxAmount > 0 ? ($amount / $maxAmount) * 100 : 0;
+                        $color = $barColors[$loop->index % count($barColors)];
+                        $bgcolor = $barBgColors[$loop->index % count($barBgColors)];
+                    @endphp
+
+                    <div class="relative text-center cursor-pointer bar-group group" wire:click="openClosedDealsBySourceSlideOver('{{ $source }}')">
+                        <p style="margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #374151;">
+                            {{ number_format($percentage, 2) }}%
+                        </p>
+
+                        <div class="w-16 bg-gray-200 rounded bar-wrapper" style="height: 140px; background-color: {{ $bgcolor }};">
+                            <div class="rounded bar-fill" style="height: {{ $heightPercent }}%; background-color: {{ $color }};"></div>
+                        </div>
+
+                        <p class="mt-2 text-xs text-gray-600" style="width: 70px; overflow-wrap: break-word; white-space: normal;">{{ $source }}</p>
+
+                        <div class="hover-message">
+                            RM {{ number_format($amount, 2) }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
     </div>
     <div
     x-data="{ open: @entangle('showSlideOver') }"

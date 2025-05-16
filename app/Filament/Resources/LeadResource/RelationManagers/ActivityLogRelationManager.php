@@ -233,6 +233,10 @@ class ActivityLogRelationManager extends RelationManager
                     ->visible(function (ActivityLog $record) {
                         $lead = $record->lead;
 
+                        if (!is_null($lead->salesperson)) {
+                            return false;
+                        }
+
                         // Get the latest activity log for the given lead
                         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                             ->orderByDesc('created_at')
