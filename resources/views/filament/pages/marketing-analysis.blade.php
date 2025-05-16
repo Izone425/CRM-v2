@@ -896,8 +896,8 @@
 
             <div class="flex flex-wrap justify-center gap-8 overflow-visible">
                 @php
-                    // Find maximum amount for percentage calculation
-                    $maxAmount = count($closedWonBySource) > 0 ? max(array_column($closedWonBySource, 'amount')) : 1;
+                    // Calculate total amount for percentage calculation
+                    $totalAmount = array_sum(array_column($closedWonBySource, 'amount'));
                     $barColors = ['#D7C7F4', '#B9D6F8', '#4cc5fd', '#65E4EA', '#B4F7F7', '#FFE99E'];
                     $barBgColors = ['#F3EEFC', '#EDF5FD', '#E6F2FC', '#E0FBFC', '#ECFFFE', '#FFF8E0'];
                 @endphp
@@ -906,7 +906,8 @@
                     @php
                         $amount = $data['amount'];
                         $percentage = $data['percentage'];
-                        $heightPercent = $maxAmount > 0 ? ($amount / $maxAmount) * 100 : 0;
+                        // Calculate height based on percentage of total amount
+                        $heightPercent = $totalAmount > 0 ? ($amount / $totalAmount) * 100 : 0;
                         $color = $barColors[$loop->index % count($barColors)];
                         $bgcolor = $barBgColors[$loop->index % count($barBgColors)];
                     @endphp
