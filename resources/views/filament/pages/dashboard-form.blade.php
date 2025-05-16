@@ -202,7 +202,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Software Admin
+                                            Admin - Software
                                         </button>
 
                                         <button
@@ -218,7 +218,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Hardware Admin
+                                            Admin - Hardware
                                         </button>
                                     </div>
                                 </div>

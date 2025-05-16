@@ -63,6 +63,10 @@ class QuotationRelationManager extends RelationManager
     {
         return $table
             ->poll('10s')
+            ->modifyQueryUsing(function ($query) {
+                $query
+                    ->orderBy('quotation_date', 'desc');
+            })
             ->headerActions([
                 Action::make('createQuotation')
                     ->label('Add Quotation')
@@ -510,59 +514,62 @@ class QuotationRelationManager extends RelationManager
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalHeading('Mark Selected Quotations as Final')
-                    ->modalDescription('Are you sure you want to mark the selected quotations as final? This action cannot be undone.')
+                    ->modalHeading('Mark Selected Quotation as Final')
+                    ->modalDescription(function (Collection $records) {
+                        if ($records->count() > 1) {
+                            return 'You can only mark one quotation as final at a time. Please select only one quotation.';
+                        }
+                        return 'Are you sure you want to mark this quotation as final? This will remove final status from any previously marked quotations.';
+                    })
                     ->modalSubmitActionLabel('Yes, Mark as Final')
                     ->action(function (Collection $records): void {
-                        $count = 0;
-
-                        foreach ($records as $quotation) {
-                            // Only update if not already marked as final
-                            if (!$quotation->mark_as_final) {
-                                $quotation->mark_as_final = 1;
-                                $quotation->save();
-                                $count++;
-                            }
+                        // Check if more than one record is selected
+                        if ($records->count() > 1) {
+                            Notification::make()
+                                ->danger()
+                                ->title("Too Many Selections")
+                                ->body("You can only mark one quotation as final at a time. Please select only one quotation.")
+                                ->duration(5000)
+                                ->send();
+                            return;
                         }
+
+                        // Get the selected quotation
+                        $quotation = $records->first();
+
+                        // Get the parent lead
+                        $lead = $this->getOwnerRecord();
+
+                        // First reset all existing final quotations for this lead
+                        $resetCount = 0;
+                        $lead->quotations()
+                            ->where('mark_as_final', 1)
+                            ->each(function ($q) use (&$resetCount) {
+                                $q->update(['mark_as_final' => 0]);
+                                $resetCount++;
+                            });
+
+                        // Then mark the selected quotation as final
+                        $quotation->mark_as_final = 1;
+                        $quotation->save();
 
                         // Display a notification with the results
                         Notification::make()
-                            ->title("Quotations Marked as Final")
-                            ->body("{$count} quotation(s) have been successfully marked as final.")
-                            ->success()
-                            ->duration(5000)
-                            ->send();
-                    })
-                    ->deselectRecordsAfterCompletion(),
-                Tables\Actions\BulkAction::make('resetFinalQuotations')
-                    ->label('Reset Final Status')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Reset Final Status for Selected Quotations')
-                    ->modalDescription('Are you sure you want to reset the final status for the selected quotations? This will remove them from the "Final Quotations" list.')
-                    ->modalSubmitActionLabel('Yes, Reset Status')
-                    ->action(function (Collection $records): void {
-                        $count = 0;
-
-                        foreach ($records as $quotation) {
-                            // Only update if currently marked as final
-                            if ($quotation->mark_as_final) {
-                                $quotation->mark_as_final = 0;
-                                $quotation->save();
-                                $count++;
-                            }
-                        }
-
-                        // Display a notification with the results
-                        Notification::make()
-                            ->title("Final Status Reset")
-                            ->body("{$count} quotation(s) have been removed from final status.")
+                            ->title("Quotation Marked as Final")
+                            ->body("Quotation #{$quotation->id} has been marked as final. {$resetCount} previous final quotation(s) have been reset.")
                             ->success()
                             ->duration(5000)
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion()
+                    ->hidden(function (RelationManager $livewire): bool {
+                        // Check if there are already any final quotations
+                        $finalQuotationCount = $livewire->getOwnerRecord()->quotations()
+                            ->where('mark_as_final', 1)
+                            ->count();
+
+                        return $livewire->checkRecordCount() == 0;
+                    }),
             ]);
     }
 
@@ -899,5 +906,10 @@ class QuotationRelationManager extends RelationManager
             && $isEmpty($company->company_address2)
             && $isEmpty($company->state)
             && $isEmpty($company->postcode);
+    }
+
+    protected function checkRecordCount(): int
+    {
+        return $this->getOwnerRecord()->quotations()->count();
     }
 }

@@ -61,7 +61,20 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company')
-                    ->formatStateUsing(fn($state): string => Str::upper($state)),
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
+                    ->html(),
                 TextColumn::make('currency')
                     ->alignCenter(),
                 TextColumn::make('items_sum_total_before_tax')
