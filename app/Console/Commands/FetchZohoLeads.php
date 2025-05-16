@@ -138,7 +138,7 @@ class FetchZohoLeads extends Command
                             continue; // Skip if BD Referee but fail Product/Country check
                         }
                     } else {
-                        continue; // ❌ No HR Malaysia tag and no BD Referee tag => skip
+                        continue;
                     }
                 }
 
