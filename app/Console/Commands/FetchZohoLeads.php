@@ -182,63 +182,57 @@ class FetchZohoLeads extends Command
 
                 $existingLead = null;
 
-                // First, check for existing lead by email or phone WITHOUT time constraints
+                // First, check for existing lead by email or phone
                 if (!empty($lead['Email']) || !empty($phoneNumber)) {
                     $query = Lead::query();
 
-                    // Check for email match
-                    if (!empty($lead['Email'])) {
-                        $query->where('email', $lead['Email']);
-                    }
-
-                    // Check for phone match
-                    if (!empty($phoneNumber)) {
+                    // Group the email OR phone conditions
+                    $query->where(function($q) use ($lead, $phoneNumber) {
+                        // Check for email match
                         if (!empty($lead['Email'])) {
-                            // If we already checked for email, add phone as OR condition
-                            $query->orWhere('phone', $phoneNumber);
-                        } else {
-                            // If no email, just check phone
-                            $query->where('phone', $phoneNumber);
-                        }
-                    }
-
-                    // Check for any lead with matching email or phone regardless of creation time
-                    $existingLead = $query->first();
-
-                    // If no existing lead found with the basic check, then try the time-constrained check
-                    if (!$existingLead && isset($lead['Created_Time'])) {
-                        // Prepare time window for checking
-                        $leadCreationTime = Carbon::parse($lead['Created_Time']);
-                        $oneDayAgo = (clone $leadCreationTime)->subDay()->format('Y-m-d H:i:s');
-                        $oneDayAfter = (clone $leadCreationTime)->addDay()->format('Y-m-d H:i:s');
-
-                        // Create a new query with time constraints
-                        $timeQuery = Lead::query();
-
-                        // Same email/phone checks as before
-                        if (!empty($lead['Email'])) {
-                            $timeQuery->where('email', $lead['Email']);
+                            $q->where('email', $lead['Email']);
                         }
 
+                        // Check for phone match
                         if (!empty($phoneNumber)) {
                             if (!empty($lead['Email'])) {
-                                $timeQuery->orWhere('phone', $phoneNumber);
+                                // If we already checked for email, add phone as OR condition
+                                $q->orWhere('phone', $phoneNumber);
                             } else {
-                                $timeQuery->where('phone', $phoneNumber);
+                                // If no email, just check phone
+                                $q->where('phone', $phoneNumber);
                             }
                         }
+                    });
 
-                        // Add time constraint
-                        $timeQuery->whereBetween('created_at', [$oneDayAgo, $oneDayAfter]);
+                    // If we have a creation time for the new lead, use it for time-based checks
+                    if (isset($lead['Created_Time'])) {
+                        $leadCreationTime = Carbon::parse($lead['Created_Time']);
+                        $oneDayAgo = (clone $leadCreationTime)->subDay();
+                        $oneDayAfter = (clone $leadCreationTime)->addDay();
 
-                        // Check for leads within the time window
-                        $existingLead = $timeQuery->first();
+                        // Find leads with same email/phone that fall within the 1-day window
+                        $existingLeadInTimeWindow = (clone $query)
+                            ->whereBetween('created_at', [
+                                $oneDayAgo->format('Y-m-d H:i:s'),
+                                $oneDayAfter->format('Y-m-d H:i:s')
+                            ])
+                            ->first();
+
+                        // If we find a lead within the time window, use that to prevent duplicate
+                        if ($existingLeadInTimeWindow) {
+                            $existingLead = $existingLeadInTimeWindow;
+                        } else {
+                            $existingLead = null;
+                        }
+                    } else {
+                        // No creation time available, check for any match
+                        $existingLead = $query->first();
                     }
                 }
 
-                // If we found an existing lead (by email/phone with or without the timeframe)
+                // If we found an existing lead within the time window, skip it
                 if ($existingLead) {
-                    // Your update logic here or just continue to skip
                     continue;
                 }
 
