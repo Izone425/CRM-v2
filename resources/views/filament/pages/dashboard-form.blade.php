@@ -143,6 +143,86 @@
                                 >
                                     Manager
                                 </button>
+
+                                <!-- Admin Dropdown -->
+                                <div class="admin-dropdown" style="position: relative; display: inline-block;">
+                                    <button
+                                        class="admin-dropdown-button"
+                                        style="
+                                            padding: 10px 15px;
+                                            font-size: 14px;
+                                            font-weight: bold;
+                                            border: none;
+                                            border-radius: 20px;
+                                            background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin']) ? '#ffffff' : '#555' }};
+                                            cursor: pointer;
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 4px;
+                                        "
+                                    >
+                                        Admin <i class="fas fa-caret-down" style="font-size: 12px;"></i>
+                                    </button>
+
+                                    <!-- This is the bridge element that covers the gap -->
+                                    <div class="dropdown-bridge" style="
+                                        position: absolute;
+                                        height: 20px;
+                                        left: 0;
+                                        right: 0;
+                                        bottom: -10px;
+                                        background: transparent;
+                                        z-index: 999;
+                                    "></div>
+
+                                    <div class="admin-dropdown-content" style="
+                                        display: none;
+                                        position: absolute;
+                                        background-color: white;
+                                        min-width: 160px;
+                                        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                                        z-index: 1000;
+                                        border-radius: 6px;
+                                        overflow: hidden;
+                                        top: 100%; /* Position at the bottom of the button */
+                                        left: 0;
+                                        margin-top: 5px; /* Add a small gap */
+                                    ">
+                                        <button
+                                            wire:click="toggleDashboard('SoftwareAdmin')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Software Admin
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('HardwareAdmin')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Hardware Admin
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- Lead Owner Button -->
                                 <button
                                     wire:click="toggleDashboard('LeadOwner')"
@@ -178,6 +258,74 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- JavaScript for dropdown behavior -->
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const adminDropdown = document.querySelector('.admin-dropdown');
+                                const adminDropdownButton = document.querySelector('.admin-dropdown-button');
+                                const adminDropdownContent = document.querySelector('.admin-dropdown-content');
+                                const bridge = document.querySelector('.dropdown-bridge');
+
+                                if (adminDropdown && adminDropdownButton && adminDropdownContent) {
+                                    // Show dropdown on mouseenter for button
+                                    adminDropdownButton.addEventListener('mouseenter', function() {
+                                        adminDropdownContent.style.display = 'block';
+                                    });
+
+                                    // Keep dropdown open when hovering over dropdown content
+                                    adminDropdownContent.addEventListener('mouseenter', function() {
+                                        adminDropdownContent.style.display = 'block';
+                                    });
+
+                                    // Keep dropdown open when hovering over bridge
+                                    if (bridge) {
+                                        bridge.addEventListener('mouseenter', function() {
+                                            adminDropdownContent.style.display = 'block';
+                                        });
+                                    }
+
+                                    // Hide dropdown when mouse leaves entire component
+                                    adminDropdown.addEventListener('mouseleave', function(e) {
+                                        // Check if mouse moves to dropdown content
+                                        if (!e.relatedTarget ||
+                                            (!adminDropdownContent.contains(e.relatedTarget) &&
+                                            !bridge.contains(e.relatedTarget))) {
+                                            adminDropdownContent.style.display = 'none';
+                                        }
+                                    });
+
+                                    // Hide dropdown when mouse leaves dropdown content
+                                    adminDropdownContent.addEventListener('mouseleave', function(e) {
+                                        // Check if mouse returns to button or bridge
+                                        if (!e.relatedTarget ||
+                                            (!adminDropdownButton.contains(e.relatedTarget) &&
+                                            !bridge.contains(e.relatedTarget))) {
+                                            adminDropdownContent.style.display = 'none';
+                                        }
+                                    });
+
+                                    // Handle click for mobile devices
+                                    adminDropdownButton.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+
+                                        if (adminDropdownContent.style.display === 'block') {
+                                            adminDropdownContent.style.display = 'none';
+                                        } else {
+                                            adminDropdownContent.style.display = 'block';
+                                        }
+                                    });
+
+                                    // Close when clicking elsewhere
+                                    document.addEventListener('click', function(e) {
+                                        if (!adminDropdown.contains(e.target)) {
+                                            adminDropdownContent.style.display = 'none';
+                                        }
+                                    });
+                                }
+                            });
+                        </script>
                     @endif
 
                     <!-- Additional toggle for users with role_id=1 and additional_role=1 -->
@@ -242,29 +390,27 @@
         </div>
 
         <br>
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            @if ($selectedUserRole == 1)
-
-                @include('filament.pages.leadowner')
-
-            @elseif ($selectedUserRole == 2)
-
-                @include('filament.pages.salesperson')
-
-            @elseif ($selectedUserRole == 2)
-
-                @include('filament.pages.manager')
-
-            @else
-                @if ($currentDashboard === 'LeadOwner')
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                @if ($selectedUserRole == 1)
                     @include('filament.pages.leadowner')
-                @elseif ($currentDashboard === 'Salesperson')
+                @elseif ($selectedUserRole == 2)
                     @include('filament.pages.salesperson')
-                @elseif ($currentDashboard === 'Manager')
+                @elseif ($selectedUserRole == 3)
                     @include('filament.pages.manager')
+                @else
+                    @if ($currentDashboard === 'LeadOwner')
+                        @include('filament.pages.leadowner')
+                    @elseif ($currentDashboard === 'Salesperson')
+                        @include('filament.pages.salesperson')
+                    @elseif ($currentDashboard === 'Manager')
+                        @include('filament.pages.manager')
+                    @elseif ($currentDashboard === 'SoftwareAdmin')
+                        @include('filament.pages.softwarehandover')
+                    @elseif ($currentDashboard === 'HardwareAdmin')
+                        @include('filament.pages.hardwarehandover')
+                    @endif
                 @endif
-            @endif
-        </div>
+            </div>
         @endif
     </div>
 </x-filament::page>

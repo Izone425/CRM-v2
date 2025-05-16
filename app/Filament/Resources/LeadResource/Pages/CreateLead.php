@@ -150,12 +150,22 @@ class CreateLead extends CreateRecord
             ]);
         } elseif (auth()->user()->role_id === 2) { // Corrected syntax
             sleep(1);
-            $this->record->updateQuietly([
+            $this->record->update([
                 'salesperson' => auth()->user()->id,
                 'salesperson_assigned_date' => now(),
                 'stage' => 'Transfer',
                 'lead_status' => 'RFQ-Transfer',
                 'categories' => 'Active',
+            ]);
+
+            $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
+            ->orderByDesc('id')
+            ->first();
+
+            $latestActivityLog->update([
+                'subject_id' => $this->record->id,
+                'description' => 'Lead assigned to Salesperson: ' . auth()->user()->name,
+                'causer_id' => auth()->user()->id,
             ]);
         }
 

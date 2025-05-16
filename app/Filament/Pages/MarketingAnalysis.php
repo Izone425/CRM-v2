@@ -78,6 +78,8 @@ class MarketingAnalysis extends Page
     public $closedDealsCount = 0;
     public $monthlyDealAmounts = [];
 
+    public $closedWonBySource = [];
+
     //Slide Modal Variables
     public $showSlideOver = false;
     public $slideOverTitle = '';
@@ -176,6 +178,7 @@ class MarketingAnalysis extends Page
         $this->fetchMonthlyDealAmounts();
         $this->fetchLeadStatusSummary();
         $this->calculateWebinarDemoAverages();
+        $this->fetchClosedWonBySource();
     }
 
     public function updated($propertyName)
@@ -966,6 +969,72 @@ class MarketingAnalysis extends Page
         $this->monthlyDealAmounts = $data;
     }
 
+    public function fetchClosedWonBySource()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('closing_date', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Get only closed leads with deal amount
+        $query->where('lead_status', 'Closed')
+            ->whereNotNull('deal_amount')
+            ->where('deal_amount', '>', 0);
+
+        // Fetch the data grouped by lead_code
+        $results = $query->get();
+
+        // Process the results
+        $sourceGroups = $results->groupBy(function ($lead) {
+            return $lead->lead_code ?? 'Unknown';
+        });
+
+        $closedWonData = [];
+        $totalAmount = $results->sum('deal_amount');
+
+        foreach ($sourceGroups as $source => $leads) {
+            $amount = $leads->sum('deal_amount');
+            $count = $leads->count();
+            $percentage = $totalAmount > 0 ? round(($amount / $totalAmount) * 100, 2) : 0;
+
+            $closedWonData[$source] = [
+                'amount' => $amount,
+                'count' => $count,
+                'percentage' => $percentage
+            ];
+        }
+
+        // Sort by amount in descending order
+        arsort($closedWonData);
+        $this->closedWonBySource = $closedWonData;
+    }
+
     public function openLeadStatusSlideOver($status)
     {
         $this->slideOverTitle = "Leads - " . ucfirst($status);
@@ -1472,6 +1541,57 @@ class MarketingAnalysis extends Page
 
         $query->whereBetween('closing_date', [$start, $end])
             ->where('lead_status', 'Closed');
+
+        $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openClosedDealsBySourceSlideOver($source)
+    {
+        $this->slideOverTitle = "Closed Deals - Source: " . $source;
+
+        $user = Auth::user();
+        $query = Lead::with('companyDetail');
+
+        if ($source === 'Unknown') {
+            $query->whereNull('lead_code');
+        } else {
+            $query->where('lead_code', $source);
+        }
+
+        // Apply filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('closing_date', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Show only closed with deal amount
+        $query->where('lead_status', 'Closed')
+            ->whereNotNull('deal_amount')
+            ->where('deal_amount', '>', 0);
 
         $this->slideOverList = $query->get();
         $this->showSlideOver = true;
