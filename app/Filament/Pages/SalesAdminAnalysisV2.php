@@ -142,19 +142,24 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
+        $query->where('lead_status', '!=', 'Closed');
+
         $leads = $query->get();
-        $this->totalLeads = $leads
-            ->filter(fn ($lead) => $lead->lead_owner !== null && $lead->lead_owner !== 'Chee Chan')
-            ->count();
+
+        // Calculate individual lead counts
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
-        $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count(); // Add this line
+        $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
 
+        // Calculate total as the sum of individual counts
+        $this->totalLeads = $this->newLeads + $this->jajaLeads + $this->afifahLeads + $this->shahilahLeads;
+
+        // Calculate percentages
         $this->newPercentage = $this->totalLeads > 0 ? round(($this->newLeads / $this->totalLeads) * 100, 2) : 0;
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
-        $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0; // Add this line
+        $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0;
     }
 
     public function fetchLeadsByCategory()
@@ -171,9 +176,7 @@ class SalesAdminAnalysisV2 extends Page
         $this->categoriesData = [
             'New' => Lead::query()
                 ->where('categories', 'New')
-                ->whereNull('salesperson')
-                ->whereNotNull('lead_owner')
-                ->where('lead_owner', '!=', 'Chee Chan')
+                ->where('lead_status', 'None')
                 ->when($start && $end, fn ($query) =>
                     $query->whereDate('created_at', '>=', $start)
                         ->whereDate('created_at', '<=', $end)
@@ -205,6 +208,7 @@ class SalesAdminAnalysisV2 extends Page
             'Inactive' => Lead::query()
                 ->where('categories', 'Inactive')
                 ->whereNotNull('lead_owner')
+                ->where('lead_status', '!=', 'Closed')
                 ->where('lead_owner', '!=', 'Chee Chan')
                 ->when($start && $end, fn ($query) =>
                     $query->whereDate('created_at', '>=', $start)
@@ -243,6 +247,7 @@ class SalesAdminAnalysisV2 extends Page
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
+            ->where('lead_status', '!=', 'Closed')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -285,6 +290,7 @@ class SalesAdminAnalysisV2 extends Page
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
+            ->where('lead_status', '!=', 'Closed')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -327,6 +333,7 @@ class SalesAdminAnalysisV2 extends Page
 
         $inactiveLeadsCount = (clone $queryBase)
             ->where('categories', 'Inactive')
+            ->where('lead_status', '!=', 'Closed')
             ->count();
 
         // Ensure all categories exist, even if zero
@@ -724,6 +731,7 @@ class SalesAdminAnalysisV2 extends Page
             $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
+        $query->where('lead_status', '!=', 'Closed');
 
         if ($label === 'New') {
             $query->where('categories', 'New');
@@ -739,9 +747,6 @@ class SalesAdminAnalysisV2 extends Page
             $this->showSlideOver = true;
             return;
         }
-
-        // Only count valid lead_owner values like in fetchLeads
-        $query->whereNotNull('lead_owner')->where('lead_owner', '!=', 'Chee Chan');
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = "{$label} Leads";
@@ -761,13 +766,9 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $end);
         }
 
-        // Apply shared filters
-        $query->whereNotNull('lead_owner')->where('lead_owner', '!=', 'Chee Chan');
-
         // Apply specific category filter
         if ($category === 'New') {
-            $query->where('categories', 'New')
-                ->whereNull('salesperson');
+            $query->where('categories', 'New');
         } elseif ($category === 'Active') {
             $query->whereNotIn('categories', ['Inactive', 'New'])
                 ->whereNull('salesperson');
@@ -804,7 +805,8 @@ class SalesAdminAnalysisV2 extends Page
         } elseif ($category === 'Sales') {
             $query->where('categories', 'Active')->whereNotNull('salesperson');
         } elseif ($category === 'Inactive') {
-            $query->where('categories', 'Inactive');
+            $query->where('categories', 'Inactive')
+                ->where('lead_status', '!=', 'Closed');
         } else {
             $this->leadList = collect();
             $this->slideOverTitle = 'Invalid category';
@@ -835,7 +837,8 @@ class SalesAdminAnalysisV2 extends Page
             $query->where('categories', '=', 'Active')
                 ->whereNotNull('salesperson');
         } elseif ($category === 'Inactive') {
-            $query->where('categories', '=', 'Inactive');
+            $query->where('categories', 'Inactive')
+                ->where('lead_status', '!=', 'Closed');
         } else {
             $this->leadList = collect();
             $this->slideOverTitle = 'Invalid category';
@@ -1018,7 +1021,8 @@ class SalesAdminAnalysisV2 extends Page
             $query->where('categories', '=', 'Active')
                 ->whereNotNull('salesperson');
         } elseif ($category === 'Inactive') {
-            $query->where('categories', '=', 'Inactive');
+            $query->where('categories', 'Inactive')
+                ->where('lead_status', '!=', 'Closed');
         } else {
             $this->leadList = collect();
             $this->slideOverTitle = 'Invalid category';

@@ -71,7 +71,7 @@ class FetchZohoLeads extends Command
         $latestCreatedAt = $latestLead ? Carbon::parse($latestLead->created_at)->format('Y-m-d\TH:i:sP') : '2025-03-01T00:00:00+00:00';
 
         $allLeads = [];
-        $perPage = 50;
+        $perPage = 200;
         $page = 1;
         $pageToken = null;
 
@@ -183,6 +183,54 @@ class FetchZohoLeads extends Command
                 $existingLead = null;
 
                 // First, check for existing lead by email or phone
+                // if (!empty($lead['Email']) || !empty($phoneNumber)) {
+                //     $query = Lead::query();
+
+                //     // Group the email OR phone conditions
+                //     $query->where(function($q) use ($lead, $phoneNumber) {
+                //         // Check for email match
+                //         if (!empty($lead['Email'])) {
+                //             $q->where('email', $lead['Email']);
+                //         }
+
+                //         // Check for phone match
+                //         if (!empty($phoneNumber)) {
+                //             if (!empty($lead['Email'])) {
+                //                 // If we already checked for email, add phone as OR condition
+                //                 $q->orWhere('phone', $phoneNumber);
+                //             } else {
+                //                 // If no email, just check phone
+                //                 $q->where('phone', $phoneNumber);
+                //             }
+                //         }
+                //     });
+
+                //     // If we have a creation time for the new lead, use it for time-based checks
+                //     if (isset($lead['Created_Time'])) {
+                //         $leadCreationTime = Carbon::parse($lead['Created_Time']);
+                //         $oneDayAgo = (clone $leadCreationTime)->subDay();
+                //         $oneDayAfter = (clone $leadCreationTime)->addDay();
+
+                //         // Find leads with same email/phone that fall within the 1-day window
+                //         $existingLeadInTimeWindow = (clone $query)
+                //             ->whereBetween('created_at', [
+                //                 $oneDayAgo->format('Y-m-d H:i:s'),
+                //                 $oneDayAfter->format('Y-m-d H:i:s')
+                //             ])
+                //             ->first();
+
+                //         // If we find a lead within the time window, use that to prevent duplicate
+                //         if ($existingLeadInTimeWindow) {
+                //             $existingLead = $existingLeadInTimeWindow;
+                //         } else {
+                //             $existingLead = null;
+                //         }
+                //     } else {
+                //         // No creation time available, check for any match
+                //         $existingLead = $query->first();
+                //     }
+                // }
+                // First, check for existing lead by email AND phone
                 if (!empty($lead['Email']) || !empty($phoneNumber)) {
                     $query = Lead::query();
 
@@ -211,14 +259,13 @@ class FetchZohoLeads extends Command
                         $oneDayAgo = (clone $leadCreationTime)->subDay();
                         $oneDayAfter = (clone $leadCreationTime)->addDay();
 
-                        // Find leads with same email/phone that fall within the 1-day window
+                        // Find leads with matching email OR phone that fall within the 1-day window
                         $existingLeadInTimeWindow = (clone $query)
                             ->whereBetween('created_at', [
                                 $oneDayAgo->format('Y-m-d H:i:s'),
                                 $oneDayAfter->format('Y-m-d H:i:s')
                             ])
                             ->first();
-
                         // If we find a lead within the time window, use that to prevent duplicate
                         if ($existingLeadInTimeWindow) {
                             $existingLead = $existingLeadInTimeWindow;
@@ -229,6 +276,8 @@ class FetchZohoLeads extends Command
                         // No creation time available, check for any match
                         $existingLead = $query->first();
                     }
+                } else {
+                    $existingLead = null;
                 }
 
                 // If we found an existing lead within the time window, skip it
