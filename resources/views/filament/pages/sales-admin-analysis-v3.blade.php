@@ -170,6 +170,8 @@
             @endif
         </div>
 
+        <hr style="border: 0; height: 1px; background-color: #e2e8f0; width: 100%; margin: 15px 0;">
+
         {{-- Add Demo --}}
         <div style="display: flex; align-items: center; gap: 10px;">
             <div style="width: 150px;">Demo Assigned</div>
@@ -404,6 +406,50 @@
 
                         <div class="hover-message">
                             {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="
+                    background-color: #e2e8f0;
+                    color: #4a5568;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    width: 800px;
+                    text-align: center;
+                ">
+                    No Data Found
+                </div>
+            @endif
+        </div>
+
+        <hr style="border: 0; height: 1px; background-color: #e2e8f0; width: 100%; margin: 15px 0;">
+
+        {{-- Total Action Tasks --}}
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 150px;">Total Action Tasks</div>
+
+            @if (count($this->totalActionTasksByLeadOwner))
+                @php
+                    $itemCount = count($this->totalActionTasksByLeadOwner);
+                    $containerClass = 'data-container items-' . ($itemCount <= 3 ? $itemCount : 'many');
+                @endphp
+
+                <div class="{{ $containerClass }}">
+                    @foreach ($this->totalActionTasksByLeadOwner as $owner => $data)
+                        <div
+                            {{-- wire:click="openSlideOver('total', '{{ $owner }}')" --}}
+                            class="relative group data-item"
+                        >
+                        <div class="data-block" style="
+                            background-color: {{ $ownerColors[$owner] ?? '#4ade80' }}; {{-- Green color for totals --}}
+                        ">
+                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                        </div>
+
+                        <div class="hover-message">
+                            {{ $data['count'] }} tasks ({{ $data['percentage'] }}%)
                         </div>
                     </div>
                     @endforeach

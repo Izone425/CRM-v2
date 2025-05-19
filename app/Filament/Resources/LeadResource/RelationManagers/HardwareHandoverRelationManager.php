@@ -502,8 +502,8 @@ class HardwareHandoverRelationManager extends RelationManager
                 TextColumn::make('created_at')
                     ->label('DATE')
                     ->date('d M Y'),
-                TextColumn::make('payment_term')
-                    ->label('PAYMENT TYPE')
+                TextColumn::make('training_type')
+                    ->label('TRAINING TYPE')
                     ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
                 TextColumn::make('value')
                     ->label('VALUE')

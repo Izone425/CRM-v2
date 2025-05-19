@@ -98,27 +98,27 @@
 
             <!-- Confirmation Order Files -->
             @if(is_array($confirmationFiles) && count($confirmationFiles) > 0)
-                @foreach($confirmationFiles as $index => $file)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ Storage::disk('public')->url($file) }}" target="_blank" class="text-blue-500 hover:underline">
-                            Confirmation Order {{ $index > 0 ? $index + 1 : '' }}
-                        </a>
-                    </div>
-                @endforeach
-            @else
+            @foreach($confirmationFiles as $index => $file)
                 <div class="flex items-center">
                     <span class="mr-2 text-blue-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                     </span>
-                    <a href="#" class="text-blue-500 hover:underline">Confirmation Order</a>
+                    <a href="{{ asset('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
+                        Confirmation Order {{ $index > 0 ? $index + 1 : '' }}
+                    </a>
                 </div>
+            @endforeach
+            @else
+            <div class="flex items-center">
+                <span class="mr-2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                </span>
+                <span class="text-gray-400">No Confirmation Order attached</span>
+            </div>
             @endif
 
             <!-- Proforma Invoice -->

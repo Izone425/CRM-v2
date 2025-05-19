@@ -9,6 +9,11 @@
 <livewire:demo-tmr-table />
 <livewire:pr-today-salesperson-table />
 <livewire:pr-overdue-salesperson-table />
+<div class="w-full md:col-span-2">
+    <livewire:software-handover-today />
+    <br>
+    <livewire:hardware-handover-today />
+</div>
 <livewire:transfer-lead />
 <livewire:follow-up-lead />
 <livewire:debtor-follow-up-today-table />

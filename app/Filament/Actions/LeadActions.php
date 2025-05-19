@@ -1061,17 +1061,6 @@ class LeadActions
                             && in_array(Auth::user()->role_id, [2, 3])
                             && ($record->stage ?? '') === 'Follow Up'
                         ),
-
-                    TextInput::make('deal_amount')
-                        ->label('Deal Amount')
-                        ->numeric()
-                        ->required()
-                        ->default(fn (?Lead $record) => $record ? $record->deal_amount : null)
-                        ->visible(fn (?Lead $record) =>
-                            $record
-                            && in_array(Auth::user()->role_id, [2, 3])
-                            && ($record->stage ?? '') === 'Follow Up'
-                        ),
                 ])
         ])
         ->color('success')
@@ -1093,10 +1082,6 @@ class LeadActions
                 // Only update 'status' if it exists in $data
                 if (isset($data['status'])) {
                     $updateData['lead_status'] = $data['status'];
-                }
-
-                if (isset($data['deal_amount'])) {
-                    $updateData['deal_amount'] = $data['deal_amount'];
                 }
 
                 $lead->update($updateData);

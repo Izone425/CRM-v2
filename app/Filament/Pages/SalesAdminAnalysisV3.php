@@ -42,6 +42,9 @@ class SalesAdminAnalysisV3 extends Page
     public $totalNewAppointmentsByLeadStatus = 0;
     public $newDemoLeadStatusData = [];
 
+    public $totalActionTasksByLeadOwner = [];
+    public $totalActionTasks = 0;
+
     public $totalWebinarAppointmentsByLeadStatus = 0;
     public $webinarDemoLeadStatusData = [];
     public $companySizeData = [];
@@ -104,6 +107,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
+        $this->calculateTotalActionTasks();
     }
 
     public function updatedSelectedUser($userId)
@@ -118,6 +122,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
+        $this->calculateTotalActionTasks();
     }
 
     public function updatedStartDate($value)
@@ -144,6 +149,7 @@ class SalesAdminAnalysisV3 extends Page
         $this->fetchInactiveCallAttemptStatsByLeadOwner();
         $this->fetchAutomationEnabledStatsByLeadOwner();
         $this->fetchArchivedStatsByLeadOwner();
+        $this->calculateTotalActionTasks();
     }
 
     public function fetchLeads()
@@ -382,6 +388,40 @@ class SalesAdminAnalysisV3 extends Page
         }
 
         $this->automationStatsByLeadOwner = $result;
+    }
+
+    public function calculateTotalActionTasks()
+    {
+        $leadOwners = User::where('role_id', 1)->pluck('id', 'name')->toArray();
+        $result = [];
+
+        foreach ($leadOwners as $name => $userId) {
+            // Sum up all action counts for this lead owner
+            $demoCount = $this->demoStatsByLeadOwner[$name]['count'] ?? 0;
+            $rfqCount = $this->rfqTransferStatsByLeadOwner[$name]['count'] ?? 0;
+            $callCount = $this->callAttemptStatsByLeadOwner[$name]['count'] ?? 0;
+            $inactiveCallCount = $this->inactiveCallAttemptStatsByLeadOwner[$name]['count'] ?? 0;
+            $archiveCount = $this->archiveStatsByLeadOwner[$name]['count'] ?? 0;
+            $automationCount = $this->automationStatsByLeadOwner[$name]['count'] ?? 0;
+
+            $totalCount = $demoCount + $rfqCount + $callCount + $inactiveCallCount + $archiveCount + $automationCount;
+
+            if ($totalCount > 0) {
+                $result[$name] = ['count' => $totalCount];
+            }
+        }
+
+        $total = collect($result)->sum('count');
+        $this->totalActionTasks = $total;
+
+        // Calculate percentage for each lead owner
+        foreach ($result as $name => $data) {
+            $result[$name]['percentage'] = $total > 0
+                ? round(($data['count'] / $total) * 100, 2)
+                : 0;
+        }
+
+        $this->totalActionTasksByLeadOwner = $result;
     }
 
     public function openSlideOver($type, $owner)

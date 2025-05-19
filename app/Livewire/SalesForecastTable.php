@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Lead;
+use App\Models\Quotation;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
@@ -13,6 +14,8 @@ use Livewire\Component;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Str;
 use Filament\Tables\Filters\SelectFilter;
 
@@ -210,6 +213,16 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                     ->label('Deal Amount')
                     ->sortable()
                     ->formatStateUsing(fn ($state) => $state ? 'RM ' . number_format($state, 2) : '-'),
+            ])
+            ->actions([
+                ActionGroup::make([
+                    Action::make('View PDF')
+                        ->label('Preview')
+                        ->icon('heroicon-o-arrow-down-on-square')
+                        ->color('success')
+                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', $quotation))
+                        ->openUrlInNewTab(),
+                ])
             ])
             ->bulkActions([
                 \Filament\Tables\Actions\BulkAction::make('resetLeadStatusToCold')
