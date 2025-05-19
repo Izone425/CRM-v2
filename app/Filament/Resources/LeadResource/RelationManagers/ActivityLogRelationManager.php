@@ -1075,13 +1075,6 @@ class ActivityLogRelationManager extends RelationManager
                                         ->default('hot')
                                         ->required()
                                         ->visible(fn (ActivityLog $record) => in_array(Auth::user()->role_id, [2, 3]) && $record->lead->stage === 'Follow Up'),
-
-                                    TextInput::make('deal_amount')
-                                        ->label('Deal Amount')
-                                        ->numeric()
-                                        ->required()
-                                        ->default(fn (ActivityLog $record) => $record->lead->deal_amount)
-                                        ->visible(fn (ActivityLog $record) => in_array(Auth::user()->role_id, [2, 3]) && ($record->lead->stage ?? '') === 'Follow Up'),
                                 ])
                             ])
                         ->color('success')
@@ -1105,10 +1098,6 @@ class ActivityLogRelationManager extends RelationManager
                                 // Only update 'status' if it exists in $data
                                 if (isset($data['status'])) {
                                     $updateData['lead_status'] = $data['status'];
-                                }
-
-                                if (isset($data['deal_amount'])) {
-                                    $updateData['deal_amount'] = $data['deal_amount'];
                                 }
 
                                 $lead->update($updateData);

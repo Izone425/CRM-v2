@@ -8,6 +8,7 @@ use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoRanking;
+use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
@@ -23,6 +24,7 @@ use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
+use App\Filament\Resources\HardwareHandoverResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
 use App\Filament\Resources\LeadResource;
@@ -31,7 +33,9 @@ use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
+use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Widgets\LeadChartWidget;
+use App\Livewire\FutureEnhancement;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
@@ -72,6 +76,7 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->emailVerification()
             ->profile(EditProfile::class)
+            // ->databaseNotifications()
             ->brandName('TimeTec CRM')
             ->colors([
                 'primary' => '#431fa1',
@@ -81,6 +86,10 @@ class AdminPanelProvider extends PanelProvider
                 Css::make('sidebar', public_path('/css/custom-sidebar.css')),
                 \Filament\Support\Assets\Js::make('sidebar-js', public_path('/js/custom-sidebar.js')),
             ])
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => \Illuminate\Support\Facades\Blade::render('@livewire(\App\Livewire\CountryDivisionSelector::class)'),
+            )
             ->renderHook(
                 'panels::body.start',  // This is critical - it needs to be panels::body.start
                 fn (): string => view('layouts.custom-sidebar')->render()
@@ -127,6 +136,8 @@ class AdminPanelProvider extends PanelProvider
                 InvalidLeadReasonResource::class,
                 UserResource::class,
                 ResellerResource::class,
+                SoftwareHandoverResource::class,
+                HardwareHandoverResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -146,6 +157,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesAdminAnalysisV2::class,
                 SalesAdminAnalysisV3::class,
                 SalesForecastSummary::class,
+                PagesFutureEnhancement::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

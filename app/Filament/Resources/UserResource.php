@@ -28,6 +28,10 @@ class UserResource extends Resource
         'proforma_invoices' => 'filament.admin.pages.proforma-invoices',
         'chat_room' => 'filament.admin.pages.chat-room',
 
+        // Handover
+        'software_handover' => 'filament.admin.resources.software-handovers.index',
+        'hardware_handover' => 'filament.admin.resources.hardware-handovers.index',
+
         // Sales Forecast
         'sales_forecast' => 'filament.admin.pages.sales-forecast',
         'sales_forecast_summary' => 'filament.admin.pages.sales-forecast-summary',
@@ -95,6 +99,8 @@ class UserResource extends Resource
                                         'quotations' => true,
                                         'proforma_invoices' => false,
                                         'chat_room' => true,
+                                        'software_handover' => false,
+                                        'hardware_handover' => false,
                                         'sales_forecast' => true,
                                         'sales_forecast_summary' => true,
                                         'calendar' => true,
@@ -121,6 +127,8 @@ class UserResource extends Resource
                                         'quotations' => true,
                                         'proforma_invoices' => false,
                                         'chat_room' => false,
+                                        'software_handover' => false,
+                                        'hardware_handover' => false,
                                         'sales_forecast' => true,
                                         'sales_forecast_summary' => false,
                                         'calendar' => true,
@@ -222,6 +230,35 @@ class UserResource extends Resource
                                         if ($record) {
                                             $permissions = $record->route_permissions ?? [];
                                             $routeName = self::$routePermissionMap['chat_room'];
+                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                        }
+                                    }),
+                            ])
+                            ->columns(2),
+
+                        // Handover section
+                        Forms\Components\Fieldset::make('Handover')
+                            ->schema([
+                                Forms\Components\Checkbox::make('permissions.software_handover')
+                                    ->label('Software Handover')
+                                    ->helperText('Manage software handover documents')
+                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                        if ($record) {
+                                            $permissions = $record->route_permissions ?? [];
+                                            // You'll need to add this key to your routePermissionMap array
+                                            $routeName = 'filament.admin.resources.software-handovers.index';
+                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                        }
+                                    }),
+
+                                Forms\Components\Checkbox::make('permissions.hardware_handover')
+                                    ->label('Hardware Handover')
+                                    ->helperText('Manage hardware handover documents')
+                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                        if ($record) {
+                                            $permissions = $record->route_permissions ?? [];
+                                            // You'll need to add this key to your routePermissionMap array
+                                            $routeName = 'filament.admin.resources.hardware-handovers.index';
                                             $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                         }
                                     }),

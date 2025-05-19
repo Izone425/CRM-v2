@@ -144,6 +144,40 @@
                                     Manager
                                 </button>
 
+                                    <!-- Lead Owner Button -->
+                                <button
+                                    wire:click="toggleDashboard('LeadOwner')"
+                                    style="
+                                        padding: 10px 15px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border: none;
+                                        border-radius: 20px;
+                                        background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
+                                        color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
+                                        cursor: pointer;
+                                    "
+                                >
+                                    Lead Owner
+                                </button>
+
+                                <!-- Salesperson Button -->
+                                <button
+                                    wire:click="toggleDashboard('Salesperson')"
+                                    style="
+                                        padding: 10px 15px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border: none;
+                                        border-radius: 20px;
+                                        background: {{ $currentDashboard === 'Salesperson' ? '#431fa1' : 'transparent' }};
+                                        color: {{ $currentDashboard === 'Salesperson' ? '#ffffff' : '#555' }};
+                                        cursor: pointer;
+                                    "
+                                >
+                                    Salesperson
+                                </button>
+
                                 <!-- Admin Dropdown -->
                                 <div class="admin-dropdown" style="position: relative; display: inline-block;">
                                     <button
@@ -220,41 +254,121 @@
                                         >
                                             Admin - Hardware
                                         </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('TRAINING')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - TRAINING
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('HRDF')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - HRDF
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('RENEWAL')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'RENEWAL' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - RENEWAL
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('CREDIT CONTROLER')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'CREDIT CONTROLER' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - CREDIT CONTROLER
+                                        </button>
                                     </div>
                                 </div>
-
-                                <!-- Lead Owner Button -->
+                                <!-- Trainer Button -->
                                 <button
-                                    wire:click="toggleDashboard('LeadOwner')"
+                                    wire:click="toggleDashboard('Trainer')"
                                     style="
                                         padding: 10px 15px;
                                         font-size: 14px;
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
-                                        color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
+                                        background: {{ $currentDashboard === 'Trainer' ? '#431fa1' : 'transparent' }};
+                                        color: {{ $currentDashboard === 'Trainer' ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                     "
                                 >
-                                    Lead Owner
+                                    Trainer
                                 </button>
 
-                                <!-- Salesperson Button -->
+                                <!-- Implementer Button -->
                                 <button
-                                    wire:click="toggleDashboard('Salesperson')"
+                                    wire:click="toggleDashboard('Implementer')"
                                     style="
                                         padding: 10px 15px;
                                         font-size: 14px;
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ $currentDashboard === 'Salesperson' ? '#431fa1' : 'transparent' }};
-                                        color: {{ $currentDashboard === 'Salesperson' ? '#ffffff' : '#555' }};
+                                        background: {{ $currentDashboard === 'Implementer' ? '#431fa1' : 'transparent' }};
+                                        color: {{ $currentDashboard === 'Implementer' ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                     "
                                 >
-                                    Salesperson
+                                    Implementer
+                                </button>
+
+                                <!-- Support Button -->
+                                <button
+                                    wire:click="toggleDashboard('Support')"
+                                    style="
+                                        padding: 10px 15px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border: none;
+                                        border-radius: 20px;
+                                        background: {{ $currentDashboard === 'Support' ? '#431fa1' : 'transparent' }};
+                                        color: {{ $currentDashboard === 'Support' ? '#ffffff' : '#555' }};
+                                        cursor: pointer;
+                                    "
+                                >
+                                    Support
                                 </button>
                             </div>
                         </div>

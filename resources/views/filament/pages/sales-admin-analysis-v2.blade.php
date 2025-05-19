@@ -142,10 +142,9 @@
             }
 
             .lead-number {
-                font-size: 3rem;
+                font-size: 2rem;
                 font-weight: bold;
                 color: #1F2937;
-                margin-top: 8px;
             }
 
             .lead-text {
@@ -255,7 +254,6 @@
 
             .lead-summary-box {
                 display: flex;
-                align-items: center;
                 justify-content: space-between;
                 padding: 20px;
                 border-radius: 10px;
@@ -279,7 +277,7 @@
             /* Middle Divider (5%) */
             .lead-divider {
                 flex: 0.02;
-                height: 150px;
+                height: 220px;
                 background: #ccc;
                 width: 0.5px;
             }
@@ -333,7 +331,7 @@
             /* Middle Divider (5%) */
             .lead-divider {
                 flex: 0.02;
-                height: 150px;
+                height: 220px;
                 background: #ccc;
                 width: 0.5px;
             }
@@ -425,9 +423,10 @@
                         @foreach ([
                             ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
                             ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
-                            ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da']
+                            ['label' => 'Shahilah', 'percentage' => $shahilahPercentage, 'count' => $shahilahLeads, 'color' => '#00796b', 'bg-color' => '#c8e6e1'],
+                            ['label' => 'Afifah', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da'],
                         ] as $data)
-                            <div class="relative text-center group cursor-pointer" wire:click="openLeadBreakdownSlideOver('{{ $data['label'] }}')">
+                            <div class="relative text-center cursor-pointer group" wire:click="openLeadBreakdownSlideOver('{{ $data['label'] }}')">
                                 <div class="relative w-28 h-28">
                                     <svg width="130" height="130" viewBox="0 0 36 36">
                                         <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
@@ -478,7 +477,7 @@
                                 @php
                                     $percentage = $totalLeads > 0 ? round(($data['count'] / $totalLeads) * 100, 2) : 0;
                                 @endphp
-                                <div class="relative text-center group cursor-pointer" wire:click="openLeadCategorySlideOver('{{ $data['label'] }}')">
+                                <div class="relative text-center cursor-pointer group" wire:click="openLeadCategorySlideOver('{{ $data['label'] }}')">
                                     <div class="relative w-28 h-28">
                                         <svg width="100" height="100" viewBox="0 0 36 36">
                                             <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
@@ -504,47 +503,99 @@
                     </div>
             </div>
         </div>
+    </div>
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center space-x-3">
+                <p class="m-0 lead-label">Total Leads (Admin Jaja):</p>&nbsp;
+                <p class="m-0 lead-number">{{ array_sum($adminJajaLeadStats) }}</p>
+            </div>
+
             <div class="lead-summary-box">
-                <!-- Left Section (30%) -->
-                <div class="lead-count">
-                    <p class="lead-number">{{ array_sum($adminJajaLeadStats) }}</p>
-                    <p class="lead-label">Total Leads <br> (Admin Jaja)</p>
+                <div class="lead-progress">
+                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Jaja)</h3>
+
+                    <div class="flex justify-center space-x-10">
+                        @foreach ($adminJajaLeadStats as $category => $count)
+                            @php
+                                $totalLeads = array_sum($adminJajaLeadStats);
+                                $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
+
+                                $categoryColors = [
+                                    'Active'   => '#00c7b1',  // Teal
+                                    'Sales'    => '#fb8c00',  // Orange
+                                    'Inactive' => '#a6a6a6',  // Gray
+                                ];
+
+                                $categoryBgColors = [
+                                    'Active'   => '#c8f0eb',
+                                    'Sales'    => '#fae4c8',
+                                    'Inactive' => '#e9e9e9',
+                                ];
+
+                                $color = $categoryColors[$category] ?? '#6B7280';
+                                $bgColor = $categoryBgColors[$category] ?? '#E5E7EB';
+                            @endphp
+
+                            <div class="relative text-center cursor-pointer group" wire:click="openJajaLeadCategorySlideOver('{{ $category }}')">
+                                <div class="relative w-28 h-28">
+                                    <svg width="100" height="100" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $bgColor }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                                stroke-dasharray="88"
+                                                stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                                stroke-linecap="round"
+                                                transform="rotate(-90 18 18)">
+                                        </circle>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                        {{ $count }}
+                                    </div>
+                                    <!-- Hover message (hidden by default) -->
+                                    <div class="hover-message">
+                                        {{ $percentage }}%
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-700">{{ ucfirst($category) }}</p>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
-                <!-- Middle Divider -->
-                <div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-                <!-- Right Section (65%) -->
-                <div class="lead-progress">
-                    <h3 class="status-title">Lead Categories (Admin Jaja)</h3>
+                <div class="mt-4 lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
-                    @foreach ($adminJajaLeadStats as $category => $count)
+                    @foreach ($activeLeadsDataJaja as $status => $count)
                         @php
-                            $totalLeads = array_sum($adminJajaLeadStats);
-                            $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
+                            $percentage = $totalActiveLeadsJaja > 0 ? round(($count / $totalActiveLeadsJaja) * 100, 2) : 0;
 
-                            $categoryColors = [
-                                'Active'   => '#00c7b1',  // Teal
-                                'Sales'    => '#fb8c00',  // Orange
-                                'Inactive' => '#a6a6a6',  // Gray
-                            ];
+                            // Color mapping from your existing code
+                            $color = match($status) {
+                                'Active 24 Below' => '#7bbaff',  // Blue
+                                'Active 25 Above' => '#00c6ff',  // Green
+                                'Call Attempt 24 Below' => '#00ebff',  // Yellow
+                                'Call Attempt 25 Above' => '#00edd1', // Red
+                                default => '#D1D5DB',  // Gray (fallback)
+                            };
+                            $barBgColor = match($status) {
+                                'Active 24 Below' => '#e0edfb',  // Blue
+                                'Active 25 Above' => '#c7effb',  // Green
+                                'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
+                                'Call Attempt 25 Above' => '#c7f7f1', // Red
+                                default => '#E5E7EB',  // Gray (fallback)
+                            };
 
-                            $categoryBgColors = [
-                                'Active'   => '#c8f0eb',
-                                'Sales'    => '#fae4c8',
-                                'Inactive' => '#e9e9e9',
-                            ];
-
-                            $color = $categoryColors[$category] ?? '#6B7280';
-                            $barBgColor = $categoryBgColors[$category] ?? '#E5E7EB';
+                            // Simplify status labels for display
+                            $displayStatus = str_replace(['Active ', 'Call Attempt '], ['', 'Call '], $status);
                         @endphp
 
                         <!-- Clickable Slide-Over Trigger -->
-                        <div class="cursor-pointer" wire:click="openJajaLeadCategorySlideOver('{{ $category }}')">
+                        <div class="mb-4 cursor-pointer" wire:click="openActiveLeadsJajaSlideOver('{{ $status }}')">
                             <div class="progress-info">
-                                <span>{{ ucfirst($category) }}</span>
+                                <span>{{ $displayStatus }}</span>
                                 <span>{{ $count }} ({{ $percentage }}%)</span>
                             </div>
 
@@ -554,383 +605,469 @@
                         </div>
                     @endforeach
                 </div>
-            </div>
 
-            <!-- Separator Line -->
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($activeLeadsDataJaja as $status => $count)
-                    @php
-                        $percentage = $totalActiveLeadsJaja > 0 ? round(($count / $totalActiveLeadsJaja) * 100, 2) : 0;
-                        $color = match($status) {
-                            'Active 24 Below' => '#7bbaff',  // Blue
-                            'Active 25 Above' => '#00c6ff',  // Green
-                            'Call Attempt 24 Below' => '#00ebff',  // Yellow
-                            'Call Attempt 25 Above' => '#00edd1', // Red
-                            default => '#D1D5DB',  // Gray (fallback)
-                        };
-                        $bgcolor = match($status) {
-                            'Active 24 Below' => '#e0edfb',  // Blue
-                            'Active 25 Above' => '#c7effb',  // Green
-                            'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
-                            'Call Attempt 25 Above' => '#c7f7f1', // Red
-                            default => '#D1D5DB',  // Gray (fallback)
-                        };
-                    @endphp
+                <div class="mt-4 lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+                    @foreach ($transferStagesDataJaja as $stage => $count)
+                        @php
+                            $percentage = $totalTransferLeadsJaja > 0 ? round(($count / $totalTransferLeadsJaja) * 100, 2) : 0;
 
-                    <div wire:click="openActiveLeadsJajaSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
+                            $color = match($stage) {
+                                'Transfer' => '#ffde59',  /* Light Yellow */
+                                'Demo' => '#ffa83c',      /* Orange */
+                                'Follow Up' => '#ff914d', /* Dark Orange */
+                                default => '#D1D5DB',     // Gray
+                            };
 
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
+                            $barBgColor = match($stage) {
+                                'Transfer' => '#fff8dd',  /* Light Yellow bg */
+                                'Demo' => '#ffedd7',      /* Orange bg */
+                                'Follow Up' => '#ffe8da', /* Dark Orange bg */
+                                default => '#E5E7EB',     // Gray bg
+                            };
+                        @endphp
+
+                        <!-- Clickable Slide-Over Trigger -->
+                        <div class="mb-4 cursor-pointer" wire:click="openTransferLeadsJajaSlideOver('{{ $stage }}')">
+                            <div class="progress-info">
+                                <span>{{ $stage }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
                             </div>
-                            <div class=" hover-message">
-                                {{ $percentage }}%
+
+                            <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                             </div>
                         </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $status }}
-                        </p>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
 
-            <!-- Separator Line -->
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+                <!-- Lead Status Summary -->
 
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($transferStagesDataJaja as $stage => $count)
-                    @php
-                        $percentage = $totalTransferLeadsJaja > 0 ? round(($count / $totalTransferLeadsJaja) * 100, 2) : 0;
-                        $color = match($stage) {
-                            'Transfer' => '#ffde59',  /* Light Blue */
-                            'Demo' => '#ffa83c',      /* Purple */
-                            'Follow Up' => '#ff914d', /* Dark Blue */
-                            default => '#D1D5DB',     // Gray
-                        };
-                        $bgcolor = match($stage) {
-                            'Transfer' => '#fff8dd',  /* Light Blue */
-                            'Demo' => '#ffedd7',      /* Purple */
-                            'Follow Up' => '#ffe8da', /* Dark Blue */
-                            default => '#D1D5DB',     // Gray
-                        };
-                    @endphp
+                <div class="mt-4 lead-progress">
+                    <h3 class="mt-6 text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
 
-                    <div wire:click="openTransferLeadsJajaSlideOver('{{ $stage }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
-                            <!-- Number in Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
+                    @foreach ($inactiveLeadDataJaja as $status => $count)
+                        @php
+                            $percentage = $totalInactiveLeadsJaja > 0 ? round(($count / $totalInactiveLeadsJaja) * 100, 2) : 0;
+
+                            $color = match($status) {
+                                'Junk' => '#545454',
+                                'Lost' => '#737373',
+                                'On Hold' => '#99948f',
+                                'No Response' => '#c8c4bd',
+                                default => '#D1D5DB',
+                            };
+
+                            $barBgColor = match($status) {
+                                'Junk' => '#dcdcdc',
+                                'Lost' => '#e2e2e2',
+                                'On Hold' => '#eae9e8',
+                                'No Response' => '#f3f3f1',
+                                default => '#E5E7EB',
+                            };
+                        @endphp
+
+                        <!-- Clickable Slide-Over Trigger -->
+                        <div class="mb-4 cursor-pointer" wire:click="openInactiveLeadsJajaSlideOver('{{ $status }}')">
+                            <div class="progress-info">
+                                <span>{{ $status }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
                             </div>
-                            <div class=" hover-message">
-                                {{ $percentage }}%
+
+                            <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
                             </div>
                         </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $stage }}
-                        </p>
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- Separator Line -->
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
-
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
-
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($inactiveLeadDataJaja as $status => $count)
-                    @php
-                        $percentage = $totalInactiveLeadsJaja > 0 ? round(($count / $totalInactiveLeadsJaja) * 100, 2) : 0;
-                        $color = match($status) {
-                            'Junk' => '#545454',
-                            'Lost' => '#737373',
-                            'On Hold' => '#99948f',
-                            'No Response' => '#c8c4bd',
-                            default => '#D1D5DB',
-                        };
-                        $bgcolor = match($status) {
-                            'Junk' => '#dcdcdc',
-                            'Lost' => '#e2e2e2',
-                            'On Hold' => '#eae9e8',
-                            'No Response' => '#f3f3f1',
-                            default => '#D1D5DB',
-                        };
-                    @endphp
-
-                    <div wire:click="openInactiveLeadsJajaSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
-                            <!-- Number in Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
-                            </div>
-                            <div class=" hover-message">
-                                {{ $percentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $status }}
-                        </p>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
         </div>
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center space-x-3">
+                <p class="m-0 lead-label">Total Leads (Admin Shahilah):</p>&nbsp;
+                <p class="m-0 lead-number">{{ array_sum($adminShahilahLeadStats) }}</p>
+            </div>
+
             <div class="lead-summary-box">
-                <!-- Left Section (30%) -->
-                <div class="lead-count">
-                    <p class="lead-number">{{ array_sum($adminAfifahLeadStats) }}</p>
-                    <p class="lead-label">Total Leads <br> (Admin Afifah)</p>
-                </div>
-
-                <!-- Middle Divider -->
-                <div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-
-                <!-- Right Section (65%) -->
                 <div class="lead-progress">
-                    <h3 class="status-title">Lead Categories (Admin Afifah)</h3>
+                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Shahilah)</h3>
 
-                    @foreach ($adminAfifahLeadStats as $category => $count)
-                        @php
-                            $totalLeads = array_sum($adminAfifahLeadStats); // Calculate total leads
-                            $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
+                    <div class="flex justify-center w-full space-x-10">
+                        @foreach ($adminShahilahLeadStats as $category => $count)
+                            @php
+                                $totalLeads = array_sum($adminShahilahLeadStats);
+                                $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
 
-                            // Define category colors
-                            $categoryColors = [
-                                'Active'   => '#00c7b1',  // Teal
-                                'Sales'    => '#fb8c00',  // Orange
-                                'Inactive' => '#a6a6a6',  // Gray
-                            ];
+                                $categoryColors = [
+                                    'Active'   => '#00c7b1',  // Teal
+                                    'Sales'    => '#fb8c00',  // Orange
+                                    'Inactive' => '#a6a6a6',  // Gray
+                                ];
 
-                            $categoryBgColors = [
-                                'Active'   => '#c8f0eb',
-                                'Sales'    => '#fae4c8',
-                                'Inactive' => '#e9e9e9',
-                            ];
+                                $categoryBgColors = [
+                                    'Active'   => '#c8f0eb',
+                                    'Sales'    => '#fae4c8',
+                                    'Inactive' => '#e9e9e9',
+                                ];
 
-                            $color = $categoryColors[$category] ?? '#6B7280';
-                            $barBgColor = $categoryBgColors[$category] ?? '#E5E7EB';
-                        @endphp
+                                $color = $categoryColors[$category] ?? '#6B7280';
+                                $bgColor = $categoryBgColors[$category] ?? '#E5E7EB';
+                            @endphp
 
-                        <div class="cursor-pointer" wire:click="openAfifahLeadCategorySlideOver('{{ $category }}')">
-                            <!-- Category Name & Count -->
-                            <div class="progress-info">
-                                <span>{{ ucfirst($category) }}</span>
-                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            <div class="relative text-center cursor-pointer group" wire:click="openShahilahLeadCategorySlideOver('{{ $category }}')">
+                                <div class="relative w-28 h-28">
+                                    <svg width="100" height="100" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $bgColor }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                                stroke-dasharray="88"
+                                                stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                                stroke-linecap="round"
+                                                transform="rotate(-90 18 18)">
+                                        </circle>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                        {{ $count }}
+                                    </div>
+                                    <!-- Hover message (hidden by default) -->
+                                    <div class="hover-message">
+                                        {{ $percentage }}%
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-700">{{ ucfirst($category) }}</p>
                             </div>
-
-                            <!-- Progress Bar -->
-                            <div class="progress-bar" style="background-color: {{ $barBgColor }};">
-                                <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                            </div>
-                        </div>
-                    @endforeach
+                        @endforeach
+                    </div>
                 </div>
-            </div>
 
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($activeLeadsDataAfifah as $status => $count)
-                    @php
-                        $percentage = $totalActiveLeadsAfifah > 0 ? round(($count / $totalActiveLeadsAfifah) * 100, 2) : 0;
-                        $color = match($status) {
-                            'Active 24 Below' => '#7bbaff',  // Blue
-                            'Active 25 Above' => '#00c6ff',  // Green
-                            'Call Attempt 24 Below' => '#00ebff',  // Yellow
-                            'Call Attempt 25 Above' => '#00edd1', // Red
-                            default => '#D1D5DB',  // Gray (fallback)
-                        };
-                        $bgcolor = match($status) {
-                            'Active 24 Below' => '#e0edfb',  // Blue
-                            'Active 25 Above' => '#c7effb',  // Green
-                            'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
-                            'Call Attempt 25 Above' => '#c7f7f1', // Red
-                            default => '#D1D5DB',  // Gray (fallback)
-                        };
-                    @endphp
+                    <div class="mt-4">
+                        @foreach ($activeLeadsDataShahilah as $status => $count)
+                            @php
+                                $percentage = $totalActiveLeadsShahilah > 0 ? round(($count / $totalActiveLeadsShahilah) * 100, 2) : 0;
 
-                    <div wire:click="openActiveLeadsAfifahSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
-                            <!-- Number in Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
+                                // Color mapping from your existing code
+                                $color = match($status) {
+                                    'Active 24 Below' => '#7bbaff',  // Blue
+                                    'Active 25 Above' => '#00c6ff',  // Green
+                                    'Call Attempt 24 Below' => '#00ebff',  // Yellow
+                                    'Call Attempt 25 Above' => '#00edd1', // Red
+                                    default => '#D1D5DB',  // Gray (fallback)
+                                };
+                                $barBgColor = match($status) {
+                                    'Active 24 Below' => '#e0edfb',  // Blue
+                                    'Active 25 Above' => '#c7effb',  // Green
+                                    'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
+                                    'Call Attempt 25 Above' => '#c7f7f1', // Red
+                                    default => '#E5E7EB',  // Gray (fallback)
+                                };
+
+                                // Simplify status labels for display
+                                $displayStatus = str_replace(['Active ', 'Call Attempt '], ['', 'Call '], $status);
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openActiveLeadsShahilahSlideOver('{{ $status }}')">
+                                <div class="progress-info">
+                                    <span>{{ $displayStatus }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
                             </div>
-                            <!-- Hover Message (Styled & Positioned Properly) -->
-                            <div class=" hover-message">
-                                {{ $percentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $status }}
-                        </p>
+                        @endforeach
                     </div>
-                @endforeach
-            </div>
+                </div>
 
-            <!-- Separator Line -->
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+                    <div class="mt-4">
+                        @foreach ($transferStagesDataShahilah as $stage => $count)
+                            @php
+                                $percentage = $totalTransferLeadsShahilah > 0 ? round(($count / $totalTransferLeadsShahilah) * 100, 2) : 0;
 
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($transferStagesDataAfifah as $stage => $count)
-                    @php
-                        $percentage = $totalTransferLeadsAfifah > 0 ? round(($count / $totalTransferLeadsAfifah) * 100, 2) : 0;
-                        $color = match($stage) {
-                            'Transfer' => '#ffde59',  /* Light Blue */
-                            'Demo' => '#ffa83c',      /* Purple */
-                            'Follow Up' => '#ff914d', /* Dark Blue */
-                            default => '#D1D5DB',     // Gray
-                        };
-                        $bgcolor = match($stage) {
-                            'Transfer' => '#fff8dd',  /* Light Blue */
-                            'Demo' => '#ffedd7',      /* Purple */
-                            'Follow Up' => '#ffe8da', /* Dark Blue */
-                            default => '#D1D5DB',     // Gray
-                        };
-                    @endphp
+                                $color = match($stage) {
+                                    'Transfer' => '#ffde59',  /* Light Yellow */
+                                    'Demo' => '#ffa83c',      /* Orange */
+                                    'Follow Up' => '#ff914d', /* Dark Orange */
+                                    default => '#D1D5DB',     // Gray
+                                };
 
-                    <div wire:click="openTransferLeadsAfifahSlideOver('{{ $stage }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
-                            <!-- Number in Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
+                                $barBgColor = match($stage) {
+                                    'Transfer' => '#fff8dd',  /* Light Yellow bg */
+                                    'Demo' => '#ffedd7',      /* Orange bg */
+                                    'Follow Up' => '#ffe8da', /* Dark Orange bg */
+                                    default => '#E5E7EB',     // Gray bg
+                                };
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openTransferLeadsShahilahSlideOver('{{ $stage }}')">
+                                <div class="progress-info">
+                                    <span>{{ $stage }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
                             </div>
-                            <div class=" hover-message">
-                                {{ $percentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $stage }}
-                        </p>
+                        @endforeach
                     </div>
-                @endforeach
-            </div>
+                </div>
 
-            <!-- Separator Line -->
-            <div class="mt-6 mb-6 border-t border-gray-300"></div>
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <!-- Lead Status Summary -->
-            <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
+                <!-- Lead Status Summary -->
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
 
-            <div class="flex justify-center mt-4 space-x-6">
-                @foreach ($inactiveLeadDataAfifah as $status => $count)
-                    @php
-                        $percentage = $totalInactiveLeadsAfifah > 0 ? round(($count / $totalInactiveLeadsAfifah) * 100, 2) : 0;
-                        $color = match($status) {
-                            'Junk' => '#545454',
-                            'Lost' => '#737373',
-                            'On Hold' => '#99948f',
-                            'No Response' => '#c8c4bd',
-                            default => '#D1D5DB',
-                        };
-                        $bgcolor = match($status) {
-                            'Junk' => '#dcdcdc',
-                            'Lost' => '#e2e2e2',
-                            'On Hold' => '#eae9e8',
-                            'No Response' => '#f3f3f1',
-                            default => '#D1D5DB',
-                        };
-                    @endphp
+                    <div class="mt-4">
+                        @foreach ($inactiveLeadDataShahilah as $status => $count)
+                            @php
+                                $percentage = $totalInactiveLeadsShahilah > 0 ? round(($count / $totalInactiveLeadsShahilah) * 100, 2) : 0;
 
-                    <div wire:click="openInactiveLeadsAfifahSlideOver('{{ $status }}')" class="relative text-center group cursor-pointer hover:scale-[1.02] transition">
-                        <div class="relative w-28 h-28">
-                            <svg width="130" height="130" viewBox="0 0 36 36">
-                                <!-- Background Circle -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $bgcolor }}" stroke-width="5" fill="none"></circle>
-                                <!-- Progress Indicator -->
-                                <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
-                                        stroke-dasharray="88"
-                                        stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
-                                        stroke-linecap="round"
-                                        transform="rotate(-90 18 18)">
-                                </circle>
-                            </svg>
-                            <!-- Number in Center -->
-                            <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
-                                {{ $count }}
+                                $color = match($status) {
+                                    'Junk' => '#545454',
+                                    'Lost' => '#737373',
+                                    'On Hold' => '#99948f',
+                                    'No Response' => '#c8c4bd',
+                                    default => '#D1D5DB',
+                                };
+
+                                $barBgColor = match($status) {
+                                    'Junk' => '#dcdcdc',
+                                    'Lost' => '#e2e2e2',
+                                    'On Hold' => '#eae9e8',
+                                    'No Response' => '#f3f3f1',
+                                    default => '#E5E7EB',
+                                };
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openInactiveLeadsShahilahSlideOver('{{ $status }}')">
+                                <div class="progress-info">
+                                    <span>{{ $status }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
                             </div>
-                            <div class=" hover-message">
-                                {{ $percentage }}%
-                            </div>
-                        </div>
-                        <p class="mt-2 text-sm text-center text-gray-700" style="max-width: 130px; word-wrap: break-word; white-space: normal;">
-                            {{ $status }}
-                        </p>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center space-x-3">
+                <p class="m-0 lead-label">Total Leads (Admin Afifah):</p>&nbsp;
+                <p class="m-0 lead-number">{{ array_sum($adminAfifahLeadStats) }}</p>
+            </div>
+
+            <div class="lead-summary-box">
+                <div class="lead-progress">
+                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Afifah)</h3>
+
+                    <div class="flex justify-center w-full space-x-10">
+                        @foreach ($adminAfifahLeadStats as $category => $count)
+                            @php
+                                $totalLeads = array_sum($adminAfifahLeadStats);
+                                $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
+
+                                $categoryColors = [
+                                    'Active'   => '#00c7b1',  // Teal
+                                    'Sales'    => '#fb8c00',  // Orange
+                                    'Inactive' => '#a6a6a6',  // Gray
+                                ];
+
+                                $categoryBgColors = [
+                                    'Active'   => '#c8f0eb',
+                                    'Sales'    => '#fae4c8',
+                                    'Inactive' => '#e9e9e9',
+                                ];
+
+                                $color = $categoryColors[$category] ?? '#6B7280';
+                                $bgColor = $categoryBgColors[$category] ?? '#E5E7EB';
+                            @endphp
+
+                            <div class="relative text-center cursor-pointer group" wire:click="openAfifahLeadCategorySlideOver('{{ $category }}')">
+                                <div class="relative w-28 h-28">
+                                    <svg width="100" height="100" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $bgColor }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
+                                        <circle cx="18" cy="18" r="14" stroke="{{ $color }}" stroke-width="5" fill="none"
+                                                stroke-dasharray="88"
+                                                stroke-dashoffset="{{ 88 - (88 * ($percentage / 100)) }}"
+                                                stroke-linecap="round"
+                                                transform="rotate(-90 18 18)">
+                                        </circle>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900">
+                                        {{ $count }}
+                                    </div>
+                                    <!-- Hover message (hidden by default) -->
+                                    <div class="hover-message">
+                                        {{ $percentage }}%
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-sm text-gray-700">{{ ucfirst($category) }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
+
+                    <div class="mt-4">
+                        @foreach ($activeLeadsDataAfifah as $status => $count)
+                            @php
+                                $percentage = $totalActiveLeadsAfifah > 0 ? round(($count / $totalActiveLeadsAfifah) * 100, 2) : 0;
+
+                                // Color mapping from your existing code
+                                $color = match($status) {
+                                    'Active 24 Below' => '#7bbaff',  // Blue
+                                    'Active 25 Above' => '#00c6ff',  // Green
+                                    'Call Attempt 24 Below' => '#00ebff',  // Yellow
+                                    'Call Attempt 25 Above' => '#00edd1', // Red
+                                    default => '#D1D5DB',  // Gray (fallback)
+                                };
+                                $barBgColor = match($status) {
+                                    'Active 24 Below' => '#e0edfb',  // Blue
+                                    'Active 25 Above' => '#c7effb',  // Green
+                                    'Call Attempt 24 Below' => '#c7f6fb',  // Yellow
+                                    'Call Attempt 25 Above' => '#c7f7f1', // Red
+                                    default => '#E5E7EB',  // Gray (fallback)
+                                };
+
+                                // Simplify status labels for display
+                                $displayStatus = str_replace(['Active ', 'Call Attempt '], ['', 'Call '], $status);
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openActiveLeadsAfifahSlideOver('{{ $status }}')">
+                                <div class="progress-info">
+                                    <span>{{ $displayStatus }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
+                    <div class="mt-4">
+                        @foreach ($transferStagesDataAfifah as $stage => $count)
+                            @php
+                                $percentage = $totalTransferLeadsAfifah > 0 ? round(($count / $totalTransferLeadsAfifah) * 100, 2) : 0;
+
+                                $color = match($stage) {
+                                    'Transfer' => '#ffde59',  /* Light Yellow */
+                                    'Demo' => '#ffa83c',      /* Orange */
+                                    'Follow Up' => '#ff914d', /* Dark Orange */
+                                    default => '#D1D5DB',     // Gray
+                                };
+
+                                $barBgColor = match($stage) {
+                                    'Transfer' => '#fff8dd',  /* Light Yellow bg */
+                                    'Demo' => '#ffedd7',      /* Orange bg */
+                                    'Follow Up' => '#ffe8da', /* Dark Orange bg */
+                                    default => '#E5E7EB',     // Gray bg
+                                };
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openTransferLeadsAfifahSlideOver('{{ $stage }}')">
+                                <div class="progress-info">
+                                    <span>{{ $stage }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Separator Line -->
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="lead-divider"></div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+                <!-- Lead Status Summary -->
+                <div class="lead-progress">
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
+
+                    <div class="mt-4">
+                        @foreach ($inactiveLeadDataAfifah as $status => $count)
+                            @php
+                                $percentage = $totalInactiveLeadsAfifah > 0 ? round(($count / $totalInactiveLeadsAfifah) * 100, 2) : 0;
+
+                                $color = match($status) {
+                                    'Junk' => '#545454',
+                                    'Lost' => '#737373',
+                                    'On Hold' => '#99948f',
+                                    'No Response' => '#c8c4bd',
+                                    default => '#D1D5DB',
+                                };
+
+                                $barBgColor = match($status) {
+                                    'Junk' => '#dcdcdc',
+                                    'Lost' => '#e2e2e2',
+                                    'On Hold' => '#eae9e8',
+                                    'No Response' => '#f3f3f1',
+                                    default => '#E5E7EB',
+                                };
+                            @endphp
+
+                            <!-- Clickable Slide-Over Trigger -->
+                            <div class="mb-4 cursor-pointer" wire:click="openInactiveLeadsAfifahSlideOver('{{ $status }}')">
+                                <div class="progress-info">
+                                    <span>{{ $status }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+
+                                <div class="progress-bar" style="background-color: {{ $barBgColor }};">
+                                    <div class="progress-fill" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <!-- Slide-over Modal -->
     <div
         x-data="{ open: @entangle('showSlideOver') }"

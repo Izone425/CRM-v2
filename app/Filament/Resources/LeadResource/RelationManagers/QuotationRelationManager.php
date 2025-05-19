@@ -65,24 +65,25 @@ class QuotationRelationManager extends RelationManager
             ->poll('10s')
             ->modifyQueryUsing(function ($query) {
                 $query
-                    ->orderBy('quotation_date', 'desc');
+                    ->orderBy('created_at', 'desc');
             })
             ->headerActions([
                 Action::make('createQuotation')
                     ->label('Add Quotation')
-                    ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
+                    // ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
+                    ->color('primary')
                     ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3]))
                     ->action(function () {
                         // Check if company address is incomplete
-                        if ($this->isCompanyAddressIncomplete()) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Incomplete Company Address')
-                                ->body('Please complete the company address details before creating a quotation. (At least 1 field)')
-                                ->send();
+                        // if ($this->isCompanyAddressIncomplete()) {
+                        //     Notification::make()
+                        //         ->danger()
+                        //         ->title('Incomplete Company Address')
+                        //         ->body('Please complete the company address details before creating a quotation. (At least 1 field)')
+                        //         ->send();
 
-                            return;
-                        }
+                        //     return;
+                        // }
 
                         // If address is complete, redirect to the quotation creation page
                         $leadId = Encryptor::encrypt($this->getOwnerRecord()->id);
