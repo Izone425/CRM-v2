@@ -147,6 +147,7 @@ class SalesAdminAnalysisV1 extends Page
 
             'Inactive' => Lead::query()
                 ->where('categories', 'Inactive')
+                ->where('lead_status', '!=', 'Closed')
                 ->when($start && $end, fn ($q) => $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end))
                 ->count(),
         ];
