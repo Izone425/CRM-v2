@@ -15,6 +15,7 @@ use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 use Filament\Actions\Action;
+use Filament\Tables\Actions\Action as ActionsAction;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Str;
 use Filament\Tables\Filters\SelectFilter;
@@ -175,7 +176,7 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
@@ -201,28 +202,103 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                         'Cold' => 'gray',
                         default => 'secondary',
                     }),
+                TextColumn::make('created_at')
+                    ->label('Lead Created On')
+                    ->date('d M Y')
+                    ->sortable(),
+                TextColumn::make('first_demo')
+                    ->label('Demo Date')
+                    ->date('d M Y')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        // We need to join with appointments table to sort by the first demo date
+                        return $query
+                            ->leftJoin('appointments', function ($join) {
+                                $join->on('leads.id', '=', 'appointments.lead_id')
+                                     ->whereRaw('appointments.id = (
+                                         SELECT MIN(a2.id)
+                                         FROM appointments as a2
+                                         WHERE a2.lead_id = leads.id
+                                         ORDER BY a2.date ASC
+                                     )');
+                            })
+                            ->orderBy('appointments.date', $direction)
+                            ->select('leads.*'); // Make sure we only select from the leads table
+                    })
+                    ->getStateUsing(function (Lead $record) {
+                        try {
+                            // Get the first demo appointment
+                            $firstDemo = $record->demoAppointment()->orderBy('date', 'asc')->first();
+
+                            // Only log and access date if $firstDemo is not null
+                            if ($firstDemo) {
+                                return $firstDemo->date;
+                            }
+
+                            return null;
+                        } catch (\Exception $e) {
+                            info('Error getting first demo date: ' . $e->getMessage());
+                            return null;
+                        }
+                    })
+                    ->placeholder('No demo scheduled'),
+
                 TextColumn::make('from_new_demo')
-                    ->label('FROM NEW DEMO')
+                    ->label('From New Demo')
                     ->getStateUsing(fn (Lead $record) =>
                         ($days = $record->calculateDaysFromNewDemo()) !== '-'
                             ? $days . ' days'
                             : $days
-                    ),
+                    )
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        // Join with appointments to sort by days from new demo
+                        return $query
+                            ->leftJoin('appointments', function ($join) {
+                                $join->on('leads.id', '=', 'appointments.lead_id')
+                                    ->whereRaw('appointments.id = (
+                                        SELECT MIN(a2.id)
+                                        FROM appointments as a2
+                                        WHERE a2.lead_id = leads.id
+                                        ORDER BY a2.created_at ASC
+                                    )');
+                            })
+                            ->orderByRaw("CASE WHEN appointments.id IS NULL THEN 1 ELSE 0 END")
+                            ->orderBy('appointments.created_at', $direction === 'desc' ? 'asc' : 'desc')
+                            ->select('leads.*'); // Make sure we only select from the leads table
+                    }),
 
                 TextColumn::make('deal_amount')
                     ->label('Deal Amount')
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => $state ? 'RM ' . number_format($state, 2) : '-'),
+                    ->default('RM 0')
+                    ->formatStateUsing(function ($state) {
+                        if (is_null($state) || $state === '') {
+                            return '-';
+                        }
+
+                        // Convert to float to ensure numeric value
+                        $amount = floatval($state);
+                        return 'RM ' . number_format($amount, 2);
+                    }),
             ])
             ->actions([
-                ActionGroup::make([
-                    Action::make('View PDF')
-                        ->label('Preview')
-                        ->icon('heroicon-o-arrow-down-on-square')
-                        ->color('success')
-                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', $quotation))
-                        ->openUrlInNewTab(),
-                ])
+                ActionsAction::make('viewLatestQuotation')
+                    ->label('')
+                    ->icon('heroicon-o-document-text')
+                    ->color('danger')
+                    ->size('extra-large')
+                    ->url(function (Lead $record) {
+                        // Get the most recent quotation for this lead
+                        $latestQuotation = $record->quotations()->latest()->first();
+                        if ($latestQuotation) {
+                            return route('pdf.print-quotation-v2', $latestQuotation);
+                        }
+                        return null; // No quotation available
+                    })
+                    ->visible(function (Lead $record) {
+                        // Only show this action if the lead has quotations
+                        return $record->quotations()->exists();
+                    })
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 \Filament\Tables\Actions\BulkAction::make('resetLeadStatusToCold')

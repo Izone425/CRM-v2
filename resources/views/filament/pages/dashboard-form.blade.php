@@ -99,7 +99,7 @@
                             id="userFilter"
                             class="border-gray-300 rounded-md shadow-sm"
                         >
-                            <option value="{{ auth()->id() }}">Your Own Dashboard</option>
+                            <option value="{{ auth()->id() }}">Dashboard</option>
 
                             <optgroup label="All Groups">
                                 <option value="all-lead-owners">All Lead Owners</option>
