@@ -871,13 +871,13 @@
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center space-x-3">
-                <p class="m-0 lead-label">Total Leads (Admin Afifah):</p>&nbsp;
+                <p class="m-0 lead-label">Total Leads (Backup Admin):</p>&nbsp;
                 <p class="m-0 lead-number">{{ array_sum($adminAfifahLeadStats) }}</p>
             </div>
 
             <div class="lead-summary-box">
                 <div class="lead-progress">
-                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Afifah)</h3>
+                    <h3 class="mb-4 text-center status-title">Lead Categories (Backup Admin)</h3>
 
                     <div class="flex justify-center w-full space-x-10">
                         @foreach ($adminAfifahLeadStats as $category => $count)

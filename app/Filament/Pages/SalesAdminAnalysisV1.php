@@ -89,7 +89,8 @@ class SalesAdminAnalysisV1 extends Page
 
     public function fetchLeads()
     {
-        $query = Lead::query();
+        $query = Lead::query()
+            ->where('lead_status', '!=', 'Closed');
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -102,7 +103,8 @@ class SalesAdminAnalysisV1 extends Page
         $this->totalLeads = $leads->count();
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
-        $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
+        // $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
+        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati'])->count();
         $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
         $this->noneLeads = $leads->whereNull('lead_owner')->whereNotNull('salesperson')->count();
 
@@ -174,6 +176,7 @@ class SalesAdminAnalysisV1 extends Page
 
         // Fetch leads and count based on the company size label
         $companySizeCounts = $query->get()
+            ->where('lead_status', '!=', 'Closed')
             ->groupBy(fn ($lead) => $lead->company_size_label)
             ->map(fn ($group) => $group->count())
             ->toArray();
@@ -440,7 +443,8 @@ class SalesAdminAnalysisV1 extends Page
             return;
         }
 
-        $query = Lead::where('company_size', $companySize);
+        $query = Lead::where('company_size', $companySize)
+            ->where('lead_status', '!=', 'Closed');
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);

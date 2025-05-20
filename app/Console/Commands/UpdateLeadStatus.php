@@ -40,7 +40,7 @@ class UpdateLeadStatus extends Command
             // Update lead if in 'Demo' category
             if ($lead && $lead->stage === 'Demo') {
                 $lead->updateQuietly([
-                    'lead_status' => 'Hot',
+                    'lead_status' => 'Warm',
                     'stage' => 'Follow Up',
                 ]);
 
