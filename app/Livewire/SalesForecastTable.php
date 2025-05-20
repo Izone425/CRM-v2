@@ -287,11 +287,23 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                     ->color('danger')
                     ->size('extra-large')
                     ->url(function (Lead $record) {
-                        // Get the most recent quotation for this lead
+                        // First try to get a quotation marked as final
+                        $finalQuotation = $record->quotations()
+                            ->where('mark_as_final', 1)
+                            ->latest()
+                            ->first();
+
+                        // If there is a final quotation, return its route
+                        if ($finalQuotation) {
+                            return route('pdf.print-quotation-v2', $finalQuotation);
+                        }
+
+                        // Fallback to the most recent quotation if no final one exists
                         $latestQuotation = $record->quotations()->latest()->first();
                         if ($latestQuotation) {
                             return route('pdf.print-quotation-v2', $latestQuotation);
                         }
+
                         return null; // No quotation available
                     })
                     ->visible(function (Lead $record) {
