@@ -306,7 +306,7 @@
 
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
             <!-- Title -->
-        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin Analysis V1</h1>
+        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin - Leads</h1>
         <div class="flex items-center mb-6">
             <!-- Month Filter (Added Margin) -->
             <div class="ml-10">  <!-- Manually added space using margin-left -->
@@ -454,6 +454,13 @@
                                             'Enterprise' => '#fed7d7', // Red
                                             default => '#9CA3AF'   // Gray (fallback)
                                         };
+                                        $employeeCount = match($size) {
+                                            'Small' => '1-24',
+                                            'Medium' => '25-99',
+                                            'Large' => '100-500',
+                                            'Enterprise' => '>500',
+                                            default => ''
+                                        };
                                     @endphp
                                     <div class="relative text-center group cursor-pointer hover:scale-[1.02] transition"
                                         wire:click="openCompanySizeSlideOver('{{ ucfirst($size) }}')">
@@ -475,6 +482,7 @@
                                             </div>
                                         </div>
                                         <p class="mt-2 text-sm text-gray-700">{{ $size }}</p>
+                                        <p class="text-xs text-gray-500">{{ $employeeCount }}</p>
                                     </div>
                                 @endforeach
                             </div>
@@ -580,7 +588,7 @@
                             };
                         @endphp
 
-                        
+
                         <div class="cursor-pointer" wire:click="openTransferStageSlideOver('{{ $stage }}')">
                             <div class="progress-info">
                                 <span>{{ ucfirst($stage) }}</span>

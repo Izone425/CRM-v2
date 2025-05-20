@@ -69,7 +69,7 @@
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
-        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin Analysis V3</h1>
+        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin - Action Task</h1>
         <div>
             <input wire:model="startDate" type="date" id="startDate" class="mt-1 border-gray-300 rounded-md shadow-sm" />
             &nbsp;- &nbsp;
@@ -101,7 +101,7 @@
         @endphp
 
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px; font-weight: bold;">Leads Incoming</div>
+            <div style="width: 180px; font-weight: bold;">Leads Incoming</div>
 
             @if ($this->leadsIncoming > 0)
                 <div style="
@@ -130,7 +130,7 @@
 
         {{-- Leads Pickup --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Leads Pickup</div>
+            <div style="width: 180px;">Leads Pickup</div>
 
             @if (count($this->leadOwnerPickupCounts))
                 @php
@@ -174,7 +174,7 @@
 
         {{-- Add Demo --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Demo Assigned</div>
+            <div style="width: 180px;">Demo Assigned</div>
 
             @if (count($this->demoStatsByLeadOwner))
                 @php
@@ -216,7 +216,7 @@
 
         {{-- Add RFQ --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Add RFQs</div>
+            <div style="width: 180px;">Add RFQs</div>
 
             @if (count($this->rfqTransferStatsByLeadOwner))
                 @php
@@ -258,7 +258,7 @@
 
         {{-- Add Automation --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Automation Enabled</div>
+            <div style="width: 180px;">Automation Enabled</div>
 
             @if (count($this->automationStatsByLeadOwner))
                 @php
@@ -300,7 +300,7 @@
 
         {{-- Archive --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Archived Leads</div>
+            <div style="width: 180px;">Archived Leads</div>
 
             @if (count($this->archiveStatsByLeadOwner))
                 @php
@@ -342,7 +342,7 @@
 
         {{-- Call Attempt --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Call Attempt (Active)</div>
+            <div style="width: 180px;">Call Attempt (Active)</div>
 
             @if (count($this->callAttemptStatsByLeadOwner))
                 @php
@@ -384,7 +384,7 @@
 
         {{-- Inactive Call Attempt --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Call Attempt (Inactive)</div>
+            <div style="width: 180px;">Call Attempt (Inactive)</div>
 
             @if (count($this->inactiveCallAttemptStatsByLeadOwner))
                 @php
@@ -428,7 +428,7 @@
 
         {{-- Total Action Tasks --}}
         <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 150px;">Total Action Tasks</div>
+            <div style="width: 180px;">Total Action Tasks</div>
 
             @if (count($this->totalActionTasksByLeadOwner))
                 @php

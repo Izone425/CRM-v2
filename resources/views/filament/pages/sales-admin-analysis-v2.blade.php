@@ -142,7 +142,7 @@
             }
 
             .lead-number {
-                font-size: 2rem;
+                font-size: 1.5rem;
                 font-weight: bold;
                 color: #1F2937;
             }
@@ -264,11 +264,6 @@
                 flex: 3;
                 text-align: center;
             }
-            .lead-number {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #333;
-            }
             .lead-label {
                 font-size: 0.9rem;
                 color: #777;
@@ -317,11 +312,6 @@
             .lead-count {
                 flex: 3;
                 text-align: center;
-            }
-            .lead-number {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #333;
             }
             .lead-label {
                 font-size: 0.9rem;
@@ -395,7 +385,7 @@
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
             <!-- Title -->
-        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin Analysis V2</h1>
+        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Sales Admin - Performance</h1>
         <div class="flex items-center mb-6">
             <!-- Month Filter (Added Margin) -->
             <div class="ml-10">  <!-- Manually added space using margin-left -->
@@ -428,7 +418,7 @@
                         ] as $data)
                             <div class="relative text-center cursor-pointer group" wire:click="openLeadBreakdownSlideOver('{{ $data['label'] }}')">
                                 <div class="relative w-28 h-28">
-                                    <svg width="130" height="130" viewBox="0 0 36 36">
+                                    <svg width="110" height="110" viewBox="0 0 36 36">
                                         <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
                                         <circle cx="18" cy="18" r="14" stroke="{{ $data['color'] }}" stroke-width="5" fill="none"
                                                 stroke-dasharray="88"
@@ -479,7 +469,7 @@
                                 @endphp
                                 <div class="relative text-center cursor-pointer group" wire:click="openLeadCategorySlideOver('{{ $data['label'] }}')">
                                     <div class="relative w-28 h-28">
-                                        <svg width="100" height="100" viewBox="0 0 36 36">
+                                        <svg width="110" height="110" viewBox="0 0 36 36">
                                             <circle cx="18" cy="18" r="14" stroke="{{ $data['bg-color'] }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
                                             <circle cx="18" cy="18" r="14" stroke="{{ $data['color'] }}" stroke-width="5" fill="none"
                                                     stroke-dasharray="88"
@@ -651,7 +641,7 @@
                 <!-- Lead Status Summary -->
 
                 <div class="mt-4 lead-progress">
-                    <h3 class="mt-6 text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
+                    <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
 
                     @foreach ($inactiveLeadDataJaja as $status => $count)
                         @php

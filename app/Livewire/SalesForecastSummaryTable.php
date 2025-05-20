@@ -22,6 +22,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Illuminate\Support\Facades\DB;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class SalesForecastSummaryTable extends Component implements HasForms, HasTable
@@ -63,7 +64,28 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
     protected function getTableQuery()
     {
-        return User::where('role_id', 2); // Fetch only salespersons
+        // First, get the demo rankings to determine the order
+        $demoRankings = DB::table('demo_rankings')
+            ->select('user_id', 'rank')
+            ->orderBy('rank')
+            ->get()
+            ->pluck('user_id')
+            ->toArray();
+
+        // Start with the base query to get salespersons
+        $query = User::where('role_id', 2)
+                    ->whereNotIn('id', [15, 18]);
+
+        // If we have demo rankings, use them to order the results
+        if (!empty($demoRankings)) {
+            // Use FIELD function in MySQL to order by the ranking position
+            $query->orderByRaw('FIELD(id, ' . implode(',', $demoRankings) . ')');
+        } else {
+            // Default sorting by name if no rankings are available
+            $query->orderBy('name');
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
