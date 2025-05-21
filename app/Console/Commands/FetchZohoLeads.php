@@ -150,7 +150,7 @@ class FetchZohoLeads extends Command
 
                     // Replace starting 0 with 6
                     if (preg_match('/^0/', $cleanedPhone)) {
-                        $cleanedPhone = '6' . substr($cleanedPhone, 1);
+                        $cleanedPhone = '60' . substr($cleanedPhone, 1);
                     }
 
                     $phoneNumber = $cleanedPhone;

@@ -38,6 +38,7 @@
             .data-item {
                 flex-grow: 1;
                 text-align: center;
+                min-width: 120px;
             }
 
             .data-block {
@@ -57,14 +58,17 @@
 
             /* When there are two items */
             .data-container.items-2 .data-item {
-                flex-basis: calc(50% - 5px);
+                flex-basis: calc(50% - 5px); /* Adjust for the 10px gap */
             }
 
-            /* When there are three or more items */
-            .data-container.items-3 .data-item,
+            /* When there are three items */
+            .data-container.items-3 .data-item {
+                flex-basis: calc(33.33% - 7px); /* Adjust for the 10px gap */
+            }
+
+            /* When there are four or more items */
             .data-container.items-many .data-item {
-                flex-basis: calc(33.33% - 7px);
-                min-width: 150px;
+                flex-basis: calc(25% - 8px); /* Four per row for many items */
             }
         </style>
     </head>
@@ -81,7 +85,7 @@
         @php
             // Create a mapping of lead owners to consistent colors
             $ownerColors = [];
-            $colorOptions = ['#38b2ac', '#f6ad55', '#7f9cf5', '#f56565', '#68d391', '#d69e2e'];
+            $colorOptions = ['#38b2ac', '#f6ad55', '#f56565', '#7f9cf5', '#68d391', '#d69e2e'];
 
             // Get all unique lead owners from all data sets
             $allOwners = collect([])
@@ -140,20 +144,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->leadOwnerPickupCounts as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('pickup', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('pickup', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -188,16 +192,16 @@
                             wire:click="openSlideOver('demo', '{{ $owner }}')"
                             class="relative cursor-pointer group data-item"
                         >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -226,20 +230,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->rfqTransferStatsByLeadOwner as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('rfq', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('rfq', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -268,20 +272,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->automationStatsByLeadOwner as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('automation', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('automation', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -310,20 +314,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->archiveStatsByLeadOwner as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('archive', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('archive', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -352,20 +356,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->callAttemptStatsByLeadOwner as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('call', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('call', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -394,20 +398,20 @@
 
                 <div class="{{ $containerClass }}">
                     @foreach ($this->inactiveCallAttemptStatsByLeadOwner as $owner => $data)
-                    <div
-                        wire:click="openSlideOver('inactivecall', '{{ $owner }}')"
-                        class="relative cursor-pointer group data-item"
-                    >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                        <div
+                            wire:click="openSlideOver('inactivecall', '{{ $owner }}')"
+                            class="relative cursor-pointer group data-item"
+                        >
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} leads ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else
@@ -442,16 +446,16 @@
                             {{-- wire:click="openSlideOver('total', '{{ $owner }}')" --}}
                             class="relative group data-item"
                         >
-                        <div class="data-block" style="
-                            background-color: {{ $ownerColors[$owner] ?? '#4ade80' }}; {{-- Green color for totals --}}
-                        ">
-                            {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
-                        </div>
+                            <div class="data-block" style="
+                                background-color: {{ $ownerColors[$owner] ?? '#4ade80' }}; {{-- Green color for totals --}}
+                            ">
+                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                            </div>
 
-                        <div class="hover-message">
-                            {{ $data['count'] }} tasks ({{ $data['percentage'] }}%)
+                            <div class="hover-message">
+                                {{ $data['count'] }} tasks ({{ $data['percentage'] }}%)
+                            </div>
                         </div>
-                    </div>
                     @endforeach
                 </div>
             @else

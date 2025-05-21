@@ -27,6 +27,7 @@ class UserResource extends Resource
         'quotations' => 'filament.admin.resources.quotations.index',
         'proforma_invoices' => 'filament.admin.pages.proforma-invoices',
         'chat_room' => 'filament.admin.pages.chat-room',
+        'sales-lead' => 'filament.admin.pages.sales-lead',
 
         // Handover
         'software_handover' => 'filament.admin.resources.software-handovers.index',
@@ -197,6 +198,17 @@ class UserResource extends Resource
                                         if ($record) {
                                             $permissions = $record->route_permissions ?? [];
                                             $routeName = self::$routePermissionMap['leads'];
+                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                        }
+                                    }),
+
+                                Forms\Components\Checkbox::make('permissions.sales-lead')
+                                    ->label('Sales Lead')
+                                    ->helperText('Access Sales Lead')
+                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                        if ($record) {
+                                            $permissions = $record->route_permissions ?? [];
+                                            $routeName = self::$routePermissionMap['sales-lead'];
                                             $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                         }
                                     }),
