@@ -300,6 +300,13 @@
                 <div class="dropdown-content">
                     <div class="dropdown-category-heading">SalesPerson</div>
 
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.sales-lead'))
+                        <a href="{{ route('filament.admin.pages.sales-lead') }}" class="sidebar-item">
+                            <i class="bi bi-currency-dollar"></i>
+                            <span>Sales Lead</span>
+                        </a>
+                    @endif
+
                     <!-- Calendar Section -->
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
