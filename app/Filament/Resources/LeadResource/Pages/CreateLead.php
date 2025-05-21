@@ -138,6 +138,7 @@ class CreateLead extends CreateRecord
                 'stage' => 'Transfer',
                 'lead_status' => 'New',
                 'categories' => 'Active',
+                'pickup_date' => now(),
             ]);
             $latestActivityLog = ActivityLog::where('subject_id', $this->record->id)
                 ->orderByDesc('id')

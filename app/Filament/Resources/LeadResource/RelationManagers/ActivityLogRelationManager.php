@@ -162,7 +162,8 @@ class ActivityLogRelationManager extends RelationManager
                                 $leadStatus = $properties['attributes']['lead_status'] ?? 'No status';
                                 $rawRemark = $properties['attributes']['remark'] ?? null;
                                 $remark = trim($rawRemark) !== '' ? $rawRemark : 'No remark available';
-                                $timestamp = $record->created_at->format('Y-m-d H:i:s');
+                                $timestamp = $record->created_at->format('d F Y');
+                                $time = $record->created_at->format('H:i:s');
                                 $formattedRemark = nl2br(e($remark));
 
                                 // Get the related Lead (based on subject_id/type)
@@ -170,28 +171,37 @@ class ActivityLogRelationManager extends RelationManager
                                     ? \App\Models\Lead::find($record->subject_id)
                                     : null;
 
-                                $extraInfoHtml = '';
+                                $html = "<div class='p-4 bg-gray-100 rounded'>";
 
-                                if ($lead) {
-                                    // Deal Amount
-                                    if (!is_null($lead->deal_amount)) {
-                                        $formattedAmount = number_format($lead->deal_amount, 2);
-                                        $extraInfoHtml .= "<p><strong>Deal Amount:</strong> <span class='text-green-600'>RM {$formattedAmount}</span></p>";
-                                    }
+                                // Header with follow up count, date and time
+                                $html .= "<h3 class='text-lg'><strong>{$record->description}</strong> | Date: {$timestamp} | Time: {$time}</h3><br>";
 
-                                    // Follow Up Date
-                                    if (!is_null($lead->follow_up_date)) {
-                                        $formattedDate = \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d');
-                                        $extraInfoHtml .= "<p><strong>Next Follow Up Date:</strong> <span class='text-indigo-600'>{$formattedDate}</span></p>";
-                                    }
+                                // Status
+                                $html .= "<p><strong>Status:</strong> {$leadStatus}</p>";
+
+                                // Deal Amount
+                                if ($lead && !is_null($lead->deal_amount)) {
+                                    $formattedAmount = number_format($lead->deal_amount, 2);
+                                    $html .= "<p><strong>Sales Amount:</strong> RM {$formattedAmount}</p>";
                                 }
 
-                                // Remarks list
-                                $remarksHtml = '<ul class="mt-2">';
-                                $remarksHtml .= "<li><strong>{$timestamp}</strong> - <span class='font-bold text-blue-600'>{$leadStatus}</span>: {$formattedRemark}</li>";
-                                $remarksHtml .= '</ul>';
+                                // Follow Up Date
+                                if ($lead && !is_null($lead->follow_up_date)) {
+                                    $formattedDate = \Carbon\Carbon::parse($lead->follow_up_date)->format('d F Y');
+                                    $html .= "<p><strong>Next Follow Up Date:</strong> {$formattedDate}</p><br>";
+                                }
 
-                                return new \Illuminate\Support\HtmlString($extraInfoHtml . $remarksHtml);
+                                // Remarks section
+                                $html .= "<div class='mt-4'>";
+                                $html .= "<h4 class='font-bold'>Follow Up Remark:</h4>";
+                                $html .= "<p class='mt-2'>{$formattedRemark}</p>";
+                                $html .= "</div>";
+
+                                $html .= "</div>";
+
+                                $html .= "</div>";
+
+                                return new \Illuminate\Support\HtmlString($html);
                             })
                         ),
 
