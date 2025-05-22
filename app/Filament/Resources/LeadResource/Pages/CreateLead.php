@@ -225,23 +225,113 @@ class CreateLead extends CreateRecord
             TextInput::make('company_name')
                 ->label('Company Name')
                 ->required()
-                ->reactive()
-                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                ->dehydrateStateUsing(function ($state, $set, $get) {
-                    $latestLeadId = \App\Models\Lead::max('id') ?? 0; // Get the latest lead ID or default to 0
+                // ->reactive()
+                // Replace suffix icon with a clickable search action
+                ->extraAlpineAttributes([
+                    'x-on:input' => '
+                        const start = $el.selectionStart;
+                        const end = $el.selectionEnd;
+                        const value = $el.value;
+                        $el.value = value.toUpperCase();
+                        $el.setSelectionRange(start, end);
+                    '
+                ])
+                ->suffixAction(
+                    \Filament\Forms\Components\Actions\Action::make('searchCompanies')
+                        ->label('Search')
+                        ->icon('heroicon-o-magnifying-glass')
+                        ->color('primary')
+                        ->action(function ($state, $set, $livewire) {
+                            if (empty($state)) {
+                                $set('company_name_helper_text', "Type something to search");
+                                return;
+                            }
 
-                    // Step 2: Determine the next Lead ID
+                            // Convert the state to uppercase and add a space at the end
+                            $state = strtoupper(trim($state));
+
+                            // Ensure we have a visible space at the end
+                            $stateWithSpace = $state . " ";
+
+                            // Update the field value to uppercase with space
+                            $livewire->js('
+                                const inputElement = $el.closest(".fi-fo-text-input").querySelector("input");
+                                inputElement.value = ' . json_encode($stateWithSpace) . ';
+
+                                // Set cursor at the end
+                                inputElement.selectionStart = inputElement.selectionEnd = inputElement.value.length;
+
+                                // Force the change to be recognized by the browser
+                                inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+                                inputElement.dispatchEvent(new Event("change", { bubbles: true }));
+                            ');
+
+                            // Show loading state
+                            $set('company_search_loading', true);
+
+                            // Use sleep to slow down the search for visual effect
+                            usleep(1000000); // 1 second delay
+
+                            // Check if company with similar name already exists
+                            $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', $state);
+                            $existingCompanies = \App\Models\CompanyDetail::where('company_name', 'LIKE', $baseCompanyName . '%')
+                                ->get();
+
+                            // To this to find any occurrence of the search term:
+                            $searchTerm = trim(preg_replace('/ SDN\.? BHD\.?$/i', '', $state));
+                            $existingCompanies = \App\Models\CompanyDetail::where(function($query) use ($searchTerm) {
+                                // Try exact match
+                                $query->where('company_name', $searchTerm)
+                                // Or name starts with search term
+                                ->orWhere('company_name', 'LIKE', $searchTerm . '%')
+                                // Or name contains search term
+                                ->orWhere('company_name', 'LIKE', '%' . $searchTerm . '%');
+                            })
+                            ->get();
+
+                            // If exists, set helper text with found company details
+                            if ($existingCompanies->isNotEmpty()) {
+                                $duplicateInfo = $existingCompanies->map(function($company) {
+                                    $leadId = $company->lead_id;
+                                    return "• {$company->company_name} (Lead ID: " . str_pad($leadId, 5, '0', STR_PAD_LEFT) . ")";
+                                })->implode("\n");
+
+                                $set('company_name_helper_text', "⚠️ Similar companies already exist:\n{$duplicateInfo}");
+                            } else {
+                                $set('company_name_helper_text', "✓ No similar companies found");
+                            }
+
+                            // Reset loading state
+                            $set('company_search_loading', false);
+                        })
+                )
+                // Show a loading text in the helper text while searching
+                ->helperText(function (callable $get) {
+                    if ($get('company_search_loading')) {
+                        return "Searching for similar companies...";
+                    }
+                    return $get('company_name_helper_text');
+                })
+                // Make sure you have this in your component's properties
+                ->dehydrateStateUsing(function ($state, $set, $get) {
+                    // Fix: Assign the result of strtoupper back to $state
+                    $state = strtoupper(trim($state));
+
+                    $latestLeadId = \App\Models\Lead::max('id') ?? 0;
+
+                    // Determine the next Lead ID
                     $nextLeadId = $latestLeadId + 1;
+
                     // Create a new CompanyDetail record and associate it with the Lead
                     $companyDetail = \App\Models\CompanyDetail::create([
-                        'company_name' => $state, // The company name
-                        'lead_id' => $nextLeadId      // Associate with the current Lead
+                        'company_name' => $state, // The company name (now properly uppercase)
+                        'lead_id' => $nextLeadId  // Associate with the current Lead
                     ]);
 
                     // Store the new CompanyDetail ID in the `company_name` field of the Lead table
                     $set('company_name', $companyDetail->id);
 
-                    return $companyDetail->id; // Optionally return the ID
+                    return $companyDetail->id;
                 }),
             TextInput::make('name')
                 ->label('Name')
