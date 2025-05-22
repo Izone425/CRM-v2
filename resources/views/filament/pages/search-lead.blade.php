@@ -7,6 +7,6 @@
     }
 </style>
 
-<livewire:sales-lead-table />
+<livewire:search-lead-table />
 
 </x-filament::page>

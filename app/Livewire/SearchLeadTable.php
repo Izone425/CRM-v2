@@ -28,70 +28,81 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
 
-class SalesLeadTable extends Component implements HasForms, HasTable
+class SearchLeadTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    // Track if a search has been performed
-    public $isSearched = false;
-    public $searchCompanyName = '';
+    // Add custom search property
+    public $companySearchTerm = '';
+    public $hasSearched = false;
 
     // Base query that will return no results by default
     public function getTableQuery(): Builder
     {
         $query = Lead::query();
 
-        // Only return results if a search has been performed
-        if (!$this->isSearched) {
-            $query->whereRaw('1 = 0'); // This will return no results
-        }
-
-        // Apply company name filter if provided
-        if (!empty($this->searchCompanyName)) {
-            $query->whereHas('companyDetail', function ($subquery) {
-                $subquery->where('company_name', 'like', '%' . $this->searchCompanyName . '%');
+        // Always start with an empty result set unless we have valid search criteria
+        if (!$this->hasSearched || empty($this->companySearchTerm)) {
+            // This returns an impossible condition to ensure no records are returned
+            $query->whereRaw('1 = 0');
+        } else {
+            // Only search if hasSearched flag is true AND we have a search term
+            $query->whereHas('companyDetail', function (Builder $subQuery) {
+                $subQuery->where('company_name', 'like', "%{$this->companySearchTerm}%");
             });
         }
 
         return $query;
     }
 
+    // Custom search method that will be triggered by the button
+    public function searchCompany()
+    {
+        // First validate that there's something to search for
+        if (empty($this->companySearchTerm)) {
+            // Optional: show a notification if search term is empty
+            Notification::make()
+                ->warning()
+                ->title('Please enter a search term')
+                ->send();
+            return;
+        }
+
+        // Set searched flag and reset pagination in one operation
+        $this->hasSearched = true;
+
+        // This is critical - force Livewire to re-render the component
+        // Which will trigger a new query
+        $this->resetPage();
+    }
+
+    // Reset search
+    public function resetSearch()
+    {
+        $this->companySearchTerm = '';
+        $this->hasSearched = false;
+        $this->resetPage();
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
             ->query($this->getTableQuery())
+            ->poll('1s')
             ->defaultSort('created_at', 'desc')
-            ->emptyState(fn () => view('components.empty-state-question'))
+            ->emptyState(function () {
+                if ($this->hasSearched) {
+                    return view('components.empty-state-no-results', ['searchTerm' => $this->companySearchTerm]);
+                }
+                return view('components.empty-state-question');
+            })
             ->defaultPaginationPageOption(10)
             ->paginated([10, 25, 50])
-            ->filters([
-                Filter::make('company_name')
-                    ->form([
-                        TextInput::make('company_name')
-                            ->hiddenLabel()
-                            ->placeholder('Enter company name'),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        // Set the search status flags when filter is applied
-                        $this->isSearched = true;
-                        $this->searchCompanyName = $data['company_name'] ?? '';
-
-                        // The actual filtering is now handled in getTableQuery()
-                        // This prevents duplicate filtering logic
-                    })
-                    ->indicateUsing(function (array $data) {
-                        return isset($data['company_name']) && !empty($data['company_name'])
-                            ? 'Company Name: ' . $data['company_name']
-                            : null;
-                    }),
-            ], layout: FiltersLayout::AboveContent)
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
                     ->rowIndex(),
-                // Rest of your columns remain the same
                 TextColumn::make('lead_owner')
                     ->label('LEAD OWNER')
                     ->getStateUsing(fn (Lead $record) => $record->lead_owner ?? '-'),
@@ -126,6 +137,6 @@ class SalesLeadTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.sales-lead-table');
+        return view('livewire.search-lead-table');
     }
 }

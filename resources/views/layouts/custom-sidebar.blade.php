@@ -300,10 +300,10 @@
                 <div class="dropdown-content">
                     <div class="dropdown-category-heading">SalesPerson</div>
 
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.sales-lead'))
-                        <a href="{{ route('filament.admin.pages.sales-lead') }}" class="sidebar-item">
-                            <i class="bi bi-currency-dollar"></i>
-                            <span>Sales Lead</span>
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.search-lead'))
+                        <a href="{{ route('filament.admin.pages.search-lead') }}" class="sidebar-item">
+                            <i class="bi bi-search"></i>
+                            <span>Search Lead</span>
                         </a>
                     @endif
 
@@ -344,18 +344,18 @@
                                 <span>Proforma Invoice</span>
                             </a>
 
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Invoice</span>
                                 </a>
                             @endif
 
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Sales Order</span>
-                            </a>
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Sales Order</span>
+                                </a>
                             @endif
                         </div>
                     </div>
@@ -397,7 +397,7 @@
                                 <span>Forecast - Salesperson</span>
                             </a>
 
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.sales-forecast-summary'))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Forecast - Summary</span>
@@ -407,81 +407,81 @@
                     </div>
 
                     <!-- Software Handover Section -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                    <div class="nested-dropdown">
-                        <div class="sidebar-item nested-dropdown-trigger">
-                            <i class="bi bi-box-arrow-right"></i>
-                            <span>Software Handover</span>
-                            <i class="bi bi-chevron-down ms-auto"></i>
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Software Handover</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <!-- Level 3 dropdown content -->
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Analysis</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Attachment</span>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Level 3 dropdown content -->
-                        <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard</span>
-                            </a>
+                        <!-- Hardware Handover Section -->
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-cpu"></i>
+                                <span>Hardware Handover</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Analysis</span>
-                            </a>
+                            <!-- Level 3 dropdown content -->
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard</span>
+                                </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
-                            </a>
-                        </div>
-                    </div>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Analysis</span>
+                                </a>
 
-                    <!-- Hardware Handover Section -->
-                    <div class="nested-dropdown">
-                        <div class="sidebar-item nested-dropdown-trigger">
-                            <i class="bi bi-cpu"></i>
-                            <span>Hardware Handover</span>
-                            <i class="bi bi-chevron-down ms-auto"></i>
-                        </div>
-
-                        <!-- Level 3 dropdown content -->
-                        <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Analysis</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- HRDF Section -->
-                    <div class="nested-dropdown">
-                        <div class="sidebar-item nested-dropdown-trigger">
-                            <i class="bi bi-people-fill"></i>
-                            <span>HRDF</span>
-                            <i class="bi bi-chevron-down ms-auto"></i>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Attachment</span>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Level 3 dropdown content -->
-                        <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard</span>
-                            </a>
+                        <!-- HRDF Section -->
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-people-fill"></i>
+                                <span>HRDF</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Analysis</span>
-                            </a>
+                            <!-- Level 3 dropdown content -->
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Analysis</span>
+                                </a>
+                            </div>
                         </div>
-                    </div>
                     @endif
                 </div>
             </div>
@@ -1114,6 +1114,7 @@
 
                         <div class="nested-dropdown-content">
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                            {{-- <a href="{{ route('filament.admin.resources.roles.index') }}" class="sidebar-item"> --}}
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>System Role</span>

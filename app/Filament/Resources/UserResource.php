@@ -186,315 +186,311 @@ class UserResource extends Resource
 
                 // Only show route permissions section when editing (not creating)
                 Forms\Components\Section::make('Route Permissions')
-                    ->description('Configure which parts of the system this user can access')
-                    ->schema([
-                        // Main navigation items
-                        Forms\Components\Fieldset::make('Main Navigation')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.leads')
-                                    ->label('Leads')
-                                    ->helperText('Access to leads management')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['leads'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                ->description('Configure which parts of the system this user can access')
+                ->schema([
+                    // Main Navigation
+                    Forms\Components\Fieldset::make('Main Navigation')
+                        ->schema([
+                            Forms\Components\Checkbox::make('permissions.leads')
+                                ->label('Leads')
+                                ->helperText('Access to leads management')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['leads'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
 
-                                Forms\Components\Checkbox::make('permissions.sales-lead')
-                                    ->label('Sales Lead')
-                                    ->helperText('Access Sales Lead')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales-lead'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                    // Lead Owner Section
+                    Forms\Components\Fieldset::make('Lead Owner')
+                        ->schema([
+                            Forms\Components\Checkbox::make('permissions.calendar')
+                                ->label('Calendar V1')
+                                ->helperText('Access to weekly calendar view 1')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['calendar'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.quotations')
-                                    ->label('Quotations')
-                                    ->helperText('Access to quotations')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['quotations'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.weekly_calendar_v2')
+                                ->label('Calendar V2')
+                                ->helperText('Access to weekly calendar view 2')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['weekly_calendar_v2'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.proforma_invoices')
-                                    ->label('Proforma Invoices')
-                                    ->helperText('Access to proforma invoices')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['proforma_invoices'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            // Prospects Automation
+                            Forms\Components\Checkbox::make('permissions.chat_room')
+                                ->label('WhatsApp')
+                                ->helperText('Access to WhatsApp chat room')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['chat_room'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.chat_room')
-                                    ->label('Chat Room')
-                                    ->helperText('Access to WhatsApp chat room')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['chat_room'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
+                            // Analysis
+                            Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v1')
+                                ->label('Sales Admin - Leads')
+                                ->helperText('Access to sales admin analysis v1')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['sales_admin_analysis_v1'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                        // Handover section
-                        Forms\Components\Fieldset::make('Handover')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.software_handover')
-                                    ->label('Software Handover')
-                                    ->helperText('Manage software handover documents')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            // You'll need to add this key to your routePermissionMap array
-                                            $routeName = 'filament.admin.resources.software-handovers.index';
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v2')
+                                ->label('Sales Admin - Performance')
+                                ->helperText('Access to sales admin analysis v2')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['sales_admin_analysis_v2'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.hardware_handover')
-                                    ->label('Hardware Handover')
-                                    ->helperText('Manage hardware handover documents')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            // You'll need to add this key to your routePermissionMap array
-                                            $routeName = 'filament.admin.resources.hardware-handovers.index';
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
+                            Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v3')
+                                ->label('Sales Admin - Action Task')
+                                ->helperText('Access to sales admin analysis v3')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['sales_admin_analysis_v3'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                        // Sales Forecast section
-                        Forms\Components\Fieldset::make('Sales Forecast')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.sales_forecast')
-                                    ->label('Sales Forecast - Salesperson')
-                                    ->helperText('View sales forecast by salesperson')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales_forecast'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.demo_ranking')
+                                ->label('Demo Ranking')
+                                ->helperText('Access to demo ranking')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['demo_ranking'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
 
-                                Forms\Components\Checkbox::make('permissions.sales_forecast_summary')
-                                    ->label('Sales Forecast - Summary')
-                                    ->helperText('View sales forecast summary')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales_forecast_summary'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
+                    // Salesperson Section
+                    Forms\Components\Fieldset::make('Salesperson')
+                        ->schema([
+                            // Calendar
+                            Forms\Components\Checkbox::make('permissions.calendar')
+                                ->label('Salesperson - Calendar V1')
+                                ->helperText('Access to calendar view for salesperson')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['calendar'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                        // Calendar section
-                        Forms\Components\Fieldset::make('Calendar')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.calendar')
-                                    ->label('Weekly Calendar V1')
-                                    ->helperText('Access to weekly calendar view 1')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['calendar'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            // Commercial Part
+                            Forms\Components\Checkbox::make('permissions.quotations')
+                                ->label('Quotations')
+                                ->helperText('Access to quotations')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['quotations'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.weekly_calendar_v2')
-                                    ->label('Weekly Calendar V2')
-                                    ->helperText('Access to weekly calendar view 2')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['weekly_calendar_v2'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.proforma_invoices')
+                                ->label('Proforma Invoices')
+                                ->helperText('Access to proforma invoices')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['proforma_invoices'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.monthly_calendar')
-                                    ->label('Monthly Calendar')
-                                    ->helperText('Access to monthly calendar')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['monthly_calendar'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            // Analysis
+                            Forms\Components\Checkbox::make('permissions.lead_analysis')
+                                ->label('Lead Analysis')
+                                ->helperText('Access to lead analysis')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['lead_analysis'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.demo_ranking')
-                                    ->label('Demo Ranking')
-                                    ->helperText('Access to demo ranking')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['demo_ranking'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
+                            Forms\Components\Checkbox::make('permissions.demo_analysis')
+                                ->label('Demo Analysis')
+                                ->helperText('Access to demo analysis')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['demo_analysis'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                        // Analysis section
-                        Forms\Components\Fieldset::make('Analysis')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.lead_analysis')
-                                    ->label('Lead Analysis')
-                                    ->helperText('Access to lead analysis')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['lead_analysis'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            // Forecast
+                            Forms\Components\Checkbox::make('permissions.sales_forecast')
+                                ->label('Forecast - Salesperson')
+                                ->helperText('View sales forecast by salesperson')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['sales_forecast'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.demo_analysis')
-                                    ->label('Demo Analysis')
-                                    ->helperText('Access to demo analysis')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['demo_analysis'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.sales_forecast_summary')
+                                ->label('Forecast - Summary')
+                                ->helperText('View sales forecast summary')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['sales_forecast_summary'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
 
-                                Forms\Components\Checkbox::make('permissions.marketing_analysis')
-                                    ->label('Marketing Analysis')
-                                    ->helperText('Access to marketing analysis')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['marketing_analysis'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                    // Admin Section
+                    Forms\Components\Fieldset::make('Admin')
+                        ->schema([
+                            // Handover section
+                            Forms\Components\Checkbox::make('permissions.software_handover')
+                                ->label('Software Handover')
+                                ->helperText('Manage software handover documents')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['software_handover'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v1')
-                                    ->label('Sales Admin Analysis V1')
-                                    ->helperText('Access to sales admin analysis v1')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales_admin_analysis_v1'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.hardware_handover')
+                                ->label('Hardware Handover')
+                                ->helperText('Manage hardware handover documents')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['hardware_handover'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
 
-                                Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v2')
-                                    ->label('Sales Admin Analysis V2')
-                                    ->helperText('Access to sales admin analysis v2')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales_admin_analysis_v2'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                    // Marketing Section
+                    Forms\Components\Fieldset::make('Marketing')
+                        ->schema([
+                            Forms\Components\Checkbox::make('permissions.marketing_analysis')
+                                ->label('Marketing Analysis')
+                                ->helperText('Access to marketing analysis')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['marketing_analysis'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
 
-                                Forms\Components\Checkbox::make('permissions.sales_admin_analysis_v3')
-                                    ->label('Sales Admin Analysis V3')
-                                    ->helperText('Access to sales admin analysis v3')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['sales_admin_analysis_v3'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
+                    // Settings Section
+                    Forms\Components\Fieldset::make('Settings')
+                        ->schema([
+                            // System Label
+                            Forms\Components\Checkbox::make('permissions.products')
+                                ->label('Products')
+                                ->helperText('Manage product settings')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['products'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                        // Admin settings section - only visible for managers
-                        Forms\Components\Fieldset::make('Admin Settings')
-                            ->schema([
-                                Forms\Components\Checkbox::make('permissions.products')
-                                    ->label('Products')
-                                    ->helperText('Manage product settings')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['products'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.industries')
+                                ->label('Industries')
+                                ->helperText('Manage industry settings')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['industries'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.users')
-                                    ->label('Users')
-                                    ->helperText('Manage system users')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['users'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.lead_sources')
+                                ->label('Lead Sources')
+                                ->helperText('Manage lead source settings')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['lead_sources'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.industries')
-                                    ->label('Industries')
-                                    ->helperText('Manage industry settings')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['industries'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.invalid_lead_reasons')
+                                ->label('Invalid Lead Reasons')
+                                ->helperText('Manage invalid lead reasons')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['invalid_lead_reasons'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.lead_sources')
-                                    ->label('Lead Sources')
-                                    ->helperText('Manage lead source settings')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['lead_sources'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
+                            Forms\Components\Checkbox::make('permissions.resellers')
+                                ->label('Resellers')
+                                ->helperText('Manage resellers')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['resellers'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
 
-                                Forms\Components\Checkbox::make('permissions.invalid_lead_reasons')
-                                    ->label('Invalid Lead Reasons')
-                                    ->helperText('Manage invalid lead reasons')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['invalid_lead_reasons'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-
-                                Forms\Components\Checkbox::make('permissions.resellers')
-                                    ->label('Resellers')
-                                    ->helperText('Manage resellers')
-                                    ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                        if ($record) {
-                                            $permissions = $record->route_permissions ?? [];
-                                            $routeName = self::$routePermissionMap['resellers'];
-                                            $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                        }
-                                    }),
-                            ])
-                            ->columns(2),
-                    ]),
+                            // Access Rights
+                            Forms\Components\Checkbox::make('permissions.users')
+                                ->label('System Admin')
+                                ->helperText('Manage system users')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['users'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(3),
+                ]),
             ]);
     }
 

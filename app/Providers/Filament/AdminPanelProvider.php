@@ -21,6 +21,7 @@ use App\Filament\Pages\SalesAdminAnalysisV3;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
+use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
@@ -34,6 +35,7 @@ use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
+use App\Filament\Resources\RoleResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
@@ -60,6 +62,7 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
+use App\Models\Role;
 use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
@@ -139,6 +142,7 @@ class AdminPanelProvider extends PanelProvider
                 ResellerResource::class,
                 SoftwareHandoverResource::class,
                 HardwareHandoverResource::class,
+                RoleResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -159,7 +163,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesAdminAnalysisV3::class,
                 SalesForecastSummary::class,
                 PagesFutureEnhancement::class,
-                SalesLead::class,
+                SearchLead::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
