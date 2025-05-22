@@ -1100,7 +1100,10 @@ class QuotationResource extends Resource
 
             // Preserve manually edited descriptions
             $currentDescription = $get("../../items.{$index}.description") ?? '';
-            if (blank($currentDescription) || ($field === 'product_id' && $state)) {
+            // Only set product description when:
+            // 1. Current description is empty/blank, OR
+            // 2. This specific item's product was just changed (field='product_id' AND the index matches)
+            if (blank($currentDescription) || ($field === 'product_id' && $state && $index === $get('../../_repeater_index'))) {
                 $set("../../items.{$index}.description", $product?->description);
             }
 
@@ -1306,7 +1309,10 @@ class QuotationResource extends Resource
 
             $currentDescription = $get("items.{$index}.description") ?? '';
 
-            if (blank($currentDescription)) {
+            // Only set product description when:
+            // 1. Current description is empty/blank, OR
+            // 2. This is a newly selected product (check if this is the item being modified)
+            if (blank($currentDescription) || ($index === $get('_repeater_index') && $product)) {
                 $set("items.{$index}.description", $product?->description);
             }
 
