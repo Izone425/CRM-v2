@@ -184,13 +184,27 @@ class CreateLead extends CreateRecord
             $lead = $this->record;
             $viewName = 'emails.new_lead';
 
-            // Set fixed recipient
+            // Get all users with role_id 1
+            $adminUsers = User::where('role_id', 1)->get();
+
+            // Start with fixed recipient
             $recipients = collect([
                 (object)[
                     'email' => 'faiz@timeteccloud.com',
                     'name' => 'Faiz'
                 ]
             ]);
+
+            // Add all users with role_id 1 to recipients
+            foreach ($adminUsers as $adminUser) {
+                $recipients->push((object)[
+                    'email' => $adminUser->email,
+                    'name' => $adminUser->name
+                ]);
+            }
+
+            // Remove any duplicates by email
+            $recipients = $recipients->unique('email');
 
             foreach ($recipients as $recipient) {
                 $emailContent = [
