@@ -99,7 +99,7 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                                     $latestActivityLog->update([
                                         'description' => 'Change Lead Owner has been Approved by Manager',
                                     ]);
-
+                                    sleep(1);
                                     activity()
                                         ->causedBy(auth()->user())
                                         ->performedOn($lead)
