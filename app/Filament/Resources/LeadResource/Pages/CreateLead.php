@@ -21,6 +21,8 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 use App\Models\Lead;
+use Illuminate\Support\Str;
+use Illuminate\Support\HtmlString;
 
 class CreateLead extends CreateRecord
 {
@@ -227,15 +229,9 @@ class CreateLead extends CreateRecord
                 ->required()
                 // ->reactive()
                 // Replace suffix icon with a clickable search action
-                ->extraAlpineAttributes([
-                    'x-on:input' => '
-                        const start = $el.selectionStart;
-                        const end = $el.selectionEnd;
-                        const value = $el.value;
-                        $el.value = value.toUpperCase();
-                        $el.setSelectionRange(start, end);
-                    '
-                ])
+                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                ->afterStateHydrated(fn($state) => Str::upper($state))
+                ->afterStateUpdated(fn($state) => Str::upper($state))
                 ->suffixAction(
                     \Filament\Forms\Components\Actions\Action::make('searchCompanies')
                         ->label('Search')
@@ -246,25 +242,6 @@ class CreateLead extends CreateRecord
                                 $set('company_name_helper_text', "Type something to search");
                                 return;
                             }
-
-                            // Convert the state to uppercase and add a space at the end
-                            $state = strtoupper(trim($state));
-
-                            // Ensure we have a visible space at the end
-                            $stateWithSpace = $state . " ";
-
-                            // Update the field value to uppercase with space
-                            $livewire->js('
-                                const inputElement = $el.closest(".fi-fo-text-input").querySelector("input");
-                                inputElement.value = ' . json_encode($stateWithSpace) . ';
-
-                                // Set cursor at the end
-                                inputElement.selectionStart = inputElement.selectionEnd = inputElement.value.length;
-
-                                // Force the change to be recognized by the browser
-                                inputElement.dispatchEvent(new Event("input", { bubbles: true }));
-                                inputElement.dispatchEvent(new Event("change", { bubbles: true }));
-                            ');
 
                             // Show loading state
                             $set('company_search_loading', true);
@@ -296,21 +273,27 @@ class CreateLead extends CreateRecord
                                     return "• {$company->company_name} (Lead ID: " . str_pad($leadId, 5, '0', STR_PAD_LEFT) . ")";
                                 })->implode("\n");
 
-                                $set('company_name_helper_text', "⚠️ Similar companies already exist:\n{$duplicateInfo}");
+                                // Store as plain string with HTML markup instead of HtmlString object
+                                $set('company_name_helper_text', '<span style="color:red;">⚠️ Similar companies already exist:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
                             } else {
-                                $set('company_name_helper_text', "✓ No similar companies found");
+                                // Store as plain string with HTML markup
+                                $set('company_name_helper_text', '<span style="color:green;">✓ No similar companies found</span>');
                             }
 
                             // Reset loading state
                             $set('company_search_loading', false);
                         })
                 )
-                // Show a loading text in the helper text while searching
                 ->helperText(function (callable $get) {
                     if ($get('company_search_loading')) {
                         return "Searching for similar companies...";
                     }
-                    return $get('company_name_helper_text');
+
+                    // Get the helper text which is now stored as a string with HTML markup
+                    $helperText = $get('company_name_helper_text');
+
+                    // Convert it to HtmlString only when rendering, not when storing
+                    return $helperText ? new HtmlString($helperText) : null;
                 })
                 // Make sure you have this in your component's properties
                 ->dehydrateStateUsing(function ($state, $set, $get) {
@@ -337,14 +320,117 @@ class CreateLead extends CreateRecord
                 ->label('Name')
                 ->required()
                 ->reactive()
-                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                ->afterStateHydrated(fn($state) => Str::upper($state))
+                ->afterStateUpdated(fn($state) => Str::upper($state)),
             TextInput::make('email')
                 ->label('Work Email Address')
                 ->email()
-                ->required(),
+                ->required()
+                ->suffixAction(
+                    \Filament\Forms\Components\Actions\Action::make('searchEmail')
+                        ->label('Verify')
+                        ->icon('heroicon-o-magnifying-glass')
+                        ->color('primary')
+                        ->action(function ($state, $set, $livewire) {
+                            if (empty($state)) {
+                                $set('email_helper_text', "Please enter an email to verify");
+                                return;
+                            }
+
+                            // Show loading state
+                            $set('email_search_loading', true);
+
+                            // Use sleep for visual effect
+                            usleep(800000); // 0.8 second delay
+
+                            // Check if email already exists in the Lead table
+                            $existingLeadsWithEmail = \App\Models\Lead::where('email', $state)->get();
+
+                            // If exists, set helper text with found lead details
+                            if ($existingLeadsWithEmail->isNotEmpty()) {
+                                $duplicateInfo = $existingLeadsWithEmail->map(function($lead) {
+                                    $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
+                                    return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+                                })->implode("\n");
+
+                                // Store as plain string with HTML markup
+                                $set('email_helper_text', '<span style="color:red;">⚠️ This email is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                            } else {
+                                // Store as plain string with HTML markup
+                                $set('email_helper_text', '<span style="color:green;">✓ Email is unique</span>');
+                            }
+
+                            // Reset loading state
+                            $set('email_search_loading', false);
+                        })
+                )
+                ->helperText(function (callable $get) {
+                    if ($get('email_search_loading')) {
+                        return "Verifying email...";
+                    }
+
+                    // Get the helper text which is now stored as a string with HTML markup
+                    $helperText = $get('email_helper_text');
+
+                    // Convert it to HtmlString only when rendering, not when storing
+                    return $helperText ? new HtmlString($helperText) : null;
+                }),
             PhoneInput::make('phone')
                 ->label('Phone Number')
                 ->required()
+                ->suffixAction(
+                    \Filament\Forms\Components\Actions\Action::make('searchPhone')
+                        ->label('Verify')
+                        ->icon('heroicon-o-magnifying-glass')
+                        ->color('primary')
+                        ->action(function ($state, $set, $livewire) {
+                            if (empty($state)) {
+                                $set('phone_helper_text', "Please enter a phone number to verify");
+                                return;
+                            }
+
+                            // Show loading state
+                            $set('phone_search_loading', true);
+
+                            // Use sleep for visual effect
+                            usleep(800000); // 0.8 second delay
+
+                            // Remove the "+" symbol from the phone number for searching
+                            $searchPhone = ltrim($state, '+');
+
+                            // Check if phone already exists in the Lead table
+                            $existingLeadsWithPhone = \App\Models\Lead::where('phone', $searchPhone)->get();
+
+                            // If exists, set helper text with found lead details
+                            if ($existingLeadsWithPhone->isNotEmpty()) {
+                                $duplicateInfo = $existingLeadsWithPhone->map(function($lead) {
+                                    $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
+                                    return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+                                })->implode("\n");
+
+                                // Store as plain string with HTML markup
+                                $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                            } else {
+                                // Store as plain string with HTML markup
+                                $set('phone_helper_text', '<span style="color:green;">✓ Phone number is unique</span>');
+                            }
+
+                            // Reset loading state
+                            $set('phone_search_loading', false);
+                        })
+                )
+                ->helperText(function (callable $get) {
+                    if ($get('phone_search_loading')) {
+                        return "Verifying phone number...";
+                    }
+
+                    // Get the helper text which is now stored as a string with HTML markup
+                    $helperText = $get('phone_helper_text');
+
+                    // Convert it to HtmlString only when rendering, not when storing
+                    return $helperText ? new HtmlString($helperText) : null;
+                })
                 ->dehydrateStateUsing(function ($state) {
                     // Remove the "+" symbol from the phone number
                     return ltrim($state, '+');

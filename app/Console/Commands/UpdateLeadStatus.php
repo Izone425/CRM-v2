@@ -45,7 +45,7 @@ class UpdateLeadStatus extends Command
                 ]);
 
                 ActivityLog::create([
-                    'description' => 'Lead auto-updated to Hot status after overdue demo',
+                    'description' => 'Lead auto-updated to Warm status after overdue demo',
                     'subject_id' => $lead->id,
                     'causer_id' => null,
                 ]);

@@ -1552,7 +1552,7 @@ class ActivityLogRelationManager extends RelationManager
                                     ->first();
 
                                 $latestActivityLog->update([
-                                    'description' => 'Lead assigned to Salesperson: ' . auth()->user()->name . '. RFQ only',
+                                    'description' => 'Reactive. Lead assigned to Salesperson: ' . auth()->user()->name . '. RFQ only',
                                 ]);
 
                                 Notification::make()
@@ -1575,7 +1575,7 @@ class ActivityLogRelationManager extends RelationManager
                                     ->first();
 
                                 $latestActivityLog->update([
-                                    'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+                                    'description' => 'Reactive. Lead assigned to Lead Owner: ' . auth()->user()->name,
                                 ]);
 
                                 Notification::make()
