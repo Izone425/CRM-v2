@@ -377,6 +377,43 @@
                 transform: scale(1.02);
                 transition: all 0.2s;
             }
+
+            .appointment-tooltip {
+                position: absolute;
+                bottom: 105%; /* Reduce from 150% to 105% to position it closer to the bar */
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: rgba(0, 0, 0, 0.9);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 6px;
+                white-space: nowrap;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                text-align: left;
+                min-width: 150px;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease-in-out;
+                pointer-events: none;
+            }
+
+            /* Add a small arrow at the bottom */
+            .appointment-tooltip::after {
+                content: "";
+                position: absolute;
+                top: 100%; /* At the bottom of the tooltip */
+                left: 50%;
+                margin-left: -8px;
+                border-width: 8px;
+                border-style: solid;
+                border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+            }
+
+            .bar-group:hover .appointment-tooltip {
+                opacity: 1;
+                visibility: visible;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -893,7 +930,7 @@
                 </svg>&nbsp;&nbsp;
                 <h2 class="text-lg font-bold text-gray-800">Close Won by Lead Source</h2>
             </div>
-
+            <br><br><br>
             <div class="flex flex-wrap justify-center gap-8 overflow-visible">
                 @php
                     // Calculate total amount for percentage calculation
@@ -928,6 +965,137 @@
                         </div>
                     </div>
                 @endforeach
+            </div>
+        </div>
+
+        <!-- Appointment Type by Lead Source Section -->
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center justify-between">
+                <!-- Left side: Icon and title -->
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-blue-500 fa fa-calendar-alt"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Appointment Types by Lead Source</h2>
+                </div>
+
+                <!-- Right side: Legend -->
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 mr-2 rounded" style="background-color: #3B82F6;"></div>&nbsp;&nbsp;
+                        <span class="text-sm text-gray-600">New Demo</span>
+                    </div>&nbsp;&nbsp;
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 mr-2 rounded" style="background-color: #F59E0B;"></div>&nbsp;&nbsp;
+                        <span class="text-sm text-gray-600">Webinar Demo</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bars-container" style="display: flex; overflow-x: auto; height: 320px; padding: 25px 10px 15px; align-items: flex-end; gap: 30px;">
+                @forelse ($appointmentTypeBySource as $data)
+                    @php
+                        $source = $data['source'] === 'Null' ? 'Unknown' : $data['source'];
+                        $newDemos = $data['types']['NEW DEMO'] ?? 0;
+                        $webinarDemos = $data['types']['WEBINAR DEMO'] ?? 0;
+                        $total = $newDemos + $webinarDemos;
+
+                        // Skip this source if it has no data
+                        if ($total == 0) {
+                            continue;
+                        }
+
+                        // Calculate proportional heights (max height 200px)
+                        $maxHeight = 140;
+
+                        // Find the max value differently since we're dealing with an array
+                        $maxValue = 0;
+                        foreach($appointmentTypeBySource as $item) {
+                            $itemTotal = array_sum($item['types'] ?? []);
+                            $maxValue = max($maxValue, $itemTotal);
+                        }
+
+                        $newDemoHeight = $maxValue > 0 ? ($newDemos / $maxValue) * $maxHeight : 0;
+                        $webinarDemoHeight = $maxValue > 0 ? ($webinarDemos / $maxValue) * $maxHeight : 0;
+
+                        $totalAllAppointments = 0;
+                        foreach($appointmentTypeBySource as $sourceData) {
+                            $totalAllAppointments += ($sourceData['types']['NEW DEMO'] ?? 0) + ($sourceData['types']['WEBINAR DEMO'] ?? 0);
+                        }
+
+                        $sourcePercentage = $totalAllAppointments > 0
+                            ? round(($total / $totalAllAppointments) * 100, 1)
+                            : 0;
+
+                        // Colors matching your design
+                        $newDemoColor = '#3B82F6'; // Blue
+                        $webinarDemoColor = '#F97316'; // Orange
+                    @endphp
+
+                    <div class="relative text-center cursor-pointer bar-group group" wire:click="openAppointmentTypeSlideOver('{{ $data['source'] }}')">
+                        <div class="absolute text-xs font-semibold text-center"
+                            style="top: -20px; left: 0; right: 0; color: #374151;">
+                            {{ $sourcePercentage }}%
+                        </div>
+                        <!-- First stacked bar: NEW DEMO (Blue) -->
+                        @if ($newDemos > 0)
+                            <div class="absolute text-xs font-semibold text-center text-white"
+                                style="bottom: {{ $webinarDemoHeight + 2 }}px; left: 0; right: 0;">
+                                {{ $newDemos }}
+                            </div>
+                        @endif
+
+                        <!-- Second stacked bar: WEBINAR DEMO (Orange) -->
+                        @if ($webinarDemos > 0)
+                            <div class="absolute text-xs font-semibold text-center text-white"
+                                style="bottom: 2px; left: 0; right: 0;">
+                                {{ $webinarDemos }}
+                            </div>
+                        @endif
+
+                        <div style="width: 70px; height: {{ $maxHeight }}px; position: relative;">
+                            <!-- NEW DEMO portion (top) -->
+                            <div style="position: absolute; bottom: {{ $webinarDemoHeight }}px; height: {{ $newDemoHeight }}px; width: 100%; background-color: {{ $newDemoColor }}; border-radius: {{ $webinarDemoHeight > 0 ? '4px 4px 0 0' : '4px' }};"></div>
+
+                            <!-- WEBINAR DEMO portion (bottom) -->
+                            <div style="position: absolute; bottom: 0; height: {{ $webinarDemoHeight }}px; width: 100%; background-color: {{ $webinarDemoColor }}; border-radius: {{ $newDemoHeight > 0 ? '0 0 4px 4px' : '4px' }};"></div>
+                        </div>
+
+                        <p class="mt-2 text-xs text-gray-600" style="width: 70px; word-wrap: break-word; text-align: center; overflow: hidden; white-space: normal; display: flex; justify-content: center; min-height: 30px;">
+                            {{ Str::limit($source, 30) }}
+                        </p>
+
+                        <div class="appointment-tooltip">
+                            <strong style="font-size: 13px; display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px;">
+                                {{ $source }} <span style="float: right; opacity: 0.9;">({{ $sourcePercentage }}%)</span>
+                            </strong>
+                            <div style="font-size: 12px; line-height: 1.5;">
+                                <div><span style="display: inline-block; width: 90px;">Total:</span> {{ $total }}</div>
+                                <div><span style="display: inline-block; width: 90px;">New Demo:</span> {{ $newDemos }}</div>
+                                <div><span style="display: inline-block; width: 90px;">Webinar Demo:</span> {{ $webinarDemos }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="flex items-center justify-center w-full h-full">
+                        <p class="text-gray-500">No appointment data available</p>
+                    </div>
+                @endforelse
+
+                @php
+                    // Check if we didn't render any bars because all had zero total
+                    $allZero = true;
+                    foreach ($appointmentTypeBySource as $data) {
+                        $total = ($data['types']['NEW DEMO'] ?? 0) + ($data['types']['WEBINAR DEMO'] ?? 0);
+                        if ($total > 0) {
+                            $allZero = false;
+                            break;
+                        }
+                    }
+                @endphp
+
+                @if ($allZero && count($appointmentTypeBySource) > 0)
+                    <div class="flex items-center justify-center w-full h-full">
+                        <p class="text-gray-500">No appointment data available</p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -27,7 +27,7 @@ class UserResource extends Resource
         'quotations' => 'filament.admin.resources.quotations.index',
         'proforma_invoices' => 'filament.admin.pages.proforma-invoices',
         'chat_room' => 'filament.admin.pages.chat-room',
-        'sales-lead' => 'filament.admin.pages.sales-lead',
+        'search_lead' => 'filament.admin.pages.search-lead',
 
         // Handover
         'software_handover' => 'filament.admin.resources.software-handovers.index',
@@ -105,6 +105,7 @@ class UserResource extends Resource
                                         'sales_forecast' => true,
                                         'sales_forecast_summary' => true,
                                         'calendar' => true,
+                                        'search_lead' => false,
                                         'weekly_calendar_v2' => true,
                                         'monthly_calendar' => true,
                                         'demo_ranking' => false,
@@ -125,6 +126,7 @@ class UserResource extends Resource
                                     // Salesperson Permissions
                                     2 => [
                                         'leads' => true,
+                                        'search_lead' => true,
                                         'quotations' => true,
                                         'proforma_invoices' => false,
                                         'chat_room' => false,
@@ -173,7 +175,6 @@ class UserResource extends Resource
                             ->required()
                             ->maxLength(2),
                         Forms\Components\TextInput::make('mobile_number')
-                            ->required()
                             ->label('Phone Number'),
                         Forms\Components\TextInput::make('password')
                             ->password()
@@ -292,6 +293,17 @@ class UserResource extends Resource
                     Forms\Components\Fieldset::make('Salesperson')
                         ->schema([
                             // Calendar
+                            Forms\Components\Checkbox::make('permissions.search_lead')
+                                ->label('Search Lead')
+                                ->helperText('Access to search the lead')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['search_lead'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
                             Forms\Components\Checkbox::make('permissions.calendar')
                                 ->label('Salesperson - Calendar V1')
                                 ->helperText('Access to calendar view for salesperson')

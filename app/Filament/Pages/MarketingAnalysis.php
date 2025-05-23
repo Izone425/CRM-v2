@@ -80,6 +80,7 @@ class MarketingAnalysis extends Page
 
     public $closedWonBySource = [];
 
+    public $appointmentTypeBySource = [];
     //Slide Modal Variables
     public $showSlideOver = false;
     public $slideOverTitle = '';
@@ -179,6 +180,7 @@ class MarketingAnalysis extends Page
         $this->fetchLeadStatusSummary();
         $this->calculateWebinarDemoAverages();
         $this->fetchClosedWonBySource();
+        $this->fetchAppointmentTypeBySource();
     }
 
     public function updated($propertyName)
@@ -895,11 +897,15 @@ class MarketingAnalysis extends Page
 
         $this->closedDealsCount = $query
             ->where('lead_status', 'Closed')
+            ->whereNotNull('deal_amount')
+            ->where('deal_amount', '>', 0)
             ->count();
 
         // Sum of deal_amount for closed leads
         $this->closeWonAmount = $query
             ->where('lead_status', 'Closed')
+            ->whereNotNull('deal_amount')
+            ->where('deal_amount', '>', 0)
             ->sum('deal_amount');
     }
 
@@ -1033,6 +1039,110 @@ class MarketingAnalysis extends Page
         // Sort by amount in descending order
         arsort($closedWonData);
         $this->closedWonBySource = $closedWonData;
+    }
+
+    public function fetchAppointmentTypeBySource()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                        $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Filter by date
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        if (!empty($this->selectedLeadCode)) {
+            if ($this->selectedLeadCode === 'Null') {
+                $query->whereNull('lead_code');
+            } else {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+        }
+
+        // Get leads with appointments
+        $leads = $query->with('demoAppointment')->get();
+
+        // Define lead sources to track
+        $leadSources = [
+            'Facebook Ads',
+            'Google AdWords',
+            'Website',
+            'Refer & Earn',
+            'WhatsApp - TimeTec',
+            'Facebook Messenger',
+            'Salesperson Lead',
+            'BD Referral Program',
+            'Criteo',
+            'Null'
+        ];
+
+        // Initialize results array
+        $result = [];
+        foreach ($leadSources as $source) {
+            $result[$source] = [
+                'NEW DEMO' => 0,
+                'WEBINAR DEMO' => 0,
+            ];
+        }
+
+        // Count appointments by source and type
+        foreach ($leads as $lead) {
+            $source = $lead->lead_code ?? 'Null';
+
+            // If source not in our predefined list, skip
+            if (!isset($result[$source])) {
+                continue;
+            }
+
+            $appointments = $lead->demoAppointment ?? collect();
+
+            foreach ($appointments as $appointment) {
+                if ($appointment->status === 'Cancelled') {
+                    continue;
+                }
+
+                if (isset($result[$source][$appointment->type])) {
+                    $result[$source][$appointment->type]++;
+                }
+            }
+        }
+
+        // Sort by total appointments (descending)
+        $sortedResults = collect($result)->map(function ($types, $source) {
+            $total = array_sum($types);
+            return [
+                'source' => $source,
+                'types' => $types,
+                'total' => $total
+            ];
+        })->sortByDesc('total')->values()->all();
+
+        $this->appointmentTypeBySource = $sortedResults;
     }
 
     public function openLeadStatusSlideOver($status)
@@ -1540,6 +1650,8 @@ class MarketingAnalysis extends Page
         $end = Carbon::parse($monthKey)->endOfMonth()->endOfDay();
 
         $query->whereBetween('closing_date', [$start, $end])
+            ->whereNotNull('deal_amount')
+            ->where('deal_amount', '>', 0)
             ->where('lead_status', 'Closed');
 
         $this->slideOverList = $query->get();
@@ -1594,6 +1706,58 @@ class MarketingAnalysis extends Page
             ->where('deal_amount', '>', 0);
 
         $this->slideOverList = $query->get();
+        $this->showSlideOver = true;
+    }
+
+    public function openAppointmentTypeSlideOver($source)
+    {
+        $this->slideOverTitle = "Appointments - Source: " . ($source === 'Null' ? 'Unknown' : $source);
+
+        $user = Auth::user();
+        $query = Lead::query()->with('demoAppointment', 'companyDetail');
+
+        if ($source === 'Null') {
+            $query->whereNull('lead_code');
+        } else {
+            $query->where('lead_code', $source);
+        }
+
+        // Apply same filters as in fetchAppointmentTypeBySource
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id === 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Get only leads with appointments
+        $leads = $query->get()->filter(function ($lead) {
+            $appointments = $lead->demoAppointment ?? collect();
+            return $appointments->where('status', '!=', 'Cancelled')->isNotEmpty();
+        });
+
+        $this->slideOverList = $leads;
         $this->showSlideOver = true;
     }
 
