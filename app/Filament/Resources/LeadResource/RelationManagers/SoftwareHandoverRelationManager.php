@@ -120,25 +120,26 @@ class SoftwareHandoverRelationManager extends RelationManager
                     return $leadStatus === 'Closed';
                 })
                 ->slideOver()
-                ->modalHeading('Add Software Handover')
+                ->modalHeading(function () {
+                    // Get the next ID by finding the maximum ID and adding 1
+                    $nextId = \App\Models\SoftwareHandover::max('id') + 1;
+
+                    // Format with prefix SH and the next ID
+                    return "Software Handover SH{$nextId}";
+                })
                 ->modalWidth(MaxWidth::SevenExtraLarge)
                 ->modalSubmitActionLabel('Save')
                 ->form([
-                    Section::make('Section 1: DATABASE - NON PAYROLL')
-                        ->collapsible()
+                    Section::make('Section 1: Database')
                         ->schema([
-                            Grid::make(2)
+                            Grid::make(3)
                                 ->schema([
                                     TextInput::make('company_name')
                                         ->label('Company Name')
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                    TextInput::make('salesperson')
-                                        ->readOnly()
-                                        ->label('Salesperson')
-                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
-                                ]),
-                            Grid::make(2)
-                                ->schema([
+                                    TextInput::make('pic_name')
+                                        ->label('PIC Name')
+                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                     TextInput::make('headcount')
                                         ->numeric()
                                         ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
@@ -149,7 +150,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             $set('category', $category->retrieve($state));
                                         })
                                         ->required(),
+                                ]),
+                            Grid::make(3)
+                                ->schema([
+                                    TextInput::make('salesperson')
+                                        ->readOnly()
+                                        ->label('Salesperson')
+                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
+                                    TextInput::make('pic_phone')
+                                        ->label('HP Number')
+                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                     TextInput::make('category')
+                                        ->label('Company Size')
                                         ->autocapitalize()
                                         ->placeholder('Select a category')
                                         // ->options([
@@ -161,38 +173,29 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         // ->searchable()
                                         ->readOnly(),
                                 ]),
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('pic_name')
-                                        ->label('PIC Name')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                    TextInput::make('pic_phone')
-                                        ->label('PIC HP No.')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-                                ]),
                         ]),
 
-                    Section::make('Section 2: DATABASE - PAYROLL')
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('account_name')
-                                        ->label('Account Name')
-                                        ->readOnly()
-                                        ->default(function () {
-                                            // For new records, get the next ID by counting existing records + 1
-                                            $nextId = \App\Models\SoftwareHandover::count() + 1;
+                    // Section::make('Section 2: DATABASE - PAYROLL')
+                    //     ->schema([
+                    //         Grid::make(2)
+                    //             ->schema([
+                    //                 TextInput::make('account_name')
+                    //                     ->label('Account Name')
+                    //                     ->readOnly()
+                    //                     ->default(function () {
+                    //                         // For new records, get the next ID by counting existing records + 1
+                    //                         $nextId = \App\Models\SoftwareHandover::count() + 1;
 
-                                            // Format with TTC prefix and ID
-                                            return "TTC{$nextId}";
-                                        }),
-                                    TextInput::make('company_name')
-                                        ->label('Company Name')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                ]),
-                        ]),
+                    //                         // Format with TTC prefix and ID
+                    //                         return "TTC{$nextId}";
+                    //                     }),
+                    //                 TextInput::make('company_name')
+                    //                     ->label('Company Name')
+                    //                     ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                    //             ]),
+                    //     ]),
 
-                    Section::make('Section 3: INVOICE INFOFORMATION')
+                    Section::make('Section 2: Invoice Details')
                         ->schema([
                             Grid::make(1)
                                 ->schema([
@@ -211,31 +214,40 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ]),
                         ]),
 
-                    Section::make('Section 4: Implementation PICs')
+                    Section::make('Section 3: Implementation Details')
                         ->schema([
                             Forms\Components\Repeater::make('implementation_pics')
-                                ->label('Implementation PICs')
+                                ->hiddenLabel(true)
                                 ->schema([
-                                    TextInput::make('pic_name_impl')
-                                        ->label('PIC Name'),
-                                    TextInput::make('position')
-                                        ->label('Position'),
-                                    TextInput::make('pic_phone_impl')
-                                        ->label('HP Number'),
-                                    TextInput::make('pic_email_impl')
-                                        ->label('Email Address')
-                                        ->email(),
+                                    Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('pic_name_impl')
+                                            ->required()
+                                            ->label('Name'),
+                                        TextInput::make('position')
+                                            ->label('Position'),
+                                        TextInput::make('pic_phone_impl')
+                                            ->required()
+                                            ->label('HP Number'),
+                                        TextInput::make('pic_email_impl')
+                                            ->label('Email Address')
+                                            ->required()
+                                            ->email(),
+                                    ]),
                                 ])
-                                ->itemLabel(fn() => __('PIC') . ' ' . ++self::$indexRepeater)
+                                ->addActionLabel('Add PIC')
+                                ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
                                 ->columns(2),
                         ]),
 
-                    Section::make('Section 5: REMARK INFORMATION')
+                    Section::make('Section 4: Remark Details')
                             ->schema([
                                 Forms\Components\Repeater::make('remarks')
                                     ->label('Remarks')
+                                    ->hiddenLabel(true)
                                     ->schema([
                                         Textarea::make('remark')
+                                            ->hiddenLabel(true)
                                             ->label(function (Forms\Get $get, ?string $state, $livewire) {
                                                 // Get the current array key from the state path
                                                 $statePath = $livewire->getFormStatePath();
@@ -248,94 +260,94 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 return 'Remark';
                                             })
                                             ->placeholder('Enter remark here')
-                                            ->rows(3),
+                                            ->autosize()
+                                            ->rows(1),
                                     ])
                                     ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
-                                    ->addActionLabel('Add Another Remark')
+                                    ->addActionLabel('Add Remark')
                                     ->defaultItems(1),
                             ]),
 
-
-                    Grid::make(3)
-                        ->schema([
-                            Section::make('Section 6: TRAINING')
-                            ->columnSpan(1)
+                        Section::make('Section 5: Training')
                             ->schema([
                                 Forms\Components\Radio::make('training_type')
                                     ->label('')
                                     ->options([
-                                        'onsite_webinar_training' => 'Onsite Webinar Training',
-                                        'online_hrdf_training' => 'Onsite HRDF Training',
+                                        'online_webinar_training' => 'Online Webinar Training',
+                                        'online_hrdf_training' => 'Online HRDF Training',
                                     ])
-                                    ->inline()
+                                    // ->inline()
+                                    ->columns(2)
                                     ->required(),
                             ]),
-                            Section::make('Section 7: PROFORMA INVOICE')
-                                ->columnSpan(1) // Ensure it spans one column
-                                ->schema([
-                                    Select::make('proforma_invoice_product')
-                                        ->label('Proforma Invoice Product')
-                                        ->options(function (RelationManager $livewire) {
-                                            $leadId = $livewire->getOwnerRecord()->id;
-                                            return \App\Models\Quotation::where('lead_id', $leadId)
-                                                ->where('quotation_type', 'product')
-                                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                ->pluck('pi_reference_no', 'id')
-                                                ->toArray();
-                                        })
+                        Section::make('Section 6: Proforma Invoice')
+                            ->columnSpan(1) // Ensure it spans one column
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        Select::make('proforma_invoice_product')
+                                            ->label('Proforma Invoice Product')
+                                            ->options(function (RelationManager $livewire) {
+                                                $leadId = $livewire->getOwnerRecord()->id;
+                                                return \App\Models\Quotation::where('lead_id', $leadId)
+                                                    ->where('quotation_type', 'product')
+                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                    ->pluck('pi_reference_no', 'id')
+                                                    ->toArray();
+                                            })
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload(),
+                                        Select::make('proforma_invoice_hrdf')
+                                            ->label('Proforma Invoice HRDF')
+                                            ->options(function (RelationManager $livewire) {
+                                                $leadId = $livewire->getOwnerRecord()->id;
+                                                return \App\Models\Quotation::where('lead_id', $leadId)
+                                                    ->where('quotation_type', 'hrdf')
+                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                    ->pluck('pi_reference_no', 'id')
+                                                    ->toArray();
+                                            })
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload(),
+                                    ])
+                            ]),
+
+                        Section::make('Section 7: Attachment')
+                            ->columnSpan(1) // Ensure it spans one column
+                            ->schema([
+                                Grid::make(3)
+                                    ->schema([
+                                    FileUpload::make('confirmation_order_file')
+                                        ->label('Upload Confirmation Order')
+                                        ->disk('public')
+                                        ->directory('handovers/confirmation_orders')
+                                        ->visibility('public')
                                         ->multiple()
-                                        ->searchable()
-                                        ->preload(),
-                                    Select::make('proforma_invoice_hrdf')
-                                        ->label('Proforma Invoice HRDF')
-                                        ->options(function (RelationManager $livewire) {
-                                            $leadId = $livewire->getOwnerRecord()->id;
-                                            return \App\Models\Quotation::where('lead_id', $leadId)
-                                                ->where('quotation_type', 'hrdf')
-                                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                ->pluck('pi_reference_no', 'id')
-                                                ->toArray();
-                                        })
+                                        ->maxFiles(3)
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+
+                                    FileUpload::make('hrdf_grant_file')
+                                        ->label('Upload HRDF Grant Approval Letter')
+                                        ->disk('public')
+                                        ->directory('handovers/hrdf_grant')
+                                        ->visibility('public')
                                         ->multiple()
-                                        ->searchable()
-                                        ->preload(),
-                                ]),
+                                        ->maxFiles(3)
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
 
-                            Section::make('Section 8: ATTACHMENTS')
-                                ->columnSpan(1) // Ensure it spans one column
-                                ->schema([
-                                    Grid::make(1)
-                                        ->schema([
-                                        FileUpload::make('confirmation_order_file')
-                                            ->label('Upload Confirmation Order')
-                                            ->disk('public')
-                                            ->directory('handovers/confirmation_orders')
-                                            ->visibility('public')
-                                            ->multiple()
-                                            ->maxFiles(3)
-                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
-
-                                        FileUpload::make('hrdf_grant_file')
-                                            ->label('Upload HRDF Grant Approval Letter')
-                                            ->disk('public')
-                                            ->directory('handovers/hrdf_grant')
-                                            ->visibility('public')
-                                            ->multiple()
-                                            ->maxFiles(3)
-                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
-
-                                        FileUpload::make('payment_slip_file')
-                                            ->label('Upload Payment Slip')
-                                            ->disk('public')
-                                            ->live(debounce:500)
-                                            ->directory('handovers/payment_slips')
-                                            ->visibility('public')
-                                            ->multiple()
-                                            ->maxFiles(3)
-                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
-                                        ])
-                                ]),
-                    ]),
+                                    FileUpload::make('payment_slip_file')
+                                        ->label('Upload Payment Slip')
+                                        ->disk('public')
+                                        ->live(debounce:500)
+                                        ->directory('handovers/payment_slips')
+                                        ->visibility('public')
+                                        ->multiple()
+                                        ->maxFiles(3)
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+                                    ])
+                            ]),
                 ])
                 ->action(function (array $data): void {
                     $data['created_by'] = auth()->id();
@@ -432,31 +444,40 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->slideOver()
                         ->form([
-                            Section::make('Section 1: DATABASE - NON PAYROLL')
+                            Section::make('Section 1: Database')
                                 ->collapsible()
                                 ->schema([
-                                    Grid::make(2)
+                                    Grid::make(3)
                                         ->schema([
                                             TextInput::make('company_name')
                                                 ->label('Company Name')
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                            TextInput::make('salesperson')
-                                                ->readOnly()
-                                                ->label('Salesperson')
+                                            TextInput::make('pic_name')
+                                                ->label('PIC Name')
                                                 ->default(fn (SoftwareHandover $record) =>
-                                                    $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
-                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
+                                                    $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                             TextInput::make('headcount')
                                                 ->numeric()
+                                                ->label('Company Size')
                                                 ->live(debounce:550)
                                                 ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
                                                     $set('category', $category->retrieve($state));
                                                 })
                                                 ->default(fn (SoftwareHandover $record) => $record->headcount ?? null)
                                                 ->required(),
+                                        ]),
+                                    Grid::make(3)
+                                        ->schema([
+                                            TextInput::make('salesperson')
+                                                ->readOnly()
+                                                ->label('Salesperson')
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
+                                            TextInput::make('pic_phone')
+                                                ->label('PIC HP No.')
+                                                ->default(fn (SoftwareHandover $record) =>
+                                                    $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                             TextInput::make('category')
                                                 ->autocapitalize()
                                                 ->live(debounce:550)
@@ -474,41 +495,30 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 })
                                                 ->readOnly(),
                                        ]),
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('pic_name')
-                                                ->label('PIC Name')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                            TextInput::make('pic_phone')
-                                                ->label('PIC HP No.')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-                                        ]),
                                 ]),
 
-                            Section::make('Section 2: DATABASE - PAYROLL')
-                                ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('account_name')
-                                                ->label('Account Name')
-                                                ->readOnly()
-                                                ->default(function () {
-                                                    // For new records, get the next ID by counting existing records + 1
-                                                    $nextId = \App\Models\SoftwareHandover::count() + 1;
+                            // Section::make('Section 2: DATABASE - PAYROLL')
+                            //     ->schema([
+                            //         Grid::make(2)
+                            //             ->schema([
+                            //                 TextInput::make('account_name')
+                            //                     ->label('Account Name')
+                            //                     ->readOnly()
+                            //                     ->default(function () {
+                            //                         // For new records, get the next ID by counting existing records + 1
+                            //                         $nextId = \App\Models\SoftwareHandover::count() + 1;
 
-                                                    // Format with TTC prefix and ID
-                                                    return "TTC{$nextId}";
-                                                }),
-                                            TextInput::make('company_name')
-                                                ->label('Company Name')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                        ]),
-                                ]),
+                            //                         // Format with TTC prefix and ID
+                            //                         return "TTC{$nextId}";
+                            //                     }),
+                            //                 TextInput::make('company_name')
+                            //                     ->label('Company Name')
+                            //                     ->default(fn (SoftwareHandover $record) =>
+                            //                         $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                            //             ]),
+                            //     ]),
 
-                            Section::make('Section 3: INVOICE INFOFORMATION')
+                            Section::make('Section 2: Invoice Details')
                                 ->schema([
                                     Grid::make(1)
                                         ->schema([
@@ -532,17 +542,23 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     Forms\Components\Repeater::make('implementation_pics')
                                         ->label('Implementation PICs')
                                         ->schema([
-                                            TextInput::make('pic_name_impl')
-                                                ->label('PIC Name'),
-                                            TextInput::make('position')
-                                                ->label('Position'),
-                                            TextInput::make('pic_phone_impl')
-                                                ->label('HP Number'),
-                                            TextInput::make('pic_email_impl')
-                                                ->label('Email Address')
-                                                ->email(),
+                                            Grid::make(4)
+                                            ->schema([
+                                                TextInput::make('pic_name_impl')
+                                                    ->required()
+                                                    ->label('Name'),
+                                                TextInput::make('position')
+                                                    ->label('Position'),
+                                                TextInput::make('pic_phone_impl')
+                                                    ->required()
+                                                    ->label('HP Number'),
+                                                TextInput::make('pic_email_impl')
+                                                    ->required()
+                                                    ->label('Email Address')
+                                                    ->email(),
+                                            ]),
                                         ])
-                                        ->itemLabel(fn() => __('PIC') . ' ' . ++self::$indexRepeater)
+                                        ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
                                         ->columns(2)
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->implementation_pics) {
@@ -559,12 +575,14 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Section::make('Section 5: REMARK INFORMATION')
+                            Section::make('Section 4: Remark Details')
                                 ->schema([
                                     Forms\Components\Repeater::make('remarks')
                                         ->label('Remarks')
+                                        ->hiddenLabel(true)
                                         ->schema([
                                             Textarea::make('remark')
+                                                ->hiddenLabel(true)
                                                 ->label(function (Forms\Get $get, ?string $state, $livewire) {
                                                     // Get the current array key from the state path
                                                     $statePath = $livewire->getFormStatePath();
@@ -588,7 +606,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             }
                                             return 'Remark';
                                         })
-                                        ->addActionLabel('Add Another Remark')
+                                        ->addActionLabel('Add Remark')
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->remarks) {
                                                 // If it's a string, decode it
@@ -604,131 +622,132 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Grid::make(3)
+                            Section::make('Section 5: Training')
+                            ->columnSpan(1)
+                            ->schema([
+                                Forms\Components\Radio::make('training_type')
+                                    ->label('')
+                                    ->options([
+                                        'online_webinar_training' => 'Online Webinar Training',
+                                        'online_hrdf_training' => 'Online HRDF Training',
+                                    ])
+                                    // ->inline()
+                                    ->columns(2)
+                                    ->required(),
+                            ]),
+
+                            Section::make('Section 7: Proforma Invoice')
+                                ->columnSpan(1)
                                 ->schema([
-                                    Section::make('Section 6: TRAINING')
-                                    ->columnSpan(1)
+                                    Grid::make(4)
                                     ->schema([
-                                        Forms\Components\Radio::make('training_type')
-                                            ->label('')
-                                            ->options([
-                                                'onsite_webinar_training' => 'Onsite Webinar Training',
-                                                'online_hrdf_training' => 'Onsite HRDF Training',
-                                            ])
-                                            ->inline()
-                                            ->default(fn (SoftwareHandover $record) => $record->training_type ?? null)
-                                            ->required(),
-                                    ]),
+                                        Select::make('proforma_invoice_product')
+                                            ->required()
+                                            ->label('Proforma Invoice Product')
+                                            ->options(function (RelationManager $livewire) {
+                                                $leadId = $livewire->getOwnerRecord()->id;
+                                                return \App\Models\Quotation::where('lead_id', $leadId)
+                                                    ->where('quotation_type', 'product')
+                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                    ->pluck('pi_reference_no', 'id')
+                                                    ->toArray();
+                                            })
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function (SoftwareHandover $record) {
+                                                if (!$record || !$record->proforma_invoice_product) {
+                                                    return [];
+                                                }
+                                                if (is_string($record->proforma_invoice_product)) {
+                                                    return json_decode($record->proforma_invoice_product, true) ?? [];
+                                                }
+                                                return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                                            }),
+                                        Select::make('proforma_invoice_hrdf')
+                                            ->label('Proforma Invoice HRDF')
+                                            ->options(function (RelationManager $livewire) {
+                                                $leadId = $livewire->getOwnerRecord()->id;
+                                                return \App\Models\Quotation::where('lead_id', $leadId)
+                                                    ->where('quotation_type', 'hrdf')
+                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                    ->pluck('pi_reference_no', 'id')
+                                                    ->toArray();
+                                            })
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function (SoftwareHandover $record) {
+                                                if (!$record || !$record->proforma_invoice_hrdf) {
+                                                    return [];
+                                                }
+                                                if (is_string($record->proforma_invoice_hrdf)) {
+                                                    return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                                }
+                                                return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                                            }),
+                                    ])
+                                ]),
 
-                                    Section::make('Section 7: PROFORMA INVOICE')
-                                        ->columnSpan(1)
+                            Section::make('Section 8: ATTACHMENTS')
+                                ->columnSpan(1)
+                                ->schema([
+                                    Grid::make(1)
                                         ->schema([
-                                            Select::make('proforma_invoice_product')
-                                                ->label('Proforma Invoice Product')
-                                                ->options(function (RelationManager $livewire) {
-                                                    $leadId = $livewire->getOwnerRecord()->id;
-                                                    return \App\Models\Quotation::where('lead_id', $leadId)
-                                                        ->where('quotation_type', 'product')
-                                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                        ->pluck('pi_reference_no', 'id')
-                                                        ->toArray();
-                                                })
+                                            FileUpload::make('confirmation_order_file')
+                                                ->label('Upload Confirmation Order')
+                                                ->disk('public')
+                                                ->directory('handovers/confirmation_orders')
+                                                ->visibility('public')
                                                 ->multiple()
-                                                ->searchable()
-                                                ->preload()
+                                                ->maxFiles(3)
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->proforma_invoice_product) {
+                                                    if (!$record || !$record->confirmation_order_file) {
                                                         return [];
                                                     }
-                                                    if (is_string($record->proforma_invoice_product)) {
-                                                        return json_decode($record->proforma_invoice_product, true) ?? [];
+                                                    if (is_string($record->confirmation_order_file)) {
+                                                        return json_decode($record->confirmation_order_file, true) ?? [];
                                                     }
-                                                    return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                                                    return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
                                                 }),
-                                            Select::make('proforma_invoice_hrdf')
-                                                ->label('Proforma Invoice HRDF')
-                                                ->options(function (RelationManager $livewire) {
-                                                    $leadId = $livewire->getOwnerRecord()->id;
-                                                    return \App\Models\Quotation::where('lead_id', $leadId)
-                                                        ->where('quotation_type', 'hrdf')
-                                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                        ->pluck('pi_reference_no', 'id')
-                                                        ->toArray();
-                                                })
+
+                                            FileUpload::make('hrdf_grant_file')
+                                                ->label('Upload HRDF Grant Approval Letter')
+                                                ->disk('public')
+                                                ->directory('handovers/hrdf_grant')
+                                                ->visibility('public')
                                                 ->multiple()
-                                                ->searchable()
-                                                ->preload()
+                                                ->maxFiles(3)
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->proforma_invoice_hrdf) {
+                                                    if (!$record || !$record->hrdf_grant_file) {
                                                         return [];
                                                     }
-                                                    if (is_string($record->proforma_invoice_hrdf)) {
-                                                        return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                                    if (is_string($record->hrdf_grant_file)) {
+                                                        return json_decode($record->hrdf_grant_file, true) ?? [];
                                                     }
-                                                    return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                                                    return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
                                                 }),
-                                        ]),
 
-                                    Section::make('Section 8: ATTACHMENTS')
-                                        ->columnSpan(1)
-                                        ->schema([
-                                            Grid::make(1)
-                                                ->schema([
-                                                    FileUpload::make('confirmation_order_file')
-                                                        ->label('Upload Confirmation Order')
-                                                        ->disk('public')
-                                                        ->directory('handovers/confirmation_orders')
-                                                        ->visibility('public')
-                                                        ->multiple()
-                                                        ->maxFiles(3)
-                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            if (!$record || !$record->confirmation_order_file) {
-                                                                return [];
-                                                            }
-                                                            if (is_string($record->confirmation_order_file)) {
-                                                                return json_decode($record->confirmation_order_file, true) ?? [];
-                                                            }
-                                                            return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
-                                                        }),
-
-                                                    FileUpload::make('hrdf_grant_file')
-                                                        ->label('Upload HRDF Grant Approval Letter')
-                                                        ->disk('public')
-                                                        ->directory('handovers/hrdf_grant')
-                                                        ->visibility('public')
-                                                        ->multiple()
-                                                        ->maxFiles(3)
-                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            if (!$record || !$record->hrdf_grant_file) {
-                                                                return [];
-                                                            }
-                                                            if (is_string($record->hrdf_grant_file)) {
-                                                                return json_decode($record->hrdf_grant_file, true) ?? [];
-                                                            }
-                                                            return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
-                                                        }),
-
-                                                    FileUpload::make('payment_slip_file')
-                                                        ->label('Upload Payment Slip')
-                                                        ->disk('public')
-                                                        ->live(debounce:500)
-                                                        ->directory('handovers/payment_slips')
-                                                        ->visibility('public')
-                                                        ->multiple()
-                                                        ->maxFiles(3)
-                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            if (!$record || !$record->payment_slip_file) {
-                                                                return [];
-                                                            }
-                                                            if (is_string($record->payment_slip_file)) {
-                                                                return json_decode($record->payment_slip_file, true) ?? [];
-                                                            }
-                                                            return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
-                                                        }),
-                                                ]),
+                                            FileUpload::make('payment_slip_file')
+                                                ->label('Upload Payment Slip')
+                                                ->disk('public')
+                                                ->live(debounce:500)
+                                                ->directory('handovers/payment_slips')
+                                                ->visibility('public')
+                                                ->multiple()
+                                                ->maxFiles(3)
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->payment_slip_file) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->payment_slip_file)) {
+                                                        return json_decode($record->payment_slip_file, true) ?? [];
+                                                    }
+                                                    return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                                                }),
                                         ]),
                                 ]),
                         ])
