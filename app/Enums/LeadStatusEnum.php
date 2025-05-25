@@ -40,7 +40,7 @@ enum LeadStatusEnum: string implements HasLabel
             self::COLD => '#00e7ff',
             self::JUNK => '#E5E4E2',
             self::ON_HOLD => '#E5E4E2',
-            self::LOST => '#E5E4E2',
+            self::LOST => '#FF0000',
             self::NO_RESPONSE => '#E5E4E2',
             self::CLOSED => '#ffe1a5',
         };

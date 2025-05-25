@@ -20,41 +20,144 @@ class SoftwareHandover extends Model
         // Section 1: Company Details
         'company_name',
         'headcount',
+        'category',  // Company size category
         'pic_name',
         'pic_phone',
         'salesperson',
+        'payroll_code',
+
+        // Section 2: Implementation Timeline
+        'db_creation',
+        'kick_off_meeting',
+        'webinar_training',
+        'go_live_date',
+        'total_days',
+
+        'ta',
+        'tl',
+        'tc',
+        'tp',
+        'tap',
+        'th',
+        'tpbi',
 
         // Section 4: Implementation PICs
         'implementation_pics',
+        'implementer',
 
-        // Section 5: Module Subscription (now as a single JSON field)
-        'remarks',
-
-        // Section 6: Other Details
+        // Section 5: Training
         'training_type',
 
-        // Section 7: Onsite Package
+        // Section 6: Onsite Package
         'onsite_kick_off_meeting',
         'onsite_webinar_training',
         'onsite_briefing',
 
-        // Section 9: Proforma Invoices
+        // Section 7: Proforma Invoices
         'proforma_invoice_product',
         'proforma_invoice_hrdf',
 
-        // Section 10: Attachments
+        // Section 8: Attachments
         'confirmation_order_file',
         'payment_slip_file',
         'hrdf_grant_file',
+
+        // Section 9: Status & Remarks
+        'reject_reason',
+        'remarks',
+        'submitted_at',
     ];
 
     protected $casts = [
+        // Dates
+        'db_creation' => 'date',
+        'kick_off_meeting' => 'date',
+        'webinar_training' => 'date',
+        'go_live_date' => 'date',
+        'submitted_at' => 'datetime',
+
+        'ta' => 'boolean',
+        'tl' => 'boolean',
+        'tc' => 'boolean',
+        'tp' => 'boolean',
+        'tap' => 'boolean',
+        'th' => 'boolean',
+        'tpbi' => 'boolean',
+
+        'onsite_kick_off_meeting' => 'boolean',
+        'onsite_webinar_training' => 'boolean',
+        'onsite_briefing' => 'boolean',
+
+        'modules' => 'array',  // This ensures proper JSON handling
         'confirmation_order_file' => 'array',
         'payment_slip_file' => 'array',
         'hrdf_grant_file' => 'array',
         'implementation_pics' => 'array',
         'remarks' => 'array',
     ];
+
+    /**
+     * Set the remarks attribute to uppercase.
+     *
+     * @param mixed $value
+     * @return void
+     */
+    public function setRemarksAttribute($value)
+    {
+        if (is_array($value)) {
+            // If it's an array, uppercase each element's content
+            foreach ($value as $key => $item) {
+                if (isset($item['remark']) && is_string($item['remark'])) {
+                    $value[$key]['remark'] = strtoupper($item['remark']);
+                }
+            }
+            $this->attributes['remarks'] = json_encode($value);
+        } else if (is_string($value)) {
+            // If it's already JSON string
+            if ($this->isJson($value)) {
+                $decodedValue = json_decode($value, true);
+                foreach ($decodedValue as $key => $item) {
+                    if (isset($item['remark']) && is_string($item['remark'])) {
+                        $decodedValue[$key]['remark'] = strtoupper($item['remark']);
+                    }
+                }
+                $this->attributes['remarks'] = json_encode($decodedValue);
+            } else {
+                // If it's a plain string, just uppercase it
+                $this->attributes['remarks'] = strtoupper($value);
+            }
+        } else {
+            // Otherwise, just set it as is
+            $this->attributes['remarks'] = $value;
+        }
+    }
+
+    /**
+     * Set the reject_reason attribute to uppercase.
+     *
+     * @param string|null $value
+     * @return void
+     */
+    public function setRejectReasonAttribute($value)
+    {
+        $this->attributes['reject_reason'] = is_string($value) ? strtoupper($value) : $value;
+    }
+
+    /**
+     * Check if a string is valid JSON
+     *
+     * @param string $string
+     * @return bool
+     */
+    private function isJson($string)
+    {
+        if (!is_string($string)) {
+            return false;
+        }
+
+        json_decode($string);
+        return (json_last_error() === JSON_ERROR_NONE);
+    }
 
     /**
      * Get the purchase type options

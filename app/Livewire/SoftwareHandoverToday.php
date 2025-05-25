@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 
 class SoftwareHandoverToday extends Component implements HasForms, HasTable
@@ -28,10 +30,32 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
 
     public function getNewSoftwareHandovers()
     {
-        return SoftwareHandover::query()
-            ->where('status', 'New')
-            ->whereDate('created_at', Carbon::today())
-            ->orderBy('created_at', 'desc');
+        $query = SoftwareHandover::query();
+
+        if (auth()->user()->role_id === 2) {
+            // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+            $query->whereIn('status', ['Draft', 'New', 'Approved', 'Completed']);
+
+            // But only THEIR OWN records
+            $userId = auth()->id();
+            $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                $leadQuery->where('salesperson', $userId);
+            });
+        } else {
+            // Other users (admin, managers) can only see New, Approved, and Completed
+            $query->whereIn('status', ['New', 'Approved', 'Completed']);
+            // But they can see ALL records
+        }
+
+        $query->orderByRaw("CASE
+            WHEN status = 'New' THEN 1
+            WHEN status = 'Approved' THEN 2
+            WHEN status = 'Completed' THEN 3
+            ELSE 4
+        END")
+        ->orderBy('created_at', 'desc');
+
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -59,9 +83,6 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             //         ->placeholder('Select Company'),
             // ])
             ->columns([
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name'),
-
                 TextColumn::make('handover_pdf')
                     ->label('ID')
                     ->formatStateUsing(function ($state) {
@@ -90,8 +111,55 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                             })
                     ),
 
-                TextColumn::make('value')
-                    ->label('Value'),
+                TextColumn::make('lead.salesperson')
+                    ->label('SALESPERSON')
+                    ->getStateUsing(function (SoftwareHandover $record) {
+                        $lead = $record->lead;
+                        if (!$lead) {
+                            return '-';
+                        }
+
+                        $salespersonId = $lead->salesperson;
+                        return User::find($salespersonId)?->name ?? '-';
+                    }),
+
+                TextColumn::make('lead.companyDetail.company_name')
+                    ->label('Company Name'),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
+                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
+                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
+                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
+                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
+                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                    }),
+
+                TextColumn::make('submitted_at')
+                    ->label('Date Submit')
+                    ->date('d M Y'),
+
+                TextColumn::make('kik_off_meeting_date')
+                    ->label('Kick Off Meeting Date')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
+
+                TextColumn::make('training_date')
+                    ->label('Training Date')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
+
+                TextColumn::make('training_date')
+                    ->label('Implementer')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -101,7 +169,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                     //     ->url(fn (SoftwareHandover $record): string => route('filament.admin.resources.software-handovers.view', $record)),
 
                     Action::make('mark_approved')
-                        ->label('Approved')
+                        ->label('Approve')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function (SoftwareHandover $record): void {
@@ -119,8 +187,12 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
+                        ->hidden(fn (SoftwareHandover $record): bool => $record->status !== 'New')
                         ->form([
                             \Filament\Forms\Components\Textarea::make('reject_reason')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                 ->label('Reason for Rejection')
                                 ->required()
                                 ->placeholder('Please provide a reason for rejecting this handover')
@@ -130,7 +202,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                             // Update both status and add the rejection remarks
                             $record->update([
                                 'status' => 'Rejected',
-                                'remark' => $data['reject_reason']
+                                'reject_reason' => $data['reject_reason']
                             ]);
 
                             Notification::make()
@@ -140,7 +212,21 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
-                ])
+                    Action::make('mark_completed')
+                        ->label('Mark as Completed')
+                        ->icon('heroicon-o-check-badge') // Using check badge icon to distinguish from regular approval
+                        ->color('success') // Using warning color (amber) to distinguish from green approval
+                        ->action(function (SoftwareHandover $record): void {
+                            $record->update(['status' => 'Completed']);
+
+                            Notification::make()
+                                ->title('Software Handover marked as completed')
+                                ->body('This handover has been marked as completed.')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->hidden(fn (SoftwareHandover $record): bool => $record->status !== 'Approved'),                ])
                 ->button()
                 ->label('Actions')
             ]);

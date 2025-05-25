@@ -546,7 +546,7 @@ class QuotationRelationManager extends RelationManager
                         $lead->quotations()
                             ->where('mark_as_final', 1)
                             ->each(function ($q) use (&$resetCount) {
-                                $q->update(['mark_as_final' => 0]);
+                                $q->updateQuietly(['mark_as_final' => 0]);
                                 $resetCount++;
                             });
 

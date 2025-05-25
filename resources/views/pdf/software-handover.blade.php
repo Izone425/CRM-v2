@@ -155,7 +155,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">1. COMPANY DETAILS</div>
+        <div class="section-title">1. DATABASE</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -168,59 +168,55 @@
                 <td width="70%">{{ $softwareHandover->company_name }}</td>
             </tr>
             <tr>
-                <td class="label">Industry</td>
-                <td>{{ $softwareHandover->industry }}</td>
-            </tr>
-            <tr>
-                <td class="label">Number of Employees</td>
-                <td>{{ $softwareHandover->headcount }}</td>
-            </tr>
-            <tr>
-                <td class="label">Country</td>
-                <td>{{ $softwareHandover->country }}</td>
-            </tr>
-            <tr>
-                <td class="label">State</td>
-                <td>{{ $softwareHandover->state }}</td>
-            </tr>
-            <tr>
                 <td class="label">Salesperson</td>
                 <td>{{ $softwareHandover->salesperson }}</td>
             </tr>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">2. SUPERADMIN DETAILS</div>
-        <table class="info-grid">
-            <thead>
-                <tr>
-                    <th>Field</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
             <tr>
-                <td class="label" width="30%">PIC Name</td>
+                <td class="label" width="30%">Name</td>
                 <td width="70%">{{ $softwareHandover->pic_name }}</td>
             </tr>
             <tr>
-                <td class="label">PIC HP No.</td>
+                <td class="label">HP Number</td>
                 <td>{{ $softwareHandover->pic_phone }}</td>
             </tr>
             <tr>
-                <td class="label">Email Address</td>
-                <td>{{ $softwareHandover->email }}</td>
+                <td class="label">Headcount</td>
+                <td>{{ $softwareHandover->headcount }}</td>
             </tr>
-            @if(isset($softwareHandover->password) && !empty($softwareHandover->password))
             <tr>
-                <td class="label">Password</td>
-                <td>{{ $softwareHandover->password }}</td>
+                <td class="label">Company Size</td>
+                <td>
+                    @php
+                        // Use the same logic from CategoryService to ensure consistency
+                        $headcount = $softwareHandover->headcount;
+                        $category = '';
+
+                        if ($headcount) {
+                            if ($headcount > 0 && $headcount < 25) {
+                                $category = 'SMALL';
+                            }
+                            if ($headcount >= 25 && $headcount < 100) {
+                                $category = 'MEDIUM';
+                            }
+                            if ($headcount >= 100 && $headcount < 500) {
+                                $category = 'LARGE';
+                            }
+                            if ($headcount >= 500) {
+                                $category = 'ENTERPRISE';
+                            }
+                        }
+                    @endphp
+                    {{ $category ?: ($softwareHandover->category ?? 'Not specified') }}
+                </td>
             </tr>
-            @endif
         </table>
     </div>
 
     <div class="section">
+        <div class="section-title">2. INVOICE DETAILS</div>
+    </div>
+
+    {{-- <div class="section">
         <div class="section-title">3. INVOICE DETAILS</div>
         <table class="info-grid">
             <thead>
@@ -275,29 +271,21 @@
                 <td>{{ $softwareHandover->pic_phone }}</td>
             </tr>
         </table>
-    </div>
+    </div> --}}
 
     <div class="section">
-        <div class="section-title">5. IMPLEMENTATION PICS</div>
+        <div class="section-title">3. IMPLEMENTATION DETAILS</div>
         <table>
             <thead>
                 <tr>
-                    <th width="10%">User Role</th>
-                    <th width="20%">Client PIC Name</th>
+                    <th width="10%">No.</th>
+                    <th width="20%">Name</th>
                     <th width="20%">Position</th>
                     <th width="20%">HP Number</th>
                     <th width="30%">Email Address</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>PIC 1</td>
-                    <td>{{ $softwareHandover->pic_name }}</td>
-                    <td>{{ $softwareHandover->pic_position ?? 'DIRECTOR' }}</td>
-                    <td>{{ $softwareHandover->pic_phone }}</td>
-                    <td>{{ $softwareHandover->email }}</td>
-                </tr>
-
                 @if(isset($softwareHandover->implementation_pics) && !empty($softwareHandover->implementation_pics))
                     @php
                         $implementationPics = is_string($softwareHandover->implementation_pics)
@@ -311,7 +299,7 @@
 
                     @foreach($implementationPics as $index => $pic)
                         <tr>
-                            <td>PIC {{ $index + 2 }}</td>
+                            <td>PIC {{ $index + 1 }}</td>
                             <td>{{ $pic['pic_name_impl'] ?? '' }}</td>
                             <td>{{ $pic['position'] ?? '' }}</td>
                             <td>{{ $pic['pic_phone_impl'] ?? '' }}</td>
@@ -329,7 +317,7 @@
         </table>
     </div>
 
-    <div class="section">
+    {{-- <div class="section">
         <div class="section-title">5. TIMETEC HR MODULE SUBSCRIPTION</div>
         <table>
             <thead>
@@ -418,110 +406,80 @@
                 @endforeach
             </tbody>
         </table>
-    </div>
+    </div> --}}
 
     <div class="section">
-        <div class="section-title">6. OTHER DETAILS</div>
-        <table class="info-grid">
+        <div class="section-title">4. REMARK DETAILS</div>
+        <table>
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th>Remark</th>
+                    <th width="20%">No.</th>
+                    <th width="80%">Description</th>
                 </tr>
             </thead>
-            <tr>
-                <td class="label" width="30%">Customization Details</td>
-                <td width="70%">{{ $softwareHandover->customization_details ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Enhancement Details</td>
-                <td>{{ $softwareHandover->enhancement_details ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Special Remark</td>
-                <td>{{ $softwareHandover->special_remark ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Device Integration</td>
-                <td>{{ $softwareHandover->device_integration ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Existing HR System</td>
-                <td>{{ $softwareHandover->existing_hr_system ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Experience Implementing Any HR System</td>
-                <td>{{ $softwareHandover->hr_system_experience ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">VIP Package</td>
-                <td>{{ $softwareHandover->vip_package ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">FingerTec Device</td>
-                <td>{{ $softwareHandover->fingertec_device ?: '-' }}</td>
-            </tr>
+            <tbody>
+                @if(isset($softwareHandover->remarks) && !empty($softwareHandover->remarks))
+                    @php
+                        $remarks = is_string($softwareHandover->remarks)
+                            ? json_decode($softwareHandover->remarks, true)
+                            : $softwareHandover->remarks;
+
+                        if (!is_array($remarks)) {
+                            $remarks = [];
+                        }
+                    @endphp
+
+                    @foreach($remarks as $index => $rmk)
+                        <tr>
+                            <td>Remark {{ $index + 1 }}</td>
+                            <td>{{ $rmk['remark'] ?? $rmk ?? '' }}</td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="2" style="text-align: center; font-style: italic;">No remarks</td>
+                    </tr>
+                @endif
+            </tbody>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">7. CLIENT PURCHASE ANY ONSITE PACKAGE</div>
+        <div class="section-title">5. TRAINING</div>
         <table>
             <thead>
                 <tr>
                     <th width="40%">Item</th>
-                    <th width="20%">Yes / No</th>
-                    <th width="40%">Remark</th>
+                    <th width="60%">Type</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>Onsite Kick Off Meeting</td>
-                    <td>{{ $softwareHandover->onsite_kickoff ? 'Yes' : 'No' }}</td>
-                    <td>{{ $softwareHandover->onsite_kickoff_remark ?: '-' }}</td>
-                </tr>
-                <tr>
-                    <td>Onsite Webinar Training</td>
-                    <td>{{ $softwareHandover->onsite_webinar ? 'Yes' : 'No' }}</td>
-                    <td>{{ $softwareHandover->onsite_webinar_remark ?: '-' }}</td>
-                </tr>
-                <tr>
-                    <td>Onsite Briefing Session</td>
-                    <td>{{ $softwareHandover->onsite_briefing ? 'Yes' : 'No' }}</td>
-                    <td>{{ $softwareHandover->onsite_briefing_remark ?: '-' }}</td>
+                    <td>Training Type</td>
+                    <td>
+                        @if($softwareHandover->training_type === 'online_webinar_training')
+                            Online Webinar Training
+                        @elseif($softwareHandover->training_type === 'online_hrdf_training')
+                            Online HRDF Training
+                        @else
+                            {{ $softwareHandover->training_type ?? 'Not specified' }}
+                        @endif
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">8. PAYMENT TERM</div>
-        <table>
-            <thead>
-                <tr>
-                    <th width="70%">Criteria</th>
-                    <th width="30%">Choose One (Yes / No)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Payment – Full Paid</td>
-                    <td>{{ $softwareHandover->payment_term == 'full_payment' ? 'Yes' : 'No' }}</td>
-                </tr>
-                <tr>
-                    <td>Payment – Via HRDF</td>
-                    <td>{{ $softwareHandover->payment_term == 'payment_via_hrdf' ? 'Yes' : 'No' }}</td>
-                </tr>
-                <tr>
-                    <td>Payment – Via Term</td>
-                    <td>{{ $softwareHandover->payment_term == 'payment_via_term' ? 'Yes' : 'No' }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="section-title">6. PROFORMA INVOICE</div>
     </div>
 
     <div class="section">
-        <div class="section-title">9. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">7. ATTACHMENT</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">8. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">
