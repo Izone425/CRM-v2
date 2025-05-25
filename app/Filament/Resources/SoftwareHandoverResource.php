@@ -29,6 +29,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\View\View;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Illuminate\Support\Str;
+use Filament\Forms\Components\FileUpload;
+use Filament\Notifications\Notification;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SoftwareHandoverResource extends Resource
 {
@@ -189,16 +192,36 @@ class SoftwareHandoverResource extends Resource
                             ->visible(fn (Forms\Get $get): bool => $get('status') === 'Rejected')
                             ->maxLength(1000),
 
-                        TextInput::make('handover_pdf')
-                            ->label('Handover PDF')
-                            ->placeholder('PDF will be generated automatically')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->helperText('This file is generated when the handover is approved'),
+                        FileUpload::make('invoice_file')
+                            ->label('Upload Invoice')
+                            ->disk('public')
+                            ->directory('handovers/invoices')
+                            ->visibility('public')
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->multiple()
+                            ->maxFiles(1)
+                            ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                            ->columnSpanFull()
+                            ->openable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                $date = now()->format('Y-m-d');
+                                $random = Str::random(5);
+                                $extension = $file->getClientOriginalExtension();
+
+                                return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                            })
+                            ->default(function (SoftwareHandover $record) {
+                                if (!$record || !$record->invoice_file) {
+                                    return [];
+                                }
+                                if (is_string($record->invoice_file)) {
+                                    return json_decode($record->invoice_file, true) ?? [];
+                                }
+                                return is_array($record->invoice_file) ? $record->invoice_file : [];
+                            }),
                     ]),
             ]),
-            // Section: Status & Approvals
-
         ]);
 }
 
@@ -304,20 +327,30 @@ class SoftwareHandoverResource extends Resource
                 TextColumn::make('payroll_code')
                     ->label('Payroll Code')
                     ->toggleable(),
-                TextColumn::make('company_size')
+                    TextColumn::make('company_size_label')
                     ->label('Company Size')
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($record && isset($record->headcount)) {
+                            $categoryService = app(CategoryService::class);
+                            return $categoryService->retrieve($record->headcount);
+                        }
+                        return $state ?? 'N/A';
+                    })
                     ->toggleable(),
                 TextColumn::make('headcount')
                     ->label('Headcount')
                     ->toggleable(),
                 TextColumn::make('db_creation')
                     ->label('DB Creation')
+                    ->date('d M Y')
                     ->toggleable(),
                 TextColumn::make('go_live_date')
                     ->label('Go Live Date')
+                    ->date('d M Y')
                     ->toggleable(),
                 TextColumn::make('total_days')
                     ->label('Total Days')
+                    ->date('d M Y')
                     ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
@@ -327,9 +360,11 @@ class SoftwareHandoverResource extends Resource
                     ->toggleable(),
                 TextColumn::make('kick_off_meeting')
                     ->label('ON9 Kick Off Meeting')
+                    ->date('d M Y')
                     ->toggleable(),
                 TextColumn::make('webinar_training')
-                    ->label('ON9 webinar Training')
+                    ->label('ON9 Webinar Training')
+                    ->date('d M Y')
                     ->toggleable(),
             ])
             ->filters([
@@ -364,6 +399,96 @@ class SoftwareHandoverResource extends Resource
                 }),
             ])
             ->actions([
+                // Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('create_attachment')
+    ->label('Create Attachment')
+    ->icon('heroicon-o-paper-clip')
+    ->color('success')
+    ->form([
+        Forms\Components\TextInput::make('title')
+            ->label('Attachment Title')
+            ->default(function (SoftwareHandover $record) {
+                return "Files for {$record->company_name}";
+            })
+            ->required(),
+
+        Forms\Components\Textarea::make('description')
+            ->label('Description')
+            ->default(function (SoftwareHandover $record) {
+                return "Combined files for {$record->company_name} (Handover #{$record->id})";
+            }),
+    ])
+    ->action(function (array $data, SoftwareHandover $record) {
+        // Collect all available files from the handover
+        $allFiles = [];
+
+        // Add invoice files if available
+        if (!empty($record->invoice_file)) {
+            $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
+        }
+
+        // Add confirmation order files if available
+        if (!empty($record->confirmation_order_file)) {
+            $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
+        }
+
+        // Add HRDF grant files if available
+        if (!empty($record->hrdf_grant_file)) {
+            $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
+        }
+
+        // Add payment slip files if available
+        if (!empty($record->payment_slip_file)) {
+            $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
+        }
+
+        // Check if any files are available
+        if (empty($allFiles)) {
+            Notification::make()
+                ->title('No files available')
+                ->body("This handover has no files to create an attachment from.")
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Create a new software attachment with all files
+        $attachment = \App\Models\SoftwareAttachment::create([
+            'software_handover_id' => $record->id,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'files' => $allFiles, // Add all collected files
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id()
+        ]);
+
+        // Show success notification
+        if ($attachment) {
+            $fileCount = count($allFiles);
+            Notification::make()
+                ->title('Attachment Created')
+                ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
+                ->success()
+                ->send();
+        } else {
+            Notification::make()
+                ->title('Error')
+                ->body('Failed to create attachment.')
+                ->danger()
+                ->send();
+        }
+    })
+    ->visible(function (SoftwareHandover $record): bool {
+        // Only show this action if the record has any files
+        return !empty($record->invoice_file) ||
+               !empty($record->confirmation_order_file) ||
+               !empty($record->hrdf_grant_file) ||
+               !empty($record->payment_slip_file);
+    })
+    ->requiresConfirmation()
+    ->modalHeading('Create Attachment with All Files')
+    ->modalDescription('This will create a single attachment containing all files from this handover.')
+    ->modalSubmitActionLabel('Create Attachment'),
                 // Tables\Actions\EditAction::make(),
             ]);
             // ->bulkActions([

@@ -150,7 +150,7 @@ class SalesAdminAnalysisV2 extends Page
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         // $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
-        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati'])->count();
+        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])->count();
         $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
 
         // Calculate total as the sum of individual counts
@@ -319,7 +319,7 @@ class SalesAdminAnalysisV2 extends Page
         $leadCategories = ['Active', 'Sales', 'Inactive'];
 
         // Filter for specific lead owner
-        $queryBase->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati']);
+        $queryBase->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
 
         // Clone and count each category separately
         $salesLeadsCount = (clone $queryBase)
@@ -458,7 +458,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         // Filter for specific lead owner
-        $queryBase->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati']);
+        $queryBase->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
 
         // Define active lead categories using queryBase cloning
         $this->activeLeadsDataAfifah = [
@@ -585,7 +585,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         // Filter for specific lead owner
-        $queryBaseAfifah->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati']);
+        $queryBaseAfifah->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
 
         // Fetch transfer lead counts by stage
         $this->transferStagesDataAfifah = [
@@ -698,7 +698,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         // Filter for specific lead owner
-        $queryBaseAfifah->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati']);
+        $queryBaseAfifah->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
 
         // Apply additional filters for inactive leads
         $queryAfifah = (clone $queryBaseAfifah)
@@ -738,8 +738,8 @@ class SalesAdminAnalysisV2 extends Page
             $query->where('categories', 'New');
         } elseif ($label === 'Jaja') {
             $query->where('lead_owner', 'Nurul Najaa Nadiah');
-        } elseif ($label === 'Afifah') {
-            $query->where('lead_owner', 'Siti Afifah');
+        } elseif ($label === 'Backup Admin') {
+            $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
         } elseif ($label === 'Shahilah') { // Add this condition
             $query->where('lead_owner', 'Siti Shahilah');
         } else {
@@ -823,7 +823,7 @@ class SalesAdminAnalysisV2 extends Page
     public function openAfifahLeadCategorySlideOver($category)
     {
         $query = Lead::query()
-            ->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati']);
+            ->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -848,7 +848,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         $this->leadList = $query->with('companyDetail')->get();
-        $this->slideOverTitle = "{$category} Leads (Afifah)";
+        $this->slideOverTitle = "{$category} Leads (Backup Admin)";
         $this->showSlideOver = true;
     }
 
@@ -903,7 +903,7 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati'])
+        $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])
               ->whereNull('salesperson')
               ->where('categories', '=', 'Active');
 
@@ -927,7 +927,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         $this->leadList = $query->with('companyDetail')->get();
-        $this->slideOverTitle = "{$label} (Afifah)";
+        $this->slideOverTitle = "{$label} (Backup Admin)";
         $this->showSlideOver = true;
     }
 
@@ -954,7 +954,7 @@ class SalesAdminAnalysisV2 extends Page
     public function openTransferLeadsAfifahSlideOver($stage)
     {
         $query = Lead::query()
-            ->where('lead_owner', 'Siti Afifah')
+            ->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])
             ->where('categories', 'Active')
             ->whereNotNull('salesperson')
             ->where('stage', $stage);
@@ -966,7 +966,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         $this->leadList = $query->with('companyDetail')->get();
-        $this->slideOverTitle = "Afifah - $stage Leads";
+        $this->slideOverTitle = "Backup Admin - $stage Leads";
         $this->showSlideOver = true;
     }
 
@@ -990,7 +990,7 @@ class SalesAdminAnalysisV2 extends Page
     public function openInactiveLeadsAfifahSlideOver($status)
     {
         $query = Lead::query()
-            ->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati'])
+            ->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati',' Farah'])
             ->where('lead_status', $status);
 
         if (!empty($this->selectedMonth)) {
@@ -1000,7 +1000,7 @@ class SalesAdminAnalysisV2 extends Page
         }
 
         $this->leadList = $query->with('companyDetail')->get();
-        $this->slideOverTitle = "Afifah - {$status} Leads";
+        $this->slideOverTitle = "Backup Admin - {$status} Leads";
         $this->showSlideOver = true;
     }
 

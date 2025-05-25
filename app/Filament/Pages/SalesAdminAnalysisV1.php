@@ -104,7 +104,7 @@ class SalesAdminAnalysisV1 extends Page
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         // $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
-        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati'])->count();
+        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])->count();
         $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
         $this->noneLeads = $leads->whereNull('lead_owner')->whereNotNull('salesperson')->count();
 
