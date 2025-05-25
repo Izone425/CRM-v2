@@ -1,3 +1,4 @@
+<!-- filepath: /var/www/html/timeteccrm/resources/views/components/software-handover.blade.php -->
 @php
     $record = $extraAttributes['record'] ?? null;
 
@@ -24,217 +25,138 @@
     $productQuotations = \App\Models\Quotation::whereIn('id', $productPiIds)->get();
     $hrdfQuotations = \App\Models\Quotation::whereIn('id', $hrdfPiIds)->get();
 
-    // Define key-value pairs for the main information
-    $mainInfo = [
-        [
-            'label' => 'Software Handover ID',
-            'value' => isset($record->id) ? 'SH' . $record->id : '-'
-        ],
-        [
-            'label' => 'Date',
-            'value' => isset($record->created_at) ? $record->created_at->format('d F Y') : '-'
-        ],
-        [
-            'label' => 'Payment Type',
-            'value' => isset($record->payment_term) ? Str::title(str_replace('_', ' ', $record->payment_term)) : '-'
-        ],
-        [
-            'label' => 'Invoice Value',
-            'value' => isset($record->value) ? 'MYR ' . number_format($record->value, 2) : 'MYR 0.00'
-        ],
-        [
-            'label' => 'Status',
-            'value' => $record->status ?? '-',
-            'is_status' => true
-        ],
-    ];
-
     // Get attachment files
     $confirmationFiles = $record->confirmation_order_file ? (is_string($record->confirmation_order_file) ? json_decode($record->confirmation_order_file, true) : $record->confirmation_order_file) : [];
     $paymentSlipFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
     $hrdfGrantFiles = $record->hrdf_grant_file ? (is_string($record->hrdf_grant_file) ? json_decode($record->hrdf_grant_file, true) : $record->hrdf_grant_file) : [];
 @endphp
 
-<div class="p-2">
-    <!-- Header with company name -->
-    <div class="mb-6 text-center">
+<div class="p-6 bg-white rounded-lg">
+    <!-- Title -->
+    <div class="mb-4 text-center">
         <h2 class="text-lg font-semibold text-gray-800">Software Handover Details</h2>
-        <p class="text-blue-500">{{ $companyName }}</p>
+        <p class="text-blue-600">{{ $companyName }}</p>
     </div>
-    <br>
-    <!-- Main information in a 2-column grid -->
-    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;"
-    class="grid grid-cols-2 gap-6">
-        @foreach ($mainInfo as $info)
-            <div>
-                <p class="text-sm font-medium text-gray-600">{{ $info['label'] }}</p>
-                @if (isset($info['is_status']) && $info['is_status'])
-                    @if($info['value'] == 'Approved')
-                        <p class="font-medium" style='color: rgb(35, 189, 35);'>{{ $info['value'] }}</p>
-                    @elseif($info['value'] == 'Rejected')
-                        <p class="font-medium" style='color: rgb(189, 32, 32);'>{{ $info['value'] }}</p>
-                    @elseif($info['value'] == 'Draft')
-                        <p class="font-medium" style='color: rgb(235, 202, 14);'>{{ $info['value'] }}</p>
-                    @elseif($info['value'] == 'New')
-                        <p class="font-medium" style='color: rgb(57, 32, 172);'>{{ $info['value'] }}</p>
-                    @else
-                        <p class="font-medium">{{ $info['value'] }}</p>
-                    @endif
-                @else
-                    <p class="font-medium">{{ $info['value'] }}</p>
-                @endif
-            </div>
-        @endforeach
-    </div>
-
-    <!-- Separator line -->
-    <hr class="my-4 border-gray-200">
-
-    <!-- Attachments section -->
-    <div>
-        <h3 class="mb-3 font-medium text-gray-700">Attachments</h3>
-
-        <div class="space-y-2">
-            <!-- Software Handover Form PDF -->
-            <div class="flex items-center">
-                <span class="mr-2 text-blue-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                </span>
-                @if($record->handover_pdf)
-                    <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" class="text-blue-500 hover:underline">Software Handover Form</a>
-                @elseif($record->status !== 'Draft')
-                    <a href="{{ route('software-handover.pdf', $record->id) }}" target="_blank" class="text-blue-500 hover:underline">Software Handover Form</a>
-                @else
-                    <span class="text-gray-500">Software Handover Form (Generated after submission)</span>
-                @endif
-            </div>
-
-            <!-- Confirmation Order Files -->
-            @if(is_array($confirmationFiles) && count($confirmationFiles) > 0)
-                @foreach($confirmationFiles as $index => $file)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ url('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
-                            Confirmation Order {{ $index > 0 ? $index + 1 : '' }}
-                        </a>
-                    </div>
-                @endforeach
+    <!-- Main Information -->
+    <div class="mb-6">
+        <p class="flex mb-2">
+            <span class="mr-2 font-semibold">Status:</span>&nbsp;
+            @if($record->status == 'Approved')
+                <span class="text-green-600">{{ $record->status }}</span>
+            @elseif($record->status == 'Rejected')
+                <span class="text-red-600">{{ $record->status }}</span>
+            @elseif($record->status == 'Draft')
+                <span class="text-yellow-500">{{ $record->status }}</span>
+            @elseif($record->status == 'New')
+                <span class="text-indigo-600">{{ $record->status }}</span>
             @else
-                <div class="flex items-center">
-                    <span class="mr-2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </span>
-                    <span class="text-gray-400">No Confirmation Order attached</span>
-                </div>
+                <span>{{ $record->status ?? '-' }}</span>
             @endif
+        </p>
+        <p class="mb-2"><span class="font-semibold">Software Handover ID:</span> {{ isset($record->id) ? $record->id : '-' }}</p>
+        <p class="mb-2"><span class="font-semibold">Software Handover Date:</span> {{ isset($record->created_at) ? $record->created_at->format('d M Y') : '-' }}</p>
+        <p class="mb-4">
+            <span class="font-semibold">Software Handover Form:</span>
+            @if($record->handover_pdf)
+                <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+            @elseif($record->status !== 'Draft')
+                <a href="{{ route('software-handover.pdf', $record->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+            @else
+                <span style="color: #6B7280;">Click Here</span>
+            @endif
+        </p>
+    </div>
 
-            <!-- Product Proforma Invoices -->
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+
+    <!-- Proforma Invoice Information -->
+    <div class="mb-6">
+        <p class="mb-2">
+            <span class="font-semibold">Product PI:</span>
             @if($productQuotations->count() > 0)
                 @foreach($productQuotations as $index => $quotation)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" class="text-blue-500 hover:underline">
-                            Product PI: {{ $quotation->pi_reference_no }}
-                        </a>
-                    </div>
+                    <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                    @if(!$loop->last) / @endif
                 @endforeach
             @else
-                <div class="flex items-center">
-                    <span class="mr-2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </span>
-                    <span class="text-gray-400">No Product Proforma Invoice attached</span>
-                </div>
+                <span class="text-gray-500">-</span>
             @endif
-
-            <!-- HRDF Proforma Invoices -->
+        </p>
+        <p class="mb-4">
+            <span class="font-semibold">HRDF PI:</span>
             @if($hrdfQuotations->count() > 0)
                 @foreach($hrdfQuotations as $index => $quotation)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" class="text-blue-500 hover:underline">
-                            HRDF PI: {{ $quotation->pi_reference_no }}
-                        </a>
-                    </div>
+                    <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                    @if(!$loop->last) / @endif
                 @endforeach
             @else
-                <div class="flex items-center">
-                    <span class="mr-2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </span>
-                    <span class="text-gray-400">No HRDF Proforma Invoice attached</span>
-                </div>
+                <span class="text-gray-500">-</span>
             @endif
+        </p>
+    </div>
 
-            <!-- Payment Files / HRDF Approval Letter -->
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+
+    <!-- Attachment Files -->
+    <div class="mb-6">
+        <p class="mb-2">
+            <span class="font-semibold">Confirmation Order:</span>
+            @if(is_array($confirmationFiles) && count($confirmationFiles) > 0)
+                @foreach($confirmationFiles as $index => $file)
+                    <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                    @if(!$loop->last) / @endif
+                @endforeach
+            @else
+                <span class="text-gray-500">Click Here</span>
+            @endif
+        </p>
+
+        <p class="mb-2">
+            <span class="font-semibold">Payment Slip:</span>
             @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
                 @foreach($paymentSlipFiles as $index => $file)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ url('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
-                            Payment Slip{{ $index > 0 ? ' ' . ($index + 1) : '' }}
-                        </a>
-                    </div>
+                    <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                    @if(!$loop->last) / @endif
                 @endforeach
             @else
-                <div class="flex items-center">
-                    <span class="mr-2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </span>
-                    <span class="text-gray-400">No Payment Slip attached</span>
-                </div>
+                <span class="text-gray-500">Click Here</span>
             @endif
+        </p>
 
-            <!-- HRDF Grant Approval Letter Files -->
-            @if(is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0)
+        <p class="mb-2">
+            <span class="font-semibold">HRDF Grant Approval Letter:</span>
+        </p>
+
+        @if(is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0)
+            <ul class="pl-6 list-none">
                 @foreach($hrdfGrantFiles as $index => $file)
-                    <div class="flex items-center">
-                        <span class="mr-2 text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                        </span>
-                        <a href="{{ url('storage/' . $file) }}" target="_blank" class="text-blue-500 hover:underline">
-                            HRDF Grant Approval Letter{{ $index > 0 ? ' ' . ($index + 1) : '' }}
-                        </a>
-                    </div>
+                    <li class="mb-1">
+                        <span class="mr-2">➤</span>
+                        <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Approval {{ $index + 1 }}</a>
+                    </li>
                 @endforeach
-            @else
-                <div class="flex items-center">
-                    <span class="mr-2 text-gray-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </span>
-                    <span class="text-gray-400">No HRDF Grant Approval Letter attached</span>
-                </div>
-            @endif
-        </div>
+            </ul>
+        @else
+            <span>No Record found</span>
+        @endif
+    </div>
+
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+
+    <div class="mb-2 text-center">
+        <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
+           target="_blank"
+           style="display: inline-flex; align-items: center; color: #16a34a; text-decoration: none; font-weight: 500; padding: 6px 12px; border: 1px solid #16a34a; border-radius: 4px;"
+           onmouseover="this.style.backgroundColor='#f0fdf4'"
+           onmouseout="this.style.backgroundColor='transparent'">
+            <!-- Download Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Invoice Information to Excel
+        </a>
     </div>
 </div>

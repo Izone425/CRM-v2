@@ -515,7 +515,7 @@
 
                         <!-- Level 3 dropdown content -->
                         <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard</span>
                             </a>

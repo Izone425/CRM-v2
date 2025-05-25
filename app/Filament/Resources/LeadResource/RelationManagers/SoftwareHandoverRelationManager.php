@@ -120,59 +120,53 @@ class SoftwareHandoverRelationManager extends RelationManager
                     return $leadStatus === 'Closed';
                 })
                 ->slideOver()
-                ->modalHeading(function () {
-                    // Get the next ID by finding the maximum ID and adding 1
-                    $nextId = \App\Models\SoftwareHandover::max('id') + 1;
-
-                    // Format with prefix SH and the next ID
-                    return "Software Handover SH{$nextId}";
-                })
-                ->modalWidth(MaxWidth::SevenExtraLarge)
+                ->modalHeading('Software Handover')
+                ->modalWidth(MaxWidth::FourExtraLarge)
                 ->modalSubmitActionLabel('Save')
                 ->form([
-                    Section::make('Section 1: Database')
+                    Section::make('Step 1: Database')
                         ->schema([
-                            Grid::make(3)
-                                ->schema([
-                                    TextInput::make('company_name')
-                                        ->label('Company Name')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                    TextInput::make('pic_name')
-                                        ->label('PIC Name')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                    TextInput::make('headcount')
-                                        ->numeric()
-                                        ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
-                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
-                                            /**
-                                             * set this company's category based on head count
-                                             */
-                                            $set('category', $category->retrieve($state));
-                                        })
-                                        ->required(),
-                                ]),
-                            Grid::make(3)
-                                ->schema([
-                                    TextInput::make('salesperson')
-                                        ->readOnly()
-                                        ->label('Salesperson')
-                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
-                                    TextInput::make('pic_phone')
-                                        ->label('HP Number')
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-                                    TextInput::make('category')
-                                        ->label('Company Size')
-                                        ->autocapitalize()
-                                        ->placeholder('Select a category')
-                                        // ->options([
-                                        //     'small' => 'SMALL',
-                                        //     'medium' => 'MEDIUM',
-                                        //     'large' => 'LARGE',
-                                        //     'enterprise' => 'ENTERPRISE'
-                                        // ])
-                                        // ->searchable()
-                                        ->readOnly(),
-                                ]),
+                            TextInput::make('company_name')
+                                ->label('Company Name')
+                                ->inlineLabel()
+                                ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                            TextInput::make('pic_name')
+                                ->label('Name')
+                                ->inlineLabel()
+                                ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
+                            TextInput::make('headcount')
+                                ->numeric()
+                                ->inlineLabel()
+                                ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
+                                ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
+                                    /**
+                                     * set this company's category based on head count
+                                     */
+                                    $set('category', $category->retrieve($state));
+                                })
+                                ->required(),
+                            TextInput::make('salesperson')
+                                ->readOnly()
+                                ->inlineLabel()
+                                ->label('Salesperson')
+                                ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
+                            TextInput::make('pic_phone')
+                                ->inlineLabel()
+                                ->label('HP Number')
+                                ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
+                            TextInput::make('category')
+                                ->label('Company Size')
+                                ->inlineLabel()
+                                ->autocapitalize()
+                                ->placeholder('Select a category')
+                                // ->options([
+                                //     'small' => 'SMALL',
+                                //     'medium' => 'MEDIUM',
+                                //     'large' => 'LARGE',
+                                //     'enterprise' => 'ENTERPRISE'
+                                // ])
+                                // ->searchable()
+                                ->readOnly(),
                         ]),
 
                     // Section::make('Section 2: DATABASE - PAYROLL')
@@ -195,7 +189,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     //             ]),
                     //     ]),
 
-                    Section::make('Section 2: Invoice Details')
+                    Section::make('Step 2: Invoice Details')
                         ->schema([
                             Grid::make(1)
                                 ->schema([
@@ -214,7 +208,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ]),
                         ]),
 
-                    Section::make('Section 3: Implementation Details')
+                    Section::make('Step 3: Implementation Details')
                         ->schema([
                             Forms\Components\Repeater::make('implementation_pics')
                                 ->hiddenLabel(true)
@@ -240,13 +234,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->columns(2),
                         ]),
 
-                    Section::make('Section 4: Remark Details')
+                    Section::make('Step 4: Remark Details')
                             ->schema([
                                 Forms\Components\Repeater::make('remarks')
                                     ->label('Remarks')
                                     ->hiddenLabel(true)
                                     ->schema([
                                         Textarea::make('remark')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
                                             ->hiddenLabel(true)
                                             ->label(function (Forms\Get $get, ?string $state, $livewire) {
                                                 // Get the current array key from the state path
@@ -268,7 +265,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->defaultItems(1),
                             ]),
 
-                        Section::make('Section 5: Training')
+                        Section::make('Step 5: Training')
                             ->schema([
                                 Forms\Components\Radio::make('training_type')
                                     ->label('')
@@ -280,12 +277,13 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->columns(2)
                                     ->required(),
                             ]),
-                        Section::make('Section 6: Proforma Invoice')
+                        Section::make('Step 6: Proforma Invoice')
                             ->columnSpan(1) // Ensure it spans one column
                             ->schema([
                                 Grid::make(2)
                                     ->schema([
                                         Select::make('proforma_invoice_product')
+                                            ->required()
                                             ->label('Proforma Invoice Product')
                                             ->options(function (RelationManager $livewire) {
                                                 $leadId = $livewire->getOwnerRecord()->id;
@@ -314,7 +312,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ])
                             ]),
 
-                        Section::make('Section 7: Attachment')
+                        Section::make('Step 7: Attachment')
                             ->columnSpan(1) // Ensure it spans one column
                             ->schema([
                                 Grid::make(3)
@@ -325,7 +323,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->directory('handovers/confirmation_orders')
                                         ->visibility('public')
                                         ->multiple()
-                                        ->maxFiles(3)
+                                        ->maxFiles(1)
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
 
                                     FileUpload::make('hrdf_grant_file')
@@ -334,7 +332,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->directory('handovers/hrdf_grant')
                                         ->visibility('public')
                                         ->multiple()
-                                        ->maxFiles(3)
+                                        ->maxFiles(10)
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
 
                                     FileUpload::make('payment_slip_file')
@@ -344,7 +342,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->directory('handovers/payment_slips')
                                         ->visibility('public')
                                         ->multiple()
-                                        ->maxFiles(3)
+                                        ->maxFiles(1)
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
                                     ])
                             ]),
@@ -397,20 +395,35 @@ class SoftwareHandoverRelationManager extends RelationManager
                 TextColumn::make('id')
                     ->label('ID')
                     ->openUrlInNewTab(),
-                TextColumn::make('created_at')
-                    ->label('DATE')
+                TextColumn::make('submitted_at')
+                    ->label('Date Submit')
                     ->date('d M Y'),
                 TextColumn::make('training_type')
-                    ->label('TRAINING TYPE')
+                    ->label('Training Type')
                     ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
-                TextColumn::make('value')
-                    ->label('VALUE')
-                    ->formatStateUsing(fn ($state) => 'MYR ' . number_format($state, 2)),
+                TextColumn::make('kik_off_meeting_date')
+                    ->label('Kick Off Meeting Date')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
+                TextColumn::make('training_date')
+                    ->label('Training Date')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
+                TextColumn::make('implementor')
+                    ->label('Implementer')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
+                    })
+                    ->date('d M Y'),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
                         'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: green;">New</span>'),
+                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
                         'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
@@ -427,6 +440,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
+                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New']))
                         // Use a callback function instead of arrow function for more control
                         ->modalContent(function (SoftwareHandover $record): View {
 
@@ -440,11 +454,11 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
-                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Draft']))
+                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->slideOver()
                         ->form([
-                            Section::make('Section 1: Database')
+                            Section::make('Step 1: Database')
                                 ->collapsible()
                                 ->schema([
                                     Grid::make(3)
@@ -454,7 +468,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                             TextInput::make('pic_name')
-                                                ->label('PIC Name')
+                                                ->label('Name')
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                             TextInput::make('headcount')
@@ -497,7 +511,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                        ]),
                                 ]),
 
-                            // Section::make('Section 2: DATABASE - PAYROLL')
+                            // Section::make('Step 2: DATABASE - PAYROLL')
                             //     ->schema([
                             //         Grid::make(2)
                             //             ->schema([
@@ -518,7 +532,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                             //             ]),
                             //     ]),
 
-                            Section::make('Section 2: Invoice Details')
+                            Section::make('Step 2: Invoice Details')
                                 ->schema([
                                     Grid::make(1)
                                         ->schema([
@@ -537,10 +551,11 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ]),
                                 ]),
 
-                            Section::make('Section 4: Implementation PICs')
+                            Section::make('Step 3: Implementation PICs')
                                 ->schema([
                                     Forms\Components\Repeater::make('implementation_pics')
                                         ->label('Implementation PICs')
+                                        ->hiddenLabel(true)
                                         ->schema([
                                             Grid::make(4)
                                             ->schema([
@@ -575,13 +590,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Section::make('Section 4: Remark Details')
+                            Section::make('Step 4: Remark Details')
                                 ->schema([
                                     Forms\Components\Repeater::make('remarks')
                                         ->label('Remarks')
                                         ->hiddenLabel(true)
                                         ->schema([
                                             Textarea::make('remark')
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                                 ->hiddenLabel(true)
                                                 ->label(function (Forms\Get $get, ?string $state, $livewire) {
                                                     // Get the current array key from the state path
@@ -622,7 +640,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Section::make('Section 5: Training')
+                            Section::make('Step 5: Training')
                             ->columnSpan(1)
                             ->schema([
                                 Forms\Components\Radio::make('training_type')
@@ -636,10 +654,10 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->required(),
                             ]),
 
-                            Section::make('Section 7: Proforma Invoice')
+                            Section::make('Step 6: Proforma Invoice')
                                 ->columnSpan(1)
                                 ->schema([
-                                    Grid::make(4)
+                                    Grid::make(2)
                                     ->schema([
                                         Select::make('proforma_invoice_product')
                                             ->required()
@@ -689,10 +707,10 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ])
                                 ]),
 
-                            Section::make('Section 8: ATTACHMENTS')
+                            Section::make('Step 7: Attachment')
                                 ->columnSpan(1)
                                 ->schema([
-                                    Grid::make(1)
+                                    Grid::make(3)
                                         ->schema([
                                             FileUpload::make('confirmation_order_file')
                                                 ->label('Upload Confirmation Order')
@@ -796,6 +814,19 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->send();
                         }),
 
+                    Action::make('view_reason')
+                        ->label('View Reason')
+                        ->visible(fn (SoftwareHandover $record): bool => $record->status === 'Rejected')
+                        ->icon('heroicon-o-magnifying-glass-plus')
+                        ->modalHeading('Change Request Reason')
+                        ->modalContent(fn ($record) => view('components.view-reason', [
+                            'reason' => $record->reject_reason,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalWidth('md')
+                        ->color('warning'),
+
                     // Submit for Approval button - only visible for Draft status
                     Action::make('submit_for_approval')
                         ->label('Submit for Approval')
@@ -804,7 +835,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->visible(fn (SoftwareHandover $record): bool => $record->status === 'Draft')
                         ->action(function (SoftwareHandover $record): void {
                             $record->update([
-                                'status' => 'New'
+                                'status' => 'New',
+                                'submitted_at' => now(),
                             ]);
 
                             // Use the controller for PDF generation
