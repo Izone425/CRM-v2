@@ -36,6 +36,7 @@ use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\RoleResource;
+use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
@@ -143,6 +144,7 @@ class AdminPanelProvider extends PanelProvider
                 SoftwareHandoverResource::class,
                 HardwareHandoverResource::class,
                 RoleResource::class,
+                SoftwareAttachmentResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

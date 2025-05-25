@@ -56,6 +56,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Illuminate\View\View;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SoftwareHandoverRelationManager extends RelationManager
 {
@@ -158,6 +159,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->label('Company Size')
                                 ->inlineLabel()
                                 ->autocapitalize()
+                                ->dehydrated(false)
                                 ->placeholder('Select a category')
                                 // ->options([
                                 //     'small' => 'SMALL',
@@ -324,7 +326,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->visibility('public')
                                         ->multiple()
                                         ->maxFiles(1)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+                                        ->openable()
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'order');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-order-{$date}-{$random}.{$extension}";
+                                        }),
 
                                     FileUpload::make('hrdf_grant_file')
                                         ->label('Upload HRDF Grant Approval Letter')
@@ -333,7 +344,17 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->visibility('public')
                                         ->multiple()
                                         ->maxFiles(10)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+                                        ->openable()
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'grant');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-grant-{$date}-{$random}.{$extension}";
+                                        }),
 
                                     FileUpload::make('payment_slip_file')
                                         ->label('Upload Payment Slip')
@@ -343,7 +364,17 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->visibility('public')
                                         ->multiple()
                                         ->maxFiles(1)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png']),
+                                        ->openable()
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'payment');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-payment-{$date}-{$random}.{$extension}";
+                                        }),
                                     ])
                             ]),
                 ])
@@ -368,6 +399,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
                         $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
                     }
+
                     // Create the handover record
                     $handover = SoftwareHandover::create($data);
 
@@ -401,24 +433,20 @@ class SoftwareHandoverRelationManager extends RelationManager
                 TextColumn::make('training_type')
                     ->label('Training Type')
                     ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
-                TextColumn::make('kik_off_meeting_date')
+                TextColumn::make('kick_off_meeting')
                     ->label('Kick Off Meeting Date')
                     ->formatStateUsing(function ($state) {
                         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
                     })
                     ->date('d M Y'),
-                TextColumn::make('training_date')
+                TextColumn::make('webinar_training')
                     ->label('Training Date')
                     ->formatStateUsing(function ($state) {
                         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
                     })
                     ->date('d M Y'),
-                TextColumn::make('implementor')
-                    ->label('Implementer')
-                    ->formatStateUsing(function ($state) {
-                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                    })
-                    ->date('d M Y'),
+                TextColumn::make('implementer')
+                    ->label('Implementer'),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
@@ -496,6 +524,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->autocapitalize()
                                                 ->live(debounce:550)
                                                 ->placeholder('Select a category')
+                                                ->dehydrated(false)
                                                 ->default(function (SoftwareHandover $record, CategoryService $category) {
                                                     // If record exists with headcount, calculate category from headcount
                                                     if ($record && $record->headcount) {
@@ -720,6 +749,15 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->multiple()
                                                 ->maxFiles(3)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    $companyName = Str::slug($get('company_name') ?? 'confirmation_order');
+                                                    $date = now()->format('Y-m-d');
+                                                    $random = Str::random(5);
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    return "{$companyName}-confirmation-order-{$date}-{$random}.{$extension}";
+                                                })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->confirmation_order_file) {
                                                         return [];
@@ -738,6 +776,15 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->multiple()
                                                 ->maxFiles(3)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    $companyName = Str::slug($get('company_name') ?? 'hrdf_grant_file');
+                                                    $date = now()->format('Y-m-d');
+                                                    $random = Str::random(5);
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    return "{$companyName}-hrdf-grant-file-{$date}-{$random}.{$extension}";
+                                                })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->hrdf_grant_file) {
                                                         return [];
@@ -757,6 +804,15 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->multiple()
                                                 ->maxFiles(3)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    $companyName = Str::slug($get('company_name') ?? 'payment_slip_file');
+                                                    $date = now()->format('Y-m-d');
+                                                    $random = Str::random(5);
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    return "{$companyName}-payment-slip-file-{$date}-{$random}.{$extension}";
+                                                })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->payment_slip_file) {
                                                         return [];

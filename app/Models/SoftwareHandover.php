@@ -61,6 +61,7 @@ class SoftwareHandover extends Model
         'confirmation_order_file',
         'payment_slip_file',
         'hrdf_grant_file',
+        'invoice_file',
 
         // Section 9: Status & Remarks
         'reject_reason',
@@ -92,6 +93,7 @@ class SoftwareHandover extends Model
         'confirmation_order_file' => 'array',
         'payment_slip_file' => 'array',
         'hrdf_grant_file' => 'array',
+        'invoice_file' => 'array',
         'implementation_pics' => 'array',
         'remarks' => 'array',
     ];
@@ -170,16 +172,6 @@ class SoftwareHandover extends Model
     }
 
     /**
-     * Get the payment term options
-     *
-     * @return array
-     */
-    public static function getPaymentTermOptions(): array
-    {
-        return ['full_payment', 'payment_via_ibgc', 'payment_via_term'];
-    }
-
-    /**
      * Get the lead that owns this software handover
      */
     public function lead()
@@ -193,5 +185,21 @@ class SoftwareHandover extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function getCompanySizeLabelAttribute()
+    {
+        switch ($this->company_size) {
+            case '1-24':
+                return 'Small';
+            case '25-99':
+                return 'Medium';
+            case '100-500':
+                return 'Large';
+            case '501 and Above':
+                return 'Enterprise';
+            default:
+                return 'Unknown'; // fallback if `company_size` is an unexpected value
+        }
     }
 }
