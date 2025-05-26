@@ -25,7 +25,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('follow-up:auto')->weeklyOn(2, '10:00'); // Runs at Tuesday 10 AM
 
-        $schedule->command('userleave:update')->everyThreeHours(); // Runs every 3 hours
+        $schedule->command('userleave:update')->everyThirtyMinutes(); // Runs every 30 Minutes
 
         $schedule->command('zoho:fetch-leads')->cron('*/4 * * * *'); // Runs every 4 minutes
     }
