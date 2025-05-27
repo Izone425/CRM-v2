@@ -37,8 +37,9 @@ class SoftwareHandover extends Model
         'tl',
         'tc',
         'tp',
-        'tap',
-        'th',
+        'tapp',
+        'thire',
+        'tacc',
         'tpbi',
 
         // Section 4: Implementation PICs
@@ -67,6 +68,7 @@ class SoftwareHandover extends Model
         'reject_reason',
         'remarks',
         'submitted_at',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -81,8 +83,9 @@ class SoftwareHandover extends Model
         'tl' => 'boolean',
         'tc' => 'boolean',
         'tp' => 'boolean',
-        'tap' => 'boolean',
-        'th' => 'boolean',
+        'tapp' => 'boolean',
+        'thire' => 'boolean',
+        'tacc' => 'boolean',
         'tpbi' => 'boolean',
 
         'onsite_kick_off_meeting' => 'boolean',

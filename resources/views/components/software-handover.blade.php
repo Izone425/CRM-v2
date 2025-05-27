@@ -159,4 +159,59 @@
             Export Invoice Information to Excel
         </a>
     </div>
+
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+
+    <div class="mb-6">
+        <p class="mb-2">
+            <span class="font-semibold">Kick Off Meeting Date:</span>
+            {{ $record->kick_off_meeting ? \Carbon\Carbon::parse($record->kick_off_meeting)->format('d M Y') : 'Not set' }}
+        </p>
+
+        <p class="mb-2">
+            <span class="font-semibold">Online Webinar Training Date:</span>
+            {{ $record->webinar_training ? \Carbon\Carbon::parse($record->webinar_training)->format('d M Y') : 'Not set' }}
+        </p>
+
+        <p class="mb-2">
+            <span class="font-semibold">Implementer:</span>
+            {{ $record->implementer ?? 'Not assigned' }}
+        </p>
+
+        <p class="mb-2">
+            <span class="font-semibold">Date Submit:</span>
+            {{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d M Y') : 'Not submitted' }}
+        </p>
+
+        <p class="mb-2">
+            <span class="font-semibold">Date Completed:</span>
+            {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
+        </p>
+    </div>
+
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+    <div class="mb-6">
+        <p class="mb-2">
+            <span class="font-semibold">Invoice Attachment:</span>
+        </p>
+
+        @php
+            $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
+        @endphp
+
+        @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+            <ul class="pl-6 list-none">
+                @foreach($invoiceFiles as $index => $file)
+                    <li class="mb-1">
+                        <span class="mr-2">➤</span>
+                        <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Invoice {{ $index + 1 }}</a>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <span>No invoices uploaded</span>
+        @endif
+    </div>
 </div>

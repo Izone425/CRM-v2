@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SoftwareAttachmentResource\Pages;
 use App\Models\SoftwareAttachment;
+use App\Models\SoftwareHandover;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,12 +15,14 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class SoftwareAttachmentResource extends Resource
 {
@@ -83,9 +86,6 @@ class SoftwareAttachmentResource extends Resource
                                 // Get the raw DB value if available (this bypasses any accessor issues)
                                 $rawFiles = $record ? $record->getRawOriginal('files') : $state;
 
-                                // Log the raw database value for debugging
-                                info('Raw files from database:', ['raw' => $rawFiles]);
-
                                 // Parse the raw value (could be JSON string)
                                 if (is_string($rawFiles) && (str_starts_with($rawFiles, '[') || str_starts_with($rawFiles, '{'))) {
                                     try {
@@ -141,9 +141,6 @@ class SoftwareAttachmentResource extends Resource
                                     }
                                 }
 
-                                // Log the results for debugging
-                                info('Processed files:', ['files' => $processedFiles, 'count' => count($processedFiles)]);
-
                                 // Update the component state with the processed files
                                 if (!empty($processedFiles)) {
                                     $component->state($processedFiles);
@@ -156,72 +153,125 @@ class SoftwareAttachmentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
+                TextColumn::make('index')
+                    ->label('ID')
+                    ->rowIndex(),
+
                 TextColumn::make('id')
                     ->label('ID')
-                    ->sortable(),
+                    ->formatStateUsing(function ($state, SoftwareAttachment $record) {
+                        // If no state (ID) is provided, return a fallback
+                        if (!$state) {
+                            return 'Unknown';
+                        }
 
-                TextColumn::make('softwareHandover.id')
-                    ->label('Handover ID')
-                    ->sortable()
-                    ->searchable(),
-
-                TextColumn::make('title')
-                    ->searchable()
-                    ->sortable(),
+                        // Format ID with prefix and padding
+                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    })
+                    ->color('primary') // Makes it visually appear as a link
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('md')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (SoftwareAttachment $record): View {
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $record->softwareHandover]);
+                            })
+                    ),
 
                 TextColumn::make('description')
                     ->limit(50)
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // Display file count
-                TextColumn::make('files')
-                    ->label('File Count')
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state)) return '0 files';
-                        $count = is_array($state) ? count($state) : 1;
-                        return "{$count} " . ($count == 1 ? 'file' : 'files');
+                // // Display file count
+                // TextColumn::make('files')
+                //     ->label('File Count')
+                //     ->formatStateUsing(function ($state) {
+                //         if (empty($state)) return '0 files';
+                //         $count = is_array($state) ? count($state) : 1;
+                //         return "{$count} " . ($count == 1 ? 'file' : 'files');
+                //     })
+                //     ->sortable(),
+
+                // ViewColumn::make('files')
+                //     ->label('Files')
+                //     ->view('filament.pages.file-list'),
+
+                TextColumn::make('softwareHandover.lead.companyDetail.company_name')
+                    ->label('Company Name')
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->softwareHandover->lead->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
                     })
-                    ->sortable(),
+                    ->html(),
 
-                ViewColumn::make('files')
-                    ->label('Files')
-                    ->view('filament.pages.file-list'),
-
-                TextColumn::make('creator.name')
-                    ->label('Created By')
+                TextColumn::make('softwareHandover.salesperson')
+                    ->label('SalesPerson')
                     ->sortable()
-                    ->searchable()
                     ->toggleable(),
 
-                TextColumn::make('created_at')
+                TextColumn::make('softwareHandover.implementer')
+                    ->label('implementer')
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('softwareHandover.completed_at')
+                    ->label('Completed Date & Time')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('software_handover_id')
-                    ->relationship('softwareHandover', 'id')
-                    ->label('Handover ID')
-                    ->searchable()
-                    ->preload(),
+                // Tables\Filters\SelectFilter::make('software_handover_id')
+                //     ->relationship('softwareHandover', 'id')
+                //     ->label('Handover ID')
+                //     ->searchable()
+                //     ->preload(),
 
-                Tables\Filters\SelectFilter::make('created_by')
-                    ->relationship('creator', 'name')
-                    ->label('Created By')
-                    ->searchable()
-                    ->preload(),
+                // Tables\Filters\SelectFilter::make('created_by')
+                //     ->relationship('creator', 'name')
+                //     ->label('Created By')
+                //     ->searchable()
+                //     ->preload(),
+
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')
+                            ->label('Created From'),
+                        Forms\Components\DatePicker::make('created_until')
+                            ->label('Created Until'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
+                            );
+                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
-                    Tables\Actions\EditAction::make(),
-                    Tables\Actions\DeleteAction::make(),
-                ]),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    // Tables\Actions\EditAction::make(),
+                    // Tables\Actions\DeleteAction::make(),
                 ]),
             ]);
     }
@@ -233,12 +283,17 @@ class SoftwareAttachmentResource extends Resource
         ];
     }
 
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListSoftwareAttachments::route('/'),
-            'create' => Pages\CreateSoftwareAttachment::route('/create'),
-            'edit' => Pages\EditSoftwareAttachment::route('/{record}/edit'),
+            // 'create' => Pages\CreateSoftwareAttachment::route('/create'),
+            // 'edit' => Pages\EditSoftwareAttachment::route('/{record}/edit'),
         ];
     }
 }
