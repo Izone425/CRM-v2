@@ -19,6 +19,7 @@ class DashboardForm extends Page
     public $users; // List of users to select from
     public $selectedUser; // Selected user's ID
     public $selectedUserRole;
+    public $selectedUserModel;
     public $assignToMeModalVisible = false;
     public $currentLeadId;
     public $selectedAdditionalRole;
@@ -42,6 +43,9 @@ class DashboardForm extends Page
         $this->selectedUser = session('selectedUser') == 7;
         session(['selectedUser' => $this->selectedUser]); // Store it in session
 
+        // Initialize selectedUserModel for the current user
+        $this->selectedUserModel = $currentUser;
+
         // Initialize additional role from session
         $this->selectedAdditionalRole = session('selectedAdditionalRole');
 
@@ -61,13 +65,32 @@ class DashboardForm extends Page
             'Manager',
             'SoftwareHandover',
             'HardwareHandover',
-            'SoftwareAdmin',   // New
-            'HardwareAdmin'    // New
+            'SoftwareAdmin',
+            'HardwareAdmin',
+            'Training',
+            'Finance',
+            'HRDF',
+            'Renewal',
+            'General',
+            'Credit Controller',
+            'Trainer',
+            'Implementer',
+            'Support'
         ];
 
         if (in_array($dashboard, $validDashboards)) {
             $this->currentDashboard = $dashboard;
             session(['currentDashboard' => $dashboard]);
+
+            // For users with additional_role=1, update their view accordingly
+            if (isset($this->selectedUserModel) && $this->selectedUserModel &&
+                $this->selectedUserModel->role_id == 1 && $this->selectedUserModel->additional_role == 1) {
+                // Store the selected dashboard view for this user
+                session(['selectedUserDashboard_' . $this->selectedUserModel->id => $dashboard]);
+            }
+
+            // Force a UI refresh
+            $this->dispatch('dashboardChanged', dashboard: $dashboard);
         }
     }
 
@@ -78,20 +101,29 @@ class DashboardForm extends Page
 
         if (in_array($userId, ['all-lead-owners', 'all-salespersons'])) {
             $this->selectedUserRole = $userId === 'all-salespersons' ? 2 : 1;
+            $this->selectedUserModel = null; // No specific user model for group selections
             $this->toggleDashboard($this->selectedUserRole === 2 ? 'Salesperson' : 'LeadOwner');
         } else {
             $selectedUser = User::find($userId);
 
             if ($selectedUser) {
+                $this->selectedUserModel = $selectedUser; // Store the selected user model
                 $this->selectedUserRole = $selectedUser->role_id;
-                $this->toggleDashboard(match($selectedUser->role_id) {
-                    1 => 'LeadOwner',
-                    2 => 'Salesperson',
-                    3 => 'Manager', // 🆕 Add Manager support here
-                    default => 'Manager',
-                });
+
+                // Change dashboard based on role and additional_role if applicable
+                if ($selectedUser->role_id == 1 && $selectedUser->additional_role == 1) {
+                    $this->toggleDashboard('SoftwareHandover'); // Or choose an appropriate default
+                } else {
+                    $this->toggleDashboard(match($selectedUser->role_id) {
+                        1 => 'LeadOwner',
+                        2 => 'Salesperson',
+                        3 => 'Manager',
+                        default => 'Manager',
+                    });
+                }
             } else {
                 $this->selectedUserRole = null;
+                $this->selectedUserModel = null;
                 $this->toggleDashboard('Manager');
             }
         }

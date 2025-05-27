@@ -1,20 +1,6 @@
 <div class="p-4 bg-white rounded-lg shadow-lg" style="min-height: 450px; height: auto;">
     <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">
-            @if(auth()->user()->role_id === 2)
-                Software Handover - Pending
-            @elseif(auth()->user()->role_id === 3)
-                @if($selectedUser === 'all-salespersons')
-                    Software Handover - Pending
-                @elseif(is_numeric($selectedUser))
-                    Software Handover - Pending
-                @else
-                    Software Handover - New / Approved
-                @endif
-            @else
-                Software Handover - New / Approved
-            @endif
-        </h3>
+        <h3 class="text-lg font-bold">Software Handover - Draft / Rejected</h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>
     </div>
     <br>

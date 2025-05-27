@@ -475,62 +475,63 @@
                     @endif
 
                     <!-- Additional toggle for users with role_id=1 and additional_role=1 -->
-                    @if (auth()->user()->role_id == 1 && auth()->user()->additional_role == 1)
-                        <div style="display: flex; align-items: center;">
-                            <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
-                                <!-- Lead Owner Button -->
-                                <button
-                                    wire:click="toggleDashboard('LeadOwner')"
-                                    style="
-                                        padding: 10px 15px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        border: none;
-                                        border-radius: 20px;
-                                        background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
-                                        color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
-                                        cursor: pointer;
-                                    "
-                                >
-                                    Lead Owner
-                                </button>
+                    @if ((auth()->user()->role_id == 1 && auth()->user()->additional_role == 1) ||
+                        (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1))
+                            <div style="display: flex; align-items: center;">
+                                <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
+                                    <!-- Lead Owner Button -->
+                                    <button
+                                        wire:click="toggleDashboard('LeadOwner')"
+                                        style="
+                                            padding: 10px 15px;
+                                            font-size: 14px;
+                                            font-weight: bold;
+                                            border: none;
+                                            border-radius: 20px;
+                                            background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
+                                            color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
+                                            cursor: pointer;
+                                        "
+                                    >
+                                        Lead Owner
+                                    </button>
 
-                                <!-- Software Handover Button -->
-                                <button
-                                    wire:click="toggleDashboard('SoftwareHandover')"
-                                    style="
-                                        padding: 10px 15px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        border: none;
-                                        border-radius: 20px;
-                                        background: {{ $currentDashboard === 'SoftwareHandover' ? '#431fa1' : 'transparent' }};
-                                        color: {{ $currentDashboard === 'SoftwareHandover' ? '#ffffff' : '#555' }};
-                                        cursor: pointer;
-                                    "
-                                >
-                                    Software Handover
-                                </button>
+                                    <!-- Software Handover Button -->
+                                    <button
+                                        wire:click="toggleDashboard('SoftwareHandover')"
+                                        style="
+                                            padding: 10px 15px;
+                                            font-size: 14px;
+                                            font-weight: bold;
+                                            border: none;
+                                            border-radius: 20px;
+                                            background: {{ $currentDashboard === 'SoftwareHandover' ? '#431fa1' : 'transparent' }};
+                                            color: {{ $currentDashboard === 'SoftwareHandover' ? '#ffffff' : '#555' }};
+                                            cursor: pointer;
+                                        "
+                                    >
+                                        Software Handover
+                                    </button>
 
-                                <!-- Hardware Handover Button -->
-                                <button
-                                    wire:click="toggleDashboard('HardwareHandover')"
-                                    style="
-                                        padding: 10px 15px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        border: none;
-                                        border-radius: 20px;
-                                        background: {{ $currentDashboard === 'HardwareHandover' ? '#431fa1' : 'transparent' }};
-                                        color: {{ $currentDashboard === 'HardwareHandover' ? '#ffffff' : '#555' }};
-                                        cursor: pointer;
-                                    "
-                                >
-                                    Hardware Handover
-                                </button>
+                                    <!-- Hardware Handover Button -->
+                                    <button
+                                        wire:click="toggleDashboard('HardwareHandover')"
+                                        style="
+                                            padding: 10px 15px;
+                                            font-size: 14px;
+                                            font-weight: bold;
+                                            border: none;
+                                            border-radius: 20px;
+                                            background: {{ $currentDashboard === 'HardwareHandover' ? '#431fa1' : 'transparent' }};
+                                            color: {{ $currentDashboard === 'HardwareHandover' ? '#ffffff' : '#555' }};
+                                            cursor: pointer;
+                                        "
+                                    >
+                                        Hardware Handover
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    @endif
+                        @endif
                 </div>
             </div>
         </div>
@@ -538,7 +539,19 @@
         <br>
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 @if ($selectedUserRole == 1)
-                    @include('filament.pages.leadowner')
+                    @if (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1)
+                        @if ($currentDashboard === 'LeadOwner')
+                            @include('filament.pages.leadowner')
+                        @elseif ($currentDashboard === 'SoftwareHandover')
+                            @include('filament.pages.softwarehandover')
+                        @elseif ($currentDashboard === 'HardwareHandover')
+                            @include('filament.pages.hardwarehandover')
+                        @else
+                            @include('filament.pages.leadowner')
+                        @endif
+                    @else
+                        @include('filament.pages.leadowner')
+                    @endif
                 @elseif ($selectedUserRole == 2)
                     @include('filament.pages.salesperson')
                 @elseif ($selectedUserRole == 3)
@@ -550,13 +563,35 @@
                         @include('filament.pages.salesperson')
                     @elseif ($currentDashboard === 'Manager')
                         @include('filament.pages.manager')
+                    @elseif ($currentDashboard === 'SoftwareHandover')
+                        @include('filament.pages.softwarehandover')
+                    @elseif ($currentDashboard === 'HardwareHandover')
+                        @include('filament.pages.hardwarehandover')
                     @elseif ($currentDashboard === 'SoftwareAdmin')
                         @include('filament.pages.softwarehandover')
                     @elseif ($currentDashboard === 'HardwareAdmin')
                         @include('filament.pages.hardwarehandover')
+                    @elseif ($currentDashboard === 'Trainer')
+                        @include('filament.pages.trainer')
+                    @elseif ($currentDashboard === 'Implementer')
+                        @include('filament.pages.implementer')
+                    @elseif ($currentDashboard === 'Support')
+                        @include('filament.pages.support')
+                    @else
+                        @include('filament.pages.manager')
                     @endif
                 @endif
             </div>
         @endif
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Listen for the dashboardChanged event
+            window.addEventListener('dashboardChanged', event => {
+                // No need to manually manipulate the DOM here
+                // Livewire will re-render the component with the new state
+                console.log('Dashboard changed to:', event.detail.dashboard);
+            });
+        });
+    </script>
 </x-filament::page>

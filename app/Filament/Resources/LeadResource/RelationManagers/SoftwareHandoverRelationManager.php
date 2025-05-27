@@ -131,12 +131,19 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->schema([
                                     TextInput::make('company_name')
                                         ->label('Company Name')
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                     TextInput::make('pic_name')
                                         ->label('Name')
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                     TextInput::make('pic_phone')
                                         ->label('HP Number')
+                                        ->numeric()
                                         ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
 
                                 ]),
@@ -158,6 +165,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->required(),
                                     TextInput::make('category')
                                         ->label('Company Size')
+                                        ->dehydrated(false)
                                         ->autocapitalize()
                                         ->placeholder('Select a category')
                                         ->readOnly(),
@@ -192,11 +200,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->schema([
                                         TextInput::make('pic_name_impl')
                                             ->required()
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
                                             ->label('Name'),
                                         TextInput::make('position')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
                                             ->label('Position'),
                                         TextInput::make('pic_phone_impl')
                                             ->required()
+                                            ->numeric()
                                             ->label('HP Number'),
                                         TextInput::make('pic_email_impl')
                                             ->label('Email Address')
@@ -206,7 +221,21 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ])
                                 ->addActionLabel('Add PIC')
                                 ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
-                                ->columns(2),
+                                ->columns(2)
+                                // Add default implementation PICs from lead data
+                                ->default(function () {
+                                    $lead = $this->getOwnerRecord();
+
+                                    // Create an array with the lead's default contact information
+                                    return [
+                                        [
+                                            'pic_name_impl' => $lead->companyDetail->name ?? $lead->name ?? '',
+                                            'position' => $lead->companyDetail->position ?? '',
+                                            'pic_phone_impl' => $lead->companyDetail->contact_no ?? $lead->phone ?? '',
+                                            'pic_email_impl' => $lead->companyDetail->email ?? $lead->email ?? '',
+                                        ],
+                                    ];
+                                }),
                         ]),
 
                     Section::make('Step 4: Remark Details')
@@ -215,25 +244,53 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->label('Remarks')
                                     ->hiddenLabel(true)
                                     ->schema([
-                                        Textarea::make('remark')
-                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                            ->hiddenLabel(true)
-                                            ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                                // Get the current array key from the state path
-                                                $statePath = $livewire->getFormStatePath();
-                                                $matches = [];
-                                                if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                    $index = (int) $matches[1];
-                                                    return 'Remark ' . ($index + 1);
-                                                }
+                                        Grid::make(2)
+                                        ->schema([
+                                            Textarea::make('remark')
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                ->hiddenLabel(true)
+                                                ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                    // Get the current array key from the state path
+                                                    $statePath = $livewire->getFormStatePath();
+                                                    $matches = [];
+                                                    if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                        $index = (int) $matches[1];
+                                                        return 'Remark ' . ($index + 1);
+                                                    }
 
-                                                return 'Remark';
-                                            })
-                                            ->placeholder('Enter remark here')
-                                            ->autosize()
-                                            ->rows(1),
+                                                    return 'Remark';
+                                                })
+                                                ->placeholder('Enter remark here')
+                                                ->autosize()
+                                                ->rows(3),
+
+                                            FileUpload::make('attachments')
+                                                ->hiddenLabel(true)
+                                                ->disk('public')
+                                                ->directory('handovers/remark_attachments')
+                                                ->visibility('public')
+                                                ->multiple()
+                                                ->maxFiles(3)
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                ->openable()
+                                                ->downloadable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    // Get lead ID from ownerRecord
+                                                    $leadId = $this->getOwnerRecord()->id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                }),
+                                        ])
                                     ])
                                     ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
                                     ->addActionLabel('Add Remark')
@@ -302,12 +359,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->openable()
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'order');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
+                                            // Get lead ID from ownerRecord
+                                            $leadId = $this->getOwnerRecord()->id;
+                                            // Format ID with prefix (250) and padding
+                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                            // Get extension
                                             $extension = $file->getClientOriginalExtension();
 
-                                            return "{$companyName}-order-{$date}-{$random}.{$extension}";
+                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                            $timestamp = now()->format('YmdHis');
+                                            $random = rand(1000, 9999);
+
+                                            return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
                                         }),
 
                                     FileUpload::make('hrdf_grant_file')
@@ -321,12 +384,22 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                         ->openable()
                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'grant');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
+                                            // Get lead ID from ownerRecord
+                                            $leadId = $this->getOwnerRecord()->id;
+                                            // Format ID with prefix (250) and padding
+                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                            // Get extension
                                             $extension = $file->getClientOriginalExtension();
 
-                                            return "{$companyName}-grant-{$date}-{$random}.{$extension}";
+                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                            $timestamp = now()->format('YmdHis');
+                                            $random = rand(1000, 9999);
+
+                                            return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
+                                        })
+                                        ->afterStateUpdated(function () {
+                                            // Reset the counter after the upload is complete
+                                            session()->forget('hrdf_upload_count');
                                         }),
 
                                     FileUpload::make('payment_slip_file')
@@ -341,12 +414,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                         ->openable()
                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'payment');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
+                                            // Get lead ID from ownerRecord
+                                            $leadId = $this->getOwnerRecord()->id;
+                                            // Format ID with prefix (250) and padding
+                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                            // Get extension
                                             $extension = $file->getClientOriginalExtension();
 
-                                            return "{$companyName}-payment-{$date}-{$random}.{$extension}";
+                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                            $timestamp = now()->format('YmdHis');
+                                            $random = rand(1000, 9999);
+
+                                            return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                         }),
                                     ])
                             ]),
@@ -355,6 +434,17 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'Draft';
+
+                    if (isset($data['remarks']) && is_array($data['remarks'])) {
+                        foreach ($data['remarks'] as $key => $remark) {
+                            // Encode the attachments array for each remark
+                            if (isset($remark['attachments']) && is_array($remark['attachments'])) {
+                                $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                            }
+                        }
+                        // Encode the entire remarks structure
+                        $data['remarks'] = json_encode($data['remarks']);
+                    }
 
                     // Handle file array encodings
                     if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
@@ -397,9 +487,17 @@ class SoftwareHandoverRelationManager extends RelationManager
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([
-                TextColumn::make('index')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->rowIndex(),
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no ID is provided, return a fallback
+                        if (!$state) {
+                            return 'Unknown';
+                        }
+
+                        // Format ID with prefix 250 and padding to ensure at least 3 digits
+                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    }),
                 TextColumn::make('submitted_at')
                     ->label('Date Submit')
                     ->date('d M Y'),
@@ -473,7 +571,11 @@ class SoftwareHandoverRelationManager extends RelationManager
 
 
                     Action::make('edit_software_handover')
-                        ->label('Edit Software Handover')
+                        ->label(function (SoftwareHandover $record): string {
+                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
+                            $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            return "Edit Software Handover {$formattedId}";
+                        })
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
@@ -482,20 +584,26 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->slideOver()
                         ->form([
                             Section::make('Step 1: Database')
-                                ->collapsible()
                                 ->schema([
                                     Grid::make(3)
                                         ->schema([
                                             TextInput::make('company_name')
                                                 ->label('Company Name')
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                             TextInput::make('pic_name')
                                                 ->label('Name')
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                             TextInput::make('pic_phone')
-                                                ->label('PIC HP No.')
+                                                ->label('HP Number')
+                                                ->numeric()
                                                 ->default(fn (SoftwareHandover $record) =>
                                                     $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                         ]),
@@ -564,11 +672,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             ->schema([
                                                 TextInput::make('pic_name_impl')
                                                     ->required()
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
                                                     ->label('Name'),
                                                 TextInput::make('position')
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
                                                     ->label('Position'),
                                                 TextInput::make('pic_phone_impl')
                                                     ->required()
+                                                    ->numeric()
                                                     ->label('HP Number'),
                                                 TextInput::make('pic_email_impl')
                                                     ->required()
@@ -599,23 +714,52 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->label('Remarks')
                                         ->hiddenLabel(true)
                                         ->schema([
-                                            Textarea::make('remark')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->hiddenLabel(true)
-                                                ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                                    // Get the current array key from the state path
-                                                    $statePath = $livewire->getFormStatePath();
-                                                    $matches = [];
-                                                    if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                        $index = (int) $matches[1];
-                                                        return 'Remark ' . ($index + 1);
-                                                    }
-                                                    return 'Remark';
-                                                })
-                                                ->placeholder('Enter remark here')
-                                                ->rows(3),
+                                            Grid::make(2)
+                                            ->schema([
+                                                Textarea::make('remark')
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                    ->hiddenLabel(true)
+                                                    ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                        // Get the current array key from the state path
+                                                        $statePath = $livewire->getFormStatePath();
+                                                        $matches = [];
+                                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                            $index = (int) $matches[1];
+                                                            return 'Remark ' . ($index + 1);
+                                                        }
+                                                        return 'Remark';
+                                                    })
+                                                    ->placeholder('Enter remark here')
+                                                    ->rows(3),
+
+                                                // Add file attachments for each remark
+                                                FileUpload::make('attachments')
+                                                    ->hiddenLabel(true)
+                                                    ->disk('public')
+                                                    ->directory('handovers/remark_attachments')
+                                                    ->visibility('public')
+                                                    ->multiple()
+                                                    ->maxFiles(5)
+                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                    ->openable()
+                                                    ->downloadable()
+                                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                        // Get lead ID from ownerRecord
+                                                        $leadId = $this->getOwnerRecord()->id;
+                                                        // Format ID with prefix (250) and padding
+                                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                        // Get extension
+                                                        $extension = $file->getClientOriginalExtension();
+
+                                                        // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                        $timestamp = now()->format('YmdHis');
+                                                        $random = rand(1000, 9999);
+
+                                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                    }),
+                                            ]),
                                         ])
                                         ->itemLabel(function (array $state, Forms\Components\Component $component) {
                                             // Extract the index from the state path using regex
@@ -632,11 +776,30 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             if ($record && $record->remarks) {
                                                 // If it's a string, decode it
                                                 if (is_string($record->remarks)) {
-                                                    return json_decode($record->remarks, true);
+                                                    $decoded = json_decode($record->remarks, true);
+
+                                                    // Process each remark to handle its attachments
+                                                    if (is_array($decoded)) {
+                                                        foreach ($decoded as $key => $remark) {
+                                                            // Decode the attachments if they're stored as JSON string
+                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                            }
+                                                        }
+                                                        return $decoded;
+                                                    }
+                                                    return [];
                                                 }
-                                                // If it's already an array, return it
+
+                                                // If it's already an array, return it but process attachments
                                                 if (is_array($record->remarks)) {
-                                                    return $record->remarks;
+                                                    $remarks = $record->remarks;
+                                                    foreach ($remarks as $key => $remark) {
+                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                        }
+                                                    }
+                                                    return $remarks;
                                                 }
                                             }
                                             return [];
@@ -729,12 +892,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'confirmation_order');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                    // Get lead ID from ownerRecord
+                                                    $leadId = $this->getOwnerRecord()->id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-confirmation-order-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->confirmation_order_file) {
@@ -753,15 +922,22 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->visibility('public')
                                                 ->multiple()
                                                 ->maxFiles(10)
+                                                ->openable()
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'hrdf_grant_file');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                    // Get lead ID from ownerRecord
+                                                    $leadId = $this->getOwnerRecord()->id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-hrdf-grant-file-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->hrdf_grant_file) {
@@ -784,12 +960,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'payment_slip_file');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                    // Get lead ID from ownerRecord
+                                                    $leadId = $this->getOwnerRecord()->id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-payment-slip-file-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->payment_slip_file) {
@@ -805,6 +987,24 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
                             // Handle file array encodings
+                            if (isset($data['remarks']) && is_array($data['remarks'])) {
+                                foreach ($data['remarks'] as $key => $remark) {
+                                    // Encode attachments only if they exist and are array
+                                    if (!empty($remark['attachments'])) {
+                                        // If attachments is already a string (JSON), leave it as is
+                                        if (!is_string($remark['attachments'])) {
+                                            $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                                        }
+                                    } else {
+                                        // Set to empty array encoded as JSON if no attachments
+                                        $data['remarks'][$key]['attachments'] = json_encode([]);
+                                    }
+                                }
+
+                                // Encode the entire remarks structure after processing attachments
+                                $data['remarks'] = json_encode($data['remarks']);
+                            }
+
                             if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                                 $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
                             }

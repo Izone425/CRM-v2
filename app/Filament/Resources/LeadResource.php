@@ -622,6 +622,10 @@ class LeadResource extends Resource
                                                                     ->label('Contact No.')
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
+                                                                TextInput::make('position')
+                                                                    ->label('Position')
+                                                                    ->required()
+                                                                    ->default(fn ($record) => $record->companyDetail->position ?? '-'),
                                                             ])
                                                             ->action(function (Lead $lead, array $data) {
                                                                 $record = $lead->companyDetail;
