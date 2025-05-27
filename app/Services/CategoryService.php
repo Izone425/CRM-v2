@@ -14,16 +14,16 @@ class CategoryService
             $value = strval($state);
 
             if ($value > 0 && $value < 25) {
-                $categoryValue = 'SMALL';
+                $categoryValue = 'Small';
             }
             if ($value >= 25 && $value < 100) {
-                $categoryValue = 'MEDIUM';
+                $categoryValue = 'Medium';
             }
             if ($value >= 100 && $value < 500) {
-                $categoryValue = 'LARGE';
+                $categoryValue = 'Large';
             }
             if ($value >= 500) {
-                $categoryValue = 'ENTERPRISE';
+                $categoryValue = 'Enterprise';
             }
         }
 

@@ -42,6 +42,8 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
+use Livewire\Attributes\On;
+
 class SoftwareHandoverToday extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
@@ -50,8 +52,21 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
     protected static ?int $indexRepeater = 0;
     protected static ?int $indexRepeater2 = 0;
 
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
+    {
+        $this->selectedUser = $selectedUser;
+        session(['selectedUser' => $selectedUser]); // Store for consistency
+
+        $this->resetTable(); // Refresh the table
+    }
+
     public function getNewSoftwareHandovers()
     {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
+
         $query = SoftwareHandover::query();
 
         if (auth()->user()->role_id === 2) {
@@ -67,6 +82,41 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             // Other users (admin, managers) can only see New, Approved, and Completed
             $query->whereIn('status', ['New', 'Approved']);
             // But they can see ALL records
+        }
+
+        // Salesperson filter logic
+        if (auth()->user()->role_id === 3) {
+            // Role 3 users can see all handovers regardless of salesperson
+            // No filtering needed here - we'll skip the salesperson filters
+        } else {
+            // Apply normal salesperson filtering for other roles
+            if ($this->selectedUser === 'all-salespersons') {
+                // Keep as is - show all salespersons' handovers
+                $salespersonIds = User::where('role_id', 2)->pluck('id');
+                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                    $leadQuery->whereIn('salesperson', $salespersonIds);
+                });
+            } elseif (is_numeric($this->selectedUser)) {
+                // Validate that the selected user exists and is a salesperson
+                $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+
+                if ($userExists) {
+                    $selectedUser = $this->selectedUser; // Create a local variable
+                    $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                        $leadQuery->where('salesperson', $selectedUser);
+                    });
+                } else {
+                    // Invalid user ID or not a salesperson, fall back to default
+                    $query->whereHas('lead', function ($leadQuery) {
+                        $leadQuery->where('salesperson', auth()->id());
+                    });
+                }
+            } else {
+                // Default: show current user's handovers
+                $query->whereHas('lead', function ($leadQuery) {
+                    $leadQuery->where('salesperson', auth()->id() ?? 0); // Avoid null
+                });
+            }
         }
 
         $query->orderByRaw("CASE
@@ -91,21 +141,6 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
-
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(SoftwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -178,31 +213,6 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
-
-                // TextColumn::make('submitted_at')
-                //     ->label('Date Submit')
-                //     ->date('d M Y'),
-
-                // TextColumn::make('kik_off_meeting_date')
-                //     ->label('Kick Off Meeting Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Training Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Implementer')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -491,7 +501,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->directory('handovers/confirmation_orders')
                                                 ->visibility('public')
                                                 ->multiple()
-                                                ->maxFiles(3)
+                                                ->maxFiles(1)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -518,7 +528,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->directory('handovers/hrdf_grant')
                                                 ->visibility('public')
                                                 ->multiple()
-                                                ->maxFiles(3)
+                                                ->maxFiles(10)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -546,7 +556,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->directory('handovers/payment_slips')
                                                 ->visibility('public')
                                                 ->multiple()
-                                                ->maxFiles(3)
+                                                ->maxFiles(1)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {

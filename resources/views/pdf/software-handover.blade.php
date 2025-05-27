@@ -413,8 +413,9 @@
         <table>
             <thead>
                 <tr>
-                    <th width="20%">No.</th>
-                    <th width="80%">Description</th>
+                    <th width="15%">No.</th>
+                    <th width="60%">Description</th>
+                    <th width="25%">Attachments</th>
                 </tr>
             </thead>
             <tbody>
@@ -433,11 +434,42 @@
                         <tr>
                             <td>Remark {{ $index + 1 }}</td>
                             <td>{{ $rmk['remark'] ?? $rmk ?? '' }}</td>
+                            <td>
+                                @if(isset($rmk['attachments']) && !empty($rmk['attachments']))
+                                    @php
+                                        $attachments = is_string($rmk['attachments'])
+                                            ? json_decode($rmk['attachments'], true)
+                                            : $rmk['attachments'];
+
+                                        if (!is_array($attachments)) {
+                                            $attachments = [];
+                                        }
+                                    @endphp
+
+                                    @foreach($attachments as $attIndex => $attachment)
+                                        @php
+                                            $fileName = basename($attachment);
+                                            $publicUrl = url('storage/' . $attachment);
+                                        @endphp
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                                Attachment {{ $attIndex + 1 }}
+                                            </a>
+                                        </div>
+                                    @endforeach
+
+                                    @if(empty($attachments))
+                                        <span style="font-style: italic; color: #777;">No attachments</span>
+                                    @endif
+                                @else
+                                    <span style="font-style: italic; color: #777;">No attachments</span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 @else
                     <tr>
-                        <td colspan="2" style="text-align: center; font-style: italic;">No remarks</td>
+                        <td colspan="3" style="text-align: center; font-style: italic;">No remarks</td>
                     </tr>
                 @endif
             </tbody>
@@ -472,10 +504,207 @@
 
     <div class="section">
         <div class="section-title">6. PROFORMA INVOICE</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="30%">Type</th>
+                    <th width="70%">Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Proforma Invoice (Product)</td>
+                    <td>
+                        @if(isset($softwareHandover->proforma_invoice_product) && !empty($softwareHandover->proforma_invoice_product))
+                            @php
+                                $productInvoiceFiles = is_string($softwareHandover->proforma_invoice_product)
+                                    ? json_decode($softwareHandover->proforma_invoice_product, true)
+                                    : $softwareHandover->proforma_invoice_product;
+
+                                if (!is_array($productInvoiceFiles)) {
+                                    $productInvoiceFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($productInvoiceFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('proforma-invoice/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Product Invoice {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($productInvoiceFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+
+                <!-- Proforma Invoice Files (HRDF) -->
+                <tr>
+                    <td>Proforma Invoice (HRDF)</td>
+                    <td>
+                        @if(isset($softwareHandover->proforma_invoice_hrdf) && !empty($softwareHandover->proforma_invoice_hrdf))
+                            @php
+                                $hrdfInvoiceFiles = is_string($softwareHandover->proforma_invoice_hrdf)
+                                    ? json_decode($softwareHandover->proforma_invoice_hrdf, true)
+                                    : $softwareHandover->proforma_invoice_hrdf;
+
+                                if (!is_array($hrdfInvoiceFiles)) {
+                                    $hrdfInvoiceFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($hrdfInvoiceFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('proforma-invoice/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        HRDF Invoice {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($hrdfInvoiceFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="section">
         <div class="section-title">7. ATTACHMENT</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="30%">Document Type</th>
+                    <th width="70%">Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Confirmation Order Files -->
+                <tr>
+                    <td>Confirmation Order</td>
+                    <td>
+                        @if(isset($softwareHandover->confirmation_order_file) && !empty($softwareHandover->confirmation_order_file))
+                            @php
+                                $confirmationFiles = is_string($softwareHandover->confirmation_order_file)
+                                    ? json_decode($softwareHandover->confirmation_order_file, true)
+                                    : $softwareHandover->confirmation_order_file;
+
+                                if (!is_array($confirmationFiles)) {
+                                    $confirmationFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($confirmationFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Confirmation Order {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($confirmationFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+
+                <!-- Payment Slip Files -->
+                <tr>
+                    <td>Payment Slip</td>
+                    <td>
+                        @if(isset($softwareHandover->payment_slip_file) && !empty($softwareHandover->payment_slip_file))
+                            @php
+                                $paymentFiles = is_string($softwareHandover->payment_slip_file)
+                                    ? json_decode($softwareHandover->payment_slip_file, true)
+                                    : $softwareHandover->payment_slip_file;
+
+                                if (!is_array($paymentFiles)) {
+                                    $paymentFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($paymentFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Payment Slip {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($paymentFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+
+                <!-- HRDF Grant Files -->
+                <tr>
+                    <td>HRDF Grant</td>
+                    <td>
+                        @if(isset($softwareHandover->hrdf_grant_file) && !empty($softwareHandover->hrdf_grant_file))
+                            @php
+                                $hrdfFiles = is_string($softwareHandover->hrdf_grant_file)
+                                    ? json_decode($softwareHandover->hrdf_grant_file, true)
+                                    : $softwareHandover->hrdf_grant_file;
+
+                                if (!is_array($hrdfFiles)) {
+                                    $hrdfFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($hrdfFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        HRDF Grant {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($hrdfFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="section">

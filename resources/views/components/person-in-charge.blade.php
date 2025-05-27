@@ -5,6 +5,7 @@
         ['label' => 'Name', 'value' => $lead->companyDetail->name ?? $lead->name ?? '-'],
         ['label' => 'Contact No.', 'value' => $lead->companyDetail->contact_no ?? $lead->phone ?? '-'],
         ['label' => 'Email Address', 'value' => $lead->companyDetail->email ?? $lead->email ?? '-'],
+        ['label' => 'Position', 'value' => $lead->companyDetail->position ?? '-'],
     ];
 @endphp
 

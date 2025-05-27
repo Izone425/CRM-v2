@@ -7,3 +7,4 @@
 
 <livewire:software-handover-today />
 <livewire:software-handover-overdue />
+<livewire:software-handover-addon />

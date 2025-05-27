@@ -2,14 +2,30 @@
 
 namespace App\Livewire;
 
+use App\Classes\Encryptor;
+use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
-use Filament\Tables\Actions\Action;
+use App\Services\CategoryService;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -18,16 +34,23 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
+class SoftwareHandoverAddon extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    protected static ?int $indexRepeater = 0;
+    protected static ?int $indexRepeater2 = 0;
 
     public $selectedUser;
 
@@ -55,7 +78,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             });
         } else {
             // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['Completed']);
+            $query->whereIn('status', ['Rejected', 'Draft']);
             // But they can see ALL records
         }
 
@@ -130,19 +153,23 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             //         ->placeholder('Select Company'),
             // ])
             ->columns([
-                TextColumn::make('handover_pdf')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state) {
-                        // If handover_pdf is null, return a placeholder
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
-                            return '-';
+                            return 'Unknown';
                         }
 
-                        // Extract just the filename without extension
-                        $filename = basename($state, '.pdf');
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
 
-                        // Return just the formatted ID part
-                        return $filename;
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -222,95 +249,11 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                 //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
                 //     })
                 //     ->date('d M Y'),
-            ])
-            ->actions([
-                ActionGroup::make([
-                    Action::make('view')
-                        ->label('View')
-                        ->icon('heroicon-o-eye')
-                        ->color('secondary')
-                        ->modalHeading(' ')
-                        ->modalWidth('md')
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
-                        // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (SoftwareHandover $record): View {
-
-                            // Return the view with the record using $this->record pattern
-                            return view('components.software-handover')
-                            ->with('extraAttributes', ['record' => $record]);
-                        }),
-                    Action::make('mark_approved')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
-
-                            Notification::make()
-                                ->title('Software Handover marked as approved')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(fn (SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('mark_rejected')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->hidden(fn (SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        )
-                        ->form([
-                            \Filament\Forms\Components\Textarea::make('reject_reason')
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->label('Reason for Rejection')
-                                ->required()
-                                ->placeholder('Please provide a reason for rejecting this handover')
-                                ->maxLength(500)
-                        ])
-                        ->action(function (SoftwareHandover $record, array $data): void {
-                            // Update both status and add the rejection remarks
-                            $record->update([
-                                'status' => 'Rejected',
-                                'reject_reason' => $data['reject_reason']
-                            ]);
-
-                            Notification::make()
-                                ->title('Hardware Handover marked as rejected')
-                                ->body('Rejection reason: ' . $data['reject_reason'])
-                                ->danger()
-                                ->send();
-                        })
-                        ->requiresConfirmation(false),
-                    Action::make('mark_completed')
-                        ->label('Mark as Completed')
-                        ->icon('heroicon-o-check-badge') // Using check badge icon to distinguish from regular approval
-                        ->color('success') // Using success color for completion
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Completed']);
-
-                            Notification::make()
-                                ->title('Software Handover marked as completed')
-                                ->body('This handover has been marked as completed.')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(fn (SoftwareHandover $record): bool =>
-                            $record->status !== 'Approved' || auth()->user()->role_id === 2
-                        ),
-                ])
-            ]);
+                ]);
     }
 
     public function render()
     {
-        return view('livewire.software-handover-overdue');
+        return view('livewire.software-handover-addon');
     }
 }
