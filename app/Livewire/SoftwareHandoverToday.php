@@ -85,38 +85,29 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         }
 
         // Salesperson filter logic
-        if (auth()->user()->role_id === 3) {
-            // Role 3 users can see all handovers regardless of salesperson
-            // No filtering needed here - we'll skip the salesperson filters
-        } else {
-            // Apply normal salesperson filtering for other roles
-            if ($this->selectedUser === 'all-salespersons') {
-                // Keep as is - show all salespersons' handovers
-                $salespersonIds = User::where('role_id', 2)->pluck('id');
-                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                    $leadQuery->whereIn('salesperson', $salespersonIds);
-                });
-            } elseif (is_numeric($this->selectedUser)) {
-                // Validate that the selected user exists and is a salesperson
-                $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+        if ($this->selectedUser === 'all-salespersons') {
+            // Keep as is - show all salespersons' handovers
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
+        } elseif (is_numeric($this->selectedUser)) {
+            // Validate that the selected user exists and is a salesperson
+            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
 
-                if ($userExists) {
-                    $selectedUser = $this->selectedUser; // Create a local variable
-                    $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
-                        $leadQuery->where('salesperson', $selectedUser);
-                    });
-                } else {
-                    // Invalid user ID or not a salesperson, fall back to default
-                    $query->whereHas('lead', function ($leadQuery) {
-                        $leadQuery->where('salesperson', auth()->id());
-                    });
-                }
+            if ($userExists) {
+                $selectedUser = $this->selectedUser; // Create a local variable
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
+                });
             } else {
-                // Default: show current user's handovers
+                // Invalid user ID or not a salesperson, fall back to default
                 $query->whereHas('lead', function ($leadQuery) {
-                    $leadQuery->where('salesperson', auth()->id() ?? 0); // Avoid null
+                    $leadQuery->where('salesperson', auth()->id());
                 });
             }
+        } else {
+            $query->whereIn('status', ['New', 'Approved']);
         }
 
         $query->orderByRaw("CASE
