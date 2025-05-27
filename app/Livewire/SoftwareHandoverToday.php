@@ -85,38 +85,29 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         }
 
         // Salesperson filter logic
-        if (auth()->user()->role_id === 3) {
-            // Role 3 users can see all handovers regardless of salesperson
-            // No filtering needed here - we'll skip the salesperson filters
-        } else {
-            // Apply normal salesperson filtering for other roles
-            if ($this->selectedUser === 'all-salespersons') {
-                // Keep as is - show all salespersons' handovers
-                $salespersonIds = User::where('role_id', 2)->pluck('id');
-                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                    $leadQuery->whereIn('salesperson', $salespersonIds);
-                });
-            } elseif (is_numeric($this->selectedUser)) {
-                // Validate that the selected user exists and is a salesperson
-                $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+        if ($this->selectedUser === 'all-salespersons') {
+            // Keep as is - show all salespersons' handovers
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
+        } elseif (is_numeric($this->selectedUser)) {
+            // Validate that the selected user exists and is a salesperson
+            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
 
-                if ($userExists) {
-                    $selectedUser = $this->selectedUser; // Create a local variable
-                    $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
-                        $leadQuery->where('salesperson', $selectedUser);
-                    });
-                } else {
-                    // Invalid user ID or not a salesperson, fall back to default
-                    $query->whereHas('lead', function ($leadQuery) {
-                        $leadQuery->where('salesperson', auth()->id());
-                    });
-                }
+            if ($userExists) {
+                $selectedUser = $this->selectedUser; // Create a local variable
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
+                });
             } else {
-                // Default: show current user's handovers
+                // Invalid user ID or not a salesperson, fall back to default
                 $query->whereHas('lead', function ($leadQuery) {
-                    $leadQuery->where('salesperson', auth()->id() ?? 0); // Avoid null
+                    $leadQuery->where('salesperson', auth()->id());
                 });
             }
+        } else {
+            $query->whereIn('status', ['New', 'Approved']);
         }
 
         $query->orderByRaw("CASE
@@ -378,23 +369,52 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->label('Remarks')
                                         ->hiddenLabel(true)
                                         ->schema([
-                                            Textarea::make('remark')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->hiddenLabel(true)
-                                                ->label(function (Get $get, ?string $state, $livewire) {
-                                                    // Get the current array key from the state path
-                                                    $statePath = $livewire->getFormStatePath();
-                                                    $matches = [];
-                                                    if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                        $index = (int) $matches[1];
-                                                        return 'Remark ' . ($index + 1);
-                                                    }
-                                                    return 'Remark';
-                                                })
-                                                ->placeholder('Enter remark here')
-                                                ->rows(3),
+                                            Grid::make(2)
+                                            ->schema([
+                                                Textarea::make('remark')
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                    ->hiddenLabel(true)
+                                                    ->label(function (Get $get, ?string $state, $livewire) {
+                                                        // Get the current array key from the state path
+                                                        $statePath = $livewire->getFormStatePath();
+                                                        $matches = [];
+                                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                            $index = (int) $matches[1];
+                                                            return 'Remark ' . ($index + 1);
+                                                        }
+                                                        return 'Remark';
+                                                    })
+                                                    ->placeholder('Enter remark here')
+                                                    ->rows(3),
+
+                                                // Add file attachments for each remark
+                                                FileUpload::make('attachments')
+                                                    ->hiddenLabel(true)
+                                                    ->disk('public')
+                                                    ->directory('handovers/remark_attachments')
+                                                    ->visibility('public')
+                                                    ->multiple()
+                                                    ->maxFiles(5)
+                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                    ->openable()
+                                                    ->downloadable()
+                                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                        // Get lead ID directly from the record
+                                                        $leadId = $record->lead_id;
+                                                        // Format ID with prefix (250) and padding
+                                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                        // Get extension
+                                                        $extension = $file->getClientOriginalExtension();
+
+                                                        // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                        $timestamp = now()->format('YmdHis');
+                                                        $random = rand(1000, 9999);
+
+                                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                    }),
+                                            ]),
                                         ])
                                         ->itemLabel('Remark')
                                         ->addActionLabel('Add Remark')
@@ -402,11 +422,30 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                             if ($record && $record->remarks) {
                                                 // If it's a string, decode it
                                                 if (is_string($record->remarks)) {
-                                                    return json_decode($record->remarks, true);
+                                                    $decoded = json_decode($record->remarks, true);
+
+                                                    // Process each remark to handle its attachments
+                                                    if (is_array($decoded)) {
+                                                        foreach ($decoded as $key => $remark) {
+                                                            // Decode the attachments if they're stored as JSON string
+                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                            }
+                                                        }
+                                                        return $decoded;
+                                                    }
+                                                    return [];
                                                 }
-                                                // If it's already an array, return it
+
+                                                // If it's already an array, return it but process attachments
                                                 if (is_array($record->remarks)) {
-                                                    return $record->remarks;
+                                                    $remarks = $record->remarks;
+                                                    foreach ($remarks as $key => $remark) {
+                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                        }
+                                                    }
+                                                    return $remarks;
                                                 }
                                             }
                                             return [];
@@ -504,13 +543,19 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->maxFiles(1)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'confirmation_order');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                    // Get lead ID directly from the record
+                                                    $leadId = $record->lead_id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-confirmation-order-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->confirmation_order_file) {
@@ -531,13 +576,19 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->maxFiles(10)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'hrdf_grant_file');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                    // Get lead ID directly from the record
+                                                    $leadId = $record->lead_id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-hrdf-grant-file-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->hrdf_grant_file) {
@@ -559,13 +610,19 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                 ->maxFiles(1)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'payment_slip_file');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                    // Get lead ID directly from the record
+                                                    $leadId = $record->lead_id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    return "{$companyName}-payment-slip-file-{$date}-{$random}.{$extension}";
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
                                                     if (!$record || !$record->payment_slip_file) {
@@ -580,6 +637,23 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ]),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
+                            if (isset($data['remarks']) && is_array($data['remarks'])) {
+                                foreach ($data['remarks'] as $key => $remark) {
+                                    // Encode attachments only if they exist and are array
+                                    if (!empty($remark['attachments'])) {
+                                        // If attachments is already a string (JSON), leave it as is
+                                        if (!is_string($remark['attachments'])) {
+                                            $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                                        }
+                                    } else {
+                                        // Set to empty array encoded as JSON if no attachments
+                                        $data['remarks'][$key]['attachments'] = json_encode([]);
+                                    }
+                                }
+
+                                // Encode the entire remarks structure after processing attachments
+                                $data['remarks'] = json_encode($data['remarks']);
+                            }
                             // Handle file array encodings
                             if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                                 $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
@@ -827,7 +901,8 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->success()
                                 ->send();
                         }),
-                ])
+                ])->button()
+
             ]);
     }
 

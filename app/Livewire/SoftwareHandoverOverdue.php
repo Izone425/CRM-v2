@@ -305,7 +305,8 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                         ->hidden(fn (SoftwareHandover $record): bool =>
                             $record->status !== 'Approved' || auth()->user()->role_id === 2
                         ),
-                ])
+                ])->button()
+                ->color('warning')
             ]);
     }
 
