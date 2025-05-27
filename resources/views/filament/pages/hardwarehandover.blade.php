@@ -7,5 +7,5 @@
     </style>
 
     <livewire:hardware-handover-today />
-    {{-- <livewire:hardware-handover-overdue /> --}}
+    <livewire:hardware-handover-overdue />
 </div>
