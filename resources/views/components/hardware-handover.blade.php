@@ -79,13 +79,14 @@
 
     <!-- Category 1 Information -->
     <div class="mb-6">
-        <p class="mb-2"><span class="font-semibold">Courier:</span> {{ $record->courier ?? '-' }}</p>
         <p class="mb-2">
             <span class="font-semibold">Installation Type:</span>
             @if($record->installation_type === 'internal_installation')
                 Internal Installation
             @elseif($record->installation_type === 'external_installation')
                 External Installation
+            @elseif($record->installation_type === 'courier')
+                Courier
             @else
                 {{ $record->installation_type ?? 'Not specified' }}
             @endif

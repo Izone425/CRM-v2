@@ -6,6 +6,7 @@ use App\Filament\Resources\HardwareHandoverResource\Pages;
 use App\Filament\Resources\HardwareHandoverResource\RelationManagers;
 use App\Models\HardwareAttachment;
 use App\Models\HardwareHandover;
+use App\Models\User;
 use App\Services\CategoryService;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -32,6 +33,7 @@ use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Illuminate\Support\Str;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HardwareHandoverResource extends Resource
@@ -216,142 +218,105 @@ class HardwareHandoverResource extends Resource
                     ->label('ID')
                     ->rowIndex(),
 
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name'),
-                    // ->formatStateUsing(function ($state, $record) {
-                    //     $fullName = $state ?? $record->company_name ?? 'N/A';
+                TextColumn::make('created_at')
+                    ->label('DATE SUBMIT')
+                    ->date('d M Y')
+                    ->sortable(),
 
-                    //     // Only create the link if lead and lead.id exist
-                    //     if ($record->lead && $record->lead->id) {
-                    //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-                    //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                    //                 target="_blank"
-                    //                 title="View lead details"
-                    //                 class="inline-block"
-                    //                 style="color:#338cf0;">
-                    //                 ' . $fullName . '
-                    //             </a>';
-                    //     }
-
-                    //     // Otherwise, just display the company name without a link
-                    //     return $fullName;
-                    // })
-                    // ->html(),
-
-                    TextColumn::make('ta')
-                        ->label('TA')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tl')
-                        ->label('TL')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tc')
-                        ->label('TC')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tp')
-                        ->label('TP')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tapp')
-                        ->label('TAPP')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('thire')
-                        ->label('THIRE')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tacc')
-                        ->label('TACC')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                    TextColumn::make('tpbi')
-                        ->label('TPBI')
-                        ->formatStateUsing(function ($state) {
-                            return $state
-                                ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
-                                : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                        })
-                        ->toggleable(),
-
-                TextColumn::make('payroll_code')
-                    ->label('Payroll Code')
-                    ->toggleable(),
-                    TextColumn::make('company_size_label')
-                    ->label('Company Size')
-                    ->formatStateUsing(function ($state, $record) {
-                        if ($record && isset($record->headcount)) {
-                            $categoryService = app(CategoryService::class);
-                            return $categoryService->retrieve($record->headcount);
+                TextColumn::make('lead.salesperson')
+                    ->label('SALESPERSON')
+                    ->getStateUsing(function (HardwareHandover $record) {
+                        $lead = $record->lead;
+                        if (!$lead) {
+                            return '-';
                         }
-                        return $state ?? 'N/A';
+
+                        $salespersonId = $lead->salesperson;
+                        return User::find($salespersonId)?->name ?? '-';
+                    }),
+
+                TextColumn::make('lead.companyDetail.company_name')
+                    ->label('COMPANY NAME')
+                    ->sortable(),
+
+                TextColumn::make('installation_type')
+                    ->label('Category (Installation Type)')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'courier' => 'Courier',
+                            'internal_installation' => 'Internal Installation',
+                            'external_installation' => 'External Installation',
+                            default => ucfirst($state),
+                        };
                     })
                     ->toggleable(),
-                TextColumn::make('headcount')
-                    ->label('Headcount')
+
+                TextColumn::make('category2')
+                    ->label('Category 2')
+                    ->formatStateUsing(function ($state, HardwareHandover $record) {
+                        // If empty, return a placeholder
+                        if (empty($state)) {
+                            return '-';
+                        }
+
+                        // Decode JSON if it's a string
+                        $data = is_string($state) ? json_decode($state, true) : $state;
+
+                        // Format based on installation type
+                        if ($record->installation_type === 'courier') {
+                            $parts = [];
+
+                            if (!empty($data['email'])) {
+                                $parts[] = "Email: {$data['email']}";
+                            }
+
+                            if (!empty($data['pic_name'])) {
+                                $parts[] = "Name: {$data['pic_name']}";
+                            }
+
+                            if (!empty($data['pic_phone'])) {
+                                $parts[] = "Phone: {$data['pic_phone']}";
+                            }
+
+                            if (!empty($data['courier_address'])) {
+                                $parts[] = "Address: {$data['courier_address']}";
+                            }
+
+                            // Return the formatted parts with HTML line breaks instead of pipes
+                            return !empty($parts)
+                                ? new HtmlString(implode('<br>', $parts))
+                                : 'No courier details';
+                        }
+                        elseif ($record->installation_type === 'internal_installation') {
+                            if (!empty($data['installer'])) {
+                                $installer = \App\Models\Installer::find($data['installer']);
+                                return $installer ? $installer->company_name : 'Unknown Installer';
+                            }
+                            return 'No installer selected';
+                        }
+                        elseif ($record->installation_type === 'external_installation') {
+                            if (!empty($data['reseller'])) {
+                                $reseller = \App\Models\Reseller::find($data['reseller']);
+                                return $reseller ? $reseller->company_name : 'Unknown Reseller';
+                            }
+                            return 'No reseller selected';
+                        }
+
+                        // Fallback for any other case
+                        return json_encode($data);
+                    })
+                    ->wrap()
+                    ->html() // Important: Add this to render the HTML content
                     ->toggleable(),
-                TextColumn::make('db_creation')
-                    ->label('DB Creation')
+
+                TextColumn::make('updated_at')
+                    ->label('ACTION DATE')
                     ->date('d M Y')
-                    ->toggleable(),
-                TextColumn::make('go_live_date')
-                    ->label('Go Live Date')
-                    ->date('d M Y')
-                    ->toggleable(),
-                TextColumn::make('total_days')
-                    ->label('Total Days')
-                    ->date('d M Y')
-                    ->toggleable(),
+                    ->sortable(),
+
                 TextColumn::make('status')
-                    ->label('Status')
-                    ->toggleable(),
-                TextColumn::make('implementer')
-                    ->label('Implementer')
-                    ->toggleable(),
-                TextColumn::make('kick_off_meeting')
-                    ->label('ON9 Kick Off Meeting')
-                    ->date('d M Y')
-                    ->toggleable(),
-                TextColumn::make('webinar_training')
-                    ->label('ON9 Webinar Training')
-                    ->date('d M Y')
-                    ->toggleable(),
+                    ->label('STATUS')
+                    ->sortable(),
             ])
             ->filters([
                 Filter::make('created_at')
@@ -440,7 +405,7 @@ class HardwareHandoverResource extends Resource
 
                     // Create a new Hardware attachment with all files
                     $attachment = HardwareAttachment::create([
-                        'Hardware_handover_id' => $record->id,
+                        'hardware_handover_id' => $record->id,
                         'title' => $data['title'],
                         'description' => $data['description'],
                         'files' => $allFiles, // Add all collected files

@@ -225,7 +225,7 @@ class SoftwareAttachmentResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('softwareHandover.implementer')
-                    ->label('implementer')
+                    ->label('Implementer')
                     ->sortable()
                     ->toggleable(),
 

@@ -168,16 +168,14 @@
                 </tr>
             </thead>
             <tr>
-                <td class="label" width="30%">Courier</td>
-                <td width="70%">{{ $hardwareHandover->courier }}</td>
-            </tr>
-            <tr>
                 <td class="label">Installation Type</td>
                 <td>
                     @if($hardwareHandover->installation_type === 'internal_installation')
                         Internal Installation
                     @elseif($hardwareHandover->installation_type === 'external_installation')
                         External Installation
+                    @elseif($hardwareHandover->installation_type === 'courier')
+                        Courier
                     @else
                         {{ $hardwareHandover->installation_type ?? 'Not specified' }}
                     @endif
@@ -195,27 +193,130 @@
                     <th>Value</th>
                 </tr>
             </thead>
-            <tr>
-                <td class="label" width="30%">Name</td>
-                <td width="70%">{{ $hardwareHandover->pic_name }}</td>
-            </tr>
-            <tr>
-                <td class="label">HP Number</td>
-                <td>{{ $hardwareHandover->pic_phone }}</td>
-            </tr>
-            <tr>
-                <td class="label">Email</td>
-                <td>{{ $hardwareHandover->email }}</td>
-            </tr>
-            <tr>
-                <td class="label">Courier Address</td>
-                <td>{{ $hardwareHandover->courier_address }}</td>
-            </tr>
+            @php
+                $category2 = is_string($hardwareHandover->category2) ? json_decode($hardwareHandover->category2, true) : $hardwareHandover->category2;
+            @endphp
+
+            @if($hardwareHandover->installation_type === 'courier')
+                <tr>
+                    <td class="label" width="30%">Name</td>
+                    <td width="70%">{{ $category2['pic_name'] ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">HP Number</td>
+                    <td>{{ $category2['pic_phone'] ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Email</td>
+                    <td>{{ $category2['email'] ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Courier Address</td>
+                    <td>{{ $category2['courier_address'] ?? '-' }}</td>
+                </tr>
+            @elseif($hardwareHandover->installation_type === 'internal_installation')
+                @php
+                    $installerId = $category2['installer'] ?? null;
+                    $installer = null;
+                    if ($installerId) {
+                        $installer = \App\Models\Installer::find($installerId);
+                    }
+                @endphp
+                <tr>
+                    <td class="label" width="30%">Installer</td>
+                    <td width="70%">{{ $installer ? $installer->company_name : 'Unknown Installer' }}</td>
+                </tr>
+            @elseif($hardwareHandover->installation_type === 'external_installation')
+                @php
+                    $resellerId = $category2['reseller'] ?? null;
+                    $reseller = null;
+                    if ($resellerId) {
+                        $reseller = \App\Models\Reseller::find($resellerId);
+                    }
+                @endphp
+                <tr>
+                    <td class="label" width="30%">Reseller</td>
+                    <td width="70%">{{ $reseller ? $reseller->company_name : 'Unknown Reseller' }}</td>
+                </tr>
+            @else
+                <tr>
+                    <td class="label" width="30%">Installation Type</td>
+                    <td width="70%">Unknown or not specified</td>
+                </tr>
+            @endif
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">4. PROFORMA INVOICE</div>
+        <div class="section-title">4. REMARK DETAILS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="15%">No.</th>
+                    <th width="60%">Description</th>
+                    <th width="25%">Attachments</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(isset($softwareHandover->remarks) && !empty($softwareHandover->remarks))
+                    @php
+                        $remarks = is_string($softwareHandover->remarks)
+                            ? json_decode($softwareHandover->remarks, true)
+                            : $softwareHandover->remarks;
+
+                        if (!is_array($remarks)) {
+                            $remarks = [];
+                        }
+                    @endphp
+
+                    @foreach($remarks as $index => $rmk)
+                        <tr>
+                            <td>Remark {{ $index + 1 }}</td>
+                            <td>{{ $rmk['remark'] ?? $rmk ?? '' }}</td>
+                            <td>
+                                @if(isset($rmk['attachments']) && !empty($rmk['attachments']))
+                                    @php
+                                        $attachments = is_string($rmk['attachments'])
+                                            ? json_decode($rmk['attachments'], true)
+                                            : $rmk['attachments'];
+
+                                        if (!is_array($attachments)) {
+                                            $attachments = [];
+                                        }
+                                    @endphp
+
+                                    @foreach($attachments as $attIndex => $attachment)
+                                        @php
+                                            $fileName = basename($attachment);
+                                            $publicUrl = url('storage/' . $attachment);
+                                        @endphp
+                                        <div style="margin-bottom: 4px;">
+                                            <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                                Attachment {{ $attIndex + 1 }}
+                                            </a>
+                                        </div>
+                                    @endforeach
+
+                                    @if(empty($attachments))
+                                        <span style="font-style: italic; color: #777;">No attachments</span>
+                                    @endif
+                                @else
+                                    <span style="font-style: italic; color: #777;">No attachments</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="3" style="text-align: center; font-style: italic;">No remarks</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
@@ -299,7 +400,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">5. ATTACHMENT</div>
+        <div class="section-title">6. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
@@ -420,7 +521,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">6. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">7. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">

@@ -225,7 +225,7 @@ class HardwareAttachmentResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('hardwareHandover.implementer')
-                    ->label('implementer')
+                    ->label('Implementer')
                     ->sortable()
                     ->toggleable(),
 

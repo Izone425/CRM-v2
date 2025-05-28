@@ -1055,7 +1055,8 @@
                         'filament.admin.resources.industries.index',
                         'filament.admin.resources.lead-sources.index',
                         'filament.admin.resources.invalid-lead-reasons.index',
-                        'filament.admin.resources.resellers.index'
+                        'filament.admin.resources.resellers.index',
+                        'filament.admin.resources.installers.index'
                     ]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
@@ -1097,6 +1098,13 @@
                             <a href="{{ route('filament.admin.resources.resellers.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Reseller</span>
+                            </a>
+                            @endif
+
+                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.installers.index'))
+                            <a href="{{ route('filament.admin.resources.installers.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Installers</span>
                             </a>
                             @endif
                         </div>
