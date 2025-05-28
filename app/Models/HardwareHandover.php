@@ -21,6 +21,7 @@ class HardwareHandover extends Model
         'courier',
         'courier_address',
         'installation_type',
+        'reject_reason',
         'pic_name',
         'pic_phone',
         'email',
@@ -31,6 +32,7 @@ class HardwareHandover extends Model
         'confirmation_order_file',
         'hrdf_grant_file',
         'payment_slip_file',
+        'submitted_at',
         'created_at',
         'updated_at'
     ];
@@ -59,4 +61,16 @@ class HardwareHandover extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Set the reject_reason attribute to uppercase.
+     *
+     * @param string|null $value
+     * @return void
+     */
+    public function setRejectReasonAttribute($value)
+    {
+        $this->attributes['reject_reason'] = is_string($value) ? strtoupper($value) : $value;
+    }
+
 }

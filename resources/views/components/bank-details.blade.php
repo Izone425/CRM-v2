@@ -2,15 +2,23 @@
     $bank = $this->record?->bankDetail;
 
     $bankDetails = [
-        ['label' => 'FULL NAME', 'value' => $bank?->full_name ?? '-'],
-        ['label' => 'BANK NAME', 'value' => $bank?->bank_name ?? '-'],
-        ['label' => 'CONTACT NO.', 'value' => $bank?->contact_no ?? '-'],
-        ['label' => 'REFERRAL PAYMENT STATUS', 'value' => $bank?->referral_payment_status ?? '-'],
-        ['label' => 'IC NO.', 'value' => $bank?->ic ?? '-'],
-        ['label' => 'BANK ACCOUNT NO.', 'value' => $bank?->bank_account_no ?? '-'],
+        ['label' => 'REFERRAL NAME', 'value' => $bank?->referral_name ?? $bank?->full_name ?? '-'],
+        ['label' => 'TAX IDENTIFICATION NUMBER', 'value' => $bank?->tin ?? '-'],
+        ['label' => 'HP NUMBER', 'value' => $bank?->hp_number ?? $bank?->contact_no ?? '-'],
         ['label' => 'EMAIL ADDRESS', 'value' => $bank?->email ?? '-'],
-        ['label' => 'REMARK', 'value' => $bank?->remark ?? '-'],
-        ['label' => 'TIN NO.', 'value' => $bank?->tin ?? '-'],
+
+        // Referral Address Details
+        ['label' => 'REFERRAL ADDRESS', 'value' => $bank?->referral_address ?? $bank?->address ?? '-'],
+        ['label' => 'POST CODE', 'value' => $bank?->postcode ?? '-'],
+        ['label' => 'CITY', 'value' => $bank?->city ?? '-'],
+        ['label' => 'STATE', 'value' => $bank?->state ?? '-'],
+        ['label' => 'COUNTRY', 'value' => $bank?->country ?? '-'],
+
+        // Referral Bank Details
+        ['label' => 'REFERRAL BANK NAME', 'value' => $bank?->referral_bank_name ?? '-'],
+        ['label' => 'BENEFICIARY NAME', 'value' => $bank?->beneficiary_name ?? $bank?->full_name ?? '-'],
+        ['label' => 'BANK NAME', 'value' => $bank?->bank_name ?? '-'],
+        ['label' => 'BANK ACCOUNT NUMBER', 'value' => $bank?->bank_account_no ?? '-'],
     ];
 
     $rows = array_chunk($bankDetails, 4); // 4 columns per row

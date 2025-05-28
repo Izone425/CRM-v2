@@ -56,6 +56,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class LeadResource extends Resource
 {
@@ -1435,65 +1436,202 @@ class LeadResource extends Resource
                                                 'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                             ])
                                             ->headerActions([
-                                                Action::make('Edit')
-                                                    ->label('Edit') // Button label
-                                                    ->modalHeading('Edit Information') // Modal heading
-                                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
-                                                    ->hidden()
-                                                    ->form([ // Define the form fields to show in the modal
-                                                        TextInput::make('full_name')
-                                                            ->label('FULL NAME')
-                                                            ->default(fn ($record) => $record?->bankDetail?->full_name ?? null),
-                                                        TextInput::make('ic')
-                                                            ->label('IC NO.')
-                                                            ->default(fn ($record) => $record?->bankDetail?->ic ?? null),
-                                                        TextInput::make('tin')
-                                                            ->label('TIN NO.')
-                                                            ->default(fn ($record) => $record?->bankDetail?->tin ?? null),
-                                                        TextInput::make('bank_name')
-                                                            ->label('BANK NAME')
-                                                            ->default(fn ($record) => $record?->bankDetail?->bank_name ?? null),
-                                                        TextInput::make('bank_account_no')
-                                                            ->label('BANK ACCOUNT NO.')
-                                                            ->default(fn ($record) => $record?->bankDetail?->bank_account_no ?? null),
-                                                        TextInput::make('contact_no')
-                                                            ->label('CONTACT NUMBER')
-                                                            ->default(fn ($record) => $record?->bankDetail?->contact_no ?? null),
-                                                        TextInput::make('email')
-                                                            ->label('EMAIL ADDRESS')
-                                                            ->default(fn ($record) => $record?->bankDetail?->email ?? null),
-                                                        Select::make('referral_payment_status')
-                                                            ->label('REFERRAL PAYMENT STATUS')
-                                                            ->default(fn ($record) => $record?->bankDetail?->payment_referral_status ?? null)
-                                                            ->options([
-                                                                'PENDING' => 'Pending',
-                                                                'PAID' => 'Paid',
-                                                                'PROCESSING' => 'Processing',
-                                                            ]),
-                                                        TextInput::make('remark')
-                                                            ->label('REMARK')
-                                                            ->default(fn ($record) => $record?->bankDetail?->remark ?? null),
-                                                    ])
-                                                    ->action(function (Lead $lead, array $data) {
-                                                        $record = $lead->bankDetail;
-                                                        if ($record) {
-                                                            // Update the existing SystemQuestion record
-                                                            $record->update($data);
-
-                                                            Notification::make()
-                                                                ->title('Updated Successfully')
-                                                                ->success()
-                                                                ->send();
-                                                        } else {
-                                                            // Create a new SystemQuestion record via the relation
-                                                            $lead->bankDetail()->create($data);
-
-                                                            Notification::make()
-                                                                ->title('Created Successfully')
-                                                                ->success()
-                                                                ->send();
-                                                        }
+                                                Action::make('export_bank_details')
+                                                    ->label('Export to Excel')
+                                                    ->icon('heroicon-o-document-arrow-down')
+                                                    ->color('success')
+                                                    ->visible(fn () => auth()->user()->role_id === 3)
+                                                    ->action(function (Lead $lead) {
+                                                        return static::exportBankDetailsToExcel($lead);
                                                     }),
+                                                Action::make('edit_bank_detail')
+                                                ->label('Edit') // Button label
+                                                ->icon('heroicon-o-pencil')
+                                                ->visible(fn () => auth()->user()->role_id === 3)
+                                                ->modalHeading('Edit Referral Details') // Modal heading
+                                                ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                                ->form([
+                                                    Tabs::make('bank_details_tabs')
+                                                        ->tabs([
+                                                            Tabs\Tab::make('Referral Details')
+                                                                ->schema([
+                                                                    TextInput::make('referral_name')
+                                                                        ->label('Referral Name')
+                                                                        ->required()
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->referral_name ?? $record?->bankDetail?->full_name ?? null),
+
+                                                                    TextInput::make('tin')
+                                                                        ->label('Tax Identification Number')
+                                                                        ->default(fn ($record) => $record?->bankDetail?->tin ?? null),
+
+                                                                    TextInput::make('hp_number')
+                                                                        ->label('HP Number')
+                                                                        ->default(fn ($record) => $record?->bankDetail?->hp_number ?? null),
+
+                                                                    TextInput::make('email')
+                                                                        ->label('Email Address')
+                                                                        ->email()
+                                                                        ->default(fn ($record) => $record?->bankDetail?->email ?? null),
+                                                                ]),
+
+                                                            Tabs\Tab::make('Referral Address Details')
+                                                                ->schema([
+                                                                    Textarea::make('referral_address')
+                                                                        ->label('Referral Address')
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->referral_address ?? null),
+
+                                                                    TextInput::make('postcode')
+                                                                        ->label('Post Code')
+                                                                        ->default(fn ($record) => $record?->bankDetail?->postcode ?? null),
+
+                                                                    TextInput::make('city')
+                                                                        ->label('City')
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->city ?? null),
+
+                                                                    Select::make('state')
+                                                                        ->label('State')
+                                                                        ->options(function () {
+                                                                            $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                // Map 3-letter country codes to full country names
+                                                                                return collect($countries)->mapWithKeys(function ($country) {
+                                                                                    return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                                                })->toArray();
+                                                                            }
+
+                                                                            return [];
+                                                                        })
+                                                                        ->dehydrateStateUsing(function ($state) {
+                                                                            // Convert the selected code to the full country name
+                                                                            $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                foreach ($countries as $country) {
+                                                                                    if ($country['Code'] === $state) {
+                                                                                        return ucfirst(strtolower($country['State']));
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                            return $state; // Fallback to the original state if mapping fails
+                                                                        })
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record->bankDetail->state ?? null)
+                                                                        ->searchable()
+                                                                        ->preload(),
+
+                                                                    Select::make('country')
+                                                                        ->label('Country')
+                                                                        ->searchable()
+                                                                        ->required()
+                                                                        ->default('MYS')
+                                                                        ->options(function () {
+                                                                            $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                // Map 3-letter country codes to full country names
+                                                                                return collect($countries)->mapWithKeys(function ($country) {
+                                                                                    return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                                                                                })->toArray();
+                                                                            }
+
+                                                                            return [];
+                                                                        })
+                                                                        ->dehydrateStateUsing(function ($state) {
+                                                                            // Convert the selected code to the full country name
+                                                                            $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                                                                            if (file_exists($filePath)) {
+                                                                                $countriesContent = file_get_contents($filePath);
+                                                                                $countries = json_decode($countriesContent, true);
+
+                                                                                foreach ($countries as $country) {
+                                                                                    if ($country['Code'] === $state) {
+                                                                                        return ucfirst(strtolower($country['Country'])); // Store the full country name
+                                                                                    }
+                                                                                }
+                                                                            }
+
+                                                                            return $state; // Fallback to the original state if mapping fails
+                                                                        })
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state)),
+                                                                ]),
+
+                                                            Tabs\Tab::make('Referral Bank Details')
+                                                                ->schema([
+                                                                    TextInput::make('referral_bank_name')
+                                                                        ->label('Referral Name')
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->referral_name ?? $record?->bankDetail?->full_name ?? null),
+
+                                                                    TextInput::make('beneficiary_name')
+                                                                        ->label('Beneficiary Name')
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->beneficiary_name ?? $record?->bankDetail?->full_name ?? null),
+
+                                                                    TextInput::make('bank_name')
+                                                                        ->label('Bank Name')
+                                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                                        ->default(fn ($record) => $record?->bankDetail?->bank_name ?? null),
+
+                                                                    TextInput::make('bank_account_no')
+                                                                        ->label('Bank Account Number')
+                                                                        ->default(fn ($record) => $record?->bankDetail?->bank_account_no ?? null),
+                                                                ]),
+                                                        ])
+                                                        ->columnSpanFull()
+                                                ])
+                                                ->action(function (Lead $lead, array $data) {
+                                                    // Check if bank detail exists
+                                                    $bank = $lead->bankDetail;
+
+                                                    if ($bank) {
+                                                        // Update existing record
+                                                        $bank->update($data);
+
+                                                        Notification::make()
+                                                            ->title('Referral Details Updated')
+                                                            ->success()
+                                                            ->send();
+                                                    } else {
+                                                        // Create new record
+                                                        $lead->bankDetail()->create($data);
+
+                                                        Notification::make()
+                                                            ->title('Referral Details Created')
+                                                            ->success()
+                                                            ->send();
+                                                    }
+                                                }),
                                             ])
                                             ->schema([
                                                 View::make('components.bank-details')
@@ -2105,6 +2243,82 @@ class LeadResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    protected static function exportBankDetailsToExcel(Lead $lead)
+    {
+        return response()->streamDownload(function () use ($lead) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $bank = $lead->bankDetail;
+
+            // Set column widths
+            $sheet->getColumnDimension('A')->setWidth(30);
+            $sheet->getColumnDimension('B')->setWidth(40);
+
+            // Set default alignment to left for all cells
+            $sheet->getStyle('A1:B50')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+
+            // Referral Details Data
+            $row = 1;
+            // Section 1: Referral Details
+            $sheet->setCellValue("A{$row}", 'REFERRAL DETAILS');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Referral Name');
+            $sheet->setCellValue("B{$row}", $bank?->referral_name ?? $bank?->full_name ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Tax Identification Number');
+            $sheet->setCellValue("B{$row}", $bank?->tin ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'HP Number');
+            $sheet->setCellValue("B{$row}", $bank?->hp_number ?? $bank?->contact_no ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Email Address');
+            $sheet->setCellValue("B{$row}", $bank?->email ?? '-');
+            $row++;
+            $row++;
+
+            // Section 2: Referral Address Details
+            $sheet->setCellValue("A{$row}", 'REFERRAL ADDRESS DETAILS');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Referral Address');
+            $sheet->setCellValue("B{$row}", $bank?->referral_address ?? $bank?->address ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Post Code');
+            $sheet->setCellValue("B{$row}", $bank?->postcode ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'City');
+            $sheet->setCellValue("B{$row}", $bank?->city ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'State');
+            $sheet->setCellValue("B{$row}", $bank?->state ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Country');
+            $sheet->setCellValue("B{$row}", $bank?->country ?? '-');
+            $row++;
+            $row++;
+
+            // Section 3: Referral Bank Details
+            $sheet->setCellValue("A{$row}", 'REFERRAL BANK DETAILS');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Referral Name');
+            $sheet->setCellValue("B{$row}", $bank?->referral_bank_name ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Beneficiary Name');
+            $sheet->setCellValue("B{$row}", $bank?->beneficiary_name ?? $bank?->full_name ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Bank Name');
+            $sheet->setCellValue("B{$row}", $bank?->bank_name ?? '-');
+            $row++;
+            $sheet->setCellValue("A{$row}", 'Bank Account Number');
+            $sheet->setCellValue("B{$row}", $bank?->bank_account_no ?? '-');
+            $row++;
+            $row++;
+
+            // Output the spreadsheet
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, "referral_details_{$lead->id}.xlsx");
     }
 
     // public static function canCreate(): bool
