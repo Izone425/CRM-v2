@@ -25,6 +25,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelatio
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
+use App\Mail\BDReferralClosure;
 use App\Models\ActivityLog;
 use App\Models\Industry;
 use App\Models\InvalidLeadReason;
@@ -780,44 +781,55 @@ class LeadResource extends Resource
                                                                                 ]);
                                                                             }
 
+                                                                            try {
+                                                                                // Check if this is a BD Referral lead and it's being marked as Closed or Lost
+                                                                                if ($lead->lead_code === 'BD Referral Program' && in_array($data['status'], ['Closed', 'Lost'])) {
+                                                                                    $viewName = 'emails.bd_referral_closure';
+
+                                                                                    // Set recipients for BD Referral notifications
+                                                                                    $recipients = collect([
+                                                                                        (object)[
+                                                                                            'email' => 'jonathan@timeteccloud.com',
+                                                                                            'name' => 'Jonathan Tay'
+                                                                                        ]
+                                                                                    ]);
+
+                                                                                    foreach ($recipients as $recipient) {
+                                                                                        $emailContent = [
+                                                                                            'recipient_name' => $recipient->name,
+                                                                                            'lead' => [
+                                                                                                'id' => $lead->id,
+                                                                                                'company_name' => $lead->companyDetail->company_name ?? 'N/A',
+                                                                                                'contact_person' => $lead->companyDetail->name ?? $lead->name,
+                                                                                                'email' => $lead->companyDetail->email ?? $lead->email,
+                                                                                                'phone' => $lead->companyDetail->contact_no ?? $lead->phone,
+                                                                                                'status' => $data['status'], // Closed or Lost
+                                                                                                'closed_date' => now()->format('d M Y, h:i A'),
+                                                                                            ],
+                                                                                            'remarks' => $data['remark'] ?? 'No remarks provided',
+                                                                                            'closed_by' => auth()->user()->name
+                                                                                        ];
+
+                                                                                        Mail::to($recipient->email)
+                                                                                            ->send(new BDReferralClosure($emailContent, $viewName));
+                                                                                    }
+
+                                                                                    Log::info("BD Referral closure notification sent", [
+                                                                                        'lead_id' => $lead->id,
+                                                                                        'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                                                                        'status' => $data['status']
+                                                                                    ]);
+                                                                                }
+                                                                            } catch (\Exception $e) {
+                                                                                Log::error("BD Referral Notification Error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+                                                                            }
+
                                                                             Notification::make()
                                                                                 ->title('Lead Archived')
                                                                                 ->success()
                                                                                 ->body('You have successfully marked the lead as inactive.')
                                                                                 ->send();
                                                                         }),
-                                                                    // Action::make('edit_deal_amount')
-                                                                    //     ->label(__('Edit Deal Amount'))
-                                                                    //     ->modalHeading('Mark Lead as Inactive')
-                                                                    //     ->form([
-                                                                    //         // Deal Amount Field - Visible only when status is Closed
-                                                                    //         TextInput::make('deal_amount')
-                                                                    //             ->label('Close Deal Amount')
-                                                                    //             ->numeric(),
-                                                                    //     ])
-                                                                    //     ->action(function (Lead $record, array $data) {
-                                                                    //         $lead = $record;
-
-                                                                    //         $updateData['deal_amount'] = $data['deal_amount'] ?? null;
-
-                                                                    //         $lead->update($updateData);
-
-                                                                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                                                    //             ->orderByDesc('created_at')
-                                                                    //             ->first();
-
-                                                                    //         if ($latestActivityLog) {
-                                                                    //             $latestActivityLog->update([
-                                                                    //                 'description' => 'Deal Amount Updated: ' . $data['deal_amount'],
-                                                                    //             ]);
-                                                                    //         }
-
-                                                                    //         Notification::make()
-                                                                    //             ->title('Deal Amount Updated')
-                                                                    //             ->success()
-                                                                    //             ->body('You have successfully updated deal amount')
-                                                                    //             ->send();
-                                                                    //     }),
                                                                 ])
                                                             ]),
                                                     ])
