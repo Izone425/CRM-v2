@@ -25,6 +25,7 @@ class SoftwareHandover extends Model
         'pic_phone',
         'salesperson',
         'payroll_code',
+        'speaker_category',
 
         // Section 2: Implementation Timeline
         'db_creation',

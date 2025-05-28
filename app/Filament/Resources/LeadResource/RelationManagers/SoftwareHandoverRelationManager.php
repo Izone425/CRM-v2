@@ -220,6 +220,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ]),
                                 ])
                                 ->addActionLabel('Add PIC')
+                                ->minItems(1)
                                 ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
                                 ->columns(2)
                                 // Add default implementation PICs from lead data
@@ -294,6 +295,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ])
                                     ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
                                     ->addActionLabel('Add Remark')
+                                    ->maxItems(5)
                                     ->defaultItems(1),
                             ]),
 
@@ -309,7 +311,21 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->columns(2)
                                     ->required(),
                             ]),
-                        Section::make('Step 6: Proforma Invoice')
+
+                        Section::make('Step 6: Speaker Category')
+                            ->schema([
+                                Forms\Components\Radio::make('speaker_category')
+                                    ->label('')
+                                    ->options([
+                                        'english / malay' => 'English / Malay',
+                                        'mandarin' => 'Mandarin',
+                                    ])
+                                    // ->inline()
+                                    ->columns(2)
+                                    ->required(),
+                            ]),
+
+                        Section::make('Step 7: Proforma Invoice')
                             ->columnSpan(1) // Ensure it spans one column
                             ->schema([
                                 Grid::make(2)
@@ -344,7 +360,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ])
                             ]),
 
-                        Section::make('Step 7: Attachment')
+                        Section::make('Step 8: Attachment')
                             ->columnSpan(1) // Ensure it spans one column
                             ->schema([
                                 Grid::make(3)
@@ -821,6 +837,24 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->default(function (SoftwareHandover $record) {
                                             // Return the saved training type if it exists
                                             return $record->training_type ?? null;
+                                        }),
+                                ]),
+
+                            Section::make('Step 6: Speaker Category')
+                                ->columnSpan(1)
+                                ->schema([
+                                    Forms\Components\Radio::make('speaker_category')
+                                        ->label('')
+                                        ->options([
+                                            'english / malay' => 'English / Malay',
+                                            'mandarin' => 'Mandarin',
+                                        ])
+                                        // ->inline()
+                                        ->columns(2)
+                                        ->required()
+                                        ->default(function (SoftwareHandover $record) {
+                                            // Return the saved training type if it exists
+                                            return $record->speaker_category ?? null;
                                         }),
                                 ]),
 

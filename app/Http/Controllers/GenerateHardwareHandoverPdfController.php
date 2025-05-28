@@ -61,7 +61,7 @@ class GenerateHardwareHandoverPdfController extends Controller
             $id = str_pad($hardwareHandover->id, 4, '0', STR_PAD_LEFT);
 
             // Format: TTC/HH/NN/250001
-            $formattedId = "TTC/HH/{$creatorCode}/{$year}{$id}";
+            $formattedId = "HW/{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $handoverFilename = str_replace('/', '_', $formattedId) . '.pdf';
@@ -151,7 +151,7 @@ class GenerateHardwareHandoverPdfController extends Controller
             $id = str_pad($hardwareHandover->id, 4, '0', STR_PAD_LEFT);
 
             // Format: TTC/HH/NN/250001
-            $formattedId = "TTC/HH/{$creatorCode}/{$year}{$id}";
+            $formattedId = "HW/{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $handoverFilename = str_replace('/', '_', $formattedId) . '.pdf';

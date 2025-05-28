@@ -155,7 +155,11 @@
     </div>
 
     <div class="section">
-        <div class="section-title">1. COMPANY DETAILS</div>
+        <div class="section-title">1. INVOICE DETAILS</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. CATEGORY 1</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -164,34 +168,26 @@
                 </tr>
             </thead>
             <tr>
-                <td class="label" width="30%">Company Name</td>
-                <td width="70%">{{ $hardwareHandover->company_name }}</td>
+                <td class="label" width="30%">Courier</td>
+                <td width="70%">{{ $hardwareHandover->courier }}</td>
             </tr>
             <tr>
-                <td class="label">Industry</td>
-                <td>{{ $hardwareHandover->industry }}</td>
-            </tr>
-            <tr>
-                <td class="label">Number of Employees</td>
-                <td>{{ $hardwareHandover->headcount }}</td>
-            </tr>
-            <tr>
-                <td class="label">Country</td>
-                <td>{{ $hardwareHandover->country }}</td>
-            </tr>
-            <tr>
-                <td class="label">State</td>
-                <td>{{ $hardwareHandover->state }}</td>
-            </tr>
-            <tr>
-                <td class="label">Salesperson</td>
-                <td>{{ $hardwareHandover->salesperson }}</td>
+                <td class="label">Installation Type</td>
+                <td>
+                    @if($hardwareHandover->installation_type === 'internal_installation')
+                        Internal Installation
+                    @elseif($hardwareHandover->installation_type === 'external_installation')
+                        External Installation
+                    @else
+                        {{ $hardwareHandover->installation_type ?? 'Not specified' }}
+                    @endif
+                </td>
             </tr>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">2. SUPERADMIN DETAILS</div>
+        <div class="section-title">3. CATEGORY 2</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -200,328 +196,231 @@
                 </tr>
             </thead>
             <tr>
-                <td class="label" width="30%">PIC Name</td>
+                <td class="label" width="30%">Name</td>
                 <td width="70%">{{ $hardwareHandover->pic_name }}</td>
             </tr>
             <tr>
-                <td class="label">PIC HP No.</td>
+                <td class="label">HP Number</td>
                 <td>{{ $hardwareHandover->pic_phone }}</td>
             </tr>
             <tr>
-                <td class="label">Email Address</td>
-                <td>{{ $hardwareHandover->email }}</td>
-            </tr>
-            @if(isset($hardwareHandover->password) && !empty($hardwareHandover->password))
-            <tr>
-                <td class="label">Password</td>
-                <td>{{ $hardwareHandover->password }}</td>
-            </tr>
-            @endif
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">3. INVOICE DETAILS</div>
-        <table class="info-grid">
-            <thead>
-                <tr>
-                    <th>Field</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tr>
-                <td class="label" width="30%">Company Name</td>
-                <td width="70%">{{ $hardwareHandover->company_name }}</td>
-            </tr>
-            <tr>
-                <td class="label">Company Address</td>
-                <td>
-                    @php
-                        $address = $hardwareHandover->company_address ?? $lead->companyDetail->address ?? 'Not specified';
-
-                        if ($hardwareHandover->state || $hardwareHandover->country) {
-                            $address .= ', ';
-
-                            if ($hardwareHandover->state) {
-                                $address .= strtoupper($hardwareHandover->state);
-                            }
-
-                            if ($hardwareHandover->state && $hardwareHandover->country) {
-                                $address .= ', ';
-                            }
-
-                            if ($hardwareHandover->country) {
-                                $address .= strtoupper($hardwareHandover->country);
-                            }
-                        }
-                    @endphp
-                    {{ $address }}
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Salesperson</td>
-                <td>{{ $hardwareHandover->salesperson }}</td>
-            </tr>
-            <tr>
-                <td class="label">PIC Name</td>
-                <td>{{ $hardwareHandover->pic_name }}</td>
-            </tr>
-            <tr>
-                <td class="label">PIC Email</td>
+                <td class="label">Email</td>
                 <td>{{ $hardwareHandover->email }}</td>
             </tr>
             <tr>
-                <td class="label">PIC HP No.</td>
-                <td>{{ $hardwareHandover->pic_phone }}</td>
+                <td class="label">Courier Address</td>
+                <td>{{ $hardwareHandover->courier_address }}</td>
             </tr>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">5. IMPLEMENTATION PICS</div>
+        <div class="section-title">4. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
-                    <th width="10%">User Role</th>
-                    <th width="20%">Client PIC Name</th>
-                    <th width="20%">Position</th>
-                    <th width="20%">HP Number</th>
-                    <th width="30%">Email Address</th>
+                    <th width="30%">Type</th>
+                    <th width="70%">Files</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>PIC 1</td>
-                    <td>{{ $hardwareHandover->pic_name }}</td>
-                    <td>{{ $hardwareHandover->pic_position ?? 'DIRECTOR' }}</td>
-                    <td>{{ $hardwareHandover->pic_phone }}</td>
-                    <td>{{ $hardwareHandover->email }}</td>
-                </tr>
+                    <td class="label">Proforma Invoice (Product)</td>
+                    <td>
+                        @if(isset($hardwareHandover->proforma_invoice_product) && !empty($hardwareHandover->proforma_invoice_product))
+                            @php
+                                $productInvoiceFiles = is_string($hardwareHandover->proforma_invoice_product)
+                                    ? json_decode($hardwareHandover->proforma_invoice_product, true)
+                                    : $hardwareHandover->proforma_invoice_product;
 
-                @if(isset($hardwareHandover->implementation_pics) && !empty($hardwareHandover->implementation_pics))
-                    @php
-                        $implementationPics = is_string($hardwareHandover->implementation_pics)
-                            ? json_decode($hardwareHandover->implementation_pics, true)
-                            : $hardwareHandover->implementation_pics;
-
-                        if (!is_array($implementationPics)) {
-                            $implementationPics = [];
-                        }
-                    @endphp
-
-                    @foreach($implementationPics as $index => $pic)
-                        <tr>
-                            <td>PIC {{ $index + 2 }}</td>
-                            <td>{{ $pic['pic_name_impl'] ?? '' }}</td>
-                            <td>{{ $pic['position'] ?? '' }}</td>
-                            <td>{{ $pic['pic_phone_impl'] ?? '' }}</td>
-                            <td>{{ $pic['pic_email_impl'] ?? '' }}</td>
-                        </tr>
-                    @endforeach
-                @endif
-
-                @if(!isset($hardwareHandover->implementation_pics) || empty($hardwareHandover->implementation_pics))
-                    <tr>
-                        <td colspan="5" style="text-align: center; font-style: italic;">No additional implementation PICs</td>
-                    </tr>
-                @endif
-            </tbody>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">5. TIMETEC HR MODULE SUBSCRIPTION</div>
-        <table>
-            <thead>
-                <tr>
-                    <th width="40%">Module</th>
-                    <th width="20%">Headcount</th>
-                    <th width="20%">Subscription Months</th>
-                    <th width="20%">Purchase / Free</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    // Process modules data from JSON if it exists
-                    $moduleData = [];
-                    if (isset($hardwareHandover->modules) && !empty($hardwareHandover->modules)) {
-                        $modules = is_string($hardwareHandover->modules)
-                            ? json_decode($hardwareHandover->modules, true)
-                            : $hardwareHandover->modules;
-
-                        if (is_array($modules)) {
-                            foreach ($modules as $module) {
-                                if (isset($module['module_name'])) {
-                                    $moduleData[$module['module_name']] = [
-                                        'headcount' => $module['headcount'] ?? '-',
-                                        'subscription_months' => $module['subscription_months'] ?? '-',
-                                        'purchase_type' => $module['purchase_type'] ?? '-'
-                                    ];
+                                if (!is_array($productInvoiceFiles)) {
+                                    $productInvoiceFiles = [];
                                 }
-                            }
-                        }
-                    }
+                            @endphp
 
-                    // Create a list of all TimeTec modules we want to display
-                    $allModules = [
-                        'Attendance' => [
-                            'legacy_headcount' => $hardwareHandover->attendance_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->attendance_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->attendance_purchase_type ?? null
-                        ],
-                        'Leave' => [
-                            'legacy_headcount' => $hardwareHandover->leave_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->leave_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->leave_purchase_type ?? null
-                        ],
-                        'Claim' => [
-                            'legacy_headcount' => $hardwareHandover->claim_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->claim_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->claim_purchase_type ?? null
-                        ],
-                        'Payroll' => [
-                            'legacy_headcount' => $hardwareHandover->payroll_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->payroll_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->payroll_purchase_type ?? null
-                        ],
-                        'Appraisal' => [
-                            'legacy_headcount' => $hardwareHandover->appraisal_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->appraisal_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->appraisal_purchase_type ?? null
-                        ],
-                        'Recruitment' => [
-                            'legacy_headcount' => $hardwareHandover->recruitment_module_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->recruitment_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->recruitment_purchase_type ?? null
-                        ],
-                        'Power BI' => [
-                            'legacy_headcount' => $hardwareHandover->power_bi_headcount ?? null,
-                            'legacy_months' => $hardwareHandover->power_bi_subscription_months ?? null,
-                            'legacy_type' => $hardwareHandover->power_bi_purchase_type ?? null
-                        ]
-                    ];
-                @endphp
+                            @foreach($productInvoiceFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('proforma-invoice/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Product Invoice {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
 
-                @foreach($allModules as $moduleName => $legacyData)
-                    <tr>
-                        <td>TimeTec {{ $moduleName }}</td>
-                        @if(isset($moduleData[$moduleName]))
-                            <td>{{ $moduleData[$moduleName]['headcount'] }}</td>
-                            <td>{{ $moduleData[$moduleName]['subscription_months'] }}</td>
-                            <td>{{ $moduleData[$moduleName]['purchase_type'] == '0' ? 'Free' : 'Purchase' }}</td>
+                            @if(empty($productInvoiceFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
                         @else
-                            <td>{{ $legacyData['legacy_headcount'] ?: '' }}</td>
-                            <td>{{ $legacyData['legacy_months'] ?: '' }}</td>
-                            <td>{{ $legacyData['legacy_type'] ?: '' }}</td>
+                            <span style="font-style: italic; color: #777;">No files</span>
                         @endif
-                    </tr>
-                @endforeach
+                    </td>
+                </tr>
+
+                <!-- Proforma Invoice Files (HRDF) -->
+                <tr>
+                    <td class="label">Proforma Invoice (HRDF)</td>
+                    <td>
+                        @if(isset($hardwareHandover->proforma_invoice_hrdf) && !empty($hardwareHandover->proforma_invoice_hrdf))
+                            @php
+                                $hrdfInvoiceFiles = is_string($hardwareHandover->proforma_invoice_hrdf)
+                                    ? json_decode($hardwareHandover->proforma_invoice_hrdf, true)
+                                    : $hardwareHandover->proforma_invoice_hrdf;
+
+                                if (!is_array($hrdfInvoiceFiles)) {
+                                    $hrdfInvoiceFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($hrdfInvoiceFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('proforma-invoice/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        HRDF Invoice {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($hrdfInvoiceFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">6. OTHER DETAILS</div>
-        <table class="info-grid">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Remark</th>
-                </tr>
-            </thead>
-            <tr>
-                <td class="label" width="30%">Customization Details</td>
-                <td width="70%">{{ $hardwareHandover->customization_details ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Enhancement Details</td>
-                <td>{{ $hardwareHandover->enhancement_details ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Special Remark</td>
-                <td>{{ $hardwareHandover->special_remark ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Device Integration</td>
-                <td>{{ $hardwareHandover->device_integration ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Existing HR System</td>
-                <td>{{ $hardwareHandover->existing_hr_system ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">Experience Implementing Any HR System</td>
-                <td>{{ $hardwareHandover->hr_system_experience ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">VIP Package</td>
-                <td>{{ $hardwareHandover->vip_package ?: '-' }}</td>
-            </tr>
-            <tr>
-                <td class="label">FingerTec Device</td>
-                <td>{{ $hardwareHandover->fingertec_device ?: '-' }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">7. CLIENT PURCHASE ANY ONSITE PACKAGE</div>
+        <div class="section-title">5. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
-                    <th width="40%">Item</th>
-                    <th width="20%">Yes / No</th>
-                    <th width="40%">Remark</th>
+                    <th width="30%">Document Type</th>
+                    <th width="70%">Files</th>
                 </tr>
             </thead>
             <tbody>
+                <!-- Confirmation Order Files -->
                 <tr>
-                    <td>Onsite Kick Off Meeting</td>
-                    <td>{{ $hardwareHandover->onsite_kickoff ? 'Yes' : 'No' }}</td>
-                    <td>{{ $hardwareHandover->onsite_kickoff_remark ?: '-' }}</td>
+                    <td class="label">Confirmation Order</td>
+                    <td>
+                        @if(isset($hardwareHandover->confirmation_order_file) && !empty($hardwareHandover->confirmation_order_file))
+                            @php
+                                $confirmationFiles = is_string($hardwareHandover->confirmation_order_file)
+                                    ? json_decode($hardwareHandover->confirmation_order_file, true)
+                                    : $hardwareHandover->confirmation_order_file;
+
+                                if (!is_array($confirmationFiles)) {
+                                    $confirmationFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($confirmationFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Confirmation Order {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($confirmationFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
                 </tr>
+
+                <!-- Payment Slip Files -->
                 <tr>
-                    <td>Onsite Webinar Training</td>
-                    <td>{{ $hardwareHandover->onsite_webinar ? 'Yes' : 'No' }}</td>
-                    <td>{{ $hardwareHandover->onsite_webinar_remark ?: '-' }}</td>
+                    <td class="label">Payment Slip</td>
+                    <td>
+                        @if(isset($hardwareHandover->payment_slip_file) && !empty($hardwareHandover->payment_slip_file))
+                            @php
+                                $paymentFiles = is_string($hardwareHandover->payment_slip_file)
+                                    ? json_decode($hardwareHandover->payment_slip_file, true)
+                                    : $hardwareHandover->payment_slip_file;
+
+                                if (!is_array($paymentFiles)) {
+                                    $paymentFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($paymentFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Payment Slip {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($paymentFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
                 </tr>
+
+                <!-- HRDF Grant Files -->
                 <tr>
-                    <td>Onsite Briefing Session</td>
-                    <td>{{ $hardwareHandover->onsite_briefing ? 'Yes' : 'No' }}</td>
-                    <td>{{ $hardwareHandover->onsite_briefing_remark ?: '-' }}</td>
+                    <td class="label">HRDF Grant</td>
+                    <td>
+                        @if(isset($hardwareHandover->hrdf_grant_file) && !empty($hardwareHandover->hrdf_grant_file))
+                            @php
+                                $hrdfFiles = is_string($hardwareHandover->hrdf_grant_file)
+                                    ? json_decode($hardwareHandover->hrdf_grant_file, true)
+                                    : $hardwareHandover->hrdf_grant_file;
+
+                                if (!is_array($hrdfFiles)) {
+                                    $hrdfFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($hrdfFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        HRDF Grant {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($hrdfFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">8. PAYMENT TERM</div>
-        <table>
-            <thead>
-                <tr>
-                    <th width="70%">Criteria</th>
-                    <th width="30%">Choose One (Yes / No)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Payment – Full Paid</td>
-                    <td>{{ $hardwareHandover->payment_term == 'full_payment' ? 'Yes' : 'No' }}</td>
-                </tr>
-                <tr>
-                    <td>Payment – Via HRDF</td>
-                    <td>{{ $hardwareHandover->payment_term == 'payment_via_hrdf' ? 'Yes' : 'No' }}</td>
-                </tr>
-                <tr>
-                    <td>Payment – Via Term</td>
-                    <td>{{ $hardwareHandover->payment_term == 'payment_via_term' ? 'Yes' : 'No' }}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">9. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">6. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">

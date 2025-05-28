@@ -61,7 +61,7 @@ class GenerateSoftwareHandoverPdfController extends Controller
             $id = str_pad($softwareHandover->id, 4, '0', STR_PAD_LEFT);
 
             // Format: TTC/SH/NN/250001
-            $formattedId = "{$year}{$id}";
+            $formattedId = "SW/{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $handoverFilename = str_replace('/', '_', $formattedId) . '.pdf';
@@ -153,7 +153,7 @@ class GenerateSoftwareHandoverPdfController extends Controller
             $id = str_pad($softwareHandover->id, 4, '0', STR_PAD_LEFT);
 
             // Format: TTC/SH/NN/250001
-            $formattedId = "{$year}{$id}";
+            $formattedId = "SW/{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $handoverFilename = str_replace('/', '_', $formattedId) . '.pdf';
