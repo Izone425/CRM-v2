@@ -17,10 +17,12 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Checkbox;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\ActionSize;
+use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\ColumnGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -323,15 +325,47 @@ class HardwareHandoverRelationManager extends RelationManager
                         // Format ID with prefix 250 and padding to ensure at least 3 digits
                         return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     }),
-                TextColumn::make('created_at')
-                    ->label('DATE')
-                    ->date('d M Y'),
-                TextColumn::make('training_type')
-                    ->label('TRAINING TYPE')
-                    ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
-                TextColumn::make('value')
-                    ->label('VALUE')
-                    ->formatStateUsing(fn ($state) => 'MYR ' . number_format($state, 2)),
+                TextColumn::make('submitted_at')
+                    ->label('Date Submit')
+                    ->date('d M Y')
+                    ->toggleable(),
+                ColumnGroup::make('Category 1', [
+                    TextColumn::make('courier')
+                        ->label('Courier')
+                        ->toggleable(),
+                    TextColumn::make('installation_type')
+                        ->label('Installation Type')
+                        ->toggleable(),
+                ])
+                ->alignment(Alignment::Center)
+                ->wrapHeader()
+                ->extraHeaderAttributes([
+                    'style' => 'background-color: #f3f4f6;', // Light gray background color
+                    'class' => 'border-b border-gray-300',   // Optional: adds a border to the bottom
+                ]),
+                ColumnGroup::make('Category 2', [
+                    TextColumn::make('pic_name')
+                        ->label('Name')
+                        ->toggleable(),
+                    TextColumn::make('pic_phone')
+                        ->label('HP Number')
+                        ->toggleable(),
+                    TextColumn::make('email')
+                        ->label('Email')
+                        ->toggleable(),
+                    TextColumn::make('courier_address')
+                        ->label('Courier Address')
+                        ->toggleable(),
+                ])
+                ->alignment(Alignment::Center)
+                ->wrapHeader()
+                ->extraHeaderAttributes([
+                    'style' => 'background-color: #f3f4f6;', // Light gray background color
+                    'class' => 'border-b border-gray-300',   // Optional: adds a border to the bottom
+                ]),
+                TextColumn::make('action_date')
+                    ->label('Action Date')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
@@ -345,6 +379,19 @@ class HardwareHandoverRelationManager extends RelationManager
             ->filtersFormColumns(6)
             ->actions([
                 ActionGroup::make([
+                    Action::make('view_reason')
+                        ->label('View Reason')
+                        ->visible(fn (HardwareHandover $record): bool => $record->status === 'Rejected')
+                        ->icon('heroicon-o-magnifying-glass-plus')
+                        ->modalHeading('Change Request Reason')
+                        ->modalContent(fn ($record) => view('components.view-reason', [
+                            'reason' => $record->reject_reason,
+                        ]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalWidth('md')
+                        ->color('warning'),
+
                     Action::make('view')
                         ->label('View')
                         ->icon('heroicon-o-eye')
@@ -353,7 +400,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        // Use a callback function instead of arrow function for more control
+                        ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
                         ->modalContent(function (HardwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
@@ -361,7 +408,27 @@ class HardwareHandoverRelationManager extends RelationManager
                             ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('edit_Hardware_handover')
+                    Action::make('submit_for_approval')
+                        ->label('Submit for Approval')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('success')
+                        ->visible(fn (HardwareHandover $record): bool => $record->status === 'Draft')
+                        ->action(function (HardwareHandover $record): void {
+                            $record->update([
+                                'status' => 'New',
+                                'submitted_at' => now(),
+                            ]);
+
+                            // Use the controller for PDF generation
+                            app(GenerateHardwareHandoverPdfController::class)->generateInBackground($record);
+
+                            Notification::make()
+                                ->title('Handover submitted for approval')
+                                ->success()
+                                ->send();
+                        }),
+
+                    Action::make('edit_hardware_handover')
                         ->label(function (HardwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
                             $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
@@ -370,7 +437,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
-                        ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Draft']))
+                        ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['Draft']))
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->slideOver()
                         ->form([
@@ -635,26 +702,6 @@ class HardwareHandoverRelationManager extends RelationManager
 
                             Notification::make()
                                 ->title('Hardware handover updated successfully')
-                                ->success()
-                                ->send();
-                        }),
-
-                    // Submit for Approval button - only visible for Draft status
-                    Action::make('submit_for_approval')
-                        ->label('Submit for Approval')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->color('success')
-                        ->visible(fn (HardwareHandover $record): bool => $record->status === 'Draft')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update([
-                                'status' => 'New'
-                            ]);
-
-                            // Use the controller for PDF generation
-                            app(GenerateHardwareHandoverPdfController::class)->generateInBackground($record);
-
-                            Notification::make()
-                                ->title('Handover submitted for approval')
                                 ->success()
                                 ->send();
                         }),

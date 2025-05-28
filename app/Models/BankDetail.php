@@ -5,12 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Str;
 
 class BankDetail extends Model
 {
@@ -18,16 +14,108 @@ class BankDetail extends Model
 
     protected $fillable = [
         'lead_id',
-        'full_name',
-        'ic',
+        'referral_name',
         'tin',
+        'hp_number',
+        'email',
+        'referral_address',
+        'postcode',
+        'city',
+        'state',
+        'country',
+        'referral_bank_name',
+        'beneficiary_name',
         'bank_name',
         'bank_account_no',
-        'contact_no',
-        'email',
-        'referral_payment_status',
-        'remark',
     ];
+
+    /**
+     * Convert referral_name to uppercase when saving to database
+     */
+    protected function referralName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert referral_address to uppercase when saving to database
+     */
+    protected function referralAddress(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert city to uppercase when saving to database
+     */
+    protected function city(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert state to uppercase when saving to database
+     */
+    protected function state(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert country to uppercase when saving to database
+     */
+    protected function country(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert referral_bank_name to uppercase when saving to database
+     */
+    protected function referralBankName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert beneficiary_name to uppercase when saving to database
+     */
+    protected function beneficiaryName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
+
+    /**
+     * Convert bank_name to uppercase when saving to database
+     */
+    protected function bankName(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value,
+            set: fn ($value) => $value ? Str::upper($value) : null,
+        );
+    }
 
     public function lead(): BelongsTo
     {

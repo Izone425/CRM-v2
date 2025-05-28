@@ -11,8 +11,8 @@
 <livewire:pr-overdue-salesperson-table />
 <livewire:software-handover-today />
 <livewire:software-handover-overdue />
-{{-- <livewire:hardware-handover-today />
-<livewire:hardware-handover-overdue /> --}}
+<livewire:hardware-handover-today />
+<livewire:hardware-handover-overdue />
 <livewire:transfer-lead />
 <livewire:follow-up-lead />
 <livewire:debtor-follow-up-today-table />

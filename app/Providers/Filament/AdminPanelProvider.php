@@ -26,6 +26,7 @@ use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
+use App\Filament\Resources\HardwareAttachmentResource;
 use App\Filament\Resources\HardwareHandoverResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
@@ -145,6 +146,7 @@ class AdminPanelProvider extends PanelProvider
                 HardwareHandoverResource::class,
                 RoleResource::class,
                 SoftwareAttachmentResource::class,
+                HardwareAttachmentResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
