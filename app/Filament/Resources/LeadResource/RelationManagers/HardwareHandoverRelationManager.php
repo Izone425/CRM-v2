@@ -34,6 +34,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class HardwareHandoverRelationManager extends RelationManager
 {
     protected static string $relationship = 'hardwareHandover'; // Define the relationship name in the Lead model
+    protected static ?int $indexRepeater2 = 0;
 
     // use InteractsWithTable;
     // use InteractsWithForms;
@@ -108,46 +109,129 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ]),
                         ]),
 
-                    Section::make('Step 2: Category 1')
+                    Section::make('Step 2: Category')
                         ->schema([
-                            TextInput::make('courier')
-                                ->label('Courier'),
-
                             Forms\Components\Radio::make('installation_type')
                                 ->label('')
                                 ->options([
+                                    'courier' => 'Courier',
                                     'internal_installation' => 'Internal Installation',
                                     'external_installation' => 'External Installation',
                                 ])
                                 // ->inline()
-                                ->columns(2)
+                                ->live(debounce:500)
+                                ->columns(3)
                                 ->required(),
                         ]),
 
                     Section::make('Step 3: Category 2')
                         ->schema([
-                            Grid::make(4)
-                            ->schema([
-                                TextInput::make('pic_name')
-                                    ->label('Name'),
-                                TextInput::make('pic_phone')
-                                    ->label('HP Number'),
-                                TextInput::make('email')
-                                    ->label('Email Address')
-                                    ->email(),
-                                TextInput::make('courier_address')
-                                    ->label('Courier Address'),
-                            ]),
+                            Forms\Components\Placeholder::make('installation_type_helper')
+                            ->label('')
+                            ->content('Please select an installation type in Step 2 to see the relevant fields')
+                            ->visible(fn (callable $get) => empty($get('installation_type')))
+                            ->inlineLabel(),
+
                             Grid::make(2)
                                 ->schema([
-                                    TextInput::make('installer')
-                                        ->label('Installer'),
-                                    TextInput::make('reseller')
-                                        ->label('Reseller'),
+                                    Select::make('category2.installer')
+                                        ->label('Installer')
+                                        ->visible(fn (callable $get) => $get('installation_type') === 'internal_installation')
+                                        ->options(function () {
+                                            // Retrieve options from the installer table
+                                            return \App\Models\Installer::pluck('company_name', 'id')->toArray();
+                                        })
+                                        ->searchable()
+                                        ->preload(),
+                                    Select::make('category2.reseller')
+                                        ->label('Reseller')
+                                        ->visible(fn (callable $get) => $get('installation_type') === 'external_installation')
+                                        ->options(function () {
+                                            // Retrieve options from the reseller table
+                                            return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
+                                        })
+                                        ->searchable()
+                                        ->preload(),
+                                    Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('category2.pic_name')
+                                            ->label('Name')
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                        TextInput::make('category2.pic_phone')
+                                            ->label('HP Number')
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                        TextInput::make('category2.email')
+                                            ->label('Email Address')
+                                            ->email()
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                        TextInput::make('category2.courier_address')
+                                            ->label('Courier Address')
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                    ]),
                                 ]),
                         ]),
 
-                    Section::make('Step 4: Proforma Invoice')
+                    Section::make('Step 4: Remark Details')
+                        ->schema([
+                            Forms\Components\Repeater::make('remarks')
+                                ->label('Remarks')
+                                ->hiddenLabel(true)
+                                ->schema([
+                                    Grid::make(2)
+                                    ->schema([
+                                        Textarea::make('remark')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->hiddenLabel(true)
+                                            ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                // Get the current array key from the state path
+                                                $statePath = $livewire->getFormStatePath();
+                                                $matches = [];
+                                                if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                    $index = (int) $matches[1];
+                                                    return 'Remark ' . ($index + 1);
+                                                }
+
+                                                return 'Remark';
+                                            })
+                                            ->placeholder('Enter remark here')
+                                            ->autosize()
+                                            ->rows(3),
+
+                                        FileUpload::make('attachments')
+                                            ->hiddenLabel(true)
+                                            ->disk('public')
+                                            ->directory('handovers/remark_attachments')
+                                            ->visibility('public')
+                                            ->multiple()
+                                            ->maxFiles(3)
+                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                            ->openable()
+                                            ->downloadable()
+                                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                // Get lead ID from ownerRecord
+                                                $leadId = $this->getOwnerRecord()->id;
+                                                // Format ID with prefix (250) and padding
+                                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                // Get extension
+                                                $extension = $file->getClientOriginalExtension();
+
+                                                // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                $timestamp = now()->format('YmdHis');
+                                                $random = rand(1000, 9999);
+
+                                                return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                            }),
+                                    ])
+                                ])
+                                ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
+                                ->addActionLabel('Add Remark')
+                                ->maxItems(5)
+                                ->defaultItems(1),
+                        ]),
+
+                    Section::make('Step 5: Proforma Invoice')
                         ->columnSpan(1) // Ensure it spans one column
                         ->schema([
                             Grid::make(2)
@@ -182,7 +266,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ])
                         ]),
 
-                    Section::make('Step 5: Attachment')
+                    Section::make('Step 6: Attachment')
                         ->columnSpan(1) // Ensure it spans one column
                         ->schema([
                             Grid::make(3)
@@ -273,6 +357,23 @@ class HardwareHandoverRelationManager extends RelationManager
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'Draft';
 
+                    if (isset($data['category2'])) {
+                        $data['category2'] = json_encode($data['category2']);
+                    } else {
+                        $data['category2'] = json_encode([]);
+                    }
+
+                    if (isset($data['remarks']) && is_array($data['remarks'])) {
+                        foreach ($data['remarks'] as $key => $remark) {
+                            // Encode the attachments array for each remark
+                            if (isset($remark['attachments']) && is_array($remark['attachments'])) {
+                                $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                            }
+                        }
+                        // Encode the entire remarks structure
+                        $data['remarks'] = json_encode($data['remarks']);
+                    }
+
                     // Handle file array encodings
                     if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                         $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
@@ -329,40 +430,74 @@ class HardwareHandoverRelationManager extends RelationManager
                     ->label('Date Submit')
                     ->date('d M Y')
                     ->toggleable(),
-                ColumnGroup::make('Category 1', [
-                    TextColumn::make('courier')
-                        ->label('Courier')
-                        ->toggleable(),
-                    TextColumn::make('installation_type')
-                        ->label('Installation Type')
-                        ->toggleable(),
-                ])
-                ->alignment(Alignment::Center)
-                ->wrapHeader()
-                ->extraHeaderAttributes([
-                    'style' => 'background-color: #f3f4f6;', // Light gray background color
-                    'class' => 'border-b border-gray-300',   // Optional: adds a border to the bottom
-                ]),
-                ColumnGroup::make('Category 2', [
-                    TextColumn::make('pic_name')
-                        ->label('Name')
-                        ->toggleable(),
-                    TextColumn::make('pic_phone')
-                        ->label('HP Number')
-                        ->toggleable(),
-                    TextColumn::make('email')
-                        ->label('Email')
-                        ->toggleable(),
-                    TextColumn::make('courier_address')
-                        ->label('Courier Address')
-                        ->toggleable(),
-                ])
-                ->alignment(Alignment::Center)
-                ->wrapHeader()
-                ->extraHeaderAttributes([
-                    'style' => 'background-color: #f3f4f6;', // Light gray background color
-                    'class' => 'border-b border-gray-300',   // Optional: adds a border to the bottom
-                ]),
+                TextColumn::make('installation_type')
+                    ->label('Category (Installation Type)')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'courier' => 'Courier',
+                            'internal_installation' => 'Internal Installation',
+                            'external_installation' => 'External Installation',
+                            default => ucfirst($state),
+                        };
+                    })
+                    ->toggleable(),
+                TextColumn::make('category2')
+                    ->label('Category 2')
+                    ->formatStateUsing(function ($state, HardwareHandover $record) {
+                        // If empty, return a placeholder
+                        if (empty($state)) {
+                            return '-';
+                        }
+
+                        // Decode JSON if it's a string
+                        $data = is_string($state) ? json_decode($state, true) : $state;
+
+                        // Format based on installation type
+                        if ($record->installation_type === 'courier') {
+                            $parts = [];
+
+                            if (!empty($data['email'])) {
+                                $parts[] = "Email: {$data['email']}";
+                            }
+
+                            if (!empty($data['pic_name'])) {
+                                $parts[] = "Name: {$data['pic_name']}";
+                            }
+
+                            if (!empty($data['pic_phone'])) {
+                                $parts[] = "Phone: {$data['pic_phone']}";
+                            }
+
+                            if (!empty($data['courier_address'])) {
+                                $parts[] = "Address: {$data['courier_address']}";
+                            }
+
+                            // Return the formatted parts with HTML line breaks instead of pipes
+                            return !empty($parts)
+                                ? new HtmlString(implode('<br>', $parts))
+                                : 'No courier details';
+                        }
+                        elseif ($record->installation_type === 'internal_installation') {
+                            if (!empty($data['installer'])) {
+                                $installer = \App\Models\Installer::find($data['installer']);
+                                return $installer ? $installer->company_name : 'Unknown Installer';
+                            }
+                            return 'No installer selected';
+                        }
+                        elseif ($record->installation_type === 'external_installation') {
+                            if (!empty($data['reseller'])) {
+                                $reseller = \App\Models\Reseller::find($data['reseller']);
+                                return $reseller ? $reseller->company_name : 'Unknown Reseller';
+                            }
+                            return 'No reseller selected';
+                        }
+
+                        // Fallback for any other case
+                        return json_encode($data);
+                    })
+                    ->wrap()
+                    ->html() // Important: Add this to render the HTML content
+                    ->toggleable(),
                 TextColumn::make('action_date')
                     ->label('Action Date')
                     ->toggleable(),
@@ -462,52 +597,202 @@ class HardwareHandoverRelationManager extends RelationManager
 
                             Section::make('Step 2: Category 1')
                                 ->schema([
-                                    TextInput::make('courier')
-                                        ->label('Courier')
-                                        ->default(fn (HardwareHandover $record) => $record->courier ?? null),
-
                                     Forms\Components\Radio::make('installation_type')
-                                        ->label('')
+                                        ->hiddenLabel()
                                         ->options([
+                                            'courier' => 'Courier',
                                             'internal_installation' => 'Internal Installation',
                                             'external_installation' => 'External Installation',
                                         ])
                                         // ->inline()
                                         ->columns(2)
                                         ->required()
+                                        ->live(debounce:500)
                                         ->default(fn (HardwareHandover $record) => $record->installation_type ?? null),
                                 ]),
 
                             Section::make('Step 3: Category 2')
                                 ->schema([
-                                    Grid::make(4)
-                                    ->schema([
-                                        TextInput::make('pic_name')
-                                            ->label('Name')
-                                            ->default(fn (HardwareHandover $record) => $record->pic_name ?? null),
-                                        TextInput::make('pic_phone')
-                                            ->label('HP Number')
-                                            ->default(fn (HardwareHandover $record) => $record->pic_phone ?? null),
-                                        TextInput::make('pic_email')
-                                            ->label('Email Address')
-                                            ->email()
-                                            ->default(fn (HardwareHandover $record) => $record->email ?? null),
-                                        TextInput::make('courier_address')
-                                            ->label('Courier Address')
-                                            ->default(fn (HardwareHandover $record) => $record->courier_address ?? null),
-                                    ]),
                                     Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('installer')
+                                    ->schema([
+                                        Select::make('category2.installer')
                                                 ->label('Installer')
-                                                ->default(fn (HardwareHandover $record) => $record->installer ?? null),
-                                            TextInput::make('reseller')
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'internal_installation')
+                                                ->options(function () {
+                                                    // Retrieve options from the installer table
+                                                    return \App\Models\Installer::pluck('company_name', 'id')->toArray();
+                                                })
+                                                ->searchable()
+                                                ->preload()
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['installer'] ?? null;
+                                                }),
+                                            Select::make('category2.reseller')
                                                 ->label('Reseller')
-                                                ->default(fn (HardwareHandover $record) => $record->reseller ?? null),
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'external_installation')
+                                                ->options(function () {
+                                                    // Retrieve options from the reseller table
+                                                    return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
+                                                })
+                                                ->searchable()
+                                                ->preload()
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['reseller'] ?? null;
+                                                }),
+                                        Grid::make(4)
+                                        ->schema([
+                                            TextInput::make('category2.pic_name')
+                                                ->label('Name')
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier')
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['pic_name'] ?? null;
+                                                }),
+                                            TextInput::make('category2.pic_phone')
+                                                ->label('HP Number')
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier')
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['pic_phone'] ?? null;
+                                                }),
+                                            TextInput::make('category2.email')
+                                                ->label('Email Address')
+                                                ->email()
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier')
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['email'] ?? null;
+                                                }),
+                                            TextInput::make('category2.courier_address')
+                                                ->label('Courier Address')
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier')
+                                                ->default(function (HardwareHandover $record) {
+                                                    if (!$record || empty($record->category2)) {
+                                                        return null;
+                                                    }
+                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                    return $categoryData['courier_address'] ?? null;
+                                                }),
                                         ]),
+                                    ]),
                                 ]),
 
-                            Section::make('Step 4: Proforma Invoice')
+                                Section::make('Step 4: Remark Details')
+                                ->schema([
+                                    Forms\Components\Repeater::make('remarks')
+                                        ->label('Remarks')
+                                        ->hiddenLabel(true)
+                                        ->schema([
+                                            Grid::make(2)
+                                            ->schema([
+                                                Textarea::make('remark')
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                    ->hiddenLabel(true)
+                                                    ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                                        // Get the current array key from the state path
+                                                        $statePath = $livewire->getFormStatePath();
+                                                        $matches = [];
+                                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                            $index = (int) $matches[1];
+                                                            return 'Remark ' . ($index + 1);
+                                                        }
+                                                        return 'Remark';
+                                                    })
+                                                    ->placeholder('Enter remark here')
+                                                    ->rows(3),
+
+                                                // Add file attachments for each remark
+                                                FileUpload::make('attachments')
+                                                    ->hiddenLabel(true)
+                                                    ->disk('public')
+                                                    ->directory('handovers/remark_attachments')
+                                                    ->visibility('public')
+                                                    ->multiple()
+                                                    ->maxFiles(5)
+                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                    ->openable()
+                                                    ->downloadable()
+                                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                        // Get lead ID from ownerRecord
+                                                        $leadId = $this->getOwnerRecord()->id;
+                                                        // Format ID with prefix (250) and padding
+                                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                        // Get extension
+                                                        $extension = $file->getClientOriginalExtension();
+
+                                                        // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                        $timestamp = now()->format('YmdHis');
+                                                        $random = rand(1000, 9999);
+
+                                                        return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                    }),
+                                            ]),
+                                        ])
+                                        ->itemLabel(function (array $state, Forms\Components\Component $component) {
+                                            // Extract the index from the state path using regex
+                                            $statePath = $component->getStatePath();
+                                            $matches = [];
+                                            if (preg_match('/remarks\.(\d+)/', $statePath, $matches)) {
+                                                $index = (int) $matches[1];
+                                                return 'Remark ' . ($index + 1);
+                                            }
+                                            return 'Remark';
+                                        })
+                                        ->addActionLabel('Add Remark')
+                                        ->default(function (HardwareHandover $record) {
+                                            if ($record && $record->remarks) {
+                                                // If it's a string, decode it
+                                                if (is_string($record->remarks)) {
+                                                    $decoded = json_decode($record->remarks, true);
+
+                                                    // Process each remark to handle its attachments
+                                                    if (is_array($decoded)) {
+                                                        foreach ($decoded as $key => $remark) {
+                                                            // Decode the attachments if they're stored as JSON string
+                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                            }
+                                                        }
+                                                        return $decoded;
+                                                    }
+                                                    return [];
+                                                }
+
+                                                // If it's already an array, return it but process attachments
+                                                if (is_array($record->remarks)) {
+                                                    $remarks = $record->remarks;
+                                                    foreach ($remarks as $key => $remark) {
+                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                        }
+                                                    }
+                                                    return $remarks;
+                                                }
+                                            }
+                                            return [];
+                                        }),
+                                ]),
+
+                            Section::make('Step 5: Proforma Invoice')
                                 ->columnSpan(1) // Ensure it spans one column
                                 ->schema([
                                     Grid::make(2)
@@ -560,7 +845,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                         ])
                                 ]),
 
-                            Section::make('Step 5: Attachment')
+                            Section::make('Step 6: Attachment')
                                 ->columnSpan(1) // Ensure it spans one column
                                 ->schema([
                                     Grid::make(3)
@@ -673,6 +958,12 @@ class HardwareHandoverRelationManager extends RelationManager
                             $data['created_by'] = auth()->id();
                             $data['lead_id'] = $this->getOwnerRecord()->id;
                             $data['status'] = 'Draft';
+
+                            if (isset($data['category2'])) {
+                                $data['category2'] = json_encode($data['category2']);
+                            } else {
+                                $data['category2'] = json_encode([]);
+                            }
 
                             // Handle file array encodings
                             if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {

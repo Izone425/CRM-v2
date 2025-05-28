@@ -762,39 +762,48 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                         ->label('Check Sales Order')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->requiresConfirmation()
                         ->modalHeading('Check Sales Order Status')
                         ->modalDescription('Please select the appropriate status for this sales order.')
                         ->modalSubmitAction(false) // Remove default submit button
-                        ->modalCancelActionLabel('Cancel')
-                        ->modalContent(fn (HardwareHandover $record) => new HtmlString(
-                            '<div class="space-y-6">
-                                <div class="flex flex-col space-y-3">
-                                    <button
-                                        x-on:click="$wire.checkSalesOrderComplete(\'' . $record->id . '\'); $dispatch(\'close-modal\', { id: \''.Str::random().'\'  })"
-                                        class="w-full py-3 font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                                    >
-                                        <div class="flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                            </svg>
-                                            Sales Order Completed
-                                        </div>
-                                    </button>
+                        ->modalCancelAction(false) // Remove default cancel button
+                        ->extraModalFooterActions([
+                            Action::make('no_stock')
+                                ->label('No Stock')
+                                ->color('danger')
+                                ->icon('heroicon-o-x-circle')
+                                ->cancelParentActions()
+                                ->action(function (HardwareHandover $record) {
+                                    $record->update([
+                                        'status' => 'No Stock',
+                                    ]);
 
-                                    <button
-                                        x-on:click="$wire.checkSalesOrderNoStock(\'' . $record->id . '\'); $dispatch(\'close-modal\', { id: \''.Str::random().'\'  })"
-                                        class="w-full py-3 font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                                    >
-                                        <div class="flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                            </svg>
-                                            No Stock
-                                        </div>
-                                    </button>
-                                </div>
-                            </div>'
-                        ))
+                                    Notification::make()
+                                        ->title('Sales order marked as No Stock')
+                                        ->warning()
+                                        ->body('The hardware handover is on hold until stock becomes available.')
+                                        ->send();
+
+                                    $this->dispatch('close-modal', id: 'check_sales_order');
+                                }),
+                            Action::make('sales_order_completed')
+                                ->label('Sales Order Completed')
+                                ->color('success')
+                                ->icon('heroicon-o-check-circle')
+                                ->cancelParentActions()
+                                ->action(function (HardwareHandover $record) {
+                                    $record->update([
+                                        'status' => 'Sales Order Completed',
+                                    ]);
+
+                                    Notification::make()
+                                        ->title('Sales order marked as completed')
+                                        ->success()
+                                        ->send();
+
+                                    $this->dispatch('close-modal', id: 'check_sales_order');
+                                }),
+                        ])
                         ->hidden(fn (HardwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
