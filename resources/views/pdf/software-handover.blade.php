@@ -503,7 +503,33 @@
     </div>
 
     <div class="section">
-        <div class="section-title">6. PROFORMA INVOICE</div>
+        <div class="section-title">6. Speaker Category</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="40%">Item</th>
+                    <th width="60%">Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Language Using</td>
+                    <td>
+                        @if($softwareHandover->speaker_category === 'english / malay')
+                            English / Malay
+                        @elseif($softwareHandover->speaker_category === 'mandarin')
+                            Mandarin
+                        @else
+                            {{ $softwareHandover->speaker_category ?? 'Not specified' }}
+                        @endif
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">7. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
@@ -587,7 +613,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">7. ATTACHMENT</div>
+        <div class="section-title">8. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
@@ -708,7 +734,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">8. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">9. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">
