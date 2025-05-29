@@ -630,7 +630,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     Action::make('edit_software_handover')
                         ->label(function (SoftwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                             return "Edit Software Handover {$formattedId}";
                         })
                         ->icon('heroicon-o-pencil')

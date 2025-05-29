@@ -109,7 +109,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ]),
                         ]),
 
-                    Section::make('Step 2: Category')
+                    Section::make('Step 2: Category 1')
                         ->schema([
                             Forms\Components\Radio::make('installation_type')
                                 ->label('')
@@ -137,6 +137,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                     Select::make('category2.installer')
                                         ->label('Installer')
                                         ->visible(fn (callable $get) => $get('installation_type') === 'internal_installation')
+                                        ->required()
                                         ->options(function () {
                                             // Retrieve options from the installer table
                                             return \App\Models\Installer::pluck('company_name', 'id')->toArray();
@@ -146,6 +147,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                     Select::make('category2.reseller')
                                         ->label('Reseller')
                                         ->visible(fn (callable $get) => $get('installation_type') === 'external_installation')
+                                        ->required()
                                         ->options(function () {
                                             // Retrieve options from the reseller table
                                             return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
@@ -156,16 +158,66 @@ class HardwareHandoverRelationManager extends RelationManager
                                     ->schema([
                                         TextInput::make('category2.pic_name')
                                             ->label('Name')
+                                            ->required()
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name)
                                             ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
                                         TextInput::make('category2.pic_phone')
                                             ->label('HP Number')
+                                            ->tel()
+                                            ->required()
+                                            ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->contact_no)
                                             ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
                                         TextInput::make('category2.email')
                                             ->label('Email Address')
+                                            ->required()
                                             ->email()
+                                            ->default(fn () => $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email)
                                             ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
                                         TextInput::make('category2.courier_address')
                                             ->label('Courier Address')
+                                            ->required()
+                                            ->default(function () {
+                                                $owner = $this->getOwnerRecord();
+
+                                                if ($owner->companyDetail) {
+                                                    // Use company details if available
+                                                    $address = $owner->companyDetail->company_address1 ?? '';
+
+                                                    // Add address2 if it exists
+                                                    if (!empty($owner->companyDetail->company_address2)) {
+                                                        $address .= ", " . $owner->companyDetail->company_address2;
+                                                    }
+
+                                                    // Add postcode and state
+                                                    if (!empty($owner->companyDetail->postcode) || !empty($owner->companyDetail->state)) {
+                                                        $address .= ", " .
+                                                            ($owner->companyDetail->postcode ?? '') . " " .
+                                                            ($owner->companyDetail->state ?? '');
+                                                    }
+
+                                                    return $address;
+                                                } else {
+                                                    // Fallback to lead's personal address
+                                                    $address = $owner->address1 ?? '';
+
+                                                    // Add address2 if it exists
+                                                    if (!empty($owner->address2)) {
+                                                        $address .= ", " . $owner->address2;
+                                                    }
+
+                                                    // Add postcode and state
+                                                    if (!empty($owner->postcode) || !empty($owner->state)) {
+                                                        $address .= ", " .
+                                                            ($owner->postcode ?? '') . " " .
+                                                            ($owner->state ?? '');
+                                                    }
+
+                                                    return $address;
+                                                }
+                                            })
                                             ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
                                     ]),
                                 ]),
@@ -424,14 +476,14 @@ class HardwareHandoverRelationManager extends RelationManager
                         }
 
                         // Format ID with prefix 250 and padding to ensure at least 3 digits
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     }),
                 TextColumn::make('submitted_at')
                     ->label('Date Submit')
                     ->date('d M Y')
                     ->toggleable(),
                 TextColumn::make('installation_type')
-                    ->label('Category (Installation Type)')
+                    ->label('Category 1')
                     ->formatStateUsing(function ($state) {
                         return match ($state) {
                             'courier' => 'Courier',
@@ -498,9 +550,6 @@ class HardwareHandoverRelationManager extends RelationManager
                     ->wrap()
                     ->html() // Important: Add this to render the HTML content
                     ->toggleable(),
-                TextColumn::make('action_date')
-                    ->label('Action Date')
-                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
@@ -524,7 +573,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->color('warning'),
 
                     Action::make('view')
@@ -532,7 +581,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -605,7 +654,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                             'external_installation' => 'External Installation',
                                         ])
                                         // ->inline()
-                                        ->columns(2)
+                                        ->columns(3)
                                         ->required()
                                         ->live(debounce:500)
                                         ->default(fn (HardwareHandover $record) => $record->installation_type ?? null),

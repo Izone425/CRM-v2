@@ -401,7 +401,7 @@ class SoftwareHandoverResource extends Resource
                 TextColumn::make('headcount')
                     ->label('Headcount')
                     ->toggleable(),
-                TextColumn::make('db_creation')
+                TextColumn::make('created_at')
                     ->label('DB Creation')
                     ->date('d M Y')
                     ->toggleable(),
