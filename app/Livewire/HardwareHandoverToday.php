@@ -126,7 +126,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -166,7 +166,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                     ),
 
                 TextColumn::make('lead.salesperson')
-                    ->label('SALESPERSON')
+                    ->label('SalesPerson')
                     ->getStateUsing(function (HardwareHandover $record) {
                         $lead = $record->lead;
                         if (!$lead) {

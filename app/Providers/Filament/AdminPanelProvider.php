@@ -22,6 +22,7 @@ use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SearchLead;
+use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
@@ -170,6 +171,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesForecastSummary::class,
                 PagesFutureEnhancement::class,
                 SearchLead::class,
+                // SoftwareHandoverAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

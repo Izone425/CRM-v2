@@ -131,7 +131,7 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -169,7 +169,7 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')

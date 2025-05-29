@@ -68,22 +68,6 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = SoftwareHandover::query();
-
-        if (auth()->user()->role_id === 2) {
-            // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
-
-            // But only THEIR OWN records
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        } else {
-            // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['New', 'Approved']);
-            // But they can see ALL records
-        }
-
         // Salesperson filter logic
         if ($this->selectedUser === 'all-salespersons') {
             // Keep as is - show all salespersons' handovers
@@ -107,7 +91,20 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                 });
             }
         } else {
-            $query->whereIn('status', ['New', 'Approved']);
+            if (auth()->user()->role_id === 2) {
+                // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+                $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+
+                // But only THEIR OWN records
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            } else {
+                // Other users (admin, managers) can only see New, Approved, and Completed
+                $query->whereIn('status', ['New', 'Approved']);
+                // But they can see ALL records
+            }
         }
 
         $query->orderByRaw("CASE
@@ -126,7 +123,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -149,7 +146,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -782,34 +779,34 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->schema([
                                     Section::make('Module Selection')
                                         ->schema([
-                                            Grid::make(3)
+                                            Grid::make(2)
                                                 ->schema([
                                                     Checkbox::make('ta')
                                                         ->label('Time Attendance (TA)')
-                                                        ->inline(),
-
-                                                    Checkbox::make('tl')
-                                                        ->label('TimeTec Leave (TL)')
-                                                        ->inline(),
-
-                                                    Checkbox::make('tc')
-                                                        ->label('TimeTec Claim (TC)')
-                                                        ->inline(),
-
-                                                    Checkbox::make('tp')
-                                                        ->label('TimeTec Payroll (TP)')
                                                         ->inline(),
 
                                                     Checkbox::make('tapp')
                                                         ->label('TimeTec Appraisal (T-APP)')
                                                         ->inline(),
 
+                                                    Checkbox::make('tl')
+                                                        ->label('TimeTec Leave (TL)')
+                                                        ->inline(),
+
                                                     Checkbox::make('thire')
                                                         ->label('TimeTec Hire (T-HIRE)')
                                                         ->inline(),
 
+                                                    Checkbox::make('tc')
+                                                        ->label('TimeTec Claim (TC)')
+                                                        ->inline(),
+
                                                     Checkbox::make('tacc')
                                                         ->label('TimeTec Access (T-ACC)')
+                                                        ->inline(),
+
+                                                    Checkbox::make('tp')
+                                                        ->label('TimeTec Payroll (TP)')
                                                         ->inline(),
 
                                                     Checkbox::make('tpbi')

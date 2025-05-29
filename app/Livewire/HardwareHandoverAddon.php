@@ -78,7 +78,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
             });
         } else {
             // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['Rejected', 'Draft']);
+            $query->whereIn('status', ['Rejected', 'Draft', 'No Stock']);
             // But they can see ALL records
         }
 
@@ -131,7 +131,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -224,31 +224,28 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
+                ])
+                ->actions([
+                    ActionGroup::make([
+                        Action::make('view')
+                            ->label('View')
+                            ->icon('heroicon-o-eye')
+                            ->color('secondary')
+                            ->modalHeading(' ')
+                            ->modalWidth('md')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            // Use a callback function instead of arrow function for more control
+                            ->modalContent(function (HardwareHandover $record): View {
 
-                // TextColumn::make('submitted_at')
-                //     ->label('Date Submit')
-                //     ->date('d M Y'),
-
-                // TextColumn::make('kik_off_meeting_date')
-                //     ->label('Kick Off Meeting Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Training Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Implementer')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
+                                // Return the view with the record using $this->record pattern
+                                return view('components.hardware-handover')
+                                ->with('extraAttributes', ['record' => $record]);
+                            }),
+                    ])
+                    ->button()
+                    ->color('primary')
+                    ->label('Actions')
                 ]);
     }
 

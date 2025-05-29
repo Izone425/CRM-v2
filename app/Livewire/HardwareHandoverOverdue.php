@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 
 class HardwareHandoverOverdue extends Component implements HasForms, HasTable
@@ -29,7 +30,7 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
     public function getOverdueHardwareHandovers()
     {
         return HardwareHandover::query()
-            ->where('status', 'New') // Only new handovers
+            ->whereIn('status', ['Completed', 'Sales Order Completed', 'Data Migration Completed', 'Installation Completed'])
             ->where('created_at', '<', Carbon::today()) // Only those created before today
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
@@ -38,16 +39,13 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getOverdueHardwareHandovers())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->columns([
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name'),
-
                 TextColumn::make('handover_pdf')
                     ->label('ID')
                     ->formatStateUsing(function ($state) {
@@ -76,9 +74,45 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
                             })
                     ),
 
+                TextColumn::make('lead.salesperson')
+                    ->label('SalesPerson')
+                    ->getStateUsing(function (HardwareHandover $record) {
+                        $lead = $record->lead;
+                        if (!$lead) {
+                            return '-';
+                        }
 
-                TextColumn::make('value')
-                    ->label('Value'),
+                        $salespersonId = $lead->salesperson;
+                        return User::find($salespersonId)?->name ?? '-';
+                    })
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
+                TextColumn::make('lead.companyDetail.company_name')
+                    ->label('Company Name')
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
+                    ->html(),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
+                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
+                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
+                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
+                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
+                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                    }),
             ])
             // ->filters([
             //     // Filter for Creator
@@ -97,52 +131,24 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
             // ])
             ->actions([
                 ActionGroup::make([
-                    // Action::make('view_details')
-                    //     ->label('View Details')
-                    //     ->icon('heroicon-o-eye')
-                    //     ->url(fn (HardwareHandover $record): string => route('filament.admin.resources.hardware-handovers.view', $record)),
+                    Action::make('view')
+                        ->label('View')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->modalHeading(' ')
+                        ->modalWidth('md')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        // Use a callback function instead of arrow function for more control
+                        ->modalContent(function (HardwareHandover $record): View {
 
-                    Action::make('mark_approved')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
-
-                            Notification::make()
-                                ->title('Hardware Handover marked as approved')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-
-                    Action::make('mark_rejected')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->form([
-                            \Filament\Forms\Components\Textarea::make('reject_reason')
-                                ->label('Reason for Rejection')
-                                ->required()
-                                ->placeholder('Please provide a reason for rejecting this handover')
-                                ->maxLength(500)
-                        ])
-                        ->action(function (HardwareHandover $record, array $data): void {
-                            // Update both status and add the rejection remarks
-                            $record->update([
-                                'status' => 'Rejected',
-                                'remark' => $data['reject_reason']
-                            ]);
-
-                            Notification::make()
-                                ->title('Hardware Handover marked as rejected')
-                                ->body('Rejection reason: ' . $data['reject_reason'])
-                                ->danger()
-                                ->send();
-                        })
-                        ->requiresConfirmation(false),
+                            // Return the view with the record using $this->record pattern
+                            return view('components.hardware-handover')
+                            ->with('extraAttributes', ['record' => $record]);
+                        }),
                 ])
                 ->button()
+                ->color('warning')
                 ->label('Actions')
             ]);
     }
