@@ -626,6 +626,9 @@ class LeadResource extends Resource
                                                                     ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
                                                                 TextInput::make('position')
                                                                     ->label('Position')
+                                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
                                                                     ->required()
                                                                     ->default(fn ($record) => $record->companyDetail->position ?? '-'),
                                                             ])

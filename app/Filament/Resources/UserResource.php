@@ -87,6 +87,8 @@ class UserResource extends Resource
                             ->options([
                                 2 => 'Salesperson',
                                 1 => 'Lead Owner',
+                                4 => 'Implementer',
+                                6 => 'Trainer',
                                 3 => 'Manager',
                             ])
                             ->afterStateUpdated(function ($state, callable $set) {
@@ -182,6 +184,9 @@ class UserResource extends Resource
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255),
+                        Forms\Components\TextInput::make('api_user_id')
+                            ->label('Staff ID')
+                            ->required(),
                     ])
                     ->columns(2),
 
@@ -522,6 +527,8 @@ class UserResource extends Resource
                             1 => 'Lead Owner',
                             2 => 'Salesperson',
                             3 => 'Manager',
+                            4 => 'Implementer',
+                            6 => 'Trainer',
                             default => 'Unknown',
                         };
                     }),

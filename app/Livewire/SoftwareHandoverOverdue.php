@@ -108,7 +108,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('60s')
+            ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -130,19 +130,23 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             //         ->placeholder('Select Company'),
             // ])
             ->columns([
-                TextColumn::make('handover_pdf')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state) {
-                        // If handover_pdf is null, return a placeholder
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
-                            return '-';
+                            return 'Unknown';
                         }
 
-                        // Extract just the filename without extension
-                        $filename = basename($state, '.pdf');
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
 
-                        // Return just the formatted ID part
-                        return $filename;
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')

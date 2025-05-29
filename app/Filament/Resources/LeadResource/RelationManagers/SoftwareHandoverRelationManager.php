@@ -299,7 +299,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->defaultItems(1),
                             ]),
 
-                        Section::make('Step 5: Training')
+                        Section::make('Step 5: Training Category')
                             ->schema([
                                 Forms\Components\Radio::make('training_type')
                                     ->label('')
@@ -822,7 +822,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Section::make('Step 5: Training')
+                            Section::make('Step 5: Training Category')
                                 ->columnSpan(1)
                                 ->schema([
                                     Forms\Components\Radio::make('training_type')
@@ -858,7 +858,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }),
                                 ]),
 
-                            Section::make('Step 6: Proforma Invoice')
+                            Section::make('Step 7: Proforma Invoice')
                                 ->columnSpan(1)
                                 ->schema([
                                     Grid::make(2)
@@ -911,7 +911,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ])
                                 ]),
 
-                            Section::make('Step 7: Attachment')
+                            Section::make('Step 8: Attachment')
                                 ->columnSpan(1)
                                 ->schema([
                                     Grid::make(3)

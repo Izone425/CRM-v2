@@ -690,7 +690,7 @@
             @endif
 
             <!-- Trainer Section (with nested dropdowns) -->
-            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [6]))
             <div class="sidebar-dropdown">
                 <div class="sidebar-item dropdown-trigger" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; padding: 12px 0; position: relative; text-align: center;">
                     <div class="sidebar-icon" style="display: flex; justify-content: center; align-items: center; font-size: 1.25rem; margin-bottom: 4px;">
@@ -739,7 +739,7 @@
                 // 'filament.admin.resources.software-handovers.index',
                 // 'filament.admin.resources.hardware-handovers.index',
                 'filament.admin.pages.future-enhancement'
-            ]))
+            ]) || in_array(auth()->user()->role_id, [4]))
             <div class="sidebar-dropdown">
                 <div class="sidebar-item dropdown-trigger" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; padding: 12px 0; position: relative; text-align: center;">
                     <div class="sidebar-icon" style="display: flex; justify-content: center; align-items: center; font-size: 1.25rem; margin-bottom: 4px;">
@@ -753,7 +753,7 @@
                     <div class="dropdown-category-heading">IMPLEMENTER</div>
 
                     <!-- Software Handover -->
-                    @if(auth()->user()->hasAccessToAny(['filament.admin.resources.software-handovers.index', 'filament.admin.pages.future-enhancement']))
+                    @if(auth()->user()->hasAccessToAny(['filament.admin.resources.software-handovers.index', 'filament.admin.pages.future-enhancement']) || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-app-indicator"></i>
@@ -762,7 +762,7 @@
                         </div>
 
                         <div class="nested-dropdown-content">
-                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.software-handovers.index'))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.software-handovers.index')|| in_array(auth()->user()->role_id, [4]))
                             <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard</span>
@@ -783,7 +783,7 @@
                     @endif
 
                     <!-- Hardware Handover -->
-                    @if(auth()->user()->hasAccessToAny(['filament.admin.resources.hardware-handovers.index', 'filament.admin.pages.future-enhancement']))
+                    @if(auth()->user()->hasAccessToAny(['filament.admin.resources.hardware-handovers.index', 'filament.admin.pages.future-enhancement']) || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-cpu"></i>
@@ -792,7 +792,7 @@
                         </div>
 
                         <div class="nested-dropdown-content">
-                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.hardware-handovers.index'))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.hardware-handovers.index') || in_array(auth()->user()->role_id, [4]))
                             <a href="{{ route('filament.admin.resources.hardware-handovers.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard</span>
@@ -813,7 +813,7 @@
                     @endif
 
                     <!-- Project -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-kanban"></i>
@@ -835,7 +835,7 @@
                     </div>
                     @endif
 
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-bookmarks-fill"></i>
@@ -868,7 +868,7 @@
                     @endif
 
                     <!-- Other -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-three-dots"></i>

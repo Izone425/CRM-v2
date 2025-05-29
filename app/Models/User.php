@@ -47,6 +47,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'signature_path',
         'msteam_link',
         'additional_role',
+        'api_user_id',
     ];
 
 
