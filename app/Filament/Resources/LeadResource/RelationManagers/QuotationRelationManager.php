@@ -545,30 +545,25 @@ class QuotationRelationManager extends RelationManager
                         $resetCount = 0;
                         $lead->quotations()
                             ->where('mark_as_final', 1)
+                            ->where('id', '!=', $quotation->id)
                             ->each(function ($q) use (&$resetCount) {
                                 $q->updateQuietly(['mark_as_final' => 0]);
                                 $resetCount++;
                             });
 
-                        // Then mark the selected quotation as final
-                        $quotation->mark_as_final = 1;
-                        $quotation->save();
+                        // Now mark the selected quotation as final
+                        $quotation->updateQuietly(['mark_as_final' => 1]);
 
                         // Display a notification with the results
                         Notification::make()
                             ->title("Quotation Marked as Final")
-                            ->body("Quotation #{$quotation->id} has been marked as final. {$resetCount} previous final quotation(s) have been reset.")
+                            ->body("Quotation #{$quotation->id} for {$quotation->lead->companyDetail->company_name} has been marked as final. {$resetCount} previous final quotation(s) have been reset.")
                             ->success()
                             ->duration(5000)
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion()
                     ->hidden(function (RelationManager $livewire): bool {
-                        // Check if there are already any final quotations
-                        $finalQuotationCount = $livewire->getOwnerRecord()->quotations()
-                            ->where('mark_as_final', 1)
-                            ->count();
-
                         return $livewire->checkRecordCount() == 0;
                     }),
             ]);

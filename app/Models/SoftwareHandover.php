@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +16,7 @@ class SoftwareHandover extends Model
         'lead_id',
         'created_by',
         'status',
+        'status_handover',
         'handover_pdf',
 
         // Section 1: Company Details
@@ -64,6 +66,7 @@ class SoftwareHandover extends Model
         'payment_slip_file',
         'hrdf_grant_file',
         'invoice_file',
+        'new_attachment_file',
 
         // Section 9: Status & Remarks
         'reject_reason',
@@ -98,9 +101,47 @@ class SoftwareHandover extends Model
         'payment_slip_file' => 'array',
         'hrdf_grant_file' => 'array',
         'invoice_file' => 'array',
+        'new_attachment_file' => 'array',
         'implementation_pics' => 'array',
         'remarks' => 'array',
     ];
+
+    protected static function booted()
+    {
+        parent::booted();
+
+        // This runs when a model is retrieved from the database
+        static::retrieved(function ($softwareHandover) {
+            // Only check if status is not already Closed and completed_at exists
+            if ($softwareHandover->status_handover !== 'Closed' && $softwareHandover->completed_at) {
+                $completedDate = Carbon::parse($softwareHandover->completed_at);
+                $today = Carbon::now();
+                $daysDifference = $completedDate->diffInDays($today);
+
+                // If more than 60 days and not already marked as Delay or Closed, update to Delay
+                if ($daysDifference > 60 && $softwareHandover->status_handover !== 'Delay') {
+                    $softwareHandover->status_handover = 'Delay';
+                    $softwareHandover->saveQuietly(); // Save without triggering events
+                }
+            }
+        });
+    }
+
+    /**
+     * Get the total days since completion.
+     *
+     * @return int|string
+     */
+    public function getTotalDaysAttribute()
+    {
+        if (!$this->completed_at) {
+            return 'N/A';
+        }
+
+        $completedDate = Carbon::parse($this->completed_at);
+        $today = Carbon::now();
+        return $completedDate->diffInDays($today);
+    }
 
     /**
      * Set the remarks attribute to uppercase.

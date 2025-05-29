@@ -316,12 +316,33 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->schema([
                                 Forms\Components\Radio::make('speaker_category')
                                     ->label('')
-                                    ->options([
-                                        'english / malay' => 'English / Malay',
-                                        'mandarin' => 'Mandarin',
-                                    ])
-                                    // ->inline()
+                                    ->options(function (Forms\Get $get) {
+                                        $headcount = (int)$get('headcount');
+
+                                        // If headcount > 25, show both options
+                                        if ($headcount > 25) {
+                                            return [
+                                                'english / malay' => 'English / Malay',
+                                                'mandarin' => 'Mandarin',
+                                            ];
+                                        }
+                                        // Otherwise, only show English/Malay
+                                        else {
+                                            return [
+                                                'english / malay' => 'English / Malay',
+                                            ];
+                                        }
+                                    })
                                     ->columns(2)
+                                    ->live() // Make it react to headcount changes
+                                    ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                        $headcount = (int)$get('headcount');
+
+                                        // If headcount <= 25 and value is mandarin, reset to english/malay
+                                        if ($headcount <= 25 && $state === 'mandarin') {
+                                            $set('speaker_category', 'english / malay');
+                                        }
+                                    })
                                     ->required(),
                             ]),
 
@@ -506,14 +527,34 @@ class SoftwareHandoverRelationManager extends RelationManager
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareHandover $record) {
-                        // If no ID is provided, return a fallback
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
                         }
 
-                        // Format ID with prefix 250 and padding to ensure at least 3 digits
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                    }),
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
+
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    })
+                    ->color('primary') // Makes it visually appear as a link
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (SoftwareHandover $record): View {
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $record]);
+                            })
+                    ),
                 TextColumn::make('submitted_at')
                     ->label('Date Submit')
                     ->date('d M Y'),
@@ -552,7 +593,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -845,15 +886,36 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->schema([
                                     Forms\Components\Radio::make('speaker_category')
                                         ->label('')
-                                        ->options([
-                                            'english / malay' => 'English / Malay',
-                                            'mandarin' => 'Mandarin',
-                                        ])
-                                        // ->inline()
+                                        ->options(function (Forms\Get $get) {
+                                            $headcount = (int)$get('headcount');
+
+                                            // If headcount > 25, show both options
+                                            if ($headcount > 25) {
+                                                return [
+                                                    'english / malay' => 'English / Malay',
+                                                    'mandarin' => 'Mandarin',
+                                                ];
+                                            }
+                                            // Otherwise, only show English/Malay
+                                            else {
+                                                return [
+                                                    'english / malay' => 'English / Malay',
+                                                ];
+                                            }
+                                        })
                                         ->columns(2)
+                                        ->live() // Make it react to headcount changes
+                                        ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                            $headcount = (int)$get('headcount');
+
+                                            // If headcount <= 25 and value is mandarin, reset to english/malay
+                                            if ($headcount <= 25 && $state === 'mandarin') {
+                                                $set('speaker_category', 'english / malay');
+                                            }
+                                        })
                                         ->required()
                                         ->default(function (SoftwareHandover $record) {
-                                            // Return the saved training type if it exists
+                                            // Return the saved speaker category if it exists
                                             return $record->speaker_category ?? null;
                                         }),
                                 ]),
@@ -1092,7 +1154,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->color('warning'),
 
                     // Convert to Draft button - only visible for Rejected status
@@ -1113,6 +1175,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         }),
                 ])->icon('heroicon-m-list-bullet')
                 ->size(ActionSize::Small)
+                ->label('Actions')
                 ->color('primary')
                 ->button(),
             ])
