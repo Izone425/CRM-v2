@@ -153,7 +153,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {
@@ -228,7 +228,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -706,7 +706,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->color('warning'),
                         Action::make('mark_approved')
                         ->label('Approve')
@@ -824,6 +824,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                 ->multiple()
                                 ->maxFiles(10)
+                                ->minFiles(1)
                                 ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
                                 ->openable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -877,7 +878,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->success()
                                 ->send();
                         })
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')
                         ->requiresConfirmation(false)
                         ->hidden(fn (SoftwareHandover $record): bool =>

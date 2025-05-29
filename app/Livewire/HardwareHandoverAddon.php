@@ -176,7 +176,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -222,6 +222,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                         'New' => new HtmlString('<span style="color: blue;">New</span>'),
                         'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
+                        'No Stock' => new HtmlString('<span style="color: red;">No Stock</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
                 ])
@@ -232,7 +233,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                             ->icon('heroicon-o-eye')
                             ->color('secondary')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             // Use a callback function instead of arrow function for more control

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SoftwareAttachmentResource\Pages;
 use App\Models\SoftwareAttachment;
 use App\Models\SoftwareHandover;
+use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -163,10 +164,6 @@ class SoftwareAttachmentResource extends Resource
                 }
             })
             ->columns([
-                TextColumn::make('index')
-                    ->label('ID')
-                    ->rowIndex(),
-
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareAttachment $record) {
@@ -176,14 +173,14 @@ class SoftwareAttachmentResource extends Resource
                         }
 
                         // Format ID with prefix and padding
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->softwareHandover->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareAttachment $record): View {
@@ -238,49 +235,159 @@ class SoftwareAttachmentResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('softwareHandover.completed_at')
-                    ->label('Completed Date & Time')
-                    ->dateTime()
+                    ->label('DB Creation Date')
+                    ->date('d M Y')
                     ->sortable()
                     ->toggleable(),
             ])
             ->filters([
-                // Tables\Filters\SelectFilter::make('software_handover_id')
-                //     ->relationship('softwareHandover', 'id')
-                //     ->label('Handover ID')
-                //     ->searchable()
-                //     ->preload(),
+                Tables\Filters\SelectFilter::make('salesperson')
+                ->label('Salesperson')
+                ->options(function () {
+                    return \App\Models\User::where('role_id', 2) // Assuming role_id 2 is for salespeople
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray();
+                })
+                ->query(function ($query, array $data) {
+                    if (!isset($data['value']) || $data['value'] === '') {
+                        return $query;
+                    }
 
-                // Tables\Filters\SelectFilter::make('created_by')
-                //     ->relationship('creator', 'name')
-                //     ->label('Created By')
-                //     ->searchable()
-                //     ->preload(),
+                    return $query->whereHas('softwareHandover.lead', function ($leadQuery) use ($data) {
+                        $leadQuery->where('salesperson', $data['value']);
+                    });
+                })
+                ->searchable(),
 
-                Tables\Filters\Filter::make('created_at')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from')
-                            ->label('Created From'),
-                        Forms\Components\DatePicker::make('created_until')
-                            ->label('Created Until'),
-                    ])
-                    ->query(function ($query, array $data) {
-                        return $query
-                            ->when(
-                                $data['created_from'],
-                                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
-                            );
-                    }),
+            // Implementer filter
+            Tables\Filters\SelectFilter::make('implementer')
+                ->label('Implementer')
+                ->options(function () {
+                    return \App\Models\User::where('role_id', 4) // Assuming role_id 4 is for implementers
+                        ->orderBy('name')
+                        ->pluck('name', 'name') // Change from id to name for both key and value
+                        ->toArray();
+                })
+                ->query(function ($query, array $data) {
+                    if (!isset($data['value']) || $data['value'] === '') {
+                        return $query;
+                    }
+
+                    return $query->whereHas('softwareHandover', function ($handoverQuery) use ($data) {
+                        $handoverQuery->where('implementer', $data['value']); // This now compares name to name
+                    });
+                })
+                ->searchable(),
+
+            // DB Creation Date Range filter
+            Tables\Filters\Filter::make('completed_at')
+                ->label('DB Creation Date')
+                ->form([
+                    Forms\Components\DatePicker::make('from')
+                        ->label('From')
+                        ->placeholder('Select start date'),
+                    Forms\Components\DatePicker::make('until')
+                        ->label('To')
+                        ->placeholder('Select end date'),
+                ])
+                ->query(function ($query, array $data) {
+                    if (!empty($data['from'])) {
+                        $query->whereHas('softwareHandover', function ($handoverQuery) use ($data) {
+                            $handoverQuery->whereDate('completed_at', '>=', $data['from']);
+                        });
+                    }
+
+                    if (!empty($data['until'])) {
+                        $query->whereHas('softwareHandover', function ($handoverQuery) use ($data) {
+                            $handoverQuery->whereDate('completed_at', '<=', $data['until']);
+                        });
+                    }
+
+                    return $query;
+                })
+                ->indicateUsing(function (array $data): array {
+                    $indicators = [];
+
+                    if ($data['from'] ?? null) {
+                        $indicators['from'] = 'From ' . Carbon::parse($data['from'])->format('d M Y');
+                    }
+
+                    if ($data['until'] ?? null) {
+                        $indicators['until'] = 'To ' . Carbon::parse($data['until'])->format('d M Y');
+                    }
+
+                    return $indicators;
+                }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    // Tables\Actions\EditAction::make(),
-                    // Tables\Actions\DeleteAction::make(),
-                ]),
+                    Action::make('view')
+                        ->label('View')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->modalHeading(' ')
+                        ->modalWidth('3xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->visible(fn (SoftwareAttachment $record): bool => in_array($record->softwareHandover->status, ['New', 'Completed', 'Approved']))
+                        // Use a callback function instead of arrow function for more control
+                        ->modalContent(function (SoftwareAttachment $record): View {
+
+                            // Return the view with the record using $this->record pattern
+                            return view('components.software-handover')
+                            ->with('extraAttributes', ['record' => $record->softwareHandover]);
+                        }),
+                    Action::make('uploadNewAttachment')
+                        ->label('Upload New Attachment')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('success')
+                        ->form([
+                            FileUpload::make('files')
+                                ->required()
+                                ->multiple()
+                                ->disk('public')
+                                ->directory('software-handover-attachments')
+                                ->visibility('public')
+                                ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                ->maxSize(10240) // 10MB
+                                ->maxFiles(10)
+                                ->downloadable()
+                                ->openable()
+                                ->previewable()
+                                ->reorderable()
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                    $date = now()->format('Y-m-d');
+                                    $random = Str::random(8);
+                                    $extension = $file->getClientOriginalExtension();
+                                    return "attachment-{$date}-{$random}.{$extension}";
+                                }),
+                        ])
+                        ->action(function (SoftwareAttachment $record, array $data) {
+                            // Get the handover record
+                            $handover = $record->softwareHandover;
+
+                            // Check if new_attachment_file already exists
+                            $existingFiles = $handover->new_attachment_file ?
+                                (is_string($handover->new_attachment_file) ? json_decode($handover->new_attachment_file, true) : $handover->new_attachment_file) :
+                                [];
+
+                            // Add new files to existing files
+                            $allFiles = array_merge($existingFiles, $data['files']);
+
+                            // Update the handover record with new files
+                            $handover->update([
+                                'new_attachment_file' => json_encode($allFiles),
+                            ]);
+
+                            // Show success notification
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Attachment Uploaded')
+                                ->body('New attachment files have been added successfully.')
+                                ->send();
+                        }),
+                ])->button(),
             ]);
     }
 

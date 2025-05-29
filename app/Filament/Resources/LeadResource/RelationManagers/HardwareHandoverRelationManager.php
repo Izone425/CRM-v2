@@ -524,7 +524,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->color('warning'),
 
                     Action::make('view')
@@ -532,7 +532,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))

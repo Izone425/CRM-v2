@@ -37,181 +37,211 @@
         <h2 class="text-lg font-semibold text-gray-800">Software Handover Details</h2>
         <p class="text-blue-600">{{ $companyName }}</p>
     </div>
-    <!-- Main Information -->
-    <div class="mb-6">
-        <p class="flex mb-2">
-            <span class="mr-2 font-semibold">Status:</span>&nbsp;
-            @if($record->status == 'Approved')
-                <span class="text-green-600">{{ $record->status }}</span>
-            @elseif($record->status == 'Rejected')
-                <span class="text-red-600">{{ $record->status }}</span>
-            @elseif($record->status == 'Draft')
-                <span class="text-yellow-500">{{ $record->status }}</span>
-            @elseif($record->status == 'New')
-                <span class="text-indigo-600">{{ $record->status }}</span>
-            @else
-                <span>{{ $record->status ?? '-' }}</span>
-            @endif
-        </p>
-        <p class="mb-2"><span class="font-semibold">Software Handover ID:</span> {{ isset($record->id) ? $record->id : '-' }}</p>
-        <p class="mb-2"><span class="font-semibold">Software Handover Date:</span> {{ isset($record->created_at) ? $record->created_at->format('d M Y') : '-' }}</p>
-        <p class="mb-4">
-            <span class="font-semibold">Software Handover Form:</span>
-            @if($record->handover_pdf)
-                <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
-            @elseif($record->status !== 'Draft')
-                <a href="{{ route('software-handover.pdf', $record->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
-            @else
-                <span style="color: #6B7280;">Click Here</span>
-            @endif
-        </p>
-    </div>
+    <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2">
+        <div>
+            <!-- Main Information -->
+            <div class="mb-6">
+                <p class="flex mb-2">
+                    <span class="mr-2 font-semibold">Status:</span>&nbsp;
+                    @if($record->status == 'Approved')
+                        <span class="text-green-600">{{ $record->status }}</span>
+                    @elseif($record->status == 'Rejected')
+                        <span class="text-red-600">{{ $record->status }}</span>
+                    @elseif($record->status == 'Draft')
+                        <span class="text-yellow-500">{{ $record->status }}</span>
+                    @elseif($record->status == 'New')
+                        <span class="text-indigo-600">{{ $record->status }}</span>
+                    @else
+                        <span>{{ $record->status ?? '-' }}</span>
+                    @endif
+                </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Software Handover ID:</span>
+                    {{ isset($record->id) ? 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
+                </p>
+                <p class="mb-2"><span class="font-semibold">Software Handover Date:</span> {{ isset($record->created_at) ? $record->created_at->format('d M Y') : '-' }}</p>
+                <p class="mb-4">
+                    <span class="font-semibold">Software Handover Form:</span>
+                    @if($record->handover_pdf)
+                        <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                    @elseif($record->status !== 'Draft')
+                        <a href="{{ route('software-handover.pdf', $record->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                    @else
+                        <span style="color: #6B7280;">Click Here</span>
+                    @endif
+                </p>
+            </div>
 
-    <!-- Separator Line -->
-    <hr class="my-4 border-gray-300">
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
 
-    <!-- Proforma Invoice Information -->
-    <div class="mb-6">
-        <p class="mb-2">
-            <span class="font-semibold">Product PI:</span>
-            @if($productQuotations->count() > 0)
-                @foreach($productQuotations as $index => $quotation)
-                    <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
-                    @if(!$loop->last) / @endif
-                @endforeach
-            @else
-                <span class="text-gray-500">-</span>
-            @endif
-        </p>
-        <p class="mb-4">
-            <span class="font-semibold">HRDF PI:</span>
-            @if($hrdfQuotations->count() > 0)
-                @foreach($hrdfQuotations as $index => $quotation)
-                    <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
-                    @if(!$loop->last) / @endif
-                @endforeach
-            @else
-                <span class="text-gray-500">-</span>
-            @endif
-        </p>
-    </div>
+            <!-- Proforma Invoice Information -->
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Product PI:</span>
+                    @if($productQuotations->count() > 0)
+                        @foreach($productQuotations as $index => $quotation)
+                            <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                            @if(!$loop->last) / @endif
+                        @endforeach
+                    @else
+                        <span class="text-gray-500">-</span>
+                    @endif
+                </p>
+                <p class="mb-4">
+                    <span class="font-semibold">HRDF PI:</span>
+                    @if($hrdfQuotations->count() > 0)
+                        @foreach($hrdfQuotations as $index => $quotation)
+                            <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                            @if(!$loop->last) / @endif
+                        @endforeach
+                    @else
+                        <span class="text-gray-500">-</span>
+                    @endif
+                </p>
+            </div>
 
-    <!-- Separator Line -->
-    <hr class="my-4 border-gray-300">
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
 
-    <!-- Attachment Files -->
-    <div class="mb-6">
-        <p class="mb-2">
-            <span class="font-semibold">Confirmation Order:</span>
-            @if(is_array($confirmationFiles) && count($confirmationFiles) > 0)
-                @foreach($confirmationFiles as $index => $file)
-                    <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
-                    @if(!$loop->last) / @endif
-                @endforeach
-            @else
-                <span class="text-gray-500">Click Here</span>
-            @endif
-        </p>
+            <!-- Attachment Files -->
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Confirmation Order:</span>
+                    @if(is_array($confirmationFiles) && count($confirmationFiles) > 0)
+                        @foreach($confirmationFiles as $index => $file)
+                            <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                            @if(!$loop->last) / @endif
+                        @endforeach
+                    @else
+                        <span class="text-gray-500">Click Here</span>
+                    @endif
+                </p>
 
-        <p class="mb-2">
-            <span class="font-semibold">Payment Slip:</span>
-            @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
-                @foreach($paymentSlipFiles as $index => $file)
-                    <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
-                    @if(!$loop->last) / @endif
-                @endforeach
-            @else
-                <span class="text-gray-500">Click Here</span>
-            @endif
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Payment Slip:</span>
+                    @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
+                        @foreach($paymentSlipFiles as $index => $file)
+                            <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                            @if(!$loop->last) / @endif
+                        @endforeach
+                    @else
+                        <span class="text-gray-500">Click Here</span>
+                    @endif
+                </p>
 
-        <p class="mb-2">
-            <span class="font-semibold">HRDF Grant Approval Letter:</span>
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">HRDF Grant Approval Letter:</span>
+                </p>
 
-        @if(is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0)
-            <ul class="pl-6 list-none">
-                @foreach($hrdfGrantFiles as $index => $file)
-                    <li class="mb-1">
-                        <span class="mr-2">➤</span>
-                        <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Approval {{ $index + 1 }}</a>
-                    </li>
-                @endforeach
-            </ul>
-        @else
-            <span>No Record found</span>
-        @endif
-    </div>
+                @if(is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($hrdfGrantFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Approval {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No Record found</span>
+                @endif
+            </div>
 
-    <!-- Separator Line -->
-    <hr class="my-4 border-gray-300">
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
 
-    <div class="mb-2 text-center">
-        <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
-           target="_blank"
-           style="display: inline-flex; align-items: center; color: #16a34a; text-decoration: none; font-weight: 500; padding: 6px 12px; border: 1px solid #16a34a; border-radius: 4px;"
-           onmouseover="this.style.backgroundColor='#f0fdf4'"
-           onmouseout="this.style.backgroundColor='transparent'">
-            <!-- Download Icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Export Invoice Information to Excel
-        </a>
-    </div>
+            <div class="mb-2 text-center">
+                <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
+                target="_blank"
+                style="display: inline-flex; align-items: center; color: #16a34a; text-decoration: none; font-weight: 500; padding: 6px 12px; border: 1px solid #16a34a; border-radius: 4px;"
+                onmouseover="this.style.backgroundColor='#f0fdf4'"
+                onmouseout="this.style.backgroundColor='transparent'">
+                    <!-- Download Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export Invoice Information to Excel
+                </a>
+            </div>
+        </div>
 
-    <!-- Separator Line -->
-    <hr class="my-4 border-gray-300">
+        <div>
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Kick Off Meeting Date:</span>
+                    {{ $record->kick_off_meeting ? \Carbon\Carbon::parse($record->kick_off_meeting)->format('d M Y') : 'Not set' }}
+                </p>
 
-    <div class="mb-6">
-        <p class="mb-2">
-            <span class="font-semibold">Kick Off Meeting Date:</span>
-            {{ $record->kick_off_meeting ? \Carbon\Carbon::parse($record->kick_off_meeting)->format('d M Y') : 'Not set' }}
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Online Webinar Training Date:</span>
+                    {{ $record->webinar_training ? \Carbon\Carbon::parse($record->webinar_training)->format('d M Y') : 'Not set' }}
+                </p>
 
-        <p class="mb-2">
-            <span class="font-semibold">Online Webinar Training Date:</span>
-            {{ $record->webinar_training ? \Carbon\Carbon::parse($record->webinar_training)->format('d M Y') : 'Not set' }}
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Implementer:</span>
+                    {{ $record->implementer ?? 'Not assigned' }}
+                </p>
 
-        <p class="mb-2">
-            <span class="font-semibold">Implementer:</span>
-            {{ $record->implementer ?? 'Not assigned' }}
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Date Submit:</span>
+                    {{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d M Y') : 'Not submitted' }}
+                </p>
 
-        <p class="mb-2">
-            <span class="font-semibold">Date Submit:</span>
-            {{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d M Y') : 'Not submitted' }}
-        </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Date Completed:</span>
+                    {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
+                </p>
+            </div>
 
-        <p class="mb-2">
-            <span class="font-semibold">Date Completed:</span>
-            {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
-        </p>
-    </div>
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Invoice Attachment:</span>
+                </p>
 
-    <!-- Separator Line -->
-    <hr class="my-4 border-gray-300">
-    <div class="mb-6">
-        <p class="mb-2">
-            <span class="font-semibold">Invoice Attachment:</span>
-        </p>
+                @php
+                    $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
+                @endphp
 
-        @php
-            $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
-        @endphp
+                @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($invoiceFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Invoice {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No invoices uploaded</span>
+                @endif
+            </div>
 
-        @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
-            <ul class="pl-6 list-none">
-                @foreach($invoiceFiles as $index => $file)
-                    <li class="mb-1">
-                        <span class="mr-2">➤</span>
-                        <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Invoice {{ $index + 1 }}</a>
-                    </li>
-                @endforeach
-            </ul>
-        @else
-            <span>No invoices uploaded</span>
-        @endif
-    </div>
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Additional Attachments:</span>
+                </p>
+
+                @php
+                    $newAttachmentFiles = $record->new_attachment_file ? (is_string($record->new_attachment_file) ? json_decode($record->new_attachment_file, true) : $record->new_attachment_file) : [];
+                @endphp
+
+                @if(is_array($newAttachmentFiles) && count($newAttachmentFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($newAttachmentFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Attachment {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No additional attachments uploaded</span>
+                @endif
+            </div>
+        </div>
 </div>
