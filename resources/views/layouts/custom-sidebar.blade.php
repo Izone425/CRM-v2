@@ -417,7 +417,7 @@
 
                             <!-- Level 3 dropdown content -->
                             <div class="nested-dropdown-content">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard</span>
                                 </a>
@@ -427,7 +427,7 @@
                                     <span>Analysis</span>
                                 </a>
 
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Attachment</span>
                                 </a>
@@ -444,7 +444,7 @@
 
                             <!-- Level 3 dropdown content -->
                             <div class="nested-dropdown-content">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.resources.hardware-handovers.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard</span>
                                 </a>
@@ -454,7 +454,7 @@
                                     <span>Analysis</span>
                                 </a>
 
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Attachment</span>
                                 </a>

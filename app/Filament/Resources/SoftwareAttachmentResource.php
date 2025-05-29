@@ -154,6 +154,14 @@ class SoftwareAttachmentResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(function ($query) {
+                if (auth()->user()->role_id === 2) {
+                    $userId = auth()->id();
+                    $query->whereHas('softwareHandover.lead', function ($leadQuery) use ($userId) {
+                        $leadQuery->where('salesperson', $userId);
+                    });
+                }
+            })
             ->columns([
                 TextColumn::make('index')
                     ->label('ID')

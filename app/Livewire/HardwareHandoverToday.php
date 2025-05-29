@@ -807,6 +807,58 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                         ->hidden(fn (HardwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
+                    Action::make('mark_data_migration_completed')
+                        ->label('Data Migration Completed')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function (HardwareHandover $record): void {
+                            $record->update(['status' => 'Data Migration Completed']);
+
+                            Notification::make()
+                                ->title('Hardware Handover marked as Data Migration Completed')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' || auth()->user()->role_id === 2
+                        ),
+                    Action::make('mark_courier_completed')
+                        ->label('Courier Completed')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function (HardwareHandover $record): void {
+                            $record->update(['status' => 'Courier Completed']);
+
+                            Notification::make()
+                                ->title('Hardware Handover marked as Courier Completed')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' ||
+                            auth()->user()->role_id === 2 ||
+                            $record->installation_type !== 'courier'
+                        ),
+                    Action::make('mark_installation_completed')
+                        ->label('Installation Completed')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->action(function (HardwareHandover $record): void {
+                            $record->update(['status' => 'Installation Completed']);
+
+                            Notification::make()
+                                ->title('Hardware Handover marked as Installation Completed')
+                                ->success()
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' ||
+                            auth()->user()->role_id === 2 ||
+                            $record->installation_type === 'courier'
+                        ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')
                         ->icon('heroicon-o-document')

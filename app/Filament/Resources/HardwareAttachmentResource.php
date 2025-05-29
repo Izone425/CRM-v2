@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HardwareAttachmentResource\Pages;
 use App\Models\HardwareAttachment;
 use App\Models\HardwareHandover;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -154,6 +155,14 @@ class HardwareAttachmentResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(function ($query) {
+                if (auth()->user()->role_id === 2) {
+                    $userId = auth()->id();
+                    $query->whereHas('hardwareHandover.lead', function ($leadQuery) use ($userId) {
+                        $leadQuery->where('salesperson', $userId);
+                    });
+                }
+            })
             ->columns([
                 TextColumn::make('index')
                     ->label('ID')
@@ -219,10 +228,17 @@ class HardwareAttachmentResource extends Resource
                     })
                     ->html(),
 
-                TextColumn::make('hardwareHandover.salesperson')
+                TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->sortable()
-                    ->toggleable(),
+                    ->getStateUsing(function (HardwareAttachment $record) {
+                        $lead = $record->hardwareHandover->lead;
+                        if (!$lead) {
+                            return '-';
+                        }
+
+                        $salespersonId = $lead->salesperson;
+                        return User::find($salespersonId)?->name ?? '-';
+                    }),
 
                 TextColumn::make('hardwareHandover.implementer')
                     ->label('Implementer')
