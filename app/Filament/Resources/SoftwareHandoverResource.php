@@ -209,6 +209,13 @@ class SoftwareHandoverResource extends Resource
                 $query
                     ->where('status', '=', 'Completed')
                     ->orderBy('created_at', 'desc');
+
+                if (auth()->user()->role_id === 2) {
+                    $userId = auth()->id();
+                    $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                        $leadQuery->where('salesperson', $userId);
+                    });
+                }
             })
             ->columns([
                 TextColumn::make('id')

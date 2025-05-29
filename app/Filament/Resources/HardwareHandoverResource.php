@@ -43,166 +43,166 @@ class HardwareHandoverResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            // Section: Company Details
-            Section::make('Company Information')
+    {
+        return $form
+            ->schema([
+                // Section: Company Details
+                Section::make('Company Information')
+                    ->schema([
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('company_name')
+                                    ->label('Company Name')
+                                    ->readonly()
+                                    ->maxLength(255),
+
+                                TextInput::make('pic_name')
+                                    ->label('Name')
+                                    ->readonly()
+                                    ->maxLength(255),
+
+                                TextInput::make('pic_phone')
+                                    ->label('HP Number')
+                                    ->readonly()
+                                    ->maxLength(20),
+                            ]),
+
+                        Grid::make(3)
+                            ->schema([
+                                TextInput::make('salesperson')
+                                    ->label('Salesperson')
+                                    ->placeholder('Select salesperson')
+                                    ->readonly(),
+
+                                TextInput::make('headcount')
+                                    ->numeric()
+                                    ->readonly(),
+
+                                TextInput::make('category')
+                                    ->label('Company Size')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        // If the record has headcount, derive category from it
+                                        if ($record && isset($record->headcount)) {
+                                            $categoryService = app(CategoryService::class);
+                                            return $categoryService->retrieve($record->headcount);
+                                        }
+
+                                        // Otherwise, return the stored category value
+                                        return $state;
+                                    })
+                                    ->dehydrated(false)
+                                    ->readonly()
+                            ]),
+                    ]),
+
+                Grid::make(6)
                 ->schema([
-                    Grid::make(3)
+                    // Section: Modules
+                    Section::make('Module Selection')
+                        ->columnSpan(2)
                         ->schema([
-                            TextInput::make('company_name')
-                                ->label('Company Name')
-                                ->readonly()
-                                ->maxLength(255),
+                            Grid::make(2)
+                            ->schema([
+                                Checkbox::make('ta')
+                                    ->label('Time Attendance (TA)')
+                                    ->inline(),
 
-                            TextInput::make('pic_name')
-                                ->label('Name')
-                                ->readonly()
-                                ->maxLength(255),
+                                Checkbox::make('tapp')
+                                    ->label('TimeTec Access (T-APP)')
+                                    ->inline(),
 
-                            TextInput::make('pic_phone')
-                                ->label('HP Number')
-                                ->readonly()
-                                ->maxLength(20),
+                                Checkbox::make('tl')
+                                    ->label('TimeTec Leave (TL)')
+                                    ->inline(),
+
+                                Checkbox::make('thire')
+                                    ->label('TimeTec Hire (T-HIRE)')
+                                    ->inline(),
+
+                                Checkbox::make('tc')
+                                    ->label('TimeTec Claim (TC)')
+                                    ->inline(),
+
+                                Checkbox::make('tacc')
+                                    ->label('TimeTec Access (T-ACC)')
+                                    ->inline(),
+
+                                Checkbox::make('tp')
+                                    ->label('TimeTec Payroll (TP)')
+                                    ->inline(),
+
+                                Checkbox::make('tpbi')
+                                    ->label('TimeTec PBI (TPBI)')
+                                    ->inline(),
+                            ])
                         ]),
 
-                    Grid::make(3)
+                    // Section: Implementation Details
+                    Section::make('Implementation Timeline')
+                        ->columnSpan(2)
                         ->schema([
-                            TextInput::make('salesperson')
-                                ->label('Salesperson')
-                                ->placeholder('Select salesperson')
-                                ->readonly(),
+                            Grid::make(2)
+                                ->schema([
+                                    DatePicker::make('db_creation')
+                                        ->label('Database Creation')
+                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
 
-                            TextInput::make('headcount')
-                                ->numeric()
-                                ->readonly(),
+                                    DatePicker::make('kick_off_meeting')
+                                        ->label('Kick Off Meeting')
+                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                ]),
 
-                            TextInput::make('category')
-                                ->label('Company Size')
+                            Grid::make(2)
+                                ->schema([
+                                    DatePicker::make('webinar_training')
+                                        ->label('Online Webinar Training')
+                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+
+                                    DatePicker::make('go_live_date')
+                                        ->label('System Go Live')
+                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                ]),
+                        ]),
+
+                    Section::make('Training Information')
+                        ->columnSpan(1)
+                        ->schema([
+                            TextInput::make('implementer')
+                                ->label('Implementer')
+                                ->maxLength(255),
+                            TextInput::make('payroll_code')
+                                ->label('Payroll Code')
+                                ->maxLength(50),
+                        ]),
+                    Section::make('Handover Status')
+                        ->columnSpan(1)
+                        ->schema([
+                            Select::make('status')
+                                ->label('Status')
+                                ->options([
+                                    'New' => 'New',
+                                    'Approved' => 'Approved',
+                                    'Completed' => 'Completed',
+                                    'Rejected' => 'Rejected',
+                                    'Draft' => 'Draft',
+                                ])
+                                ->default('New')
+                                ->required(),
+                            TextInput::make('formatted_date')
+                                ->label('Action Date')
                                 ->formatStateUsing(function ($state, $record) {
-                                    // If the record has headcount, derive category from it
-                                    if ($record && isset($record->headcount)) {
-                                        $categoryService = app(CategoryService::class);
-                                        return $categoryService->retrieve($record->headcount);
-                                    }
-
-                                    // Otherwise, return the stored category value
-                                    return $state;
+                                    return $record->updated_at ? \Carbon\Carbon::parse($record->updated_at)->format('d M Y') : '-';
                                 })
+                                ->disabled()
                                 ->dehydrated(false)
-                                ->readonly()
                         ]),
                 ]),
-
-            Grid::make(6)
-            ->schema([
-                // Section: Modules
-                Section::make('Module Selection')
-                    ->columnSpan(2)
-                    ->schema([
-                        Grid::make(2)
-                        ->schema([
-                            Checkbox::make('ta')
-                                ->label('Time Attendance (TA)')
-                                ->inline(),
-
-                            Checkbox::make('tapp')
-                                ->label('TimeTec Access (T-APP)')
-                                ->inline(),
-
-                            Checkbox::make('tl')
-                                ->label('TimeTec Leave (TL)')
-                                ->inline(),
-
-                            Checkbox::make('thire')
-                                ->label('TimeTec Hire (T-HIRE)')
-                                ->inline(),
-
-                            Checkbox::make('tc')
-                                ->label('TimeTec Claim (TC)')
-                                ->inline(),
-
-                            Checkbox::make('tacc')
-                                ->label('TimeTec Access (T-ACC)')
-                                ->inline(),
-
-                            Checkbox::make('tp')
-                                ->label('TimeTec Payroll (TP)')
-                                ->inline(),
-
-                            Checkbox::make('tpbi')
-                                ->label('TimeTec PBI (TPBI)')
-                                ->inline(),
-                        ])
-                    ]),
-
-                // Section: Implementation Details
-                Section::make('Implementation Timeline')
-                    ->columnSpan(2)
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                DatePicker::make('db_creation')
-                                    ->label('Database Creation')
-                                    ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                    ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
-
-                                DatePicker::make('kick_off_meeting')
-                                    ->label('Kick Off Meeting')
-                                    ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                    ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
-                            ]),
-
-                        Grid::make(2)
-                            ->schema([
-                                DatePicker::make('webinar_training')
-                                    ->label('Online Webinar Training')
-                                    ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                    ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
-
-                                DatePicker::make('go_live_date')
-                                    ->label('System Go Live')
-                                    ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                    ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
-                            ]),
-                    ]),
-
-                Section::make('Training Information')
-                    ->columnSpan(1)
-                    ->schema([
-                        TextInput::make('implementer')
-                            ->label('Implementer')
-                            ->maxLength(255),
-                        TextInput::make('payroll_code')
-                            ->label('Payroll Code')
-                            ->maxLength(50),
-                    ]),
-                Section::make('Handover Status')
-                    ->columnSpan(1)
-                    ->schema([
-                        Select::make('status')
-                            ->label('Status')
-                            ->options([
-                                'New' => 'New',
-                                'Approved' => 'Approved',
-                                'Completed' => 'Completed',
-                                'Rejected' => 'Rejected',
-                                'Draft' => 'Draft',
-                            ])
-                            ->default('New')
-                            ->required(),
-                        TextInput::make('formatted_date')
-                            ->label('Action Date')
-                            ->formatStateUsing(function ($state, $record) {
-                                return $record->updated_at ? \Carbon\Carbon::parse($record->updated_at)->format('d M Y') : '-';
-                            })
-                            ->disabled()
-                            ->dehydrated(false)
-                    ]),
-            ]),
-        ]);
-}
+            ]);
+    }
 
 
     public static function table(Table $table): Table
@@ -212,6 +212,13 @@ class HardwareHandoverResource extends Resource
                 $query
                     ->where('status', '=', 'Completed')
                     ->orderBy('created_at', 'desc');
+
+                if (auth()->user()->role_id === 2) {
+                    $userId = auth()->id();
+                    $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                        $leadQuery->where('salesperson', $userId);
+                    });
+                }
             })
             ->columns([
                 TextColumn::make('id')
@@ -219,12 +226,12 @@ class HardwareHandoverResource extends Resource
                     ->rowIndex(),
 
                 TextColumn::make('created_at')
-                    ->label('DATE SUBMIT')
+                    ->label('Date Submit')
                     ->date('d M Y')
                     ->sortable(),
 
                 TextColumn::make('lead.salesperson')
-                    ->label('SALESPERSON')
+                    ->label('SalesPerson')
                     ->getStateUsing(function (HardwareHandover $record) {
                         $lead = $record->lead;
                         if (!$lead) {
@@ -236,7 +243,7 @@ class HardwareHandoverResource extends Resource
                     }),
 
                 TextColumn::make('lead.companyDetail.company_name')
-                    ->label('COMPANY NAME')
+                    ->label('Company Name')
                     ->sortable(),
 
                 TextColumn::make('installation_type')
@@ -378,6 +385,10 @@ class HardwareHandoverResource extends Resource
                         $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
                     }
 
+                    if (!empty($record->handover_pdf)){
+                        $allFiles = array_merge($allFiles, is_array($record->handover_pdf) ? $record->handover_pdf : [$record->handover_pdf]);
+                    }
+
                     // Add confirmation order files if available
                     if (!empty($record->confirmation_order_file)) {
                         $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
@@ -459,7 +470,7 @@ class HardwareHandoverResource extends Resource
     {
         return [
             'index' => Pages\ListHardwareHandovers::route('/'),
-            'view' => Pages\ViewHardwareHandover::route('/{record}'),
+            // 'view' => Pages\ViewHardwareHandover::route('/{record}'),
             // 'create' => Pages\CreateHardwareHandover::route('/create'),
             // 'edit' => Pages\EditHardwareHandover::route('/{record}/edit'),
         ];
