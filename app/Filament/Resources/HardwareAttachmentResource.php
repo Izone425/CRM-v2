@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\HardwareAttachmentResource\Pages;
-use App\Models\HardwareAttachment;
 use App\Models\HardwareHandover;
 use App\Models\User;
 use Filament\Forms;
@@ -27,7 +26,7 @@ use Illuminate\View\View;
 
 class HardwareAttachmentResource extends Resource
 {
-    protected static ?string $model = HardwareAttachment::class;
+    protected static ?string $model = HardwareHandover::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-paper-clip';
 
@@ -156,40 +155,40 @@ class HardwareAttachmentResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(function ($query) {
+                $query->where('status', 'Completed');
                 if (auth()->user()->role_id === 2) {
                     $userId = auth()->id();
-                    $query->whereHas('hardwareHandover.lead', function ($leadQuery) use ($userId) {
+
+                    // Since we're working directly with SoftwareHandover model now,
+                    // we need to filter on the lead relationship directly
+                    $query->whereHas('lead', function ($leadQuery) use ($userId) {
                         $leadQuery->where('salesperson', $userId);
                     });
                 }
             })
             ->columns([
-                TextColumn::make('index')
-                    ->label('ID')
-                    ->rowIndex(),
-
                 TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state, HardwareAttachment $record) {
+                    ->formatStateUsing(function ($state, HardwareHandover $record) {
                         // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
                         }
 
                         // Format ID with prefix and padding
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('3xl')
+                            ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareAttachment $record): View {
+                            ->modalContent(function (HardwareHandover $record): View {
                                 return view('components.hardware-handover')
-                                    ->with('extraAttributes', ['record' => $record->hardwareHandover]);
+                                    ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
 
@@ -211,12 +210,12 @@ class HardwareAttachmentResource extends Resource
                 //     ->label('Files')
                 //     ->view('filament.pages.file-list'),
 
-                TextColumn::make('hardwareHandover.lead.companyDetail.company_name')
+                TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
                         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->hardwareHandover->lead->id);
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
@@ -230,8 +229,8 @@ class HardwareAttachmentResource extends Resource
 
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareAttachment $record) {
-                        $lead = $record->hardwareHandover->lead;
+                    ->getStateUsing(function (HardwareHandover $record) {
+                        $lead = $record->lead;
                         if (!$lead) {
                             return '-';
                         }
@@ -285,10 +284,72 @@ class HardwareAttachmentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make(),
-                    // Tables\Actions\EditAction::make(),
-                    // Tables\Actions\DeleteAction::make(),
-                ]),
+                    Action::make('view')
+                        ->label('View')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->modalHeading(' ')
+                        ->modalWidth('md')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
+                        // Use a callback function instead of arrow function for more control
+                        ->modalContent(function (HardwareHandover $record): View {
+
+                            // Return the view with the record using $this->record pattern
+                            return view('components.hardware-handover')
+                            ->with('extraAttributes', ['record' => $record]);
+                        }),
+                    Action::make('uploadNewAttachment')
+                        ->label('Upload New Attachment')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('success')
+                        ->form([
+                            FileUpload::make('files')
+                                ->required()
+                                ->multiple()
+                                ->disk('public')
+                                ->directory('hardware-handover-attachments')
+                                ->visibility('public')
+                                ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                ->maxSize(10240) // 10MB
+                                ->maxFiles(10)
+                                ->downloadable()
+                                ->openable()
+                                ->previewable()
+                                ->reorderable()
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                    $date = now()->format('Y-m-d');
+                                    $random = Str::random(8);
+                                    $extension = $file->getClientOriginalExtension();
+                                    return "attachment-{$date}-{$random}.{$extension}";
+                                }),
+                        ])
+                        ->action(function (HardwareHandover $record, array $data) {
+                            // Get the handover record
+                            $handover = $record;
+
+                            // Check if new_attachment_file already exists
+                            $existingFiles = $handover->new_attachment_file ?
+                                (is_string($handover->new_attachment_file) ? json_decode($handover->new_attachment_file, true) : $handover->new_attachment_file) :
+                                [];
+
+                            // Add new files to existing files
+                            $allFiles = array_merge($existingFiles, $data['files']);
+
+                            // Update the handover record with new files
+                            $handover->update([
+                                'new_attachment_file' => json_encode($allFiles),
+                            ]);
+
+                            // Show success notification
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Attachment Uploaded')
+                                ->body('New attachment files have been added successfully.')
+                                ->send();
+                        }),
+                ])->button(),
             ]);
     }
 

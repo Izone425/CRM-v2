@@ -60,7 +60,10 @@
                 <span>{{ $record->status ?? '-' }}</span>
             @endif
         </p>
-        <p class="mb-2"><span class="font-semibold">Hardware Handover ID:</span> {{ $record->id }}</p>
+        <p class="mb-2">
+            <span class="font-semibold">Hardware Handover ID:</span>
+            {{ isset($record->id) ? 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
+        </p>
         <p class="mb-2"><span class="font-semibold">Hardware Handover Date:</span> {{ isset($record->created_at) ? $record->created_at->format('d M Y') : '-' }}</p>
         <p class="mb-4">
             <span class="font-semibold">Hardware Handover Form:</span>
@@ -179,5 +182,46 @@
             <span class="text-gray-500">No file uploaded</span>
         @endif
         </p>
+    </div>
+
+    <hr class="my-4 border-gray-300">
+
+    <div class="mb-2 text-center">
+        <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
+        target="_blank"
+        style="display: inline-flex; align-items: center; color: #16a34a; text-decoration: none; font-weight: 500; padding: 6px 12px; border: 1px solid #16a34a; border-radius: 4px;"
+        onmouseover="this.style.backgroundColor='#f0fdf4'"
+        onmouseout="this.style.backgroundColor='transparent'">
+            <!-- Download Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Invoice Information to Excel
+        </a>
+    </div>
+
+    <!-- Separator Line -->
+    <hr class="my-4 border-gray-300">
+    <div class="mb-6">
+        <p class="mb-2">
+            <span class="font-semibold">Additional Attachments:</span>
+        </p>
+
+        @php
+            $newAttachmentFiles = $record->new_attachment_file ? (is_string($record->new_attachment_file) ? json_decode($record->new_attachment_file, true) : $record->new_attachment_file) : [];
+        @endphp
+
+        @if(is_array($newAttachmentFiles) && count($newAttachmentFiles) > 0)
+            <ul class="pl-6 list-none">
+                @foreach($newAttachmentFiles as $index => $file)
+                    <li class="mb-1">
+                        <span class="mr-2">➤</span>
+                        <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Attachment {{ $index + 1 }}</a>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <span>No additional attachments uploaded</span>
+        @endif
     </div>
 </div>

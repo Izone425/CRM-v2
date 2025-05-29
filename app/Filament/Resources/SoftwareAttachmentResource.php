@@ -27,13 +27,13 @@ use Illuminate\View\View;
 
 class SoftwareAttachmentResource extends Resource
 {
-    protected static ?string $model = SoftwareAttachment::class;
+    protected static ?string $model = SoftwareHandover::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-paper-clip';
 
     protected static ?string $navigationLabel = 'Handover Attachments';
 
-    protected static ?string $navigationGroup = 'Software Handovers';
+    protected static ?string $navigationGroup = 'Software Attachments';
 
     protected static ?int $navigationSort = 3;
 
@@ -156,9 +156,13 @@ class SoftwareAttachmentResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(function ($query) {
+                $query->where('status', 'Completed');
                 if (auth()->user()->role_id === 2) {
                     $userId = auth()->id();
-                    $query->whereHas('softwareHandover.lead', function ($leadQuery) use ($userId) {
+
+                    // Since we're working directly with SoftwareHandover model now,
+                    // we need to filter on the lead relationship directly
+                    $query->whereHas('lead', function ($leadQuery) use ($userId) {
                         $leadQuery->where('salesperson', $userId);
                     });
                 }
@@ -166,14 +170,14 @@ class SoftwareAttachmentResource extends Resource
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state, SoftwareAttachment $record) {
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
                         // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
                         }
 
                         // Format ID with prefix and padding
-                        return 'SW_250' . str_pad($record->softwareHandover->id, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -183,9 +187,9 @@ class SoftwareAttachmentResource extends Resource
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (SoftwareAttachment $record): View {
+                            ->modalContent(function (SoftwareHandover $record): View {
                                 return view('components.software-handover')
-                                    ->with('extraAttributes', ['record' => $record->softwareHandover]);
+                                    ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
 
@@ -207,12 +211,12 @@ class SoftwareAttachmentResource extends Resource
                 //     ->label('Files')
                 //     ->view('filament.pages.file-list'),
 
-                TextColumn::make('softwareHandover.lead.companyDetail.company_name')
+                TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
                         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->softwareHandover->lead->id);
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
@@ -224,17 +228,17 @@ class SoftwareAttachmentResource extends Resource
                     })
                     ->html(),
 
-                TextColumn::make('softwareHandover.salesperson')
+                TextColumn::make('salesperson')
                     ->label('SalesPerson')
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('softwareHandover.implementer')
+                TextColumn::make('implementer')
                     ->label('Implementer')
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('softwareHandover.completed_at')
+                TextColumn::make('completed_at')
                     ->label('DB Creation Date')
                     ->date('d M Y')
                     ->sortable()
@@ -330,13 +334,13 @@ class SoftwareAttachmentResource extends Resource
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn (SoftwareAttachment $record): bool => in_array($record->softwareHandover->status, ['New', 'Completed', 'Approved']))
+                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
                         // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (SoftwareAttachment $record): View {
+                        ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
                             return view('components.software-handover')
-                            ->with('extraAttributes', ['record' => $record->softwareHandover]);
+                            ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('uploadNewAttachment')
                         ->label('Upload New Attachment')
@@ -363,9 +367,9 @@ class SoftwareAttachmentResource extends Resource
                                     return "attachment-{$date}-{$random}.{$extension}";
                                 }),
                         ])
-                        ->action(function (SoftwareAttachment $record, array $data) {
+                        ->action(function (SoftwareHandover $record, array $data) {
                             // Get the handover record
-                            $handover = $record->softwareHandover;
+                            $handover = $record;
 
                             // Check if new_attachment_file already exists
                             $existingFiles = $handover->new_attachment_file ?

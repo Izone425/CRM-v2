@@ -247,7 +247,7 @@ class HardwareHandoverResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category (Installation Type)')
+                    ->label('Category 1')
                     ->formatStateUsing(function ($state) {
                         return match ($state) {
                             'courier' => 'Courier',
@@ -355,103 +355,103 @@ class HardwareHandoverResource extends Resource
                     }
                     return null;
                 }),
-            ])
-            ->actions([
-                // Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('create_attachment')
-                ->label('Create Attachment')
-                ->icon('heroicon-o-paper-clip')
-                ->color('success')
-                ->form([
-                    Forms\Components\TextInput::make('title')
-                        ->label('Attachment Title')
-                        ->default(function (HardwareHandover $record) {
-                            return "Files for {$record->company_name}";
-                        })
-                        ->required(),
-
-                    Forms\Components\Textarea::make('description')
-                        ->label('Description')
-                        ->default(function (HardwareHandover $record) {
-                            return "Combined files for {$record->company_name} (Handover #{$record->id})";
-                        }),
-                ])
-                ->action(function (array $data, HardwareHandover $record) {
-                    // Collect all available files from the handover
-                    $allFiles = [];
-
-                    // Add invoice files if available
-                    if (!empty($record->invoice_file)) {
-                        $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
-                    }
-
-                    if (!empty($record->handover_pdf)){
-                        $allFiles = array_merge($allFiles, is_array($record->handover_pdf) ? $record->handover_pdf : [$record->handover_pdf]);
-                    }
-
-                    // Add confirmation order files if available
-                    if (!empty($record->confirmation_order_file)) {
-                        $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
-                    }
-
-                    // Add HRDF grant files if available
-                    if (!empty($record->hrdf_grant_file)) {
-                        $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
-                    }
-
-                    // Add payment slip files if available
-                    if (!empty($record->payment_slip_file)) {
-                        $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
-                    }
-
-                    // Check if any files are available
-                    if (empty($allFiles)) {
-                        Notification::make()
-                            ->title('No files available')
-                            ->body("This handover has no files to create an attachment from.")
-                            ->danger()
-                            ->send();
-                        return;
-                    }
-
-                    // Create a new Hardware attachment with all files
-                    $attachment = HardwareAttachment::create([
-                        'hardware_handover_id' => $record->id,
-                        'title' => $data['title'],
-                        'description' => $data['description'],
-                        'files' => $allFiles, // Add all collected files
-                        'created_by' => auth()->id(),
-                        'updated_by' => auth()->id()
-                    ]);
-
-                    // Show success notification
-                    if ($attachment) {
-                        $fileCount = count($allFiles);
-                        Notification::make()
-                            ->title('Attachment Created')
-                            ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
-                            ->success()
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->title('Error')
-                            ->body('Failed to create attachment.')
-                            ->danger()
-                            ->send();
-                    }
-                })
-                ->visible(function (HardwareHandover $record): bool {
-                    // Only show this action if the record has any files
-                    return !empty($record->invoice_file) ||
-                        !empty($record->confirmation_order_file) ||
-                        !empty($record->hrdf_grant_file) ||
-                        !empty($record->payment_slip_file);
-                })
-                ->requiresConfirmation()
-                ->modalHeading('Create Attachment with All Files')
-                ->modalDescription('This will create a single attachment containing all files from this handover.')
-                ->modalSubmitActionLabel('Create Attachment'),
             ]);
+            // ->actions([
+            //     // Tables\Actions\EditAction::make(),
+            //     Tables\Actions\Action::make('create_attachment')
+            //     ->label('Create Attachment')
+            //     ->icon('heroicon-o-paper-clip')
+            //     ->color('success')
+            //     ->form([
+            //         Forms\Components\TextInput::make('title')
+            //             ->label('Attachment Title')
+            //             ->default(function (HardwareHandover $record) {
+            //                 return "Files for {$record->company_name}";
+            //             })
+            //             ->required(),
+
+            //         Forms\Components\Textarea::make('description')
+            //             ->label('Description')
+            //             ->default(function (HardwareHandover $record) {
+            //                 return "Combined files for {$record->company_name} (Handover #{$record->id})";
+            //             }),
+            //     ])
+            //     ->action(function (array $data, HardwareHandover $record) {
+            //         // Collect all available files from the handover
+            //         $allFiles = [];
+
+            //         // Add invoice files if available
+            //         if (!empty($record->invoice_file)) {
+            //             $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
+            //         }
+
+            //         if (!empty($record->handover_pdf)){
+            //             $allFiles = array_merge($allFiles, is_array($record->handover_pdf) ? $record->handover_pdf : [$record->handover_pdf]);
+            //         }
+
+            //         // Add confirmation order files if available
+            //         if (!empty($record->confirmation_order_file)) {
+            //             $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
+            //         }
+
+            //         // Add HRDF grant files if available
+            //         if (!empty($record->hrdf_grant_file)) {
+            //             $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
+            //         }
+
+            //         // Add payment slip files if available
+            //         if (!empty($record->payment_slip_file)) {
+            //             $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
+            //         }
+
+            //         // Check if any files are available
+            //         if (empty($allFiles)) {
+            //             Notification::make()
+            //                 ->title('No files available')
+            //                 ->body("This handover has no files to create an attachment from.")
+            //                 ->danger()
+            //                 ->send();
+            //             return;
+            //         }
+
+            //         // Create a new Hardware attachment with all files
+            //         $attachment = HardwareAttachment::create([
+            //             'hardware_handover_id' => $record->id,
+            //             'title' => $data['title'],
+            //             'description' => $data['description'],
+            //             'files' => $allFiles, // Add all collected files
+            //             'created_by' => auth()->id(),
+            //             'updated_by' => auth()->id()
+            //         ]);
+
+            //         // Show success notification
+            //         if ($attachment) {
+            //             $fileCount = count($allFiles);
+            //             Notification::make()
+            //                 ->title('Attachment Created')
+            //                 ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
+            //                 ->success()
+            //                 ->send();
+            //         } else {
+            //             Notification::make()
+            //                 ->title('Error')
+            //                 ->body('Failed to create attachment.')
+            //                 ->danger()
+            //                 ->send();
+            //         }
+            //     })
+            //     ->visible(function (HardwareHandover $record): bool {
+            //         // Only show this action if the record has any files
+            //         return !empty($record->invoice_file) ||
+            //             !empty($record->confirmation_order_file) ||
+            //             !empty($record->hrdf_grant_file) ||
+            //             !empty($record->payment_slip_file);
+            //     })
+            //     ->requiresConfirmation()
+            //     ->modalHeading('Create Attachment with All Files')
+            //     ->modalDescription('This will create a single attachment containing all files from this handover.')
+            //     ->modalSubmitActionLabel('Create Attachment'),
+            // ]);
             // ->bulkActions([
             //     Tables\Actions\BulkActionGroup::make([
             //         Tables\Actions\DeleteBulkAction::make(),

@@ -69,23 +69,9 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
 
         $query = HardwareHandover::query();
 
-        if (auth()->user()->role_id === 2) {
-            // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+        if ($this->selectedUser === 'all-salespersons') {
             $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
 
-            // But only THEIR OWN records
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        } else {
-            // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['New', 'Approved']);
-            // But they can see ALL records
-        }
-
-        // Salesperson filter logic
-        if ($this->selectedUser === 'all-salespersons') {
             // Keep as is - show all salespersons' handovers
             $salespersonIds = User::where('role_id', 2)->pluck('id');
             $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
@@ -94,6 +80,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
 
             if ($userExists) {
                 $selectedUser = $this->selectedUser; // Create a local variable
@@ -107,7 +94,20 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                 });
             }
         } else {
-            $query->whereIn('status', ['New', 'Approved']);
+            if (auth()->user()->role_id === 2) {
+                // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+                $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+
+                // But only THEIR OWN records
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            } else {
+                // Other users (admin, managers) can only see New, Approved, and Completed
+                $query->whereIn('status', ['New', 'Approved']);
+                // But they can see ALL records
+            }
         }
 
         $query->orderByRaw("CASE
@@ -758,107 +758,107 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
-                    Action::make('check_sales_order')
-                        ->label('Check Sales Order')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->modalHeading('Check Sales Order Status')
-                        ->modalDescription('Please select the appropriate status for this sales order.')
-                        ->modalSubmitAction(false) // Remove default submit button
-                        ->modalCancelAction(false) // Remove default cancel button
-                        ->extraModalFooterActions([
-                            Action::make('no_stock')
-                                ->label('No Stock')
-                                ->color('danger')
-                                ->icon('heroicon-o-x-circle')
-                                ->cancelParentActions()
-                                ->action(function (HardwareHandover $record) {
-                                    $record->update([
-                                        'status' => 'No Stock',
-                                    ]);
+                    // Action::make('check_sales_order')
+                    //     ->label('Check Sales Order')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Check Sales Order Status')
+                    //     ->modalDescription('Please select the appropriate status for this sales order.')
+                    //     ->modalSubmitAction(false) // Remove default submit button
+                    //     ->modalCancelAction(false) // Remove default cancel button
+                    //     ->extraModalFooterActions([
+                    //         Action::make('no_stock')
+                    //             ->label('No Stock')
+                    //             ->color('danger')
+                    //             ->icon('heroicon-o-x-circle')
+                    //             ->cancelParentActions()
+                    //             ->action(function (HardwareHandover $record) {
+                    //                 $record->update([
+                    //                     'status' => 'No Stock',
+                    //                 ]);
 
-                                    Notification::make()
-                                        ->title('Sales order marked as No Stock')
-                                        ->warning()
-                                        ->body('The hardware handover is on hold until stock becomes available.')
-                                        ->send();
+                    //                 Notification::make()
+                    //                     ->title('Sales order marked as No Stock')
+                    //                     ->warning()
+                    //                     ->body('The hardware handover is on hold until stock becomes available.')
+                    //                     ->send();
 
-                                    $this->dispatch('close-modal', id: 'check_sales_order');
-                                }),
-                            Action::make('sales_order_completed')
-                                ->label('Sales Order Completed')
-                                ->color('success')
-                                ->icon('heroicon-o-check-circle')
-                                ->cancelParentActions()
-                                ->action(function (HardwareHandover $record) {
-                                    $record->update([
-                                        'status' => 'Sales Order Completed',
-                                    ]);
+                    //                 $this->dispatch('close-modal', id: 'check_sales_order');
+                    //             }),
+                    //         Action::make('sales_order_completed')
+                    //             ->label('Sales Order Completed')
+                    //             ->color('success')
+                    //             ->icon('heroicon-o-check-circle')
+                    //             ->cancelParentActions()
+                    //             ->action(function (HardwareHandover $record) {
+                    //                 $record->update([
+                    //                     'status' => 'Sales Order Completed',
+                    //                 ]);
 
-                                    Notification::make()
-                                        ->title('Sales order marked as completed')
-                                        ->success()
-                                        ->send();
+                    //                 Notification::make()
+                    //                     ->title('Sales order marked as completed')
+                    //                     ->success()
+                    //                     ->send();
 
-                                    $this->dispatch('close-modal', id: 'check_sales_order');
-                                }),
-                        ])
-                        ->hidden(fn (HardwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('mark_data_migration_completed')
-                        ->label('Data Migration Completed')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update(['status' => 'Data Migration Completed']);
+                    //                 $this->dispatch('close-modal', id: 'check_sales_order');
+                    //             }),
+                    //     ])
+                    //     ->hidden(fn (HardwareHandover $record): bool =>
+                    //         $record->status !== 'New' || auth()->user()->role_id === 2
+                    //     ),
+                    // Action::make('mark_data_migration_completed')
+                    //     ->label('Data Migration Completed')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->action(function (HardwareHandover $record): void {
+                    //         $record->update(['status' => 'Data Migration Completed']);
 
-                            Notification::make()
-                                ->title('Hardware Handover marked as Data Migration Completed')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(fn (HardwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('mark_courier_completed')
-                        ->label('Courier Completed')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update(['status' => 'Courier Completed']);
+                    //         Notification::make()
+                    //             ->title('Hardware Handover marked as Data Migration Completed')
+                    //             ->success()
+                    //             ->send();
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->hidden(fn (HardwareHandover $record): bool =>
+                    //         $record->status !== 'New' || auth()->user()->role_id === 2
+                    //     ),
+                    // Action::make('mark_courier_completed')
+                    //     ->label('Courier Completed')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->action(function (HardwareHandover $record): void {
+                    //         $record->update(['status' => 'Courier Completed']);
 
-                            Notification::make()
-                                ->title('Hardware Handover marked as Courier Completed')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(fn (HardwareHandover $record): bool =>
-                            $record->status !== 'New' ||
-                            auth()->user()->role_id === 2 ||
-                            $record->installation_type !== 'courier'
-                        ),
-                    Action::make('mark_installation_completed')
-                        ->label('Installation Completed')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update(['status' => 'Installation Completed']);
+                    //         Notification::make()
+                    //             ->title('Hardware Handover marked as Courier Completed')
+                    //             ->success()
+                    //             ->send();
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->hidden(fn (HardwareHandover $record): bool =>
+                    //         $record->status !== 'New' ||
+                    //         auth()->user()->role_id === 2 ||
+                    //         $record->installation_type !== 'courier'
+                    //     ),
+                    // Action::make('mark_installation_completed')
+                    //     ->label('Installation Completed')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->action(function (HardwareHandover $record): void {
+                    //         $record->update(['status' => 'Installation Completed']);
 
-                            Notification::make()
-                                ->title('Hardware Handover marked as Installation Completed')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(fn (HardwareHandover $record): bool =>
-                            $record->status !== 'New' ||
-                            auth()->user()->role_id === 2 ||
-                            $record->installation_type === 'courier'
-                        ),
+                    //         Notification::make()
+                    //             ->title('Hardware Handover marked as Installation Completed')
+                    //             ->success()
+                    //             ->send();
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->hidden(fn (HardwareHandover $record): bool =>
+                    //         $record->status !== 'New' ||
+                    //         auth()->user()->role_id === 2 ||
+                    //         $record->installation_type === 'courier'
+                    //     ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')
                         ->icon('heroicon-o-document')

@@ -70,6 +70,8 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         $query = SoftwareHandover::query();
         // Salesperson filter logic
         if ($this->selectedUser === 'all-salespersons') {
+            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+
             // Keep as is - show all salespersons' handovers
             $salespersonIds = User::where('role_id', 2)->pluck('id');
             $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
@@ -78,6 +80,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
 
             if ($userExists) {
                 $selectedUser = $this->selectedUser; // Create a local variable
@@ -240,7 +243,11 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                             ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('edit_software_handover')
-                        ->label('Edit Software Handover')
+                        ->label(function (SoftwareHandover $record): string {
+                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
+                            $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            return "Edit Software Handover {$formattedId}";
+                        })
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')

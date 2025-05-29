@@ -10,10 +10,11 @@ class EditSoftwareHandover extends EditRecord
 {
     protected static string $resource = SoftwareHandoverResource::class;
 
-    protected function getHeaderActions(): array
+    public function getTitle(): string
     {
-        return [
-            // Actions\DeleteAction::make(),
-        ];
+        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+        $formattedId = 'SW_250' . str_pad($this->record->id, 3, '0', STR_PAD_LEFT);
+
+        return "Edit Software Handover {$formattedId}";
     }
 }

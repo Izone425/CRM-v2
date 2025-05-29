@@ -34,6 +34,7 @@ class HardwareHandover extends Model
         'confirmation_order_file',
         'hrdf_grant_file',
         'payment_slip_file',
+        'new_attachment_file',
         'submitted_at',
         'created_at',
         'updated_at'
@@ -47,6 +48,7 @@ class HardwareHandover extends Model
         'payment_slip_file' => 'array',
         'proforma_invoice_product' => 'array',
         'proforma_invoice_hrdf' => 'array',
+        'new_attachment_file' => 'array',
         'remarks' => 'array',
     ];
 
