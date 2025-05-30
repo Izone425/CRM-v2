@@ -850,7 +850,15 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                             }
 
                             $implementerId = $data['implementer_id'];
-                            $implementerName = \App\Models\User::find($implementerId)?->name ?? 'Unknown';
+                            $implementer = \App\Models\User::find($implementerId);
+                            $implementerName = $implementer?->name ?? 'Unknown';
+                            $implementerEmail = $implementer?->email ?? null;
+
+                            // Get the salesperson info
+                            $salespersonId = $record->lead->salesperson ?? null;
+                            $salesperson = \App\Models\User::find($salespersonId);
+                            $salespersonEmail = $salesperson?->email ?? null;
+                            $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
                             // Prepare data for update
                             $updateData = [
@@ -872,12 +880,102 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 $updateData['invoice_file'] = $data['invoice_file'];
                             }
 
-                            // Get implementer name for notification
-                            $implementer = \App\Models\User::find($data['implementer_id']);
-                            $implementerName = $implementer ? $implementer->name : 'Selected implementer';
-
                             // Update the record
                             $record->update($updateData);
+
+                            // Send email notification
+                            try {
+                                $viewName = 'emails.handover_notification';
+
+                                // Get implementer and company details
+                                $implementerName = $implementer?->name ?? 'Unknown';
+                                $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                                $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                                // Get invoice reference (You can extract it from the record or its associated PI)
+                                $invoiceReference = '';
+
+                                // Option 1: If you have an invoice number directly on the record
+                                // $invoiceReference = $record->invoice_number ?? '';
+
+                                // Option 2: Extract from PI reference numbers
+                                if ($record->proforma_invoice_product) {
+                                    $piIds = is_string($record->proforma_invoice_product)
+                                        ? json_decode($record->proforma_invoice_product, true)
+                                        : $record->proforma_invoice_product;
+
+                                    if (is_array($piIds) && count($piIds) > 0) {
+                                        $pi = \App\Models\Quotation::find($piIds[0]);
+                                        if ($pi) {
+                                            $invoiceReference = $pi->pi_reference_no ?? '';
+                                        }
+                                    }
+                                }
+
+                                // Get the handover PDF URL
+                                $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                                $invoiceFiles = [];
+                                if ($record->invoice_file) {
+                                    $invoiceFileArray = is_string($record->invoice_file)
+                                        ? json_decode($record->invoice_file, true)
+                                        : $record->invoice_file;
+
+                                    if (is_array($invoiceFileArray)) {
+                                        foreach ($invoiceFileArray as $file) {
+                                            $invoiceFiles[] = url('storage/' . $file);
+                                        }
+                                    }
+                                }
+
+                                // Create email content structure
+                                $emailContent = [
+                                    'implementer' => [
+                                        'name' => $implementerName,
+                                    ],
+                                    'company' => [
+                                        'name' => $companyName,
+                                    ],
+                                    'salesperson' => [
+                                        'name' => $salespersonName,
+                                    ],
+                                    'createdAt' => $record->created_at ? \Carbon\Carbon::parse($record->created_at)->format('d M Y') : now()->format('d M Y'),
+                                    'handoverFormUrl' => $handoverFormUrl,
+                                    'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
+                                ];
+
+                                // Initialize recipients array with admin email
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+
+                                // Add implementer email if valid
+                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $implementerEmail;
+                                }
+
+                                // Add salesperson email if valid
+                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $salespersonEmail;
+                                }
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
+
+                                // Send email with template
+                                if (count($recipients) > 0) {
+                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $companyName) {
+                                        $message->from($senderEmail, $senderName)
+                                            ->to($recipients)
+                                            ->subject('New Project Assignment - ' . $companyName);
+                                    });
+
+                                    \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                }
+                            } catch (\Exception $e) {
+                                // Log error but don't stop the process
+                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                            }
 
                             Notification::make()
                                 ->title('Software Handover marked as completed')

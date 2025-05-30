@@ -855,10 +855,47 @@ class QuotationResource extends Resource
                         // ->openUrlInNewTab()
                         ->closeModalByClickingAway(false)
                         ->modalWidth(MaxWidth::Medium)
-                        ->visible(fn(Quotation $quotation) =>
-                            $quotation->status !== QuotationStatusEnum::accepted &&
-                            $quotation->lead?->lead_status === 'Closed'
-                        ),
+                        ->visible(function(Quotation $quotation) {
+                            // First, check if the quotation is not already accepted and lead status is closed
+                            if ($quotation->status === QuotationStatusEnum::accepted ||
+                                $quotation->lead?->lead_status !== 'Closed') {
+                                return false;
+                            }
+
+                            // Then check if company details are complete
+                            $lead = $quotation->lead;
+                            $companyDetail = $lead->companyDetail ?? null;
+
+                            // If no company details exist at all
+                            if (!$companyDetail) {
+                                return false;
+                            }
+
+                            // Check if any essential company details are missing
+                            $requiredFields = [
+                                'company_name',
+                                'industry',
+                                'contact_no',
+                                'email',
+                                'name',
+                                'position',
+                                'reg_no_new',
+                                'state',
+                                'reg_no_old',
+                                'postcode',
+                                'company_address1',
+                                'company_address2',
+                            ];
+
+                            foreach ($requiredFields as $field) {
+                                if (empty($companyDetail->$field)) {
+                                    return false;
+                                }
+                            }
+
+                            // All checks passed, show the button
+                            return true;
+                        }),
                     Tables\Actions\Action::make('proforma_invoice')
                         ->label('Proforma Invoice')
                         ->color('primary')
