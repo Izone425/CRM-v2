@@ -433,7 +433,13 @@
                     @foreach($remarks as $index => $rmk)
                         <tr>
                             <td>Remark {{ $index + 1 }}</td>
-                            <td>{{ $rmk['remark'] ?? $rmk ?? '' }}</td>
+                            <td>
+                                @if(is_array($rmk))
+                                    {{ $rmk['remark'] ?? '' }}
+                                @else
+                                    {{ $rmk ?? '' }}
+                                @endif
+                            </td>
                             <td>
                                 @if(isset($rmk['attachments']) && !empty($rmk['attachments']))
                                     @php

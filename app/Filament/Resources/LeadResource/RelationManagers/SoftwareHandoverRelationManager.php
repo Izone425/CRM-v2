@@ -74,7 +74,7 @@ class SoftwareHandoverRelationManager extends RelationManager
 
     public function headerActions(): array
     {
-        $isEInvoiceIncomplete = $this->isEInvoiceDetailsIncomplete();
+        $isEInvoiceIncomplete = $this->isCompanyDetailsIncomplete();
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
@@ -84,13 +84,12 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->color('gray')
                 ->visible(function () {
                     $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
-                    // $isEInvoiceIncomplete = $this->isEInvoiceDetailsIncomplete();
+                    $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
 
                     // Only show this warning if:
-                    // 1. The lead status is NOT closed, AND
-                    // 2. The e-invoice information is incomplete
-                    // return $leadStatus !== 'Closed' && $isEInvoiceIncomplete;
-                    return $leadStatus !== 'Closed';
+                    // 1. The lead status is NOT closed, OR
+                    // 2. The company details information is incomplete
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
                 })
                 ->action(function () {
                     Notification::make()
@@ -118,7 +117,12 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->color('primary')
                 ->visible(function () {
                     $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
-                    return $leadStatus === 'Closed';
+                    $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
+
+                    // Only show this button when:
+                    // 1. The lead status IS closed, AND
+                    // 2. The company details information is complete
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
                 })
                 ->slideOver()
                 ->modalHeading('Software Handover')
@@ -1186,31 +1190,35 @@ class SoftwareHandoverRelationManager extends RelationManager
             ]);
     }
 
-    protected function isEInvoiceDetailsIncomplete(): bool
+    protected function isCompanyDetailsIncomplete(): bool
     {
-        $leadId = $this->getOwnerRecord()->id;
-        $eInvoiceDetails = \App\Models\EInvoiceDetail::where('lead_id', $leadId)->first();
+        $lead = $this->getOwnerRecord();
+        $companyDetail = $lead->companyDetail ?? null;
 
-        // If no e-invoice details exist at all
-        if (!$eInvoiceDetails) {
+        // If no company details exist at all
+        if (!$companyDetail) {
             return true;
         }
 
-        // Check if any required field is null or empty
+        // Check if any essential company details are missing
         $requiredFields = [
-            'pic_email',
-            'registration_name',
-            'identity_type',
-            'business_address',
-            'contact_number',
-            'email_address',
-            'city',
-            'country',
-            'state'
+            'company_name',
+            'industry',
+            'contact_no',
+            'email',
+            'name',
+            'position',
+            'reg_no_new',
+            'state',
+            'reg_no_old',
+            'postcode',
+            'company_address1',
+            'company_address2',
+
         ];
 
         foreach ($requiredFields as $field) {
-            if (empty($eInvoiceDetails->$field)) {
+            if (empty($companyDetail->$field)) {
                 return true;
             }
         }
