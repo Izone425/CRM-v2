@@ -132,6 +132,20 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                // Add this new filter for status
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Draft' => 'Draft',
+                        'New' => 'New',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple()
+            ])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -252,7 +266,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
-                        ->modalWidth(MaxWidth::SevenExtraLarge)
+                        ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
                         ->form([
                             Section::make('Step 1: Database')
@@ -769,6 +783,17 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->form([
                             Grid::make(2)
                                 ->schema([
+                                    TextInput::make('speaker_category')
+                                        ->label('Speaker Category')
+                                        ->readOnly()
+                                        ->default(function (SoftwareHandover $record) {
+                                            if ($record && $record->speaker_category) {
+                                                return $record->speaker_category;
+                                            }
+                                            return $record->speaker_category ?? 'Not specified';
+                                        })
+                                        ->dehydrated(false),
+
                                     Select::make('implementer_id')
                                         ->label('Implementer')
                                         ->options(function () {
@@ -945,7 +970,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {

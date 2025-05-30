@@ -80,7 +80,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved', 'No Stock']);
 
             if ($userExists) {
                 $selectedUser = $this->selectedUser; // Create a local variable
@@ -105,7 +105,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                 });
             } else {
                 // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['New', 'Approved']);
+                $query->whereIn('status', ['New', 'Approved', 'No Stock']);
                 // But they can see ALL records
             }
         }
@@ -202,6 +202,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                         'New' => new HtmlString('<span style="color: blue;">New</span>'),
                         'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
+                        'No Stock' => new HtmlString('<span style="color: red;">No Stock</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
             ])
@@ -234,7 +235,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
+                        // ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
                         // Use a callback function instead of arrow function for more control
                         ->modalContent(function (HardwareHandover $record): View {
 
@@ -699,18 +700,17 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                         }),
 
                     // Also add the view reason and convert to draft actions for completeness
-                    Action::make('view_reason')
-                        ->label('View Reason')
-                        ->visible(fn (HardwareHandover $record): bool => $record->status === 'Rejected')
-                        ->icon('heroicon-o-magnifying-glass-plus')
-                        ->modalHeading('Change Request Reason')
-                        ->modalContent(fn ($record) => view('components.view-reason', [
-                            'reason' => $record->reject_reason,
-                        ]))
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->modalWidth('md')
-                        ->color('warning'),
+                    // Action::make('view_reason')
+                    //     ->label('View Reason')
+                    //     ->icon('heroicon-o-magnifying-glass-plus')
+                    //     ->modalHeading('Change Request Reason')
+                    //     ->modalContent(fn ($record) => view('components.view-reason', [
+                    //         'reason' => $record->reject_reason,
+                    //     ]))
+                    //     ->modalSubmitAction(false)
+                    //     ->modalCancelAction(false)
+                    //     ->modalWidth('md')
+                    //     ->color('warning'),
                     Action::make('mark_approved')
                         ->label('Approve')
                         ->icon('heroicon-o-check-circle')
@@ -758,55 +758,55 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
-                    // Action::make('check_sales_order')
-                    //     ->label('Check Sales Order')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->requiresConfirmation()
-                    //     ->modalHeading('Check Sales Order Status')
-                    //     ->modalDescription('Please select the appropriate status for this sales order.')
-                    //     ->modalSubmitAction(false) // Remove default submit button
-                    //     ->modalCancelAction(false) // Remove default cancel button
-                    //     ->extraModalFooterActions([
-                    //         Action::make('no_stock')
-                    //             ->label('No Stock')
-                    //             ->color('danger')
-                    //             ->icon('heroicon-o-x-circle')
-                    //             ->cancelParentActions()
-                    //             ->action(function (HardwareHandover $record) {
-                    //                 $record->update([
-                    //                     'status' => 'No Stock',
-                    //                 ]);
+                    Action::make('check_sales_order')
+                        ->label('Check Sales Order')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Check Sales Order Status')
+                        ->modalDescription('Please select the appropriate status for this sales order.')
+                        ->modalSubmitAction(false) // Remove default submit button
+                        ->modalCancelAction(false) // Remove default cancel button
+                        ->extraModalFooterActions([
+                            Action::make('no_stock')
+                                ->label('No Stock')
+                                ->color('danger')
+                                ->icon('heroicon-o-x-circle')
+                                ->cancelParentActions()
+                                ->action(function (HardwareHandover $record) {
+                                    $record->update([
+                                        'status' => 'No Stock',
+                                    ]);
 
-                    //                 Notification::make()
-                    //                     ->title('Sales order marked as No Stock')
-                    //                     ->warning()
-                    //                     ->body('The hardware handover is on hold until stock becomes available.')
-                    //                     ->send();
+                                    Notification::make()
+                                        ->title('Sales order marked as No Stock')
+                                        ->warning()
+                                        ->body('The hardware handover is on hold until stock becomes available.')
+                                        ->send();
 
-                    //                 $this->dispatch('close-modal', id: 'check_sales_order');
-                    //             }),
-                    //         Action::make('sales_order_completed')
-                    //             ->label('Sales Order Completed')
-                    //             ->color('success')
-                    //             ->icon('heroicon-o-check-circle')
-                    //             ->cancelParentActions()
-                    //             ->action(function (HardwareHandover $record) {
-                    //                 $record->update([
-                    //                     'status' => 'Sales Order Completed',
-                    //                 ]);
+                                    $this->dispatch('close-modal', id: 'check_sales_order');
+                                }),
+                            Action::make('sales_order_completed')
+                                ->label('Sales Order Completed')
+                                ->color('success')
+                                ->icon('heroicon-o-check-circle')
+                                ->cancelParentActions()
+                                ->action(function (HardwareHandover $record) {
+                                    $record->update([
+                                        'status' => 'Sales Order Completed',
+                                    ]);
 
-                    //                 Notification::make()
-                    //                     ->title('Sales order marked as completed')
-                    //                     ->success()
-                    //                     ->send();
+                                    Notification::make()
+                                        ->title('Sales order marked as completed')
+                                        ->success()
+                                        ->send();
 
-                    //                 $this->dispatch('close-modal', id: 'check_sales_order');
-                    //             }),
-                    //     ])
-                    //     ->hidden(fn (HardwareHandover $record): bool =>
-                    //         $record->status !== 'New' || auth()->user()->role_id === 2
-                    //     ),
+                                    $this->dispatch('close-modal', id: 'check_sales_order');
+                                }),
+                        ])
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' || auth()->user()->role_id === 2
+                        ),
                     // Action::make('mark_data_migration_completed')
                     //     ->label('Data Migration Completed')
                     //     ->icon('heroicon-o-check-circle')
