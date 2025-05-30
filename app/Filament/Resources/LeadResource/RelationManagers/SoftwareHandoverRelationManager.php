@@ -95,7 +95,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     Notification::make()
                         ->warning()
                         ->title('Action Required')
-                        ->body('Please close the lead before proceeding with the software handover.')
+                        ->body('Please close the lead and complete the company details before proceeding with the software handover.')
                         ->persistent()
                         // ->actions([
                         //     \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
@@ -468,6 +468,25 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                                             return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                         }),
+
+                                    FileUpload::make('invoice_file')
+                                        ->label('Upload Invoice')
+                                        ->disk('public')
+                                        ->directory('handovers/invoices')
+                                        ->visibility('public')
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->multiple()
+                                        ->maxFiles(10)
+                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                        }),
                                     ])
                             ]),
                 ])
@@ -502,6 +521,10 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                     if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
                         $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
+                    }
+
+                    if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                        $data['invoice_file'] = json_encode($data['invoice_file']);
                     }
 
                     // Create the handover record
@@ -632,16 +655,17 @@ class SoftwareHandoverRelationManager extends RelationManager
 
 
                     Action::make('edit_software_handover')
-                        ->label(function (SoftwareHandover $record): string {
+                        ->modalHeading(function (SoftwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
                             $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                             return "Edit Software Handover {$formattedId}";
                         })
+                        ->label('Edit Software Handover')
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
-                        ->modalWidth(MaxWidth::SevenExtraLarge)
+                        ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
                         ->form([
                             Section::make('Step 1: Database')
@@ -1082,6 +1106,34 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                     }
                                                     return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
                                                 }),
+
+                                            FileUpload::make('invoice_file')
+                                                ->label('Upload Invoice')
+                                                ->disk('public')
+                                                ->directory('handovers/invoices')
+                                                ->visibility('public')
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->multiple()
+                                                ->maxFiles(10)
+                                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                                    $date = now()->format('Y-m-d');
+                                                    $random = Str::random(5);
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->invoice_file) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->invoice_file)) {
+                                                        return json_decode($record->invoice_file, true) ?? [];
+                                                    }
+                                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
+                                                }),
                                         ]),
                                 ]),
                         ])
@@ -1133,6 +1185,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
                             }
 
+                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                            }
                             // Update the record
                             $record->update($data);
 

@@ -483,7 +483,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">5. TRAINING</div>
+        <div class="section-title">5. TRAINING CATEGORY</div>
         <table>
             <thead>
                 <tr>
@@ -509,7 +509,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">6. Speaker Category</div>
+        <div class="section-title">6. SPEAKER CATEGORY</div>
         <table>
             <thead>
                 <tr>
@@ -723,6 +723,42 @@
                                 <div style="margin-bottom: 4px;">
                                     <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
                                         HRDF Grant {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($hrdfFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+
+                <!-- Invoice Files -->
+                <tr>
+                    <td>Invoice</td>
+                    <td>
+                        @if(isset($softwareHandover->invoice_file) && !empty($softwareHandover->invoice_file))
+                            @php
+                                $hrdfFiles = is_string($softwareHandover->invoice_file)
+                                    ? json_decode($softwareHandover->invoice_file, true)
+                                    : $softwareHandover->invoice_file;
+
+                                if (!is_array($hrdfFiles)) {
+                                    $hrdfFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($hrdfFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Invoice {{ $index + 1 }}
                                     </a>
                                 </div>
                             @endforeach

@@ -45,53 +45,42 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
 
-        if (auth()->user()->role_id === 2) {
-            // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-            $query->whereIn('status', ['Completed']);
-
-            // But only THEIR OWN records
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
+        // Apply normal salesperson filtering for other roles
+        if ($this->selectedUser === 'all-salespersons') {
+            // Keep as is - show all salespersons' handovers
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
             });
-        } else {
-            // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['Completed']);
-            // But they can see ALL records
-        }
+        } elseif (is_numeric($this->selectedUser)) {
+            // Validate that the selected user exists and is a salesperson
+            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
 
-        // Salesperson filter logic
-        if (auth()->user()->role_id === 1 || auth()->user()->role_id === 3) {
-            // Role 3 users can see all handovers regardless of salesperson
-            // No filtering needed here - we'll skip the salesperson filters
-        } else {
-            // Apply normal salesperson filtering for other roles
-            if ($this->selectedUser === 'all-salespersons') {
-                // Keep as is - show all salespersons' handovers
-                $salespersonIds = User::where('role_id', 2)->pluck('id');
-                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                    $leadQuery->whereIn('salesperson', $salespersonIds);
+            if ($userExists) {
+                $selectedUser = $this->selectedUser; // Create a local variable
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
                 });
-            } elseif (is_numeric($this->selectedUser)) {
-                // Validate that the selected user exists and is a salesperson
-                $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
-
-                if ($userExists) {
-                    $selectedUser = $this->selectedUser; // Create a local variable
-                    $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
-                        $leadQuery->where('salesperson', $selectedUser);
-                    });
-                } else {
-                    // Invalid user ID or not a salesperson, fall back to default
-                    $query->whereHas('lead', function ($leadQuery) {
-                        $leadQuery->where('salesperson', auth()->id());
-                    });
-                }
             } else {
-                // Default: show current user's handovers
+                // Invalid user ID or not a salesperson, fall back to default
                 $query->whereHas('lead', function ($leadQuery) {
-                    $leadQuery->where('salesperson', auth()->id() ?? 0); // Avoid null
+                    $leadQuery->where('salesperson', auth()->id());
                 });
+            }
+        } else {
+            if (auth()->user()->role_id === 2) {
+                // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+                $query->whereIn('status', ['Completed']);
+
+                // But only THEIR OWN records
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            } else {
+                // Other users (admin, managers) can only see New, Approved, and Completed
+                $query->whereIn('status', ['Completed']);
+                // But they can see ALL records
             }
         }
 
@@ -115,21 +104,20 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
-
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(SoftwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
+            ->filters([
+                // Add this new filter for status
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Draft' => 'Draft',
+                        'New' => 'New',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple()
+            ])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')

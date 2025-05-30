@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Imports\ContactImport;
 use App\Imports\DealImport;
 use App\Imports\LeadImport;
+use App\Imports\SoftwareHandoverImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportZohoLeads
@@ -27,6 +28,13 @@ class ImportZohoLeads
     {
         $file = public_path('storage/excel/Deals_2025_03_07.csv');
         $import = new DealImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public static function importSoftwares()
+    {
+        $file = public_path('storage/excel/Software_2025_05_30.csv');
+        $import = new SoftwareHandoverImport();
         Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
     }
 }

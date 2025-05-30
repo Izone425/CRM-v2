@@ -369,6 +369,7 @@ class MarketingAnalysis extends Page
             'BD Referral'        => $leads->where('lead_code', 'BD Referral Program')->count(),
             'Website'            => $leads->where('lead_code', 'Website')->count(),
             'Criteo'             => $leads->where('lead_code', 'Criteo')->count(),
+            'Mailer'             => $leads->where('lead_code', 'Mailer')->count(),
             'Null'               => $leads->where('lead_code', null)->count(),
         ]);
 
@@ -1089,6 +1090,7 @@ class MarketingAnalysis extends Page
 
         // Define lead sources to track
         $leadSources = [
+            'Mailer',
             'Facebook Ads',
             'Google AdWords',
             'Website',

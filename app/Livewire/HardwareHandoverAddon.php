@@ -78,7 +78,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
             });
         } else {
             // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['Rejected', 'Draft', 'No Stock']);
+            $query->whereIn('status', ['Rejected', 'Draft']);
             // But they can see ALL records
         }
 

@@ -570,7 +570,7 @@ class LeadResource extends Resource
                                                                         ->default(fn ($record) => $record->companyDetail->reg_no_new ?? '-'),
                                                                     TextInput::make('reg_no_old')
                                                                         ->label('Old Registration No.')
-                                                                        ->default(fn ($record) => $record->companyDetail->reg_no_ ?? '-'),
+                                                                        ->default(fn ($record) => $record->companyDetail->reg_no_old ?? '-'),
                                                                 ]),
                                                         ])
                                                         ->action(function (Lead $lead, array $data) {

@@ -137,21 +137,20 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
-
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(SoftwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
+            ->filters([
+                // Add this new filter for status
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Draft' => 'Draft',
+                        'New' => 'New',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple()
+            ])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
