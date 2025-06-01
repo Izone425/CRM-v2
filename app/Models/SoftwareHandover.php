@@ -119,7 +119,7 @@ class SoftwareHandover extends Model
                 $daysDifference = $completedDate->diffInDays($today);
 
                 // If more than 60 days and not already marked as Delay or Closed, update to Delay
-                if ($daysDifference > 60 && $softwareHandover->status_handover !== 'Delay') {
+                if ($daysDifference > 60 && $softwareHandover->status_handover === 'Open') {
                     $softwareHandover->status_handover = 'Delay';
                     $softwareHandover->saveQuietly(); // Save without triggering events
                 }

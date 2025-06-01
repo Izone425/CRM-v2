@@ -184,35 +184,43 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
                             })
                     ),
 
-                TextColumn::make('lead.salesperson')
-                    ->label('SALESPERSON')
-                    ->getStateUsing(function (SoftwareHandover $record) {
-                        $lead = $record->lead;
-                        if (!$lead) {
-                            return '-';
-                        }
+                // TextColumn::make('lead.salesperson')
+                //     ->label('SALESPERSON')
+                //     ->getStateUsing(function (SoftwareHandover $record) {
+                //         $lead = $record->lead;
+                //         if (!$lead) {
+                //             return '-';
+                //         }
 
-                        $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
-                    })
+                //         $salespersonId = $lead->salesperson;
+                //         return User::find($salespersonId)?->name ?? '-';
+                //     })
+                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
+                // TextColumn::make('lead.companyDetail.company_name')
+                //     ->label('Company Name')
+                //     ->formatStateUsing(function ($state, $record) {
+                //         $fullName = $state ?? 'N/A';
+                //         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+
+                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                //                     target="_blank"
+                //                     title="' . e($fullName) . '"
+                //                     class="inline-block"
+                //                     style="color:#338cf0;">
+                //                     ' . $shortened . '
+                //                 </a>';
+                //     })
+                //     ->html(),
+
+                TextColumn::make('salesperson')
+                    ->label('SALESPERSON')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                                    target="_blank"
-                                    title="' . e($fullName) . '"
-                                    class="inline-block"
-                                    style="color:#338cf0;">
-                                    ' . $shortened . '
-                                </a>';
-                    })
-                    ->html(),
+                TextColumn::make('company_name')
+                    ->limit(20)
+                    ->label('Company Name'),
 
                 TextColumn::make('status')
                     ->label('Status')

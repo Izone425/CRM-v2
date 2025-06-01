@@ -179,35 +179,43 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                             })
                     ),
 
-                TextColumn::make('lead.salesperson')
-                    ->label('SALESPERSON')
-                    ->getStateUsing(function (SoftwareHandover $record) {
-                        $lead = $record->lead;
-                        if (!$lead) {
-                            return '-';
-                        }
+                // TextColumn::make('lead.salesperson')
+                //     ->label('SALESPERSON')
+                //     ->getStateUsing(function (SoftwareHandover $record) {
+                //         $lead = $record->lead;
+                //         if (!$lead) {
+                //             return '-';
+                //         }
 
-                        $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
-                    })
+                //         $salespersonId = $lead->salesperson;
+                //         return User::find($salespersonId)?->name ?? '-';
+                //     })
+                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
+                // TextColumn::make('lead.companyDetail.company_name')
+                //     ->label('Company Name')
+                //     ->formatStateUsing(function ($state, $record) {
+                //         $fullName = $state ?? 'N/A';
+                //         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+
+                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                //                     target="_blank"
+                //                     title="' . e($fullName) . '"
+                //                     class="inline-block"
+                //                     style="color:#338cf0;">
+                //                     ' . $shortened . '
+                //                 </a>';
+                //     })
+                //     ->html(),
+
+                TextColumn::make('salesperson')
+                    ->label('SALESPERSON')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                                    target="_blank"
-                                    title="' . e($fullName) . '"
-                                    class="inline-block"
-                                    style="color:#338cf0;">
-                                    ' . $shortened . '
-                                </a>';
-                    })
-                    ->html(),
+                TextColumn::make('company_name')
+                    ->limit(20)
+                    ->label('Company Name'),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -917,25 +925,8 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
                                 $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                                // Get invoice reference (You can extract it from the record or its associated PI)
-                                $invoiceReference = '';
-
-                                // Option 1: If you have an invoice number directly on the record
-                                // $invoiceReference = $record->invoice_number ?? '';
-
-                                // Option 2: Extract from PI reference numbers
-                                if ($record->proforma_invoice_product) {
-                                    $piIds = is_string($record->proforma_invoice_product)
-                                        ? json_decode($record->proforma_invoice_product, true)
-                                        : $record->proforma_invoice_product;
-
-                                    if (is_array($piIds) && count($piIds) > 0) {
-                                        $pi = \App\Models\Quotation::find($piIds[0]);
-                                        if ($pi) {
-                                            $invoiceReference = $pi->pi_reference_no ?? '';
-                                        }
-                                    }
-                                }
+                                // Format the handover ID properly
+                                $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
                                 // Get the handover PDF URL
                                 $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
@@ -964,13 +955,14 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                     'salesperson' => [
                                         'name' => $salespersonName,
                                     ],
+                                    'handover_id' => $handoverId,
                                     'createdAt' => $record->created_at ? \Carbon\Carbon::parse($record->created_at)->format('d M Y') : now()->format('d M Y'),
                                     'handoverFormUrl' => $handoverFormUrl,
                                     'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -987,12 +979,12 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 $senderEmail = $authUser->email;
                                 $senderName = $authUser->name;
 
-                                // Send email with template
+                                // Send email with template and custom subject format
                                 if (count($recipients) > 0) {
-                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $companyName) {
+                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
                                         $message->from($senderEmail, $senderName)
                                             ->to($recipients)
-                                            ->subject('New Project Assignment - ' . $companyName);
+                                            ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
                                     });
 
                                     \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));

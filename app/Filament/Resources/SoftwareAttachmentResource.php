@@ -211,22 +211,26 @@ class SoftwareAttachmentResource extends Resource
                 //     ->label('Files')
                 //     ->view('filament.pages.file-list'),
 
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+                // TextColumn::make('lead.companyDetail.company_name')
+                //     ->label('Company Name')
+                //     ->formatStateUsing(function ($state, $record) {
+                //         $fullName = $state ?? 'N/A';
+                //         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                                    target="_blank"
-                                    title="' . e($fullName) . '"
-                                    class="inline-block"
-                                    style="color:#338cf0;">
-                                    ' . $shortened . '
-                                </a>';
-                    })
-                    ->html(),
+                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                //                     target="_blank"
+                //                     title="' . e($fullName) . '"
+                //                     class="inline-block"
+                //                     style="color:#338cf0;">
+                //                     ' . $shortened . '
+                //                 </a>';
+                //     })
+                //     ->html(),
+
+                TextColumn::make('company_name')
+                    ->limit(20)
+                    ->label('Company Name'),
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
