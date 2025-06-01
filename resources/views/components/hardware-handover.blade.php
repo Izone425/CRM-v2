@@ -61,6 +61,19 @@
             @endif
         </p>
         <p class="mb-2">
+            <span class="font-semibold">SalesPerson:</span>
+            @php
+                $salespersonName = "-";
+                if (isset($record->lead) && isset($record->lead->salesperson)) {
+                    $salesperson = \App\Models\User::find($record->lead->salesperson);
+                    if ($salesperson) {
+                        $salespersonName = $salesperson->name;
+                    }
+                }
+            @endphp
+            {{ $salespersonName }}
+        </p>
+        <p class="mb-2">
             <span class="font-semibold">Hardware Handover ID:</span>
             {{ isset($record->id) ? 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
         </p>

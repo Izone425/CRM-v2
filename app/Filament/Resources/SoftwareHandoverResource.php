@@ -180,6 +180,15 @@ class SoftwareHandoverResource extends Resource
                                             if (!empty($state)) {
                                                 $set('status_handover', 'Closed');
                                             }
+                                        })
+                                        ->disabled(function () {
+                                            // Disable this field if the user has role_id 2 (salesperson)
+                                            return auth()->user()->role_id === 2;
+                                        })
+                                        ->dehydrated(function () {
+                                            // Even if disabled, we still want to save any existing value
+                                            // This ensures the field value is still submitted when the form is saved
+                                            return true;
                                         }),
                                 ]),
                         ]),
@@ -257,14 +266,14 @@ class SoftwareHandoverResource extends Resource
             ->modifyQueryUsing(function ($query) {
                 $query
                     ->where('status', '=', 'Completed')
-                    ->orderBy('created_at', 'desc');
+                    ->orderBy('id', 'asc');
 
-                if (auth()->user()->role_id === 2) {
-                    $userId = auth()->id();
-                    $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                        $leadQuery->where('salesperson', $userId);
-                    });
-                }
+                // if (auth()->user()->role_id === 2) {
+                //     $userId = auth()->id();
+                //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                //         $leadQuery->where('salesperson', $userId);
+                //     });
+                // }
             })
             ->columns([
                 TextColumn::make('id')
@@ -287,6 +296,10 @@ class SoftwareHandoverResource extends Resource
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        // Custom sorting logic that uses the raw ID value
+                        return $query->orderBy('id', $direction);
+                    })
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
@@ -299,7 +312,9 @@ class SoftwareHandoverResource extends Resource
                             })
                     ),
 
-                TextColumn::make('lead.companyDetail.company_name')
+                TextColumn::make('company_name')
+                    ->limit(20)
+                    ->searchable()
                     ->label('Company Name'),
 
                 TextColumn::make('salesperson')
@@ -401,7 +416,7 @@ class SoftwareHandoverResource extends Resource
                 TextColumn::make('headcount')
                     ->label('Headcount')
                     ->toggleable(),
-                TextColumn::make('created_at')
+                TextColumn::make('completed_at')
                     ->label('DB Creation')
                     ->date('d M Y')
                     ->toggleable(),
@@ -444,10 +459,10 @@ class SoftwareHandoverResource extends Resource
             ])
             ->filters([
                 // Existing date range filter
-                Filter::make('created_at')
+                Filter::make('completed_at')
                     ->form([
                         DateRangePicker::make('date_range')
-                            ->label('Created At')
+                            ->label('DB Creation Date')
                             ->placeholder('Select date range'),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
@@ -459,8 +474,8 @@ class SoftwareHandoverResource extends Resource
                             $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
                             $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
 
-                            // Apply the filter
-                            $query->whereBetween('created_at', [$startDate, $endDate]);
+                            // Apply the filter to completed_at instead of created_at
+                            $query->whereBetween('completed_at', [$startDate, $endDate]);
                         }
                     })
                     ->indicateUsing(function (array $data) {
@@ -468,8 +483,8 @@ class SoftwareHandoverResource extends Resource
                             // Parse the date range for display
                             [$start, $end] = explode(' - ', $data['date_range']);
 
-                            return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
-                                ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                            return 'DB Creation Date: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
+                                ' - ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
                         }
                         return null;
                     }),

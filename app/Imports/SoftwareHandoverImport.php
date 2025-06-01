@@ -22,27 +22,32 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
+        $skippedCompanies = [];
+
         foreach ($rows as $row) {
             $this->rowCount++;
 
             try {
                 // Skip empty rows
-                if (empty($row['company_name'])) {
-                    $this->skipCount++;
-                    continue;
-                }
+                // if (empty($row['company_name'])) {
+                //     $this->skipCount++;
+                //     // Log skipped row index
+                //     Log::info("Skipped empty row #{$this->rowCount}");
+                //     continue;
+                // }
 
-                // Find or create company details based on company name
                 $companyName = trim($row['company_name']);
 
-                // // Create new lead or find existing based on company name
-                // $companyDetail = CompanyDetail::firstOrCreate(
-                //     ['company_name' => $companyName],
-                //     [
-                //         'industry' => $row['industry'] ?? null,
-                //         'state' => $row['state'] ?? null,
-                //     ]
-                // );
+                // For existing records with specific statuses that should be skipped
+                $status = $row['status'] ?? '';
+                if (in_array($status, ['Delay', 'Closed', 'Inactive'])) {
+                    $this->skipCount++;
+                    $skippedCompanies[] = $companyName;
+
+                    // Log each skipped company individually
+                    Log::info("Skipped company: {$companyName} with status: {$status}");
+                    continue;
+                }
 
                 // Find salesperson by name
                 $salespersonName = trim($row['sales_pic'] ?? '');
@@ -116,6 +121,14 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
             }
         }
 
+        // Log the summary of skipped companies
+        if (count($skippedCompanies) > 0) {
+            Log::info("Skipped companies summary:", [
+                'count' => count($skippedCompanies),
+                'companies' => $skippedCompanies
+            ]);
+        }
+
         Log::info("Software Handover Import completed. Total: {$this->rowCount}, Success: {$this->successCount}, Skipped: {$this->skipCount}, Errors: {$this->errorCount}");
     }
 
@@ -146,6 +159,6 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
         }
 
         $value = strtoupper(trim($value));
-        return ($value === 'X' || $value === 'YES' || $value === 'TRUE' || $value === '1');
+        return ($value === '/' || $value === 'YES' || $value === 'TRUE' || $value === '1');
     }
 }

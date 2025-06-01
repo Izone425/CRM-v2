@@ -30,8 +30,11 @@ class HandoverNotification extends Mailable
      */
     public function envelope(): Envelope
     {
+        $handoverId = $this->emailContent['handover_id'] ?? '250000';
+        $companyName = $this->emailContent['company']['name'] ?? 'New Company';
+
         return new Envelope(
-            subject: 'Software Handover Completed - ' . ($this->emailContent['company']['name'] ?? 'New Company'),
+            subject: "SOFTWARE HANDOVER ID {$handoverId} | {$companyName}",
         );
     }
 

@@ -88,7 +88,7 @@ class HardwareHandoverRelationManager extends RelationManager
                 ->slideOver()
                 ->modalSubmitActionLabel('Save')
                 ->modalHeading('Add Hardware Handover')
-                ->modalWidth(MaxWidth::SevenExtraLarge)
+                ->modalWidth(MaxWidth::FourExtraLarge)
                 ->form([
                     Section::make('Step 1: Invoice Details')
                         ->schema([
@@ -163,19 +163,19 @@ class HardwareHandoverRelationManager extends RelationManager
                                             ->afterStateHydrated(fn($state) => Str::upper($state))
                                             ->afterStateUpdated(fn($state) => Str::upper($state))
                                             ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name)
-                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier' || $get('installation_type') === 'external_installation'),
                                         TextInput::make('category2.pic_phone')
                                             ->label('HP Number')
                                             ->tel()
                                             ->required()
                                             ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->contact_no)
-                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier' || $get('installation_type') === 'external_installation'),
                                         TextInput::make('category2.email')
                                             ->label('Email Address')
                                             ->required()
                                             ->email()
                                             ->default(fn () => $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email)
-                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier'),
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'courier' || $get('installation_type') === 'external_installation'),
                                         TextInput::make('category2.courier_address')
                                             ->label('Courier Address')
                                             ->required()
@@ -537,11 +537,32 @@ class HardwareHandoverRelationManager extends RelationManager
                             return 'No installer selected';
                         }
                         elseif ($record->installation_type === 'external_installation') {
+                            $parts = [];
+
+                            // Display reseller company name
                             if (!empty($data['reseller'])) {
                                 $reseller = \App\Models\Reseller::find($data['reseller']);
-                                return $reseller ? $reseller->company_name : 'Unknown Reseller';
+                                if ($reseller) {
+                                    $parts[] = "<strong>{$reseller->company_name}</strong>";
+                                }
                             }
-                            return 'No reseller selected';
+
+                            // Display contact details that are stored in category2
+                            if (!empty($data['pic_name'])) {
+                                $parts[] = "Reseller Name: {$data['pic_name']}";
+                            }
+
+                            if (!empty($data['pic_phone'])) {
+                                $parts[] = "Phone: {$data['pic_phone']}";
+                            }
+
+                            if (!empty($data['email'])) {
+                                $parts[] = "Email: {$data['email']}";
+                            }
+
+                            return !empty($parts)
+                                ? new HtmlString(implode('<br>', $parts))
+                                : 'No reseller details';
                         }
 
                         // Fallback for any other case
@@ -613,16 +634,17 @@ class HardwareHandoverRelationManager extends RelationManager
                         }),
 
                     Action::make('edit_hardware_handover')
-                        ->label(function (HardwareHandover $record): string {
+                        ->modalHeading(function (HardwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
                             $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                             return "Edit Hardware Handover {$formattedId}";
                         })
+                        ->label('Edit Hardware Handover')
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
                         ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['Draft']))
-                        ->modalWidth(MaxWidth::SevenExtraLarge)
+                        ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
                         ->form([
                             Section::make('Step 1: Invoice Details')
@@ -665,42 +687,42 @@ class HardwareHandoverRelationManager extends RelationManager
                                     Grid::make(2)
                                     ->schema([
                                         Select::make('category2.installer')
-                                                ->label('Installer')
-                                                ->visible(fn (callable $get) => $get('installation_type') === 'internal_installation')
-                                                ->options(function () {
-                                                    // Retrieve options from the installer table
-                                                    return \App\Models\Installer::pluck('company_name', 'id')->toArray();
-                                                })
-                                                ->searchable()
-                                                ->preload()
-                                                ->default(function (HardwareHandover $record) {
-                                                    if (!$record || empty($record->category2)) {
-                                                        return null;
-                                                    }
-                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
-                                                    return $categoryData['installer'] ?? null;
-                                                }),
-                                            Select::make('category2.reseller')
-                                                ->label('Reseller')
-                                                ->visible(fn (callable $get) => $get('installation_type') === 'external_installation')
-                                                ->options(function () {
-                                                    // Retrieve options from the reseller table
-                                                    return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
-                                                })
-                                                ->searchable()
-                                                ->preload()
-                                                ->default(function (HardwareHandover $record) {
-                                                    if (!$record || empty($record->category2)) {
-                                                        return null;
-                                                    }
-                                                    $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
-                                                    return $categoryData['reseller'] ?? null;
-                                                }),
-                                        Grid::make(4)
+                                            ->label('Installer')
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'internal_installation')
+                                            ->options(function () {
+                                                // Retrieve options from the installer table
+                                                return \App\Models\Installer::pluck('company_name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function (HardwareHandover $record) {
+                                                if (!$record || empty($record->category2)) {
+                                                    return null;
+                                                }
+                                                $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                return $categoryData['installer'] ?? null;
+                                            }),
+                                        Select::make('category2.reseller')
+                                            ->label('Reseller')
+                                            ->visible(fn (callable $get) => $get('installation_type') === 'external_installation')
+                                            ->options(function () {
+                                                // Retrieve options from the reseller table
+                                                return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(function (HardwareHandover $record) {
+                                                if (!$record || empty($record->category2)) {
+                                                    return null;
+                                                }
+                                                $categoryData = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                return $categoryData['reseller'] ?? null;
+                                            }),
+                                    Grid::make(4)
                                         ->schema([
                                             TextInput::make('category2.pic_name')
                                                 ->label('Name')
-                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier')
+                                                ->visible(fn (callable $get) => $get('installation_type') === 'courier' || $get('installation_type') === 'external_installation')
                                                 ->default(function (HardwareHandover $record) {
                                                     if (!$record || empty($record->category2)) {
                                                         return null;
