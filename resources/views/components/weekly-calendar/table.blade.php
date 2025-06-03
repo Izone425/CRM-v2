@@ -46,10 +46,10 @@
             </div>
 
             @if (isset($date['holiday']))
-                <div class="grid-cell" style="background-color:#bfbbbb;color:black">{{ $date['holiday']['name'] }}</div>
-                <div class="grid-cell" style="background-color:#bfbbbb;color:black">{{ $date['holiday']['name'] }}</div>
-                <div class="grid-cell" style="background-color:#bfbbbb;color:black">{{ $date['holiday']['name'] }}</div>
-                <div class="grid-cell" style="background-color:#bfbbbb;color:black">{{ $date['holiday']['name'] }}</div>
+                <div class="grid-cell" style="background-color:#bfbbbb;color:black;font-size:0.8rem">PUBLIC HOLIDAY</div>
+                <div class="grid-cell" style="background-color:#bfbbbb;color:black;font-size:0.8rem">PUBLIC HOLIDAY</div>
+                <div class="grid-cell" style="background-color:#bfbbbb;color:black;font-size:0.8rem">PUBLIC HOLIDAY</div>
+                <div class="grid-cell" style="background-color:#bfbbbb;color:black;font-size:0.8rem">PUBLIC HOLIDAY</div>
 
             @elseif($date['carbonDate']->isBefore($tableData['today']))
                 <div class="grid-cell" style="background-color:#474747;color:white"></div>
