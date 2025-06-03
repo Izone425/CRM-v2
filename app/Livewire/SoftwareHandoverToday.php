@@ -956,7 +956,8 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         'name' => $salespersonName,
                                     ],
                                     'handover_id' => $handoverId,
-                                    'createdAt' => $record->created_at ? \Carbon\Carbon::parse($record->created_at)->format('d M Y') : now()->format('d M Y'),
+                                    // CHANGE created_at to completed_at
+                                    'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
                                     'handoverFormUrl' => $handoverFormUrl,
                                     'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
                                 ];
