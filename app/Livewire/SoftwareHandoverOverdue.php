@@ -90,7 +90,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             WHEN status = 'Completed' THEN 3
             ELSE 4
         END")
-        ->orderBy('created_at', 'desc');
+        ->orderBy('updated_at', 'desc');
 
         return $query;
     }
@@ -100,7 +100,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
         return $table
             ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('updated_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
