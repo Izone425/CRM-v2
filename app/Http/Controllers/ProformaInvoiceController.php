@@ -13,9 +13,10 @@ class ProformaInvoiceController extends Controller
 {
     public function __invoke(Quotation $quotation)
     {
-        if (auth('web')->user()->role == User::IS_USER && auth('web')->user()->id <> $quotation->sales_person_id) {
-            abort(401);
-        }
+        // if (auth('web')->user()->role == User::IS_USER && auth('web')->user()->id !== $quotation->sales_person_id) {
+        //     abort(401);
+        // }
+
 
         $image = file_get_contents(public_path('/img/logo-ttc.png'));
         $image2 = file_get_contents(public_path('/img/tc-chop.png'));
