@@ -26,7 +26,6 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
 
         foreach ($rows as $row) {
             $this->rowCount++;
-
             try {
                 // Skip empty rows
                 // if (empty($row['company_name'])) {
@@ -38,16 +37,16 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
 
                 $companyName = trim($row['company_name']);
 
-                // For existing records with specific statuses that should be skipped
-                $status = $row['status'] ?? '';
-                if (in_array($status, ['Delay', 'Closed', 'Inactive'])) {
-                    $this->skipCount++;
-                    $skippedCompanies[] = $companyName;
+                // // For existing records with specific statuses that should be skipped
+                // $status = $row['status'] ?? '';
+                // if (in_array($status, ['DELAY', 'CLOSED', 'INACTIVE'])) {
+                //     $this->skipCount++;
+                //     $skippedCompanies[] = $companyName;
 
-                    // Log each skipped company individually
-                    Log::info("Skipped company: {$companyName} with status: {$status}");
-                    continue;
-                }
+                //     // Log each skipped company individually
+                //     Log::info("Skipped company: {$companyName} with status: {$status}");
+                //     continue;
+                // }
 
                 // Find salesperson by name
                 $salespersonName = trim($row['sales_pic'] ?? '');
@@ -85,11 +84,7 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
                 $tp = $this->convertModuleStatus($row['tp'] ?? null);
 
                 // Create the software handover record
-                $handover = SoftwareHandover::updateOrCreate(
-                    [
-                        // 'lead_id' => $lead->id,
-                        'company_name' => $companyName,
-                    ],
+                $handover = SoftwareHandover::create(
                     [
                         'company_name' => $companyName,
                         'lead_id' => null,
@@ -112,6 +107,8 @@ class SoftwareHandoverImport implements ToCollection, WithHeadingRow
                     ]
                 );
                 $this->successCount++;
+
+                Log::info($handover);
             } catch (\Exception $e) {
                 $this->errorCount++;
                 Log::error('Error importing software handover: ' . $e->getMessage(), [
