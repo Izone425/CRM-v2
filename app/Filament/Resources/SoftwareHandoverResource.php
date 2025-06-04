@@ -93,169 +93,265 @@ class SoftwareHandoverResource extends Resource
                     ]),
 
                 Grid::make(6)
-                ->schema([
-                    // Section: Modules
-                    Section::make('Module Selection')
-                        ->columnSpan(2)
-                        ->schema([
-                            Grid::make(2)
+                    ->schema([
+                        // Section: Modules
+                        Section::make('Module Selection')
+                            ->columnSpan(2)
                             ->schema([
-                                Checkbox::make('ta')
-                                    ->label('Time Attendance (TA)')
-                                    ->disabled()
-                                    ->inline(),
+                                Grid::make(2)
+                                    ->schema([
+                                        Checkbox::make('ta')
+                                            ->label('Time Attendance (TA)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tapp')
-                                    ->label('TimeTec Access (T-APP)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('tapp')
+                                            ->label('TimeTec Access (T-APP)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tl')
-                                    ->label('TimeTec Leave (TL)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('tl')
+                                            ->label('TimeTec Leave (TL)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('thire')
-                                    ->label('TimeTec Hire (T-HIRE)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('thire')
+                                            ->label('TimeTec Hire (T-HIRE)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tc')
-                                    ->label('TimeTec Claim (TC)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('tc')
+                                            ->label('TimeTec Claim (TC)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tacc')
-                                    ->label('TimeTec Access (T-ACC)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('tacc')
+                                            ->label('TimeTec Access (T-ACC)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tp')
-                                    ->label('TimeTec Payroll (TP)')
-                                    ->disabled()
-                                    ->inline(),
+                                        Checkbox::make('tp')
+                                            ->label('TimeTec Payroll (TP)')
+                                            ->disabled()
+                                            ->inline(),
 
-                                Checkbox::make('tpbi')
-                                    ->label('TimeTec PBI (TPBI)')
-                                    ->disabled()
-                                    ->inline(),
-                            ])
-                        ]),
+                                        Checkbox::make('tpbi')
+                                            ->label('TimeTec PBI (TPBI)')
+                                            ->disabled()
+                                            ->inline(),
+                                    ])
+                            ]),
 
-                    // Section: Implementation Details
-                    Section::make('Implementation Timeline')
-                        ->columnSpan(2)
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('formatted_date')
-                                        ->label('DB Creation Date')
-                                        ->formatStateUsing(function ($state, $record) {
-                                            return $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : '-';
-                                        })
-                                        ->disabled()
-                                        ->dehydrated(false),
-                                    DatePicker::make('kick_off_meeting')
-                                        ->label('Online Kick Off Meeting')
-                                        ->disabled()
-                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
-                                ]),
+                        // Section: Implementation Details
+                        Section::make('Implementation Timeline')
+                            ->columnSpan(2)
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('formatted_date')
+                                            ->label('DB Creation Date')
+                                            ->formatStateUsing(function ($state, $record) {
+                                                return $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : '-';
+                                            })
+                                            ->disabled()
+                                            ->dehydrated(false),
+                                        DatePicker::make('kick_off_meeting')
+                                            ->label('Online Kick Off Meeting')
+                                            ->disabled()
+                                            ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                            ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                    ]),
 
-                            Grid::make(2)
-                                ->schema([
-                                    DatePicker::make('webinar_training')
-                                        ->label('Online Webinar Training')
-                                        ->disabled()
-                                        ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                        ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                Grid::make(2)
+                                    ->schema([
+                                        DatePicker::make('webinar_training')
+                                            ->label('Online Webinar Training')
+                                            ->disabled()
+                                            ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
+                                            ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
 
-                                    DatePicker::make('go_live_date')
-                                        ->label('System Go Live')
-                                        ->format('Y-m-d')
-                                        ->displayFormat('d/m/Y')
-                                        ->live()  // Make it react to changes
-                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
-                                            // If a go_live_date is set (not null or empty), set status to Closed
-                                            if (!empty($state)) {
-                                                $set('status_handover', 'Closed');
+                                        DatePicker::make('go_live_date')
+                                            ->label('System Go Live')
+                                            ->format('Y-m-d')
+                                            ->displayFormat('d/m/Y')
+                                            ->live()  // Make it react to changes
+                                            ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
+                                                // If a go_live_date is set (not null or empty), set status to Closed
+                                                if (!empty($state)) {
+                                                    $set('status_handover', 'Closed');
+                                                }
+                                            })
+                                            ->disabled(function () {
+                                                // Disable this field if the user has role_id 2 (salesperson)
+                                                return auth()->user()->role_id === 2;
+                                            })
+                                            ->dehydrated(function () {
+                                                // Even if disabled, we still want to save any existing value
+                                                // This ensures the field value is still submitted when the form is saved
+                                                return true;
+                                            }),
+                                    ]),
+                            ]),
+
+                        Section::make('Training Information')
+                            ->columnSpan(1)
+                            ->schema([
+                                Select::make('implementer')
+                                    ->label('Implementer')
+                                    ->options(function () {
+                                        return \App\Models\User::where('role_id', 4)
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->default(function (SoftwareHandover $record) {
+                                        // First try to use existing implementer_id if record exists
+                                        if ($record && $record->implementer_id) {
+                                            return $record->implementer_id;
+                                        }
+
+                                        // Otherwise try to find the first available implementer
+                                        $firstImplementer = \App\Models\User::where('role_id', 4)->first();
+                                        return $firstImplementer ? $firstImplementer->id : null;
+                                    })
+                                    ->searchable()
+                                    ->placeholder('Select an implementer')
+                                    ->afterStateUpdated(function ($state, $old, $record, $component) {
+                                        // Only send email if this is an existing record and the implementer actually changed
+                                        if ($record && $record->exists && $old !== $state && $old !== null) {
+                                            $newImplementer = \App\Models\User::find($state);
+                                            $oldImplementer = \App\Models\User::find($old);
+
+                                            if ($newImplementer) {
+                                                // Send email notification
+                                                try {
+                                                    $viewName = 'emails.handover_changeimplementer';
+
+                                                    // Get salesperson and company details
+                                                    $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                                                    $salespersonId = $record->lead->salesperson ?? null;
+                                                    $salesperson = \App\Models\User::find($salespersonId);
+
+                                                    // Format the handover ID properly
+                                                    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                                                    // Get the handover PDF URL
+                                                    $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                                                    $invoiceFiles = [];
+                                                    if ($record->invoice_file) {
+                                                        $invoiceFileArray = is_string($record->invoice_file)
+                                                            ? json_decode($record->invoice_file, true)
+                                                            : $record->invoice_file;
+
+                                                        if (is_array($invoiceFileArray)) {
+                                                            foreach ($invoiceFileArray as $file) {
+                                                                $invoiceFiles[] = url('storage/' . $file);
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Create email content structure
+                                                    $emailContent = [
+                                                        'implementer' => [
+                                                            'name' => $newImplementer->name,
+                                                        ],
+                                                        'oldImplementer' =>[
+                                                            'name' => $oldImplementer->name,
+                                                        ],
+                                                        'company' => [
+                                                            'name' => $companyName,
+                                                        ],
+                                                        'salesperson' => [
+                                                            'name' => $salesperson->name,
+                                                        ],
+                                                        'handover_id' => $handoverId,
+                                                        // CHANGE created_at to completed_at
+                                                        'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
+                                                        'handoverFormUrl' => $handoverFormUrl,
+                                                        'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
+                                                    ];
+
+                                                    // Initialize recipients array with admin email
+                                                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+
+                                                    // Add implementer email if valid
+                                                    if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
+                                                        $recipients[] = $newImplementer->email;
+                                                    }
+
+                                                    // Add old implementer email if valid
+                                                    if ($oldImplementer->email && filter_var($oldImplementer->email, FILTER_VALIDATE_EMAIL)) {
+                                                        $recipients[] = $oldImplementer->email;
+                                                    }
+
+                                                    // Add salesperson email if valid
+                                                    if ($salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
+                                                        $recipients[] = $salesperson->email;
+                                                    }
+
+                                                    // Get authenticated user's email for sender
+                                                    $authUser = auth()->user();
+                                                    $senderEmail = $authUser->email;
+                                                    $senderName = $authUser->name;
+
+                                                    // Send email with template and custom subject format
+                                                    if (count($recipients) > 0) {
+                                                        \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                                                            $message->from($senderEmail,$senderName)
+                                                                ->to($recipients)
+                                                                ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                                        });
+
+                                                        \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                                    }
+                                                } catch (\Exception $e) {
+                                                    // Log error but don't stop the process
+                                                    \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                                                }
                                             }
-                                        })
-                                        ->disabled(function () {
-                                            // Disable this field if the user has role_id 2 (salesperson)
-                                            return auth()->user()->role_id === 2;
-                                        })
-                                        ->dehydrated(function () {
-                                            // Even if disabled, we still want to save any existing value
-                                            // This ensures the field value is still submitted when the form is saved
-                                            return true;
-                                        }),
-                                ]),
-                        ]),
+                                        }
+                                    }),
+                                TextInput::make('payroll_code')
+                                    ->label('Payroll Code')
+                                    ->maxLength(50),
+                            ]),
+                        Section::make('Handover Status')
+                            ->columnSpan(1)
+                            ->schema([
+                                Select::make('status_handover')
+                                    ->label('Status')
+                                    ->options([
+                                        'Open' => 'Open',
+                                        'Delay' => 'Delay',
+                                        'Inactive' => 'Inactive',
+                                        'Closed' => 'Closed',
+                                    ])
+                                    ->default(function (SoftwareHandover $record) {
+                                        // If go_live_date is set, default to Closed
+                                        if ($record && $record->go_live_date) {
+                                            return 'Closed';
+                                        }
 
-                    Section::make('Training Information')
-                        ->columnSpan(1)
-                        ->schema([
-                            Select::make('implementer')
-                                ->label('Implementer')
-                                ->options(function () {
-                                    return \App\Models\User::where('role_id', 4)
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                })
-                                ->required()
-                                ->default(function (SoftwareHandover $record) {
-                                    // First try to use existing implementer_id if record exists
-                                    if ($record && $record->implementer_id) {
-                                        return $record->implementer_id;
-                                    }
+                                        // If total days > 60, default to Delay
+                                        if ($record && $record->completed_at) {
+                                            $completedDate = Carbon::parse($record->completed_at);
+                                            $today = Carbon::now();
+                                            $daysDifference = $completedDate->diffInDays($today);
 
-                                    // Otherwise try to find the first available implementer
-                                    $firstImplementer = \App\Models\User::where('role_id', 4)->first();
-                                    return $firstImplementer ? $firstImplementer->id : null;
-                                })
-                                ->searchable()
-                                ->placeholder('Select an implementer'),
-                            TextInput::make('payroll_code')
-                                ->label('Payroll Code')
-                                ->maxLength(50),
-                        ]),
-                    Section::make('Handover Status')
-                        ->columnSpan(1)
-                        ->schema([
-                            Select::make('status_handover')
-                            ->label('Status')
-                            ->options([
-                                'Open' => 'Open',
-                                'Delay' => 'Delay',
-                                'Inactive' => 'Inactive',
-                                'Closed' => 'Closed',
-                            ])
-                            ->default(function (SoftwareHandover $record) {
-                                // If go_live_date is set, default to Closed
-                                if ($record && $record->go_live_date) {
-                                    return 'Closed';
-                                }
+                                            if ($daysDifference > 60 && $record->status_handover !== 'Closed') {
+                                                return 'Delay';
+                                            }
+                                        }
 
-                                // If total days > 60, default to Delay
-                                if ($record && $record->completed_at) {
-                                    $completedDate = Carbon::parse($record->completed_at);
-                                    $today = Carbon::now();
-                                    $daysDifference = $completedDate->diffInDays($today);
-
-                                    if ($daysDifference > 60 && $record->status_handover !== 'Closed') {
-                                        return 'Delay';
-                                    }
-                                }
-
-                                // Otherwise use existing status or fall back to Open
-                                return $record->status_handover ?? 'Open';
-                            })
-                            ->live() // Make it react to changes
-                            ->required(),
-                        ]),
-                ]),
+                                        // Otherwise use existing status or fall back to Open
+                                        return $record->status_handover ?? 'Open';
+                                    })
+                                    ->live() // Make it react to changes
+                                    ->required(),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -523,138 +619,138 @@ class SoftwareHandoverResource extends Resource
 
                 // Company size filter
                 Filter::make('company_size')
-                ->form([
-                    Forms\Components\Select::make('company_size')
-                        ->label('Company Size')
-                        ->options([
-                            'Small' => 'Small (1-24)',
-                            'Medium' => 'Medium (25-99)',
-                            'Large' => 'Large (100-500)',
-                            'Enterprise' => 'Enterprise (501+)',
-                        ])
-                        ->searchable()
-                        ->placeholder('Select company size'),
-                ])
-                ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                    if (empty($data['company_size'])) {
-                        return;
-                    }
+                    ->form([
+                        Forms\Components\Select::make('company_size')
+                            ->label('Company Size')
+                            ->options([
+                                'Small' => 'Small (1-24)',
+                                'Medium' => 'Medium (25-99)',
+                                'Large' => 'Large (100-500)',
+                                'Enterprise' => 'Enterprise (501+)',
+                            ])
+                            ->searchable()
+                            ->placeholder('Select company size'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (empty($data['company_size'])) {
+                            return;
+                        }
 
-                    // Apply different headcount filters based on selected company size
-                    switch ($data['company_size']) {
-                        case 'Small':
-                            $query->whereBetween('headcount', [1, 24]);
-                            break;
-                        case 'Medium':
-                            $query->whereBetween('headcount', [25, 99]);
-                            break;
-                        case 'Large':
-                            $query->whereBetween('headcount', [100, 500]);
-                            break;
-                        case 'Enterprise':
-                            $query->where('headcount', '>=', 501);
-                            break;
-                    }
-                }),
+                        // Apply different headcount filters based on selected company size
+                        switch ($data['company_size']) {
+                            case 'Small':
+                                $query->whereBetween('headcount', [1, 24]);
+                                break;
+                            case 'Medium':
+                                $query->whereBetween('headcount', [25, 99]);
+                                break;
+                            case 'Large':
+                                $query->whereBetween('headcount', [100, 500]);
+                                break;
+                            case 'Enterprise':
+                                $query->where('headcount', '>=', 501);
+                                break;
+                        }
+                    }),
             ])
             ->filtersFormColumns(1);
-            // ->actions([
-            //     // Tables\Actions\EditAction::make(),
-            //     Tables\Actions\Action::make('create_attachment')
-            //     ->label('Create Attachment')
-            //     ->icon('heroicon-o-paper-clip')
-            //     ->color('success')
-            //     ->form([
-            //         Forms\Components\TextInput::make('title')
-            //             ->label('Attachment Title')
-            //             ->default(function (SoftwareHandover $record) {
-            //                 return "Files for {$record->company_name}";
-            //             })
-            //             ->required(),
+        // ->actions([
+        //     // Tables\Actions\EditAction::make(),
+        //     Tables\Actions\Action::make('create_attachment')
+        //     ->label('Create Attachment')
+        //     ->icon('heroicon-o-paper-clip')
+        //     ->color('success')
+        //     ->form([
+        //         Forms\Components\TextInput::make('title')
+        //             ->label('Attachment Title')
+        //             ->default(function (SoftwareHandover $record) {
+        //                 return "Files for {$record->company_name}";
+        //             })
+        //             ->required(),
 
-            //         Forms\Components\Textarea::make('description')
-            //             ->label('Description')
-            //             ->default(function (SoftwareHandover $record) {
-            //                 return "Combined files for {$record->company_name} (Handover #{$record->id})";
-            //             }),
-            //     ])
-            //     ->action(function (array $data, SoftwareHandover $record) {
-            //         // Collect all available files from the handover
-            //         $allFiles = [];
+        //         Forms\Components\Textarea::make('description')
+        //             ->label('Description')
+        //             ->default(function (SoftwareHandover $record) {
+        //                 return "Combined files for {$record->company_name} (Handover #{$record->id})";
+        //             }),
+        //     ])
+        //     ->action(function (array $data, SoftwareHandover $record) {
+        //         // Collect all available files from the handover
+        //         $allFiles = [];
 
-            //         // Add invoice files if available
-            //         if (!empty($record->invoice_file)) {
-            //             $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
-            //         }
+        //         // Add invoice files if available
+        //         if (!empty($record->invoice_file)) {
+        //             $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
+        //         }
 
-            //         // Add confirmation order files if available
-            //         if (!empty($record->confirmation_order_file)) {
-            //             $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
-            //         }
+        //         // Add confirmation order files if available
+        //         if (!empty($record->confirmation_order_file)) {
+        //             $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
+        //         }
 
-            //         // Add HRDF grant files if available
-            //         if (!empty($record->hrdf_grant_file)) {
-            //             $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
-            //         }
+        //         // Add HRDF grant files if available
+        //         if (!empty($record->hrdf_grant_file)) {
+        //             $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
+        //         }
 
-            //         // Add payment slip files if available
-            //         if (!empty($record->payment_slip_file)) {
-            //             $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
-            //         }
+        //         // Add payment slip files if available
+        //         if (!empty($record->payment_slip_file)) {
+        //             $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
+        //         }
 
-            //         // Check if any files are available
-            //         if (empty($allFiles)) {
-            //             Notification::make()
-            //                 ->title('No files available')
-            //                 ->body("This handover has no files to create an attachment from.")
-            //                 ->danger()
-            //                 ->send();
-            //             return;
-            //         }
+        //         // Check if any files are available
+        //         if (empty($allFiles)) {
+        //             Notification::make()
+        //                 ->title('No files available')
+        //                 ->body("This handover has no files to create an attachment from.")
+        //                 ->danger()
+        //                 ->send();
+        //             return;
+        //         }
 
-            //         // Create a new software attachment with all files
-            //         $attachment = \App\Models\SoftwareAttachment::create([
-            //             'software_handover_id' => $record->id,
-            //             'title' => $data['title'],
-            //             'description' => $data['description'],
-            //             'files' => $allFiles, // Add all collected files
-            //             'created_by' => auth()->id(),
-            //             'updated_by' => auth()->id()
-            //         ]);
+        //         // Create a new software attachment with all files
+        //         $attachment = \App\Models\SoftwareAttachment::create([
+        //             'software_handover_id' => $record->id,
+        //             'title' => $data['title'],
+        //             'description' => $data['description'],
+        //             'files' => $allFiles, // Add all collected files
+        //             'created_by' => auth()->id(),
+        //             'updated_by' => auth()->id()
+        //         ]);
 
-            //         // Show success notification
-            //         if ($attachment) {
-            //             $fileCount = count($allFiles);
-            //             Notification::make()
-            //                 ->title('Attachment Created')
-            //                 ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
-            //                 ->success()
-            //                 ->send();
-            //         } else {
-            //             Notification::make()
-            //                 ->title('Error')
-            //                 ->body('Failed to create attachment.')
-            //                 ->danger()
-            //                 ->send();
-            //         }
-            //     })
-            //     ->visible(function (SoftwareHandover $record): bool {
-            //         // Only show this action if the record has any files
-            //         return !empty($record->invoice_file) ||
-            //             !empty($record->confirmation_order_file) ||
-            //             !empty($record->hrdf_grant_file) ||
-            //             !empty($record->payment_slip_file);
-            //     })
-            //     ->requiresConfirmation()
-            //     ->modalHeading('Create Attachment with All Files')
-            //     ->modalDescription('This will create a single attachment containing all files from this handover.')
-            //     ->modalSubmitActionLabel('Create Attachment'),
-            // ]);
-            // ->bulkActions([
-            //     Tables\Actions\BulkActionGroup::make([
-            //         Tables\Actions\DeleteBulkAction::make(),
-            //     ]),
-            // ]);
+        //         // Show success notification
+        //         if ($attachment) {
+        //             $fileCount = count($allFiles);
+        //             Notification::make()
+        //                 ->title('Attachment Created')
+        //                 ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
+        //                 ->success()
+        //                 ->send();
+        //         } else {
+        //             Notification::make()
+        //                 ->title('Error')
+        //                 ->body('Failed to create attachment.')
+        //                 ->danger()
+        //                 ->send();
+        //         }
+        //     })
+        //     ->visible(function (SoftwareHandover $record): bool {
+        //         // Only show this action if the record has any files
+        //         return !empty($record->invoice_file) ||
+        //             !empty($record->confirmation_order_file) ||
+        //             !empty($record->hrdf_grant_file) ||
+        //             !empty($record->payment_slip_file);
+        //     })
+        //     ->requiresConfirmation()
+        //     ->modalHeading('Create Attachment with All Files')
+        //     ->modalDescription('This will create a single attachment containing all files from this handover.')
+        //     ->modalSubmitActionLabel('Create Attachment'),
+        // ]);
+        // ->bulkActions([
+        //     Tables\Actions\BulkActionGroup::make([
+        //         Tables\Actions\DeleteBulkAction::make(),
+        //     ]),
+        // ]);
     }
 
     // public static function getRelations(): array
