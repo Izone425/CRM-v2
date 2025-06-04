@@ -307,11 +307,14 @@ class SoftwareHandoverResource extends Resource
                                                             //     ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
                                                         });
 
-                                                        \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                                        \Illuminate\Support\Facades\Log::info("Project assignment email - Change Implementer sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
                                                     }
+
                                                 } catch (\Exception $e) {
                                                     // Log error but don't stop the process
                                                     \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                                                    \Illuminate\Support\Facades\Log::debug("Email content for handover #{$record->id}:", $emailContent);
+
                                                 }
                                             }
                                         }

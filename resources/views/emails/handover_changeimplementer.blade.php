@@ -113,19 +113,19 @@
             <table>
                 <tr>
                     <th>Company Name</th>
-                    <td>{{ $emailContent['company']['name'] }}</td>
+                    <td>{{ $emailContent['company']['name'] ?? "Unknown Company Name"}}</td>
                 </tr>
                 <tr>
                     <th>Old Implementer Name</th>
-                    <td>{{ $emailContent['oldImplementer']['name'] }}</td>
+                    <td>{{ $emailContent['oldImplementer']['name'] ?? "Unknown Old Implementer Name"}}</td>
                 </tr>
                 <tr>
                     <th>New Implementer Name</th>
-                    <td>{{ $emailContent['implementer']['name'] }}</td>
+                    <td>{{ $emailContent['implementer']['name'] ?? "Unknown New Implementer Name"}}</td>
                 </tr>
                 <tr>
                     <th>Salesperson Name</th>
-                    <td>{{ $emailContent['salesperson']['name'] }}</td>
+                    <td>{{ $emailContent['salesperson']['name'] ?? "Unknown Salesperson Name"}}</td>
                 </tr>
                 <tr>
                     <th>Database Creation Date</th>
