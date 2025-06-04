@@ -201,14 +201,14 @@ class SoftwareHandoverResource extends Resource
                                     ->options(function () {
                                         return \App\Models\User::where('role_id', 4)
                                             ->orderBy('name')
-                                            ->pluck('name', 'id')
+                                            ->pluck('name', 'name')
                                             ->toArray();
                                     })
                                     ->required()
                                     ->default(function (SoftwareHandover $record) {
                                         // First try to use existing implementer_id if record exists
-                                        if ($record && $record->implementer_id) {
-                                            return $record->implementer_id;
+                                        if ($record && $record->implementer) {
+                                            return $record->implementer;
                                         }
 
                                         // Otherwise try to find the first available implementer
@@ -220,8 +220,8 @@ class SoftwareHandoverResource extends Resource
                                     ->afterStateUpdated(function ($state, $old, $record, $component) {
                                         // Only send email if this is an existing record and the implementer actually changed
                                         if ($record && $record->exists && $old !== $state && $old !== null) {
-                                            $newImplementer = \App\Models\User::find($state);
-                                            $oldImplementer = \App\Models\User::find($old);
+                                            $newImplementer = \App\Models\User::where('name',$state)->first();
+                                            $oldImplementer = \App\Models\User::where('name',$old)->first();
 
                                             if ($newImplementer) {
                                                 // Send email notification
@@ -302,6 +302,9 @@ class SoftwareHandoverResource extends Resource
                                                             $message->from($senderEmail,$senderName)
                                                                 ->to($recipients)
                                                                 ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                                            //   $message->from("itsupport@timeteccloud.com","IT Support")
+                                                            //     ->to("adly.shahromazmi@timeteccloud.com")
+                                                            //     ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
                                                         });
 
                                                         \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
