@@ -222,8 +222,8 @@ class SoftwareHandoverResource extends Resource
                                     ->afterStateUpdated(function ($state, $old, $record, $component) {
                                         // Only send email if this is an existing record and the implementer actually changed
                                         if ($record && $record->exists && $old !== $state && $old !== null) {
-                                            $newImplementer = \App\Models\User::where('name',$state)->first();
-                                            $oldImplementer = \App\Models\User::where('name',$old)->first();
+                                            $newImplementer = \App\Models\User::where('name', $state)->first();
+                                            $oldImplementer = \App\Models\User::where('name', $old)->first();
 
                                             if ($newImplementer) {
                                                 // Send email notification
@@ -259,7 +259,7 @@ class SoftwareHandoverResource extends Resource
                                                         'implementer' => [
                                                             'name' => $newImplementer->name,
                                                         ],
-                                                        'oldImplementer' =>[
+                                                        'oldImplementer' => [
                                                             'name' => $oldImplementer->name,
                                                         ],
                                                         'company' => [
@@ -301,7 +301,7 @@ class SoftwareHandoverResource extends Resource
                                                     // Send email with template and custom subject format
                                                     if (count($recipients) > 0) {
                                                         \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
-                                                            $message->from($senderEmail,$senderName)
+                                                            $message->from($senderEmail, $senderName)
                                                                 ->to($recipients)
                                                                 ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
                                                             //   $message->from("itsupport@timeteccloud.com","IT Support")
@@ -311,12 +311,10 @@ class SoftwareHandoverResource extends Resource
 
                                                         \Illuminate\Support\Facades\Log::info("Project assignment email - Change Implementer sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
                                                     }
-
                                                 } catch (\Exception $e) {
                                                     // Log error but don't stop the process
                                                     \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
                                                     \Illuminate\Support\Facades\Log::debug("Email content for handover #{$record->id}:", $emailContent);
-
                                                 }
                                             }
                                         }
@@ -444,7 +442,7 @@ class SoftwareHandoverResource extends Resource
                             $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
                         }
 
-                        if(filled($company)){
+                        if (filled($company)) {
                             return Color::hex('#338cf0');
                         }
 
@@ -558,20 +556,26 @@ class SoftwareHandoverResource extends Resource
                     ->label('Total Days')
                     ->getStateUsing(function (SoftwareHandover $record) {
                         // Check if completed_at exists
-                        if (!$record->completed_at) {
-                            return 'No completion date';
+                        if (!$record->go_live_date) {
+                            try {
+                                $completedDate = Carbon::parse($record->completed_at);
+                                $today = Carbon::now();
+                                // Calculate the difference in days
+                                $daysDifference = $completedDate->diffInDays($today);
+
+                                return $daysDifference . ' ' . Str::plural('day', $daysDifference);
+                            } catch (\Exception $e) {
+                                return 'Error: ' . $e->getMessage();
+                            }
                         }
 
                         try {
-                            // Parse the date safely
-                            $completedDate = Carbon::parse($record->completed_at);
-                            $today = Carbon::now();
+                           $goLiveDate = Carbon::parse($record->go_live_date);
+                           $completedDate = Carbon::parse($record->completed_at);
 
-                            // Calculate the difference in days
-                            $daysDifference = $completedDate->diffInDays($today);
+                           $daysDifference = $completedDate->diffInDays($goLiveDate);
 
-                            // Return formatted result
-                            return $daysDifference . ' ' . Str::plural('day', $daysDifference);
+                           return $daysDifference . ' ' . Str::plural('day', $daysDifference);
                         } catch (\Exception $e) {
                             // Return exception message for debugging
                             return 'Error: ' . $e->getMessage();
