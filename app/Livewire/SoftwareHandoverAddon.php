@@ -149,7 +149,17 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
                         'Completed' => 'Completed',
                     ])
                     ->placeholder('All Statuses')
-                    ->multiple()
+                    ->multiple(),
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', '2')
+                            ->whereNot('id', 15) // Exclude Testing Account
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')

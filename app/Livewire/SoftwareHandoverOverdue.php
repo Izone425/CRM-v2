@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
@@ -116,7 +117,17 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                         'Completed' => 'Completed',
                     ])
                     ->placeholder('All Statuses')
-                    ->multiple()
+                    ->multiple(),
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', '2')
+                            ->whereNot('id', 15) // Exclude Testing Account
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -186,8 +197,30 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('company_name')
-                    ->limit(20)
-                    ->label('Company Name'),
+                    ->label('Company Name')
+                    ->formatStateUsing(function ($state, $record) {
+                        $company = CompanyDetail::where('company_name', $state)->first();
+
+                        if(!empty($record->lead_id)){
+                            $company = CompanyDetail::where('lead_id',$record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($state) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>');
+                        }
+
+                        return $state;
+                    })
+                    ->html(),
 
                 TextColumn::make('status')
                     ->label('Status')
