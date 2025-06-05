@@ -70,7 +70,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         $query = SoftwareHandover::query();
         // Salesperson filter logic
         if ($this->selectedUser === 'all-salespersons') {
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+            $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Approved']);
 
             // Keep as is - show all salespersons' handovers
             $salespersonIds = User::where('role_id', 2)->pluck('id');
@@ -80,7 +80,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+            $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Approved']);
 
             if ($userExists) {
                 $selectedUser = $this->selectedUser; // Create a local variable
@@ -96,7 +96,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
         } else {
             if (auth()->user()->role_id === 2) {
                 // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+                $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Approved']);
 
                 // But only THEIR OWN records
                 $userId = auth()->id();
@@ -118,7 +118,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             WHEN status = 'Completed' THEN 4
             ELSE 5
         END")
-        ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc');
 
         return $query;
     }
@@ -129,7 +129,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
             ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
-            ->emptyState(fn () => view('components.empty-state-question'))
+            ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
@@ -144,7 +144,17 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         'Completed' => 'Completed',
                     ])
                     ->placeholder('All Statuses')
-                    ->multiple()
+                    ->multiple(),
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', '2')
+                            ->whereNot('id',15) // Exclude Testing Account
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -219,7 +229,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
+                    ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
                         'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
                         'New' => new HtmlString('<span style="color: blue;">New</span>'),
                         'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
@@ -233,7 +243,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->label('Submit for Approval')
                         ->icon('heroicon-o-paper-airplane')
                         ->color('success')
-                        ->visible(fn (SoftwareHandover $record): bool => $record->status === 'Draft')
+                        ->visible(fn(SoftwareHandover $record): bool => $record->status === 'Draft')
                         ->action(function (SoftwareHandover $record): void {
                             $record->update([
                                 'status' => 'New',
@@ -256,13 +266,13 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
+                        ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
                         // Use a callback function instead of arrow function for more control
                         ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
                             return view('components.software-handover')
-                            ->with('extraAttributes', ['record' => $record]);
+                                ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('edit_software_handover')
                         ->label(function (SoftwareHandover $record): string {
@@ -273,7 +283,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
-                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
+                        ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
                         ->form([
@@ -284,36 +294,36 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->schema([
                                             TextInput::make('company_name')
                                                 ->label('Company Name')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                                                ->default(fn(SoftwareHandover $record) =>
+                                                $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                                             TextInput::make('pic_name')
                                                 ->label('Name')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
+                                                ->default(fn(SoftwareHandover $record) =>
+                                                $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                                             TextInput::make('pic_phone')
                                                 ->label('PIC HP No.')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
+                                                ->default(fn(SoftwareHandover $record) =>
+                                                $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                                         ]),
                                     Grid::make(3)
                                         ->schema([
                                             TextInput::make('salesperson')
                                                 ->readOnly()
                                                 ->label('Salesperson')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
+                                                ->default(fn(SoftwareHandover $record) =>
+                                                $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
                                             TextInput::make('headcount')
                                                 ->numeric()
                                                 ->label('Company Size')
-                                                ->live(debounce:550)
+                                                ->live(debounce: 550)
                                                 ->afterStateUpdated(function (Set $set, ?string $state, CategoryService $category) {
                                                     $set('category', $category->retrieve($state));
                                                 })
-                                                ->default(fn (SoftwareHandover $record) => $record->headcount ?? null)
+                                                ->default(fn(SoftwareHandover $record) => $record->headcount ?? null)
                                                 ->required(),
                                             TextInput::make('category')
                                                 ->autocapitalize()
-                                                ->live(debounce:550)
+                                                ->live(debounce: 550)
                                                 ->placeholder('Select a category')
                                                 ->dehydrated(false)
                                                 ->default(function (SoftwareHandover $record, CategoryService $category) {
@@ -328,7 +338,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                     return null;
                                                 })
                                                 ->readOnly(),
-                                       ]),
+                                        ]),
                                 ]),
 
                             Section::make('Step 2: Invoice Details')
@@ -346,7 +356,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                                     })
                                                     ->openUrlInNewTab(),
                                             ])
-                                            ->extraAttributes(['class' => 'space-y-2']),
+                                                ->extraAttributes(['class' => 'space-y-2']),
                                         ]),
                                 ]),
 
@@ -357,20 +367,20 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->hiddenLabel(true)
                                         ->schema([
                                             Grid::make(4)
-                                            ->schema([
-                                                TextInput::make('pic_name_impl')
-                                                    ->required()
-                                                    ->label('Name'),
-                                                TextInput::make('position')
-                                                    ->label('Position'),
-                                                TextInput::make('pic_phone_impl')
-                                                    ->required()
-                                                    ->label('HP Number'),
-                                                TextInput::make('pic_email_impl')
-                                                    ->required()
-                                                    ->label('Email Address')
-                                                    ->email(),
-                                            ]),
+                                                ->schema([
+                                                    TextInput::make('pic_name_impl')
+                                                        ->required()
+                                                        ->label('Name'),
+                                                    TextInput::make('position')
+                                                        ->label('Position'),
+                                                    TextInput::make('pic_phone_impl')
+                                                        ->required()
+                                                        ->label('HP Number'),
+                                                    TextInput::make('pic_email_impl')
+                                                        ->required()
+                                                        ->label('Email Address')
+                                                        ->email(),
+                                                ]),
                                         ])
                                         ->itemLabel('Person In Charge')
                                         ->columns(2)
@@ -396,51 +406,51 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->hiddenLabel(true)
                                         ->schema([
                                             Grid::make(2)
-                                            ->schema([
-                                                Textarea::make('remark')
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                    ->hiddenLabel(true)
-                                                    ->label(function (Get $get, ?string $state, $livewire) {
-                                                        // Get the current array key from the state path
-                                                        $statePath = $livewire->getFormStatePath();
-                                                        $matches = [];
-                                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                            $index = (int) $matches[1];
-                                                            return 'Remark ' . ($index + 1);
-                                                        }
-                                                        return 'Remark';
-                                                    })
-                                                    ->placeholder('Enter remark here')
-                                                    ->rows(3),
+                                                ->schema([
+                                                    Textarea::make('remark')
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                        ->hiddenLabel(true)
+                                                        ->label(function (Get $get, ?string $state, $livewire) {
+                                                            // Get the current array key from the state path
+                                                            $statePath = $livewire->getFormStatePath();
+                                                            $matches = [];
+                                                            if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                                $index = (int) $matches[1];
+                                                                return 'Remark ' . ($index + 1);
+                                                            }
+                                                            return 'Remark';
+                                                        })
+                                                        ->placeholder('Enter remark here')
+                                                        ->rows(3),
 
-                                                // Add file attachments for each remark
-                                                FileUpload::make('attachments')
-                                                    ->hiddenLabel(true)
-                                                    ->disk('public')
-                                                    ->directory('handovers/remark_attachments')
-                                                    ->visibility('public')
-                                                    ->multiple()
-                                                    ->maxFiles(5)
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                                    ->openable()
-                                                    ->downloadable()
-                                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                        // Get lead ID directly from the record
-                                                        $leadId = $record->lead_id;
-                                                        // Format ID with prefix (250) and padding
-                                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                        // Get extension
-                                                        $extension = $file->getClientOriginalExtension();
+                                                    // Add file attachments for each remark
+                                                    FileUpload::make('attachments')
+                                                        ->hiddenLabel(true)
+                                                        ->disk('public')
+                                                        ->directory('handovers/remark_attachments')
+                                                        ->visibility('public')
+                                                        ->multiple()
+                                                        ->maxFiles(5)
+                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                        ->openable()
+                                                        ->downloadable()
+                                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                            // Get lead ID directly from the record
+                                                            $leadId = $record->lead_id;
+                                                            // Format ID with prefix (250) and padding
+                                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                            // Get extension
+                                                            $extension = $file->getClientOriginalExtension();
 
-                                                        // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                        $timestamp = now()->format('YmdHis');
-                                                        $random = rand(1000, 9999);
+                                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                            $timestamp = now()->format('YmdHis');
+                                                            $random = rand(1000, 9999);
 
-                                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                                    }),
-                                            ]),
+                                                            return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                        }),
+                                                ]),
                                         ])
                                         ->itemLabel('Remark')
                                         ->addActionLabel('Add Remark')
@@ -500,59 +510,59 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->columnSpan(1)
                                 ->schema([
                                     Grid::make(2)
-                                    ->schema([
-                                        Select::make('proforma_invoice_product')
-                                            ->required()
-                                            ->label('Proforma Invoice Product')
-                                            ->options(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->lead_id) {
-                                                    return [];
-                                                }
+                                        ->schema([
+                                            Select::make('proforma_invoice_product')
+                                                ->required()
+                                                ->label('Proforma Invoice Product')
+                                                ->options(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->lead_id) {
+                                                        return [];
+                                                    }
 
-                                                return \App\Models\Quotation::where('lead_id', $record->lead_id)
-                                                    ->where('quotation_type', 'product')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->proforma_invoice_product) {
-                                                    return [];
-                                                }
-                                                if (is_string($record->proforma_invoice_product)) {
-                                                    return json_decode($record->proforma_invoice_product, true) ?? [];
-                                                }
-                                                return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
-                                            }),
-                                        Select::make('proforma_invoice_hrdf')
-                                            ->label('Proforma Invoice HRDF')
-                                            ->options(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->lead_id) {
-                                                    return [];
-                                                }
+                                                    return \App\Models\Quotation::where('lead_id', $record->lead_id)
+                                                        ->where('quotation_type', 'product')
+                                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                        ->pluck('pi_reference_no', 'id')
+                                                        ->toArray();
+                                                })
+                                                ->multiple()
+                                                ->searchable()
+                                                ->preload()
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->proforma_invoice_product) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->proforma_invoice_product)) {
+                                                        return json_decode($record->proforma_invoice_product, true) ?? [];
+                                                    }
+                                                    return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                                                }),
+                                            Select::make('proforma_invoice_hrdf')
+                                                ->label('Proforma Invoice HRDF')
+                                                ->options(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->lead_id) {
+                                                        return [];
+                                                    }
 
-                                                return \App\Models\Quotation::where('lead_id', $record->lead_id)
-                                                    ->where('quotation_type', 'hrdf')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->proforma_invoice_hrdf) {
-                                                    return [];
-                                                }
-                                                if (is_string($record->proforma_invoice_hrdf)) {
-                                                    return json_decode($record->proforma_invoice_hrdf, true) ?? [];
-                                                }
-                                                return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
-                                            }),
-                                    ])
+                                                    return \App\Models\Quotation::where('lead_id', $record->lead_id)
+                                                        ->where('quotation_type', 'hrdf')
+                                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                                        ->pluck('pi_reference_no', 'id')
+                                                        ->toArray();
+                                                })
+                                                ->multiple()
+                                                ->searchable()
+                                                ->preload()
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->proforma_invoice_hrdf) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->proforma_invoice_hrdf)) {
+                                                        return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                                    }
+                                                    return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                                                }),
+                                        ])
                                 ]),
 
                             Section::make('Step 7: Attachment')
@@ -629,7 +639,7 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                             FileUpload::make('payment_slip_file')
                                                 ->label('Upload Payment Slip')
                                                 ->disk('public')
-                                                ->live(debounce:500)
+                                                ->live(debounce: 500)
                                                 ->directory('handovers/payment_slips')
                                                 ->visibility('public')
                                                 ->multiple()
@@ -727,17 +737,17 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                     // Also add the view reason and convert to draft actions for completeness
                     Action::make('view_reason')
                         ->label('View Reason')
-                        ->visible(fn (SoftwareHandover $record): bool => $record->status === 'Rejected')
+                        ->visible(fn(SoftwareHandover $record): bool => $record->status === 'Rejected')
                         ->icon('heroicon-o-magnifying-glass-plus')
                         ->modalHeading('Change Request Reason')
-                        ->modalContent(fn ($record) => view('components.view-reason', [
+                        ->modalContent(fn($record) => view('components.view-reason', [
                             'reason' => $record->reject_reason,
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalWidth('3xl')
                         ->color('warning'),
-                        Action::make('mark_approved')
+                    Action::make('mark_approved')
                         ->label('Approve')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -750,14 +760,16 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
                     Action::make('mark_rejected')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         )
                         ->form([
@@ -1004,14 +1016,15 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                         ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')
                         ->requiresConfirmation(false)
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'Approved' || auth()->user()->role_id === 2
                         ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')
                         ->icon('heroicon-o-document')
                         ->color('warning')
-                        ->visible(fn (SoftwareHandover $record): bool => $record->status === 'Rejected')
+                        ->visible(fn(SoftwareHandover $record): bool => $record->status === 'Rejected')
                         ->action(function (SoftwareHandover $record): void {
                             $record->update([
                                 'status' => 'Draft'

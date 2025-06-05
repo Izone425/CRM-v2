@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SoftwareHandoverResource\Pages;
 use App\Filament\Resources\SoftwareHandoverResource\RelationManagers;
+use App\Models\CompanyDetail;
 use App\Models\SoftwareHandover;
 use App\Services\CategoryService;
 use Carbon\Carbon;
@@ -31,6 +32,7 @@ use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Illuminate\Support\Str;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
+use Filament\Support\Colors\Color;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SoftwareHandoverResource extends Resource
@@ -415,9 +417,39 @@ class SoftwareHandoverResource extends Resource
                     ),
 
                 TextColumn::make('company_name')
-                    ->limit(20)
                     ->searchable()
-                    ->label('Company Name'),
+                    ->label('Company Name')
+                    ->url(function ($state, $record) {
+                        $company = CompanyDetail::where('company_name', $state)->first();
+
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 30, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            $html = '<a href="' . url('admin/leads/' . $encryptedId) . '" target="_blank" title="' . e($state) . '" style="color:#338cf0;"> ' . $shortened . '</a>';
+                            return url('admin/leads/' . $encryptedId);
+                        }
+
+                        // return $state;
+                    })
+                    ->openUrlInNewTab()
+                    ->color(function ($record) {
+                        $company = CompanyDetail::where('company_name', $record->company_name)->first();
+
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if(filled($company)){
+                            return Color::hex('#338cf0');
+                        }
+
+                        return Color::hex("#000000");
+                    }),
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson'),
