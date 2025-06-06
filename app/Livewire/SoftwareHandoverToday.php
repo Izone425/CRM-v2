@@ -808,9 +808,11 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->readOnly()
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->speaker_category) {
-                                                return $record->speaker_category;
+                                                
+                                                return ucwords($record->speaker_category);
+                                                
                                             }
-                                            return $record->speaker_category ?? 'Not specified';
+                                            return ucwords($record->speaker_category) ?? 'Not specified';
                                         })
                                         ->dehydrated(false),
 
