@@ -881,7 +881,7 @@ class QuotationResource extends Resource
                                 'position',
                                 'reg_no_new',
                                 'state',
-                                'reg_no_old',
+                                // 'reg_no_old', //Remove Old Register Number
                                 'postcode',
                                 'company_address1',
                                 'company_address2',

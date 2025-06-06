@@ -324,7 +324,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         $headcount = (int)$get('headcount');
 
                                         // If headcount > 25, show both options
-                                        if ($headcount > 25) {
+                                        if ($headcount >= 25) {
                                             return [
                                                 'english / malay' => 'English / Malay',
                                                 'mandarin' => 'Mandarin',
@@ -1265,7 +1265,7 @@ class SoftwareHandoverRelationManager extends RelationManager
             'position',
             'reg_no_new',
             'state',
-            'reg_no_old',
+            // 'reg_no_old', //Remove Old Register Nmber
             'postcode',
             'company_address1',
             'company_address2',

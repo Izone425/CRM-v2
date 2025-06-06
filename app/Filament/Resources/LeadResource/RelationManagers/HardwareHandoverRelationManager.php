@@ -120,6 +120,18 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ])
                                 // ->inline()
                                 ->live(debounce:500)
+                                ->afterStateUpdated(function($set,$state){
+                                    if($state === 'external_installation'){
+                                        $set('category2.pic_name','');
+                                        $set('category2.pic_phone','');
+                                        $set('category2.email','');
+                                    }
+                                    elseif($state === 'courier'){
+                                        $set('category2.pic_name',$this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name);
+                                        $set('category2.pic_phone',$this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->contact_no);
+                                        $set('category2.email',$this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email);
+                                    }
+                                })
                                 ->columns(3)
                                 ->required(),
                         ]),
