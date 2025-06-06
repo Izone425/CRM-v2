@@ -9,7 +9,9 @@
         ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
         ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
         ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
-        ['label' => 'Old Reg No.', 'value' => $lead->companyDetail->reg_no_old ?? '-'],
+ 
+        // Remove Old Register Number
+        // ['label' => 'Old Reg No.', 'value' => $lead->companyDetail->reg_no_old ?? '-'],
     ];
 
     // Split into rows with a max of 2 items per row
