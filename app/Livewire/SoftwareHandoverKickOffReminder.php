@@ -145,8 +145,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     ' . $shortened . '
                                 </a>');
                         }
-
-                        return $state;
+                        $shortened = strtoupper(Str::limit($state, 20, '...'));
+                        return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
 

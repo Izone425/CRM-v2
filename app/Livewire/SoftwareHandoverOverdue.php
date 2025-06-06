@@ -226,7 +226,8 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                                 </a>');
                         }
 
-                        return $state;
+                        $shortened = strtoupper(Str::limit($state, 20, '...'));
+                        return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
 
