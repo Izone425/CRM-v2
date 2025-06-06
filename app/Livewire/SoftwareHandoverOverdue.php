@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Filament\Filters\SortFilter;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -21,9 +23,13 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Query\Builder as DatabaseQueryBuilder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
+use Illuminate\Database\Eloquent\Builder;
 
 class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
 {
@@ -91,7 +97,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
             WHEN status = 'Completed' THEN 3
             ELSE 4
         END")
-        ->orderBy('updated_at', 'desc');
+            ->orderBy('updated_at', 'desc');
 
         return $query;
     }
@@ -101,8 +107,8 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
         return $table
             ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
-            ->defaultSort('updated_at', 'desc')
-            ->emptyState(fn () => view('components.empty-state-question'))
+            // ->defaultSort('updated_at', 'desc')
+            ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
@@ -128,6 +134,8 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Salesperson')
                     ->multiple(),
+
+                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -201,8 +209,8 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                     ->formatStateUsing(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 
-                        if(!empty($record->lead_id)){
-                            $company = CompanyDetail::where('lead_id',$record->lead_id)->first();
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
                         }
 
                         if ($company) {
@@ -224,7 +232,7 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
+                    ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
                         'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
                         'New' => new HtmlString('<span style="color: blue;">New</span>'),
                         'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
@@ -267,13 +275,13 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
+                        ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
                         // Use a callback function instead of arrow function for more control
                         ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
                             return view('components.software-handover')
-                            ->with('extraAttributes', ['record' => $record]);
+                                ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('mark_approved')
                         ->label('Approve')
@@ -288,14 +296,16 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
                     Action::make('mark_rejected')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         )
                         ->form([
@@ -336,11 +346,12 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->hidden(fn (SoftwareHandover $record): bool =>
+                        ->hidden(
+                            fn(SoftwareHandover $record): bool =>
                             $record->status !== 'Approved' || auth()->user()->role_id === 2
                         ),
                 ])->button()
-                ->color('warning')
+                    ->color('warning')
             ]);
     }
 

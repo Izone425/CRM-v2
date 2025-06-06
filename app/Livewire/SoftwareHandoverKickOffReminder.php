@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
+use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
@@ -124,8 +125,30 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('company_name')
-                    ->limit(20)
-                    ->label('Company Name'),
+                    ->label('Company Name')
+                    ->formatStateUsing(function ($state, $record) {
+                        $company = CompanyDetail::where('company_name', $state)->first();
+
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($state) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>');
+                        }
+
+                        return $state;
+                    })
+                    ->html(),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -148,6 +171,9 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                         ->modalHeading(fn(SoftwareHandover $record) => "Online Kick-Off Meeting for {$record->company_name}") // SlideOver title
                         ->form([
                             DatePicker::make('kick_off_meeting')
+                                ->native(false)
+                                ->displayFormat('d F Y')
+                                ->placeholder("Choose date")
                                 ->label("Online Kick Off Meeting Date"),
                             PlaceHolder::make('webinar_training')
                                 ->label("Online Webinar Date")
