@@ -22,7 +22,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 
-class HardwareHandoverOverdue extends Component implements HasForms, HasTable
+class HardwareHandoverPendingMigration extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -30,8 +30,8 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
     public function getOverdueHardwareHandovers()
     {
         return HardwareHandover::query()
-            ->whereIn('status', ['Completed', 'Sales Order Completed', 'Data Migration Completed', 'Installation Completed'])
-            ->where('created_at', '<', Carbon::today()) // Only those created before today
+            ->whereIn('status', ['Pending Migration'])
+            // ->where('created_at', '<', Carbon::today()) // Only those created before today
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
@@ -155,6 +155,6 @@ class HardwareHandoverOverdue extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.hardware-handover-overdue');
+        return view('livewire.hardware-handover-pending-migration');
     }
 }

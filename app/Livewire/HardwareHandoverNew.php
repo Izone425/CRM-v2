@@ -44,7 +44,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class HardwareHandoverToday extends Component implements HasForms, HasTable
+class HardwareHandoverNew extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -80,7 +80,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved', 'No Stock']);
+            $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Pending Migration', 'Pending Stock']);
 
             if ($userExists) {
                 $selectedUser = $this->selectedUser; // Create a local variable
@@ -96,7 +96,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
         } else {
             if (auth()->user()->role_id === 2) {
                 // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+                $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Pending Migration', 'Pending Stock']);
 
                 // But only THEIR OWN records
                 $userId = auth()->id();
@@ -413,7 +413,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                                         $timestamp = now()->format('YmdHis');
                                                         $random = rand(1000, 9999);
 
-                                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                        return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
                                                     }),
                                             ]),
                                         ])
@@ -556,7 +556,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                                     $timestamp = now()->format('YmdHis');
                                                     $random = rand(1000, 9999);
 
-                                                    return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                                                    return "{$formattedId}-HW-CONFIRM-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (HardwareHandover $record) {
                                                     if (!$record || !$record->confirmation_order_file) {
@@ -589,7 +589,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                                     $timestamp = now()->format('YmdHis');
                                                     $random = rand(1000, 9999);
 
-                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
+                                                    return "{$formattedId}-HW-HRDF-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (HardwareHandover $record) {
                                                     if (!$record || !$record->hrdf_grant_file) {
@@ -623,7 +623,7 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                                     $timestamp = now()->format('YmdHis');
                                                     $random = rand(1000, 9999);
 
-                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                                                    return "{$formattedId}-HW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (HardwareHandover $record) {
                                                     if (!$record || !$record->payment_slip_file) {
@@ -711,22 +711,668 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                     //     ->modalCancelAction(false)
                     //     ->modalWidth('md')
                     //     ->color('warning'),
-                    Action::make('mark_approved')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (HardwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
+                    Action::make('pending_stock')
+                        ->label('Pending Stock')
+                        ->icon('heroicon-o-exclamation-triangle')
+                        ->color('warning')
+                        ->modalHeading('Pending Stock Confirmation')
+                        ->modalWidth('lg')
+                        ->form([
+                            Section::make('Device Inventory Check')
+                                ->schema([
+                                    Grid::make(2)
+                                        ->schema([
+                                            TextInput::make('tc10_quantity')
+                                                ->label('TC10 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('tc20_quantity')
+                                                ->label('TC20 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('face_id5_quantity')
+                                                ->label('FACE ID 5 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('face_id6_quantity')
+                                                ->label('FACE ID 6 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('time_beacon_quantity')
+                                                ->label('TIME BEACON Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('nfc_tag_quantity')
+                                                ->label('NFC TAG Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+                                        ]),
+
+                                    Select::make('implementer')
+                                        ->label('Assign Implementer')
+                                        ->options(function () {
+                                            return User::where('role_id', 4) // Assuming 4 is the implementer role
+                                                ->orWhere(function ($query) {
+                                                    $query->where('additional_role', 4);
+                                                })
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        })
+                                        ->searchable()
+                                        ->required()
+                                        ->default(function (HardwareHandover $record) {
+                                            // First, check if we already have a set implementer for this record
+                                            if ($record && $record->implementer) {
+                                                return $record->implementer;
+                                            }
+
+                                            // If not, try to get the implementer from the associated software handover
+                                            if ($record && $record->lead_id) {
+                                                // Find the software handover for the same lead
+                                                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                                    ->latest()
+                                                    ->first();
+
+                                                // Return the implementer ID if found
+                                                if ($softwareHandover && $softwareHandover->implementer) {
+                                                    return $softwareHandover->implementer;
+                                                }
+                                            }
+
+                                            return null; // No default implementer found
+                                        }),
+
+                                    FileUpload::make('invoice_file')
+                                        ->label('Upload Invoice')
+                                        ->disk('public')
+                                        ->directory('handovers/invoices')
+                                        ->visibility('public')
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->multiple()
+                                        ->maxFiles(10)
+                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                        }),
+
+                                    FileUpload::make('sales_order_file')
+                                        ->label('Upload Sales Order')
+                                        ->disk('public')
+                                        ->directory('handovers/sales_orders')
+                                        ->visibility('public')
+                                        ->helperText('Upload sales order files (PDF, JPG, PNG formats accepted)')
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->multiple()
+                                        ->maxFiles(10)
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
+                                        }),
+                                ]),
+                        ])
+                        ->action(function (HardwareHandover $record, array $data): void {
+                            // Process device inventory
+                            $deviceInventory = [
+                                'tc10' => [
+                                    'quantity' => (int)($data['tc10_quantity'] ?? 0),
+                                    'available' => (int)($data['tc10_quantity'] ?? 0) > 0
+                                ],
+                                'tc20' => [
+                                    'quantity' => (int)($data['tc20_quantity'] ?? 0),
+                                    'available' => (int)($data['tc20_quantity'] ?? 0) > 0
+                                ],
+                                'face_id5' => [
+                                    'quantity' => (int)($data['face_id5_quantity'] ?? 0),
+                                    'available' => (int)($data['face_id5_quantity'] ?? 0) > 0
+                                ],
+                                'face_id6' => [
+                                    'quantity' => (int)($data['face_id6_quantity'] ?? 0),
+                                    'available' => (int)($data['face_id6_quantity'] ?? 0) > 0
+                                ],
+                                'time_beacon' => [
+                                    'quantity' => (int)($data['time_beacon_quantity'] ?? 0),
+                                    'available' => (int)($data['time_beacon_quantity'] ?? 0) > 0
+                                ],
+                                'nfc_tag' => [
+                                    'quantity' => (int)($data['nfc_tag_quantity'] ?? 0),
+                                    'available' => (int)($data['nfc_tag_quantity'] ?? 0) > 0
+                                ]
+                            ];
+
+                            // Process file uploads
+                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                            }
+
+                            if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
+                                $data['sales_order_file'] = json_encode($data['sales_order_file']);
+                            }
+
+                            foreach ($deviceInventory as $device) {
+                                if (!$device['available']) {
+                                    $hasStockIssues = true;
+                                } else {
+                                    $availableForMigration = true;
+                                }
+                            }
+
+                            $implementerId = $data['implementer'];
+                            $implementer = \App\Models\User::find($implementerId);
+                            $implementerName = $implementer?->name ?? 'Unknown';
+                            $implementerEmail = $implementer?->email ?? null;
+
+                            // Get the salesperson info
+                            $salespersonId = $record->lead->salesperson ?? null;
+                            $salesperson = \App\Models\User::find($salespersonId);
+                            $salespersonEmail = $salesperson?->email ?? null;
+                            $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                            $updateData = [
+                                'tc10_quantity' => $data['tc10_quantity'],
+                                'tc20_quantity' => $data['tc20_quantity'],
+                                'face_id5_quantity' => $data['face_id5_quantity'],
+                                'face_id6_quantity' => $data['face_id6_quantity'],
+                                'time_beacon_quantity' => $data['time_beacon_quantity'],
+                                'nfc_tag_quantity' => $data['nfc_tag_quantity'],
+                                'implementer' => $data['implementer'],
+                                'status' => 'Pending Stock',
+                            ];
+
+                            if (isset($data['invoice_file'])) {
+                                $updateData['invoice_file'] = $data['invoice_file'];
+                            }
+
+                            if (isset($data['sales_order_file'])) {
+                                $updateData['sales_order_file'] = $data['sales_order_file'];
+                            }
+
+                            $record->update($updateData);
+
+                            // Send email notification
+                            try {
+                                $viewName = 'emails.pending_migration_notification';
+
+                                // Get implementer and company details
+                                $implementerName = $implementer?->name ?? 'Unknown';
+                                $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                                $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                                // Format the handover ID properly
+                                $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                                // Get the handover PDF URL
+                                $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                                $invoiceFiles = [];
+                                if ($record->invoice_file) {
+                                    $invoiceFileArray = is_string($record->invoice_file)
+                                        ? json_decode($record->invoice_file, true)
+                                        : $record->invoice_file;
+
+                                    if (is_array($invoiceFileArray)) {
+                                        foreach ($invoiceFileArray as $file) {
+                                            $invoiceFiles[] = url('storage/' . $file);
+                                        }
+                                    }
+                                }
+
+                                $salesOrderFiles = [];
+                                if ($record->sales_order_file) {
+                                    $salesOrderFileArray = is_string($record->sales_order_file)
+                                        ? json_decode($record->sales_order_file, true)
+                                        : $record->sales_order_file;
+
+                                    if (is_array($salesOrderFileArray)) {
+                                        foreach ($salesOrderFileArray as $file) {
+                                            $salesOrderFiles[] = url('storage/' . $file);
+                                        }
+                                    }
+                                }
+
+                                // Create email content structure
+                                $emailContent = [
+                                    'implementer' => [
+                                        'name' => $data['implementer'],
+                                    ],
+                                    'company' => [
+                                        'name' => $companyName,
+                                    ],
+                                    'salesperson' => [
+                                        'name' => $salespersonName,
+                                    ],
+                                    'handover_id' => $handoverId,
+                                    // CHANGE created_at to completed_at
+                                    'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
+                                    'handoverFormUrl' => $handoverFormUrl,
+                                    'invoiceFiles' => $invoiceFiles,
+                                    'salesOrderFiles' => $salesOrderFiles,
+                                    'devices' => [
+                                        'tc10' => [
+                                            'quantity' => (int)$data['tc10_quantity'],
+                                            'status' => (int)$data['tc10_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'tc20' => [
+                                            'quantity' => (int)$data['tc20_quantity'],
+                                            'status' => (int)$data['tc20_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id5' => [
+                                            'quantity' => (int)$data['face_id5_quantity'],
+                                            'status' => (int)$data['face_id5_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id6' => [
+                                            'quantity' => (int)$data['face_id6_quantity'],
+                                            'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'time_beacon' => [
+                                            'quantity' => (int)$data['time_beacon_quantity'],
+                                            'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'nfc_tag' => [
+                                            'quantity' => (int)$data['nfc_tag_quantity'],
+                                            'status' => (int)$data['nfc_tag_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ]
+                                    ]
+                                ];
+
+                                // Initialize recipients array with admin email
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+
+                                // Add implementer email if valid
+                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $implementerEmail;
+                                }
+
+                                // Add salesperson email if valid
+                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $salespersonEmail;
+                                }
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
+
+                                // Send email with template and custom subject format
+                                if (count($recipients) > 0) {
+                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                                        $message->from($senderEmail, $senderName)
+                                            ->to($recipients)
+                                            ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                    });
+
+                                    \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                }
+                            } catch (\Exception $e) {
+                                // Log error but don't stop the process
+                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                            }
 
                             Notification::make()
-                                ->title('Hardware Handover marked as approved')
+                                ->title('Hardware Handover processed')
                                 ->success()
+                                ->body('Status updated to: ' . $record->status)
                                 ->send();
                         })
-                        ->requiresConfirmation()
+                        ->requiresConfirmation(false)
                         ->hidden(fn (HardwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
+
+                    Action::make('pending_migration')
+                        ->label('Pending Migration')
+                        ->icon('heroicon-o-truck')
+                        ->color('success')
+                        ->modalHeading('Pending Migration Confirmation')
+                        ->modalWidth('lg')
+                        ->form([
+                            Section::make('Device Inventory Check')
+                                ->schema([
+                                    Grid::make(2)
+                                        ->schema([
+                                            TextInput::make('tc10_quantity')
+                                                ->label('TC10 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('tc20_quantity')
+                                                ->label('TC20 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('face_id5_quantity')
+                                                ->label('FACE ID 5 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('face_id6_quantity')
+                                                ->label('FACE ID 6 Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('time_beacon_quantity')
+                                                ->label('TIME BEACON Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+
+                                            TextInput::make('nfc_tag_quantity')
+                                                ->label('NFC TAG Quantity')
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->default(0)
+                                                ->helperText('Enter 0 if device is out of stock'),
+                                        ]),
+
+                                    Select::make('implementer')
+                                        ->label('Assign Implementer')
+                                        ->options(function () {
+                                            return User::where('role_id', 4)
+                                                ->orWhere(function ($query) {
+                                                    $query->where('additional_role', 4);
+                                                })
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        })
+                                        ->searchable()
+                                        ->required()
+                                        ->default(function (HardwareHandover $record) {
+                                            // First, check if we already have a set implementer for this record
+                                            if ($record && $record->implementer) {
+                                                return $record->implementer;
+                                            }
+
+                                            // If not, try to get the implementer from the associated software handover
+                                            if ($record && $record->lead_id) {
+                                                // Find the software handover for the same lead
+                                                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                                    ->latest()
+                                                    ->first();
+
+                                                // Return the implementer ID if found
+                                                if ($softwareHandover && $softwareHandover->implementer) {
+                                                    return $softwareHandover->implementer;
+                                                }
+                                            }
+
+                                            return null; // No default implementer found
+                                        }),
+
+                                    FileUpload::make('invoice_file')
+                                        ->label('Upload Invoice')
+                                        ->disk('public')
+                                        ->directory('handovers/invoices')
+                                        ->visibility('public')
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->multiple()
+                                        ->maxFiles(10)
+                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                        }),
+
+                                    FileUpload::make('sales_order_file')
+                                        ->label('Upload Sales Order')
+                                        ->disk('public')
+                                        ->directory('handovers/sales_orders')
+                                        ->visibility('public')
+                                        ->helperText('Upload sales order files (PDF, JPG, PNG formats accepted)')
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->multiple()
+                                        ->maxFiles(10)
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                            $date = now()->format('Y-m-d');
+                                            $random = Str::random(5);
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
+                                        }),
+                                ]),
+                        ])
+                        ->action(function (HardwareHandover $record, array $data): void {
+                            // Process device inventory
+                            $deviceInventory = [
+                                'tc10' => [
+                                    'quantity' => (int)($data['tc10_quantity'] ?? 0),
+                                    'available' => (int)($data['tc10_quantity'] ?? 0) > 0
+                                ],
+                                'tc20' => [
+                                    'quantity' => (int)($data['tc20_quantity'] ?? 0),
+                                    'available' => (int)($data['tc20_quantity'] ?? 0) > 0
+                                ],
+                                'face_id5' => [
+                                    'quantity' => (int)($data['face_id5_quantity'] ?? 0),
+                                    'available' => (int)($data['face_id5_quantity'] ?? 0) > 0
+                                ],
+                                'face_id6' => [
+                                    'quantity' => (int)($data['face_id6_quantity'] ?? 0),
+                                    'available' => (int)($data['face_id6_quantity'] ?? 0) > 0
+                                ],
+                                'time_beacon' => [
+                                    'quantity' => (int)($data['time_beacon_quantity'] ?? 0),
+                                    'available' => (int)($data['time_beacon_quantity'] ?? 0) > 0
+                                ],
+                                'nfc_tag' => [
+                                    'quantity' => (int)($data['nfc_tag_quantity'] ?? 0),
+                                    'available' => (int)($data['nfc_tag_quantity'] ?? 0) > 0
+                                ]
+                            ];
+
+                            // Process file uploads
+                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                            }
+
+                            if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
+                                $data['sales_order_file'] = json_encode($data['sales_order_file']);
+                            }
+
+                            $implementerId = $data['implementer'];
+                            $implementer = \App\Models\User::find($implementerId);
+                            $implementerName = $implementer?->name ?? 'Unknown';
+                            $implementerEmail = $implementer?->email ?? null;
+
+                            // Get the salesperson info
+                            $salespersonId = $record->lead->salesperson ?? null;
+                            $salesperson = \App\Models\User::find($salespersonId);
+                            $salespersonEmail = $salesperson?->email ?? null;
+                            $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                            $updateData = [
+                                'tc10_quantity' => $data['tc10_quantity'],
+                                'tc20_quantity' => $data['tc20_quantity'],
+                                'face_id5_quantity' => $data['face_id5_quantity'],
+                                'face_id6_quantity' => $data['face_id6_quantity'],
+                                'time_beacon_quantity' => $data['time_beacon_quantity'],
+                                'nfc_tag_quantity' => $data['nfc_tag_quantity'],
+                                'implementer' => $data['implementer'],
+                                'status' => 'Pending Migration',
+                            ];
+
+                            if (isset($data['invoice_file'])) {
+                                $updateData['invoice_file'] = $data['invoice_file'];
+                            }
+
+                            if (isset($data['sales_order_file'])) {
+                                $updateData['sales_order_file'] = $data['sales_order_file'];
+                            }
+
+                            $record->update($updateData);
+
+                            // Send email notification
+                            try {
+                                $viewName = 'emails.pending_migration_notification';
+
+                                // Get implementer and company details
+                                $implementerName = $implementer?->name ?? 'Unknown';
+                                $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                                $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                                // Format the handover ID properly
+                                $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                                // Get the handover PDF URL
+                                $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                                $invoiceFiles = [];
+                                if ($record->invoice_file) {
+                                    $invoiceFileArray = is_string($record->invoice_file)
+                                        ? json_decode($record->invoice_file, true)
+                                        : $record->invoice_file;
+
+                                    if (is_array($invoiceFileArray)) {
+                                        foreach ($invoiceFileArray as $file) {
+                                            $invoiceFiles[] = url('storage/' . $file);
+                                        }
+                                    }
+                                }
+
+                                $salesOrderFiles = [];
+                                if ($record->sales_order_file) {
+                                    $salesOrderFileArray = is_string($record->sales_order_file)
+                                        ? json_decode($record->sales_order_file, true)
+                                        : $record->sales_order_file;
+
+                                    if (is_array($salesOrderFileArray)) {
+                                        foreach ($salesOrderFileArray as $file) {
+                                            $salesOrderFiles[] = url('storage/' . $file);
+                                        }
+                                    }
+                                }
+
+                                // Create email content structure
+                                $emailContent = [
+                                    'implementer' => [
+                                        'name' => $data['implementer'],
+                                    ],
+                                    'company' => [
+                                        'name' => $companyName,
+                                    ],
+                                    'salesperson' => [
+                                        'name' => $salespersonName,
+                                    ],
+                                    'handover_id' => $handoverId,
+                                    // CHANGE created_at to completed_at
+                                    'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
+                                    'handoverFormUrl' => $handoverFormUrl,
+                                    'invoiceFiles' => $invoiceFiles,
+                                    'salesOrderFiles' => $salesOrderFiles,
+                                    'devices' => [
+                                        'tc10' => [
+                                            'quantity' => (int)$data['tc10_quantity'],
+                                            'status' => (int)$data['tc10_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'tc20' => [
+                                            'quantity' => (int)$data['tc20_quantity'],
+                                            'status' => (int)$data['tc20_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id5' => [
+                                            'quantity' => (int)$data['face_id5_quantity'],
+                                            'status' => (int)$data['face_id5_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id6' => [
+                                            'quantity' => (int)$data['face_id6_quantity'],
+                                            'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'time_beacon' => [
+                                            'quantity' => (int)$data['time_beacon_quantity'],
+                                            'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'nfc_tag' => [
+                                            'quantity' => (int)$data['nfc_tag_quantity'],
+                                            'status' => (int)$data['nfc_tag_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ]
+                                    ]
+                                ];
+
+                                // Initialize recipients array with admin email
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+
+                                // Add implementer email if valid
+                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $implementerEmail;
+                                }
+
+                                // Add salesperson email if valid
+                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $salespersonEmail;
+                                }
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
+
+                                // Send email with template and custom subject format
+                                if (count($recipients) > 0) {
+                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                                        $message->from($senderEmail, $senderName)
+                                            ->to($recipients)
+                                            ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                    });
+
+                                    \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                }
+                            } catch (\Exception $e) {
+                                // Log error but don't stop the process
+                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                            }
+
+                            Notification::make()
+                                ->title('Hardware Handover processed')
+                                ->success()
+                                ->body('Status updated to: ' . $record->status)
+                                ->send();
+                        })
+                        ->requiresConfirmation(false)
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' || auth()->user()->role_id === 2
+                        ),
+
                     Action::make('mark_rejected')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
@@ -758,55 +1404,6 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
-                    Action::make('check_sales_order')
-                        ->label('Check Sales Order')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->modalHeading('Check Sales Order Status')
-                        ->modalDescription('Please select the appropriate status for this sales order.')
-                        ->modalSubmitAction(false) // Remove default submit button
-                        ->modalCancelAction(false) // Remove default cancel button
-                        ->extraModalFooterActions([
-                            Action::make('no_stock')
-                                ->label('No Stock')
-                                ->color('danger')
-                                ->icon('heroicon-o-x-circle')
-                                ->cancelParentActions()
-                                ->action(function (HardwareHandover $record) {
-                                    $record->update([
-                                        'status' => 'No Stock',
-                                    ]);
-
-                                    Notification::make()
-                                        ->title('Sales order marked as No Stock')
-                                        ->warning()
-                                        ->body('The hardware handover is on hold until stock becomes available.')
-                                        ->send();
-
-                                    $this->dispatch('close-modal', id: 'check_sales_order');
-                                }),
-                            Action::make('sales_order_completed')
-                                ->label('Sales Order Completed')
-                                ->color('success')
-                                ->icon('heroicon-o-check-circle')
-                                ->cancelParentActions()
-                                ->action(function (HardwareHandover $record) {
-                                    $record->update([
-                                        'status' => 'Sales Order Completed',
-                                    ]);
-
-                                    Notification::make()
-                                        ->title('Sales order marked as completed')
-                                        ->success()
-                                        ->send();
-
-                                    $this->dispatch('close-modal', id: 'check_sales_order');
-                                }),
-                        ])
-                        ->hidden(fn (HardwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
                     // Action::make('mark_data_migration_completed')
                     //     ->label('Data Migration Completed')
                     //     ->icon('heroicon-o-check-circle')
@@ -881,6 +1478,6 @@ class HardwareHandoverToday extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.hardware-handover-today');
+        return view('livewire.hardware-handover-new');
     }
 }
