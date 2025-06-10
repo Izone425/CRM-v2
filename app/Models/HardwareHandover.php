@@ -23,6 +23,7 @@ class HardwareHandover extends Model
         'installation_type',
         'reject_reason',
         'category2',
+        'contact_detail',
         'pic_name',
         'pic_phone',
         'email',
@@ -35,6 +36,7 @@ class HardwareHandover extends Model
         'hrdf_grant_file',
         'payment_slip_file',
         'new_attachment_file',
+        'invoice_file',
         'submitted_at',
         'created_at',
         'updated_at'
