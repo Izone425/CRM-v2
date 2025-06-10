@@ -23,6 +23,7 @@ class HardwareHandover extends Model
         'installation_type',
         'reject_reason',
         'category2',
+        'contact_detail',
         'pic_name',
         'pic_phone',
         'email',
