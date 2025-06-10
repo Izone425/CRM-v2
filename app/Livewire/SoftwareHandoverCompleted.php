@@ -31,7 +31,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
 
-class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
+class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -358,6 +358,6 @@ class SoftwareHandoverOverdue extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.software-handover-overdue');
+        return view('livewire.software-handover-completed');
     }
 }

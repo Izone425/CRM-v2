@@ -1,4 +1,4 @@
-<div class="p-4 bg-white rounded-lg shadow-lg" style="min-height: 450px; height: auto;">
+<div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">
             @if(auth()->user()->role_id === 2)
@@ -9,10 +9,10 @@
                 @elseif(is_numeric($selectedUser))
                     Hardware Handover - Pending
                 @else
-                    Hardware Handover - New / Approved
+                    Dashboard 1 - New
                 @endif
             @else
-                Hardware Handover - New / Approved
+                Dashboard 1 - New
             @endif
         </h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>

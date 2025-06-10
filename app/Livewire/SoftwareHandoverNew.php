@@ -44,7 +44,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class SoftwareHandoverToday extends Component implements HasForms, HasTable
+class SoftwareHandoverNew extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -808,9 +808,9 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
                                         ->readOnly()
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->speaker_category) {
-                                                
+
                                                 return ucwords($record->speaker_category);
-                                                
+
                                             }
                                             return ucwords($record->speaker_category) ?? 'Not specified';
                                         })
@@ -1044,6 +1044,6 @@ class SoftwareHandoverToday extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.software-handover-today');
+        return view('livewire.software-handover-new');
     }
 }
