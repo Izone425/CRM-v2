@@ -5,7 +5,7 @@
     }
 </style>
 
-<livewire:software-handover-today />
-<livewire:software-handover-overdue />
+<livewire:software-handover-new />
+<livewire:software-handover-completed />
 <livewire:software-handover-addon />
 <livewire:software-handover-kick-off-reminder/>
