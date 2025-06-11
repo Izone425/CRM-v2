@@ -583,7 +583,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     $this->defaultForm()
                 )
                 ->action(function (array $data): void { // CREATE HARDWARE HANDOVER
-                    
+
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'Draft';
@@ -618,12 +618,12 @@ class HardwareHandoverRelationManager extends RelationManager
                         $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
                     }
 
-                    
+
                     if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
                         $data['invoice_file'] = json_encode($data['invoice_file']);
                     }
 
-                    
+
                     if (isset($data['hrdf_grant_file']) && is_array($data['hrdf_grant_file'])) {
                         $data['hrdf_grant_file'] = json_encode($data['hrdf_grant_file']);
                     }

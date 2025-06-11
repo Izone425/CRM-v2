@@ -9,10 +9,10 @@
                 @elseif(is_numeric($selectedUser))
                     Hardware Handover - Pending
                 @else
-                    Dashboard 1 - New
+                    Dashboard - New
                 @endif
             @else
-                Dashboard 1 - New
+                Dashboard - New
             @endif
         </h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>

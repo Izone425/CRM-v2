@@ -163,7 +163,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
             ->actions([
                 ActionGroup::make([
                     Action::make('edit_kick_off_meeting')
-                        ->label('Schedule')
+                        ->label('Task Completed')
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
                         ->modalSubmitActionLabel('Save')
