@@ -1,6 +1,20 @@
 <div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
     <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">Completed</h3>
+        <h3 class="text-lg font-bold">
+            @if(auth()->user()->role_id === 2)
+                Software Handover - Completed
+            @elseif(auth()->user()->role_id === 3)
+                @if($selectedUser === 'all-salespersons')
+                    Software Handover - Completed
+                @elseif(is_numeric($selectedUser))
+                    Software Handover - Completed
+                @else
+                    Completed
+                @endif
+            @else
+                Completed
+            @endif
+        </h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>
     </div>
     <br>

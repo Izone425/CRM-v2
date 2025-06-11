@@ -210,7 +210,7 @@ class CreateLead extends CreateRecord
                 $emailContent = [
                     'leadOwnerName' => $recipient->name ?? 'Unknown Person',
                     'lead' => [
-                        'lead_code' => 'CRM',
+                        'lead_code' => $lead->lead_code ?? 'N/A',
                         'creator' => $lead->salesperson ? User::find($lead->salesperson)?->name : $lead->lead_owner,
                         'lastName' => $lead->name ?? 'N/A',
                         'company' => $lead->companyDetail->company_name ?? 'N/A',
