@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Classes\Encryptor;
+use App\Filament\Filters\SortFilter;
 use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
@@ -89,6 +90,32 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                 auth()->user()->role_id === 2
                     ? [5] : [3]
             )
+            ->filters([
+                // Add this new filter for status
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Draft' => 'Draft',
+                        'New' => 'New',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple(),
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', '2')
+                            ->whereNot('id', 15) // Exclude Testing Account
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
+
+                SortFilter::make("sort_by"),
+            ])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -129,6 +156,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 

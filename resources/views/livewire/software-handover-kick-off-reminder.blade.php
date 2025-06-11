@@ -1,6 +1,6 @@
 <div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
     <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold">Software Handover - Online Kick-Off Meeting Reminder Task</h3>
+        <h3 class="text-lg font-bold">Pending Task / Arrange Online Kick-Off Meeting</h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>
     </div>
     <br>

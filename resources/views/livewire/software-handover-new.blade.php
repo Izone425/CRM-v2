@@ -9,10 +9,10 @@
                 @elseif(is_numeric($selectedUser))
                     Software Handover - Pending
                 @else
-                    Software Handover - New / Approved
+                    New Task / Accepted
                 @endif
             @else
-                Software Handover - New / Approved
+                New Task / Accepted
             @endif
         </h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>
