@@ -78,11 +78,11 @@
     <br>
     <livewire:software-handover-new />
     <br>
-    <livewire:software-handover-completed />
-    <br>
-    <livewire:software-handover-addon />
-    <br>
     <livewire:software-handover-kick-off-reminder/>
     <br>
     <livewire:software-handover-pending-license />
+    <br>
+    <livewire:software-handover-completed />
+    <br>
+    <livewire:software-handover-addon />
 </div>

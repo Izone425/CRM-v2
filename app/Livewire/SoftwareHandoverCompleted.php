@@ -209,6 +209,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 
