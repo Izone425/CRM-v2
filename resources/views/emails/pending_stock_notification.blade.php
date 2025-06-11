@@ -58,7 +58,7 @@
         }
         .button {
             background-color: #f0cd33;
-            color: white;
+            color: white !important;
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 4px;

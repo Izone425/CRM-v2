@@ -903,6 +903,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $data['implementer'],
+                                'pending_stock_at' => now(),
                                 'status' => 'Pending Stock',
                             ];
 
@@ -918,7 +919,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                             // Send email notification
                             try {
-                                $viewName = 'emails.pending_migration_notification';
+                                $viewName = 'emails.pending_stock_notification';
 
                                 // Get implementer and company details
                                 $implementerName = $implementer?->name ?? 'Unknown';
@@ -1003,7 +1004,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1230,6 +1231,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $data['implementer'],
+                                'pending_migration_at' => now(),
                                 'status' => 'Pending Migration',
                             ];
 
@@ -1330,7 +1332,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {

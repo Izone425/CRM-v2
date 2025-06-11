@@ -1,4 +1,3 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/components/software-handover.blade.php -->
 @php
     $record = $extraAttributes['record'] ?? null;
 

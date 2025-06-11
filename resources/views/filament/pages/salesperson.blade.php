@@ -9,8 +9,8 @@
 <livewire:demo-tmr-table />
 <livewire:pr-today-salesperson-table />
 <livewire:pr-overdue-salesperson-table />
-<livewire:software-handover-today />
-<livewire:software-handover-overdue />
+<livewire:software-handover-new />
+<livewire:software-handover-completed />
 <livewire:hardware-handover-new />
 <livewire:hardware-handover-completed />
 <livewire:transfer-lead />
