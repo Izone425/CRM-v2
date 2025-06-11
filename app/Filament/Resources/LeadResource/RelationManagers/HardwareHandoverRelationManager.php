@@ -96,7 +96,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             $counter++;
                             return 'Contact Person ' . $counter;
                         })
-                        ->default(function (?HardwareHandover $record, $state) {
+                        ->default(function (?HardwareHandover $record) {
                             if (!$record) {
                                 $lead =  $this->getOwnerRecord();
                                 return [
@@ -107,9 +107,11 @@ class HardwareHandoverRelationManager extends RelationManager
                                     ]
                                 ];
                             } elseif ($record && $record->contact_detail) {
-                                return json_decode($record);
-                            } else
+                                // Decode the specific contact_detail field, not the entire record
+                                return json_decode($record->contact_detail, true);
+                            } else {
                                 return null;
+                            }
                         })
                 ]),
 
@@ -579,9 +581,7 @@ class HardwareHandoverRelationManager extends RelationManager
                 ->modalSubmitActionLabel('Save')
                 ->modalHeading('Add Hardware Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
-                ->form(
-                    $this->defaultForm()
-                )
+                ->form($this->defaultForm())
                 ->action(function (array $data): void { // CREATE HARDWARE HANDOVER
 
                     $data['created_by'] = auth()->id();
@@ -785,7 +785,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->color('warning'),
 
                     Action::make('view')
@@ -793,10 +793,10 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn(HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
+                        ->visible(fn(HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))
                         ->modalContent(function (HardwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
@@ -839,7 +839,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->slideOver()
                         ->form($this->defaultForm())
                         ->action(function (HardwareHandover $record, array $data): void { //EDIT HARDWARE HANDOVER
-                            dd($data);
+                            // dd($data);
                             $data['created_by'] = auth()->id();
                             $data['lead_id'] = $this->getOwnerRecord()->id;
                             $data['status'] = 'Draft';
