@@ -320,23 +320,10 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->schema([
                                 Forms\Components\Radio::make('speaker_category')
                                     ->label('')
-                                    ->options(function (Forms\Get $get) {
-                                        $headcount = (int)$get('headcount');
-
-                                        // If headcount > 25, show both options
-                                        if ($headcount >= 25) {
-                                            return [
-                                                'english / malay' => 'English / Malay',
-                                                'mandarin' => 'Mandarin',
-                                            ];
-                                        }
-                                        // Otherwise, only show English/Malay
-                                        else {
-                                            return [
-                                                'english / malay' => 'English / Malay',
-                                            ];
-                                        }
-                                    })
+                                    ->options([
+                                        'english / malay' => 'English / Malay',
+                                        'mandarin' => 'Mandarin',
+                                    ])
                                     ->columns(2)
                                     ->live() // Make it react to headcount changes
                                     ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
@@ -914,23 +901,10 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->schema([
                                     Forms\Components\Radio::make('speaker_category')
                                         ->label('')
-                                        ->options(function (Forms\Get $get) {
-                                            $headcount = (int)$get('headcount');
-
-                                            // If headcount > 25, show both options
-                                            if ($headcount > 25) {
-                                                return [
-                                                    'english / malay' => 'English / Malay',
-                                                    'mandarin' => 'Mandarin',
-                                                ];
-                                            }
-                                            // Otherwise, only show English/Malay
-                                            else {
-                                                return [
-                                                    'english / malay' => 'English / Malay',
-                                                ];
-                                            }
-                                        })
+                                        ->options([
+                                            'english / malay' => 'English / Malay',
+                                            'mandarin' => 'Mandarin',
+                                        ])
                                         ->columns(2)
                                         ->live() // Make it react to headcount changes
                                         ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
