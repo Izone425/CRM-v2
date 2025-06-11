@@ -67,6 +67,7 @@ class SoftwareHandover extends Model
         'hrdf_grant_file',
         'invoice_file',
         'new_attachment_file',
+        'license_activated',
 
         // Section 9: Status & Remarks
         'reject_reason',

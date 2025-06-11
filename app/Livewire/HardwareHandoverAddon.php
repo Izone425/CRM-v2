@@ -135,8 +135,11 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
+            ->paginated(
+                auth()->user()->role_id === 2
+                    ? [5] : [3]
+            )
             // ->filters([
             //     // Filter for Creator
             //     SelectFilter::make('created_by')

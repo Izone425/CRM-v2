@@ -43,8 +43,11 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
             ->query($this->getOverdueHardwareHandovers())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
+            ->paginated(
+                auth()->user()->role_id === 2
+                    ? [5] : [3]
+            )
             ->columns([
                 TextColumn::make('handover_pdf')
                     ->label('ID')

@@ -130,8 +130,11 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
+            ->paginated(
+                auth()->user()->role_id === 2
+                    ? [5] : [3]
+            )
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -568,7 +571,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             Section::make('Step 7: Attachment')
                                 ->columnSpan(1)
                                 ->schema([
-                                    Grid::make(3)
+                                    Grid::make(2)
                                         ->schema([
                                             FileUpload::make('confirmation_order_file')
                                                 ->label('Upload Confirmation Order')
@@ -601,6 +604,40 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                         return json_decode($record->confirmation_order_file, true) ?? [];
                                                     }
                                                     return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
+                                                }),
+
+                                            FileUpload::make('payment_slip_file')
+                                                ->label('Upload Payment Slip')
+                                                ->disk('public')
+                                                ->live(debounce: 500)
+                                                ->directory('handovers/payment_slips')
+                                                ->visibility('public')
+                                                ->multiple()
+                                                ->maxFiles(1)
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
+                                                    // Get lead ID directly from the record
+                                                    $leadId = $record->lead_id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->payment_slip_file) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->payment_slip_file)) {
+                                                        return json_decode($record->payment_slip_file, true) ?? [];
+                                                    }
+                                                    return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
                                                 }),
 
                                             FileUpload::make('hrdf_grant_file')
@@ -636,38 +673,32 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                     return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
                                                 }),
 
-                                            FileUpload::make('payment_slip_file')
-                                                ->label('Upload Payment Slip')
+                                            FileUpload::make('invoice_file')
+                                                ->label('Upload Invoice')
                                                 ->disk('public')
-                                                ->live(debounce: 500)
-                                                ->directory('handovers/payment_slips')
+                                                ->directory('handovers/invoices')
                                                 ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(1)
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->multiple()
+                                                ->maxFiles(10)
+                                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
                                                 ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                    // Get lead ID directly from the record
-                                                    $leadId = $record->lead_id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                                    $date = now()->format('Y-m-d');
+                                                    $random = Str::random(5);
                                                     $extension = $file->getClientOriginalExtension();
 
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->payment_slip_file) {
+                                                    if (!$record || !$record->invoice_file) {
                                                         return [];
                                                     }
-                                                    if (is_string($record->payment_slip_file)) {
-                                                        return json_decode($record->payment_slip_file, true) ?? [];
+                                                    if (is_string($record->invoice_file)) {
+                                                        return json_decode($record->invoice_file, true) ?? [];
                                                     }
-                                                    return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
                                                 }),
                                         ]),
                                 ]),
@@ -719,6 +750,9 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
                             }
 
+                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                            }
                             // Update the record
                             $record->update($data);
 

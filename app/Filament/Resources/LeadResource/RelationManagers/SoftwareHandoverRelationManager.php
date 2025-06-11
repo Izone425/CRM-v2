@@ -129,7 +129,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->modalWidth(MaxWidth::FourExtraLarge)
                 ->modalSubmitActionLabel('Save')
                 ->form([
-                    Section::make('Section 1: Database')
+                    Section::make('Step 1: Database')
                         ->schema([
                             Grid::make(3)
                                 ->schema([
@@ -388,7 +388,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         Section::make('Step 8: Attachment')
                             ->columnSpan(1) // Ensure it spans one column
                             ->schema([
-                                Grid::make(3)
+                                Grid::make(2)
                                     ->schema([
                                     FileUpload::make('confirmation_order_file')
                                         ->label('Upload Confirmation Order')
@@ -412,6 +412,32 @@ class SoftwareHandoverRelationManager extends RelationManager
                                             $random = rand(1000, 9999);
 
                                             return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                                        }),
+
+                                    FileUpload::make('payment_slip_file')
+                                        ->label('Upload Payment Slip')
+                                        ->disk('public')
+                                        ->live(debounce:500)
+                                        ->directory('handovers/payment_slips')
+                                        ->visibility('public')
+                                        ->multiple()
+                                        ->maxFiles(1)
+                                        ->openable()
+                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                        ->openable()
+                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                            // Get lead ID from ownerRecord
+                                            $leadId = $this->getOwnerRecord()->id;
+                                            // Format ID with prefix (250) and padding
+                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                            // Get extension
+                                            $extension = $file->getClientOriginalExtension();
+
+                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                            $timestamp = now()->format('YmdHis');
+                                            $random = rand(1000, 9999);
+
+                                            return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                         }),
 
                                     FileUpload::make('hrdf_grant_file')
@@ -441,32 +467,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->afterStateUpdated(function () {
                                             // Reset the counter after the upload is complete
                                             session()->forget('hrdf_upload_count');
-                                        }),
-
-                                    FileUpload::make('payment_slip_file')
-                                        ->label('Upload Payment Slip')
-                                        ->disk('public')
-                                        ->live(debounce:500)
-                                        ->directory('handovers/payment_slips')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(1)
-                                        ->openable()
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                         }),
 
                                     FileUpload::make('invoice_file')
@@ -1004,7 +1004,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                             Section::make('Step 8: Attachment')
                                 ->columnSpan(1)
                                 ->schema([
-                                    Grid::make(3)
+                                    Grid::make(2)
                                         ->schema([
                                             FileUpload::make('confirmation_order_file')
                                                 ->label('Upload Confirmation Order')
@@ -1039,40 +1039,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                     return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
                                                 }),
 
-                                            FileUpload::make('hrdf_grant_file')
-                                                ->label('Upload HRDF Grant Approval Letter')
-                                                ->disk('public')
-                                                ->directory('handovers/hrdf_grant')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(10)
-                                                ->openable()
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    // Get lead ID from ownerRecord
-                                                    $leadId = $this->getOwnerRecord()->id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
-                                                })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->hrdf_grant_file) {
-                                                        return [];
-                                                    }
-                                                    if (is_string($record->hrdf_grant_file)) {
-                                                        return json_decode($record->hrdf_grant_file, true) ?? [];
-                                                    }
-                                                    return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
-                                                }),
-
                                             FileUpload::make('payment_slip_file')
                                                 ->label('Upload Payment Slip')
                                                 ->disk('public')
@@ -1105,6 +1071,40 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                         return json_decode($record->payment_slip_file, true) ?? [];
                                                     }
                                                     return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                                                }),
+
+                                            FileUpload::make('hrdf_grant_file')
+                                                ->label('Upload HRDF Grant Approval Letter')
+                                                ->disk('public')
+                                                ->directory('handovers/hrdf_grant')
+                                                ->visibility('public')
+                                                ->multiple()
+                                                ->maxFiles(10)
+                                                ->openable()
+                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                ->openable()
+                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                    // Get lead ID from ownerRecord
+                                                    $leadId = $this->getOwnerRecord()->id;
+                                                    // Format ID with prefix (250) and padding
+                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Get extension
+                                                    $extension = $file->getClientOriginalExtension();
+
+                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                    $timestamp = now()->format('YmdHis');
+                                                    $random = rand(1000, 9999);
+
+                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    if (!$record || !$record->hrdf_grant_file) {
+                                                        return [];
+                                                    }
+                                                    if (is_string($record->hrdf_grant_file)) {
+                                                        return json_decode($record->hrdf_grant_file, true) ?? [];
+                                                    }
+                                                    return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
                                                 }),
 
                                             FileUpload::make('invoice_file')

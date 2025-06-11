@@ -29,6 +29,7 @@ use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\HardwareAttachmentResource;
 use App\Filament\Resources\HardwareHandoverResource;
+use App\Filament\Resources\HardwarePendingStockResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InstallerResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
@@ -150,6 +151,7 @@ class AdminPanelProvider extends PanelProvider
                 SoftwareAttachmentResource::class,
                 HardwareAttachmentResource::class,
                 InstallerResource::class,
+                HardwarePendingStockResource::class
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

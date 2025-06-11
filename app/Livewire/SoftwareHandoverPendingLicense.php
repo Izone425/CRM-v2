@@ -46,7 +46,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class SoftwareHandoverKickOffReminder extends Component implements HasForms, HasTable
+class SoftwareHandoverPendingLicense extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -69,7 +69,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
     {
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
-        $query->whereNull('kick_off_meeting');
+        $query->whereNull('license_activated');
         $query->orderBy('updated_at', 'desc');
         $query->where(function ($q) {
             $q->whereIn('id', [420, 520, 531, 539]) //4 Company included
@@ -165,34 +165,22 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('edit_kick_off_meeting')
-                        ->label('Task Completed')
-                        ->icon('heroicon-o-pencil')
-                        ->color('warning')
-                        ->modalSubmitActionLabel('Save')
-                        ->modalWidth(MaxWidth::FourExtraLarge)
-                        ->modalHeading(fn(SoftwareHandover $record) => "Online Kick-Off Meeting for {$record->company_name}") // SlideOver title
-                        ->form([
-                            DatePicker::make('kick_off_meeting')
-                                ->native(false)
-                                ->displayFormat('d F Y')
-                                ->placeholder("Choose date")
-                                ->label("Online Kick Off Meeting Date"),
-                            PlaceHolder::make('webinar_training')
-                                ->label("Online Webinar Date")
-                                ->content('N/A'),
-                        ])
-                        ->action(function (SoftwareHandover $record, array $data): void {
+                    Action::make('activate_license')
+                        ->label('Activate License')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading(fn(SoftwareHandover $record) => "Activate License for {$record->company_name}")
+                        ->modalDescription('Are you sure you want to mark this license as activated? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, Activate License')
+                        ->modalCancelActionLabel('No, Cancel')
+                        ->action(function (SoftwareHandover $record): void {
                             $record->update([
-                                'kick_off_meeting' => $data['kick_off_meeting']
+                                'license_activated' => true
                             ]);
 
-
-                            // Send Email Notification
-
-
                             Notification::make()
-                                ->title('Online Kick-Off Meeting Scheduled successfully')
+                                ->title('License has been activated successfully')
                                 ->success()
                                 ->send();
                         })
@@ -203,6 +191,6 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
     public function render()
     {
-        return view('livewire.software-handover-kick-off-reminder');
+        return view('livewire.software-handover-pending-license');
     }
 }

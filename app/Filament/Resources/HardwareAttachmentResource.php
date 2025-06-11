@@ -32,7 +32,7 @@ class HardwareAttachmentResource extends Resource
 
     protected static ?string $navigationLabel = 'Handover Attachments';
 
-    protected static ?string $navigationGroup = 'Hardware Handovers';
+    protected static ?string $navigationGroup = 'Hardware Attachments';
 
     protected static ?int $navigationSort = 3;
 
@@ -192,9 +192,9 @@ class HardwareAttachmentResource extends Resource
                             })
                     ),
 
-                TextColumn::make('description')
-                    ->limit(50)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // TextColumn::make('description')
+                //     ->limit(50)
+                //     ->toggleable(isToggledHiddenByDefault: true),
 
                 // // Display file count
                 // TextColumn::make('files')
@@ -241,14 +241,13 @@ class HardwareAttachmentResource extends Resource
 
                 TextColumn::make('hardwareHandover.implementer')
                     ->label('Implementer')
-                    ->sortable()
-                    ->toggleable(),
+                    ->sortable(),
 
-                TextColumn::make('hardwareHandover.completed_at')
-                    ->label('Completed Date & Time')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(),
+                // TextColumn::make('hardwareHandover.completed_at')
+                //     ->label('Completed Date & Time')
+                //     ->dateTime()
+                //     ->sortable()
+                //     ->toggleable(),
             ])
             ->filters([
                 // Tables\Filters\SelectFilter::make('hardware_handover_id')
@@ -289,7 +288,7 @@ class HardwareAttachmentResource extends Resource
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))

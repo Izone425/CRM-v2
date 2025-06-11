@@ -130,8 +130,11 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
+            ->paginated(
+                auth()->user()->role_id === 2
+                    ? [5] : [3]
+            )
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -718,155 +721,120 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->modalHeading('Pending Stock Confirmation')
                         ->modalWidth('lg')
                         ->form([
-                            Section::make('Device Inventory Check')
+                            Grid::make(3)
                                 ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('tc10_quantity')
-                                                ->label('TC10 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('tc10_quantity')
+                                        ->label('TC10 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('tc20_quantity')
-                                                ->label('TC20 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('face_id5_quantity')
+                                        ->label('FACE ID 5 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('face_id5_quantity')
-                                                ->label('FACE ID 5 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('time_beacon_quantity')
+                                        ->label('TIME BEACON Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('face_id6_quantity')
-                                                ->label('FACE ID 6 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('tc20_quantity')
+                                        ->label('TC20 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('time_beacon_quantity')
-                                                ->label('TIME BEACON Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('face_id6_quantity')
+                                        ->label('FACE ID 6 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('nfc_tag_quantity')
-                                                ->label('NFC TAG Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
-                                        ]),
-
-                                    Select::make('implementer')
-                                        ->label('Assign Implementer')
-                                        ->options(function () {
-                                            return User::where('role_id', 4) // Assuming 4 is the implementer role
-                                                ->orWhere(function ($query) {
-                                                    $query->where('additional_role', 4);
-                                                })
-                                                ->pluck('name', 'id')
-                                                ->toArray();
-                                        })
-                                        ->searchable()
-                                        ->required()
-                                        ->default(function (HardwareHandover $record) {
-                                            // First, check if we already have a set implementer for this record
-                                            if ($record && $record->implementer) {
-                                                return $record->implementer;
-                                            }
-
-                                            // If not, try to get the implementer from the associated software handover
-                                            if ($record && $record->lead_id) {
-                                                // Find the software handover for the same lead
-                                                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
-                                                    ->latest()
-                                                    ->first();
-
-                                                // Return the implementer ID if found
-                                                if ($softwareHandover && $softwareHandover->implementer) {
-                                                    return $softwareHandover->implementer;
-                                                }
-                                            }
-
-                                            return null; // No default implementer found
-                                        }),
-
-                                    FileUpload::make('invoice_file')
-                                        ->label('Upload Invoice')
-                                        ->disk('public')
-                                        ->directory('handovers/invoices')
-                                        ->visibility('public')
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                        }),
-
-                                    FileUpload::make('sales_order_file')
-                                        ->label('Upload Sales Order')
-                                        ->disk('public')
-                                        ->directory('handovers/sales_orders')
-                                        ->visibility('public')
-                                        ->helperText('Upload sales order files (PDF, JPG, PNG formats accepted)')
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
-                                        }),
+                                    TextInput::make('nfc_tag_quantity')
+                                        ->label('NFC TAG Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
                                 ]),
+
+                            Select::make('implementer')
+                                ->label('Assign Implementer')
+                                ->options(function () {
+                                    return User::where('role_id', 4) // Assuming 4 is the implementer role
+                                        ->orWhere(function ($query) {
+                                            $query->where('additional_role', 4);
+                                        })
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->required()
+                                ->disabled()
+                                ->default(function (HardwareHandover $record) {
+                                    // First, check if we already have a set implementer for this record
+                                    if ($record && $record->implementer) {
+                                        return $record->implementer;
+                                    }
+
+                                    // If not, try to get the implementer from the associated software handover
+                                    if ($record && $record->lead_id) {
+                                        // Find the software handover for the same lead
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                            ->latest()
+                                            ->first();
+
+                                        // Return the implementer ID if found
+                                        if ($softwareHandover && $softwareHandover->implementer) {
+                                            return $softwareHandover->implementer;
+                                        }
+                                    }
+
+                                    return null; // No default implementer found
+                                }),
+
+                            Grid::make(2)
+                            ->schema([
+                                FileUpload::make('invoice_file')
+                                    ->label('Upload Invoice')
+                                    ->disk('public')
+                                    ->directory('handovers/invoices')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->openable()
+                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                        $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                        $date = now()->format('Y-m-d');
+                                        $random = Str::random(5);
+                                        $extension = $file->getClientOriginalExtension();
+
+                                        return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                    }),
+
+                                FileUpload::make('sales_order_file')
+                                    ->label('Upload Sales Order')
+                                    ->disk('public')
+                                    ->directory('handovers/sales_orders')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->openable()
+                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                        $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                        $date = now()->format('Y-m-d');
+                                        $random = Str::random(5);
+                                        $extension = $file->getClientOriginalExtension();
+
+                                        return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
+                                    }),
+                            ]),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
-                            // Process device inventory
-                            $deviceInventory = [
-                                'tc10' => [
-                                    'quantity' => (int)($data['tc10_quantity'] ?? 0),
-                                    'available' => (int)($data['tc10_quantity'] ?? 0) > 0
-                                ],
-                                'tc20' => [
-                                    'quantity' => (int)($data['tc20_quantity'] ?? 0),
-                                    'available' => (int)($data['tc20_quantity'] ?? 0) > 0
-                                ],
-                                'face_id5' => [
-                                    'quantity' => (int)($data['face_id5_quantity'] ?? 0),
-                                    'available' => (int)($data['face_id5_quantity'] ?? 0) > 0
-                                ],
-                                'face_id6' => [
-                                    'quantity' => (int)($data['face_id6_quantity'] ?? 0),
-                                    'available' => (int)($data['face_id6_quantity'] ?? 0) > 0
-                                ],
-                                'time_beacon' => [
-                                    'quantity' => (int)($data['time_beacon_quantity'] ?? 0),
-                                    'available' => (int)($data['time_beacon_quantity'] ?? 0) > 0
-                                ],
-                                'nfc_tag' => [
-                                    'quantity' => (int)($data['nfc_tag_quantity'] ?? 0),
-                                    'available' => (int)($data['nfc_tag_quantity'] ?? 0) > 0
-                                ]
-                            ];
-
                             // Process file uploads
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
                                 $data['invoice_file'] = json_encode($data['invoice_file']);
@@ -874,14 +842,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                             if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
                                 $data['sales_order_file'] = json_encode($data['sales_order_file']);
-                            }
-
-                            foreach ($deviceInventory as $device) {
-                                if (!$device['available']) {
-                                    $hasStockIssues = true;
-                                } else {
-                                    $availableForMigration = true;
-                                }
                             }
 
                             $implementerId = $data['implementer'];
@@ -1054,155 +1014,120 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->modalHeading('Pending Migration Confirmation')
                         ->modalWidth('lg')
                         ->form([
-                            Section::make('Device Inventory Check')
+                            Grid::make(3)
                                 ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('tc10_quantity')
-                                                ->label('TC10 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('tc10_quantity')
+                                        ->label('TC10 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('tc20_quantity')
-                                                ->label('TC20 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('face_id5_quantity')
+                                        ->label('FACE ID 5 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('face_id5_quantity')
-                                                ->label('FACE ID 5 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('time_beacon_quantity')
+                                        ->label('TIME BEACON Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('face_id6_quantity')
-                                                ->label('FACE ID 6 Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('tc20_quantity')
+                                        ->label('TC20 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('time_beacon_quantity')
-                                                ->label('TIME BEACON Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
+                                    TextInput::make('face_id6_quantity')
+                                        ->label('FACE ID 6 Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
 
-                                            TextInput::make('nfc_tag_quantity')
-                                                ->label('NFC TAG Quantity')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->default(0)
-                                                ->helperText('Enter 0 if device is out of stock'),
-                                        ]),
-
-                                    Select::make('implementer')
-                                        ->label('Assign Implementer')
-                                        ->options(function () {
-                                            return User::where('role_id', 4)
-                                                ->orWhere(function ($query) {
-                                                    $query->where('additional_role', 4);
-                                                })
-                                                ->pluck('name', 'id')
-                                                ->toArray();
-                                        })
-                                        ->searchable()
-                                        ->required()
-                                        ->default(function (HardwareHandover $record) {
-                                            // First, check if we already have a set implementer for this record
-                                            if ($record && $record->implementer) {
-                                                return $record->implementer;
-                                            }
-
-                                            // If not, try to get the implementer from the associated software handover
-                                            if ($record && $record->lead_id) {
-                                                // Find the software handover for the same lead
-                                                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
-                                                    ->latest()
-                                                    ->first();
-
-                                                // Return the implementer ID if found
-                                                if ($softwareHandover && $softwareHandover->implementer) {
-                                                    return $softwareHandover->implementer;
-                                                }
-                                            }
-
-                                            return null; // No default implementer found
-                                        }),
-
-                                    FileUpload::make('invoice_file')
-                                        ->label('Upload Invoice')
-                                        ->disk('public')
-                                        ->directory('handovers/invoices')
-                                        ->visibility('public')
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                        }),
-
-                                    FileUpload::make('sales_order_file')
-                                        ->label('Upload Sales Order')
-                                        ->disk('public')
-                                        ->directory('handovers/sales_orders')
-                                        ->visibility('public')
-                                        ->helperText('Upload sales order files (PDF, JPG, PNG formats accepted)')
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
-                                        }),
+                                    TextInput::make('nfc_tag_quantity')
+                                        ->label('NFC TAG Quantity')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
                                 ]),
+
+                            Select::make('implementer')
+                                ->label('Assign Implementer')
+                                ->options(function () {
+                                    return User::where('role_id', 4)
+                                        ->orWhere(function ($query) {
+                                            $query->where('additional_role', 4);
+                                        })
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->required()
+                                ->disabled()
+                                ->default(function (HardwareHandover $record) {
+                                    // First, check if we already have a set implementer for this record
+                                    if ($record && $record->implementer) {
+                                        return $record->implementer;
+                                    }
+
+                                    // If not, try to get the implementer from the associated software handover
+                                    if ($record && $record->lead_id) {
+                                        // Find the software handover for the same lead
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                            ->latest()
+                                            ->first();
+
+                                        // Return the implementer ID if found
+                                        if ($softwareHandover && $softwareHandover->implementer) {
+                                            return $softwareHandover->implementer;
+                                        }
+                                    }
+
+                                    return null; // No default implementer found
+                                }),
+
+                            Grid::make(2)
+                            ->schema([
+                                FileUpload::make('invoice_file')
+                                    ->label('Upload Invoice')
+                                    ->disk('public')
+                                    ->directory('handovers/invoices')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->openable()
+                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                        $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                        $date = now()->format('Y-m-d');
+                                        $random = Str::random(5);
+                                        $extension = $file->getClientOriginalExtension();
+
+                                        return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                    }),
+
+                                FileUpload::make('sales_order_file')
+                                    ->label('Upload Sales Order')
+                                    ->disk('public')
+                                    ->directory('handovers/sales_orders')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->openable()
+                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                        $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                        $date = now()->format('Y-m-d');
+                                        $random = Str::random(5);
+                                        $extension = $file->getClientOriginalExtension();
+
+                                        return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
+                                    }),
+                            ]),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
-                            // Process device inventory
-                            $deviceInventory = [
-                                'tc10' => [
-                                    'quantity' => (int)($data['tc10_quantity'] ?? 0),
-                                    'available' => (int)($data['tc10_quantity'] ?? 0) > 0
-                                ],
-                                'tc20' => [
-                                    'quantity' => (int)($data['tc20_quantity'] ?? 0),
-                                    'available' => (int)($data['tc20_quantity'] ?? 0) > 0
-                                ],
-                                'face_id5' => [
-                                    'quantity' => (int)($data['face_id5_quantity'] ?? 0),
-                                    'available' => (int)($data['face_id5_quantity'] ?? 0) > 0
-                                ],
-                                'face_id6' => [
-                                    'quantity' => (int)($data['face_id6_quantity'] ?? 0),
-                                    'available' => (int)($data['face_id6_quantity'] ?? 0) > 0
-                                ],
-                                'time_beacon' => [
-                                    'quantity' => (int)($data['time_beacon_quantity'] ?? 0),
-                                    'available' => (int)($data['time_beacon_quantity'] ?? 0) > 0
-                                ],
-                                'nfc_tag' => [
-                                    'quantity' => (int)($data['nfc_tag_quantity'] ?? 0),
-                                    'available' => (int)($data['nfc_tag_quantity'] ?? 0) > 0
-                                ]
-                            ];
-
                             // Process file uploads
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
                                 $data['invoice_file'] = json_encode($data['invoice_file']);

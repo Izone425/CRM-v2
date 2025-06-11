@@ -159,6 +159,46 @@
     </div>
 
     <div class="section">
+        <div class="section-title">2. CONTACT DETAILS</div>
+        <table class="info-grid">
+            <thead>
+                <tr>
+                    <th width="10%">No.</th>
+                    <th width="30%">Name</th>
+                    <th width="30%">HP Number</th>
+                    <th width="30%">Email Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $contactDetails = is_string($hardwareHandover->contact_detail)
+                        ? json_decode($hardwareHandover->contact_detail, true)
+                        : $hardwareHandover->contact_detail;
+
+                    if (!is_array($contactDetails)) {
+                        $contactDetails = [];
+                    }
+                @endphp
+
+                @if(count($contactDetails) > 0)
+                    @foreach($contactDetails as $index => $contact)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $contact['pic_name'] ?? '-' }}</td>
+                            <td>{{ $contact['pic_phone'] ?? '-' }}</td>
+                            <td>{{ $contact['pic_email'] ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="4" style="text-align: center; font-style: italic;">No contact details available</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
         <div class="section-title">2. CATEGORY 1</div>
         <table class="info-grid">
             <thead>
@@ -509,6 +549,42 @@
                             @endforeach
 
                             @if(empty($hrdfFiles))
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        @else
+                            <span style="font-style: italic; color: #777;">No files</span>
+                        @endif
+                    </td>
+                </tr>
+
+                <!-- Sales Order Files -->
+                <tr>
+                    <td class="label">Invoice</td>
+                    <td>
+                        @if(isset($hardwareHandover->invoice_file) && !empty($hardwareHandover->invoice_file))
+                            @php
+                                $invoiceFiles = is_string($hardwareHandover->invoice_file)
+                                    ? json_decode($hardwareHandover->invoice_file, true)
+                                    : $hardwareHandover->invoice_file;
+
+                                if (!is_array($invoiceFiles)) {
+                                    $invoiceFiles = [];
+                                }
+                            @endphp
+
+                            @foreach($invoiceFiles as $index => $file)
+                                @php
+                                    $fileName = basename($file);
+                                    $publicUrl = url('storage/' . $file);
+                                @endphp
+                                <div style="margin-bottom: 4px;">
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        Invoice {{ $index + 1 }}
+                                    </a>
+                                </div>
+                            @endforeach
+
+                            @if(empty($invoiceFiles))
                                 <span style="font-style: italic; color: #777;">No files</span>
                             @endif
                         @else

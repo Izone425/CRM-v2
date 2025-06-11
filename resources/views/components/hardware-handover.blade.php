@@ -190,11 +190,6 @@
                 </p>
 
                 <p class="mb-2">
-                    <span class="font-semibold">Date Completed:</span>
-                    {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
-                </p>
-
-                <p class="mb-2">
                     <span class="font-semibold">Date Pending Stock:</span>
                     {{ $record->pending_stock_at ? \Carbon\Carbon::parse($record->pending_stock_at)->format('d M Y') : 'Not set' }}
                 </p>
@@ -202,6 +197,11 @@
                 <p class="mb-2">
                     <span class="font-semibold">Date Pending Migration:</span>
                     {{ $record->pending_migration_at ? \Carbon\Carbon::parse($record->pending_migration_at)->format('d M Y') : 'Not set' }}
+                </p>
+
+                <p class="mb-2">
+                    <span class="font-semibold">Date Completed:</span>
+                    {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
                 </p>
             </div>
 
@@ -227,6 +227,30 @@
                     </ul>
                 @else
                     <span>No invoices uploaded</span>
+                @endif
+            </div>
+
+            <br>
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Sales Order Attachment:</span>
+                </p>
+
+                @php
+                    $salesOrderFiles = $record->sales_order_file ? (is_string($record->sales_order_file) ? json_decode($record->sales_order_file, true) : $record->sales_order_file) : [];
+                @endphp
+
+                @if(is_array($salesOrderFiles) && count($salesOrderFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($salesOrderFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sales Order {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No sales order uploaded</span>
                 @endif
             </div>
 
