@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Filament\Filters\SortFilter;
 use App\Models\HardwareHandover;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -48,6 +49,32 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                 auth()->user()->role_id === 2
                     ? [5] : [3]
             )
+            ->filters([
+                // Add this new filter for status
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Draft' => 'Draft',
+                        'New' => 'New',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple(),
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', '2')
+                            ->whereNot('id',15) // Exclude Testing Account
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
+
+                SortFilter::make("sort_by"),
+            ])
             ->columns([
                 TextColumn::make('handover_pdf')
                     ->label('ID')
@@ -92,6 +119,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
 
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
                         $shortened = strtoupper(Str::limit($fullName, 20, '...'));

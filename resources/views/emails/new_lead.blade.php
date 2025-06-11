@@ -11,7 +11,7 @@
     <p>Please follow up on the leads below:</p>
 
     <ul>
-        <li><strong>Landing Page:</strong> {{ $lead['lead_code'] }}</li>
+        <li><strong>Landing Page:</strong> CRM</li>
         <li><strong>Name:</strong> {{ $lead['lastName'] }}</li>
         <li><strong>Company:</strong> {{ $lead['company'] }}</li>
         <li><strong>Company Size:</strong> {{ $lead['companySize'] }}</li>
