@@ -71,7 +71,21 @@
                     <span class="font-semibold">Software Handover ID:</span>
                     {{ isset($record->id) ? 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
                 </p>
-                <p class="mb-2"><span class="font-semibold">Software Handover Date:</span> {{ isset($record->completed_at) ? $record->completed_at->format('d M Y') : '-' }}</p>
+                <p class="mb-2"><span class="font-semibold">Software Handover Date:</span>
+                    @if(isset($record->completed_at))
+                        @php
+                            // Check if it's already a Carbon instance
+                            if (!($record->completed_at instanceof \Carbon\Carbon)) {
+                                $date = \Carbon\Carbon::parse($record->completed_at);
+                            } else {
+                                $date = $record->completed_at;
+                            }
+                        @endphp
+                        {{ $date->format('d M Y') }}
+                    @else
+                        -
+                    @endif
+                </p>
                 <p class="mb-4">
                     <span class="font-semibold">Software Handover Form:</span>
                     @if($record->handover_pdf)
