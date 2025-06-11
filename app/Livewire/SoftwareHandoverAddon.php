@@ -135,8 +135,11 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
+            ->paginated(
+                auth()->user()->role_id === 2
+                    ? [5] : [3]
+            )
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')

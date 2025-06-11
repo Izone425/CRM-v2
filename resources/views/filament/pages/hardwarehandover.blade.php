@@ -1,4 +1,3 @@
-{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/hardwarehandover.blade.php --}}
 <style>
     .hardware-handover-container {
         grid-column: 1 / -1; /* Span all columns in a grid */

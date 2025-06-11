@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListHardwareAttachments extends ListRecords
 {
     protected static string $resource = HardwareAttachmentResource::class;
+    protected static ?string $title = 'Hardware Handover Attachments';
 
     protected function getHeaderActions(): array
     {

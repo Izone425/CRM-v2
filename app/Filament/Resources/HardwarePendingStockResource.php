@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\HardwareHandoverResource\Pages;
-use App\Filament\Resources\HardwareHandoverResource\RelationManagers;
+use App\Filament\Resources\HardwarePendingStockResource\Pages;
+use App\Filament\Resources\HardwarePendingStockResource\RelationManagers;
 use App\Models\CompanyDetail;
 use App\Models\HardwareAttachment;
 use App\Models\HardwareHandover;
@@ -38,7 +38,7 @@ use Filament\Support\Colors\Color;
 use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class HardwareHandoverResource extends Resource
+class HardwarePendingStockResource extends Resource
 {
     protected static ?string $model = HardwareHandover::class;
 
@@ -212,7 +212,7 @@ class HardwareHandoverResource extends Resource
         return $table
             ->modifyQueryUsing(function ($query) {
                 $query
-                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration'])
+                    ->where('status', '=', 'Pending Stock')
                     ->orderBy('created_at', 'desc');
 
                 if (auth()->user()->role_id === 2) {
@@ -579,7 +579,7 @@ class HardwareHandoverResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHardwareHandovers::route('/'),
+            'index' => Pages\ListHardwarePendingStocks::route('/'),
             // 'view' => Pages\ViewHardwareHandover::route('/{record}'),
             // 'create' => Pages\CreateHardwareHandover::route('/create'),
             // 'edit' => Pages\EditHardwareHandover::route('/{record}/edit'),
