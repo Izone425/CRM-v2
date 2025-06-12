@@ -194,7 +194,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                         ->label('Task Completed')
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
-                        ->modalSubmitActionLabel('Save')
+                        ->modalSubmitActionLabel('Submit')
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->modalHeading(fn(SoftwareHandover $record) => "Online Kick-Off Meeting for {$record->company_name}") // SlideOver title
                         ->form([
