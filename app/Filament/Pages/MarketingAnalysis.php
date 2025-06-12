@@ -1088,39 +1088,44 @@ class MarketingAnalysis extends Page
         // Get leads with appointments
         $leads = $query->with('demoAppointment')->get();
 
-        // Define lead sources to track
-        $leadSources = [
-            'Mailer',
-            'Facebook Ads',
-            'Google AdWords',
-            'Website',
-            'Refer & Earn',
-            'WhatsApp - TimeTec',
-            'Facebook Messenger',
-            'Salesperson Lead',
-            'BD Referral Program',
-            'Criteo',
-            'Null'
-        ];
+        // Step 1: Dynamically collect all unique lead sources from the data
+        $allLeadSources = $leads->pluck('lead_code')->unique()->map(function ($source) {
+            return $source ?? 'Null';  // Convert null to 'Null' string
+        })->values()->toArray();
 
-        // Initialize results array
+        // Step 2: Initialize results array with dynamic lead sources
         $result = [];
-        foreach ($leadSources as $source) {
+        foreach ($allLeadSources as $source) {
             $result[$source] = [
                 'NEW DEMO' => 0,
                 'WEBINAR DEMO' => 0,
             ];
         }
 
-        // Count appointments by source and type
+        // Step 3: Dynamically collect all unique appointment types
+        $appointmentTypes = [];
+        foreach ($leads as $lead) {
+            $appointments = $lead->demoAppointment ?? collect();
+            foreach ($appointments as $appointment) {
+                if ($appointment->status !== 'Cancelled' && !empty($appointment->type)) {
+                    $appointmentTypes[$appointment->type] = true;
+                }
+            }
+        }
+        $appointmentTypes = array_keys($appointmentTypes);
+
+        // Step 4: Add any missing appointment types to the result structure
+        foreach ($result as $source => $types) {
+            foreach ($appointmentTypes as $type) {
+                if (!isset($result[$source][$type])) {
+                    $result[$source][$type] = 0;
+                }
+            }
+        }
+
+        // Step 5: Count appointments by source and type
         foreach ($leads as $lead) {
             $source = $lead->lead_code ?? 'Null';
-
-            // If source not in our predefined list, skip
-            if (!isset($result[$source])) {
-                continue;
-            }
-
             $appointments = $lead->demoAppointment ?? collect();
 
             foreach ($appointments as $appointment) {
@@ -1134,7 +1139,7 @@ class MarketingAnalysis extends Page
             }
         }
 
-        // Sort by total appointments (descending)
+        // Step 6: Sort by total appointments (descending)
         $sortedResults = collect($result)->map(function ($types, $source) {
             $total = array_sum($types);
             return [

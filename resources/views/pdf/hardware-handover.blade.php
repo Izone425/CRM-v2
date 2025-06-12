@@ -199,7 +199,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">2. CATEGORY 1</div>
+        <div class="section-title">3. CATEGORY 1</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -225,7 +225,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">3. CATEGORY 2</div>
+        <div class="section-title">4. CATEGORY 2</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -288,7 +288,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">4. REMARK DETAILS</div>
+        <div class="section-title">5. REMARK DETAILS</div>
         <table>
             <thead>
                 <tr>
@@ -356,7 +356,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">5. PROFORMA INVOICE</div>
+        <div class="section-title">6. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
@@ -440,7 +440,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">6. ATTACHMENT</div>
+        <div class="section-title">7. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
@@ -597,7 +597,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">7. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">8. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">

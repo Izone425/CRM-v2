@@ -239,7 +239,7 @@
             /* Hover Message */
             .hover-message {
                 position: absolute;
-                bottom: 110%;
+                bottom: 105%;
                 left: 50%;
                 transform: translateX(-50%);
                 background-color: rgba(0, 0, 0, 0.75);
@@ -391,6 +391,8 @@
                 z-index: 9999;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
                 text-align: left;
+                min-width: 2020px;
+                max-width: 280px;
                 min-width: 150px;
                 opacity: 0;
                 visibility: hidden;
@@ -568,34 +570,82 @@
         </div>
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center space-x-2">
-                <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
-                <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-gray-500 fa fa-layer-group"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
+                </div>
+                <div class="text-xs text-gray-500">
+                    Total: {{ $totalLeadTypes = array_sum($this->getLeadTypeCounts()) }}
+                </div>
             </div>
-            <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 10px 10px 10px 100px; align-items: flex-end; gap: 40px;">
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                @php
-                    $leadTypeCounts = $this->getLeadTypeCounts();
-                    $totalLeadTypes = array_sum($leadTypeCounts);
-                    $colors = ['#805ba7', '#3d78f4', '#4cc5fd', '#4dd8e3', '#00a1c5', '#02bb52', '#92dc61', '#fecd1a', '#5861a9'];
-                @endphp
 
-                @foreach($leadTypeCounts as $source => $count)
-                    @php
-                        $percentage = round(($count / max($totalLeadTypes, 1)) * 100, 2);
-                        $barColor = $colors[$loop->index % count($colors)];
-                    @endphp
+            @php
+                $leadTypeCounts = $this->getLeadTypeCounts();
+                $totalLeadTypes = array_sum($leadTypeCounts);
 
-                    <div class="cursor-pointer bar-group" wire:click="openLeadSourceSlideOver('{{ $source }}')">
-                        <p class="percentage-label">{{ $count }}</p>
-                        <div class="bar-wrapper" style="background-color: #F7F7F7;">
-                            <div class="bar-fill" style="height: {{ $percentage }}%; background-color: {{ $barColor }};"></div>
+                // Dynamic color generation based on source name for consistency
+                function generateConsistentColor($string, $colors) {
+                    $hash = 0;
+                    for ($i = 0; $i < strlen($string); $i++) {
+                        $hash = ord($string[$i]) + (($hash << 5) - $hash);
+                    }
+                    $hash = abs($hash) % count($colors);
+                    return $colors[$hash];
+                }
+
+                // Sort by count (optional, remove if you want to keep original order)
+                arsort($leadTypeCounts);
+
+                // Define colors for bars
+                $colors = [
+                    '#805ba7', '#3d78f4', '#4cc5fd', '#4dd8e3', '#00a1c5',
+                    '#02bb52', '#92dc61', '#fecd1a', '#5861a9', '#f472b6',
+                    '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#6366f1'
+                ];
+
+                // Calculate container width based on number of sources
+                $containerWidth = count($leadTypeCounts) > 8 ? 'auto' : '100%';
+                $minBarWidth = 70; // Minimum width of each bar
+            @endphp
+
+            @if(count($leadTypeCounts) > 0)
+                <div class="bars-container" style="display: flex; overflow-x: {{ count($leadTypeCounts) > 8 ? 'auto' : 'hidden' }}; height: 250px; padding: 20px 10px 10px; align-items: flex-end; gap: 24px; width: {{ $containerWidth }}; justify-content: {{ count($leadTypeCounts) <= 8 ? 'center' : 'flex-start' }};">
+
+                    @foreach($leadTypeCounts as $source => $count)
+                        @php
+                            $percentage = round(($count / max($totalLeadTypes, 1)) * 100, 2);
+                            $barColor = generateConsistentColor($source, $colors);
+                            $displaySource = $source ?: 'Unknown'; // Handle empty sources
+
+                            // Truncate long source names for display
+                            $displayLabel = strlen($displaySource) > 15 ?
+                                substr($displaySource, 0, 13) . '...' :
+                                $displaySource;
+                        @endphp
+
+                        <div class="cursor-pointer bar-group"
+                             wire:click="openLeadSourceSlideOver('{{ $source }}')"
+                             style="min-width: {{ $minBarWidth }}px;">
+                            <p class="percentage-label" style="font-size: 13px; margin-bottom: 5px;">
+                                {{ $count }}
+                            </p>
+                            <div class="bar-wrapper" style="background-color: #F7F7F7; width: {{ $minBarWidth }}px;">
+                                <div class="bar-fill" style="height: {{ max($percentage, 3) }}%; background-color: {{ $barColor }};">
+                                </div>
+                            </div>
+                            <p class="size-label" style="text-align:center; word-wrap: break-word; white-space: normal; margin-top: 8px; min-height: 36px; font-size: 12px;" title="{{ $displaySource }}">
+                                {{ $displayLabel }}
+                            </p>
+                            <div class="hover-message">{{ $percentage }}%</div>
                         </div>
-                        <p class="size-label" style="word-wrap: break-word; white-space: normal; margin-top: 5px; min-height: 36px;">{{ $source }}</p>
-                        <div class="hover-message">{{ $percentage }}%</div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="flex items-center justify-center h-48 text-gray-500">
+                    No lead source data available
+                </div>
+            @endif
         </div>
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
@@ -1026,7 +1076,7 @@
 
                         // Colors matching your design
                         $newDemoColor = '#3B82F6'; // Blue
-                        $webinarDemoColor = '#F97316'; // Orange
+                        $webinarDemoColor = '#F59E0B'; // Orange
                     @endphp
 
                     <div class="relative text-center cursor-pointer bar-group group" wire:click="openAppointmentTypeSlideOver('{{ $data['source'] }}')">
@@ -1064,7 +1114,7 @@
 
                         <div class="appointment-tooltip">
                             <strong style="font-size: 13px; display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px;">
-                                {{ $source }} <span style="float: right; opacity: 0.9;">({{ $sourcePercentage }}%)</span>
+                                {{ Str::limit($source, 8) }} <span style="float: right; opacity: 0.9;">({{ $sourcePercentage }}%)</span>
                             </strong>
                             <div style="font-size: 12px; line-height: 1.5;">
                                 <div><span style="display: inline-block; width: 90px;">Total:</span> {{ $total }}</div>

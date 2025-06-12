@@ -15,7 +15,7 @@
             padding: 20px;
         }
         .header {
-            background-color: #8b5cf6;
+            background-color: #10b981;
             color: white;
             padding: 15px;
             text-align: center;
@@ -57,7 +57,7 @@
             margin-bottom: 10px;
         }
         .button {
-            background-color: #8b5cf6;
+            background-color: #10b981;
             color: white !important;
             padding: 10px 20px;
             text-decoration: none;
@@ -66,7 +66,7 @@
             display: inline-block;
         }
         .button:hover {
-            background-color: #6630e4;
+            background-color: #219653;
         }
         .greeting {
             font-size: 16px;
@@ -83,7 +83,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Hardware Handover: Pending Migration</h2>
+            <h2>Hardware Handover: Completed</h2>
         </div>
 
         <div class="content">
@@ -135,12 +135,12 @@
                                                 <td style="border: 1px solid #ddd; padding: 8px;">{{ strtoupper(str_replace('_', ' ', $device)) }}</td>
                                                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ $details['quantity'] }}</td>
                                                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
-                                                    <span style="color: #27ae60;">Pending Migration</span>
+                                                    <span style="color: green;">Completed</span>
                                                 </td>
                                             </tr>
                                         @endif
                                     @endforeach
-                                @else
+                                    @else
                                     <tr>
                                         <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: center;">No devices pending stock</td>
                                     </tr>

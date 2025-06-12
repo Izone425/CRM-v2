@@ -84,7 +84,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
         }
 
         // Salesperson filter logic
-        if (auth()->user()->role_id === 3) {
+        if (auth()->user()->role_id === 3 || auth()->user()->role_id === 1) {
             // Role 3 users can see all handovers regardless of salesperson
             // No filtering needed here - we'll skip the salesperson filters
         } else {
@@ -136,11 +136,8 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
-            ->paginated(
-                auth()->user()->role_id === 2
-                    ? [5] : [3]
-            )
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -241,7 +238,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $fullName . '
                                 </a>';
                     })
                     ->html(),

@@ -15,7 +15,7 @@
             padding: 20px;
         }
         .header {
-            background-color: #f0cd33;
+            background-color: #e0ae58;
             color: white;
             padding: 15px;
             text-align: center;
@@ -57,7 +57,7 @@
             margin-bottom: 10px;
         }
         .button {
-            background-color: #f0cd33;
+            background-color: #e0ae58;
             color: white !important;
             padding: 10px 20px;
             text-decoration: none;
@@ -66,7 +66,7 @@
             display: inline-block;
         }
         .button:hover {
-            background-color: #c0aa2a;
+            background-color: #ffa200;
         }
         .greeting {
             font-size: 16px;
