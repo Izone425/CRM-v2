@@ -256,7 +256,7 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
                         }
 
                         $shortened = strtoupper(Str::limit($state, 20, '...'));
-                        return "<span title='{$state}'>{$shortened}</span>";
+                        return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
 

@@ -161,9 +161,8 @@ $pendingTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount;
      x-init="init()">
     <div class="dashboard-stats">
         <div class="stat-box all"
-             :class="{'selected': selectedStat === 'all'}"
-             @click="setSelectedStat('all')"
-             style="cursor: pointer;">
+             :class="{'selected': selectedStat === 'all'}">
+             {{-- @click="setSelectedStat('all')" --}}
             <div class="stat-count">{{ HardwareHandover::count() }}</div>
             <div class="stat-label">All</div>
         </div>
