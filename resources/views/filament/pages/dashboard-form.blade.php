@@ -572,11 +572,11 @@
                     @elseif ($currentDashboard === 'HardwareAdmin')
                         @include('filament.pages.hardwarehandover')
                     @elseif ($currentDashboard === 'Trainer')
-                        @include('filament.pages.trainer')
+                        {{-- @include('filament.pages.trainer') --}}
                     @elseif ($currentDashboard === 'Implementer')
-                        @include('filament.pages.implementer')
+                        {{-- @include('filament.pages.implementer') --}}
                     @elseif ($currentDashboard === 'Support')
-                        @include('filament.pages.support')
+                        {{-- @include('filament.pages.support') --}}
                     @else
                         @include('filament.pages.manager')
                     @endif
@@ -585,12 +585,40 @@
         @endif
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Listen for the dashboardChanged event
-            window.addEventListener('dashboardChanged', event => {
-                // No need to manually manipulate the DOM here
-                // Livewire will re-render the component with the new state
-                console.log('Dashboard changed to:', event.detail.dashboard);
+        // Create a global direct reset function that doesn't rely on component references
+        window.forceResetDashboards = function() {
+            console.log('Force resetting all dashboards');
+
+            // Reset software dashboard
+            const softwareContainer = document.getElementById('software-handover-container');
+            if (softwareContainer && softwareContainer.__x) {
+                softwareContainer.__x.$data.selectedStat = null;
+                console.log('Software container found and reset');
+            } else {
+                console.log('Software container not available');
+            }
+
+            // Reset hardware dashboard
+            const hardwareContainer = document.getElementById('hardware-handover-container');
+            if (hardwareContainer && hardwareContainer.__x) {
+                hardwareContainer.__x.$data.selectedStat = null;
+                console.log('Hardware container found and reset');
+            } else {
+                console.log('Hardware container not available');
+            }
+        };
+
+        // Create global non-Alpine event listener for Livewire events
+        document.addEventListener('livewire:initialized', function() {
+            window.Livewire.on('dashboard-changed', function(data) {
+                console.log('Dashboard changed directly via Livewire:', data.dashboard);
+
+                // Force immediate reset regardless of dashboard manager
+                setTimeout(window.forceResetDashboards, 100);
+
+                // Trigger both dashboard resets
+                window.dispatchEvent(new CustomEvent('reset-software-dashboard'));
+                window.dispatchEvent(new CustomEvent('reset-hardware-dashboard'));
             });
         });
     </script>

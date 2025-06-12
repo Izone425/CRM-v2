@@ -89,8 +89,8 @@ class DashboardForm extends Page
                 session(['selectedUserDashboard_' . $this->selectedUserModel->id => $dashboard]);
             }
 
-            // Force a UI refresh
-            $this->dispatch('dashboardChanged', dashboard: $dashboard);
+            // Force a UI refresh - dispatch Livewire event only
+            $this->dispatch('dashboard-changed', ['dashboard' => $dashboard]);
         }
     }
 

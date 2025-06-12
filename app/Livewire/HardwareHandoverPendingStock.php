@@ -44,11 +44,8 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
             ->query($this->getOverdueHardwareHandovers())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
-            ->paginated(
-                auth()->user()->role_id === 2
-                    ? [5] : [3]
-            )
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -130,7 +127,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $fullName . '
                                 </a>';
                     })
                     ->html(),
@@ -177,6 +174,160 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             return view('components.hardware-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
+
+                    Action::make('mark_as_completed')
+                        ->label('Mark as Completed')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading("Mark as Completed")
+                        ->modalDescription('Are you sure you want to mark this handover as completed? This will complete the software handover process.')
+                        ->modalSubmitActionLabel('Yes, Mark as Completed')
+                        ->modalCancelActionLabel('No, Cancel')
+                        ->action(function (HardwareHandover $record): void {
+                            // Get the implementer info
+                            $implementerId = $record->implementer;
+                            $implementer = \App\Models\User::find($implementerId);
+                            $implementerEmail = $implementer?->email ?? null;
+                            $implementerName = $implementer?->name ?? 'Unknown';
+
+                            // Get the salesperson info
+                            $salespersonId = $record->lead->salesperson ?? null;
+                            $salesperson = \App\Models\User::find($salespersonId);
+                            $salespersonEmail = $salesperson?->email ?? null;
+                            $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                            // Get the company name
+                            $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+
+                            // Update the record
+                            $record->update([
+                                'completed_at' => now(),
+                                'status' => 'Completed'
+                            ]);
+
+                            // Format the handover ID properly
+                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                            // Get the handover PDF URL
+                            $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                            $invoiceFiles = [];
+                            if ($record->invoice_file) {
+                                $invoiceFileArray = is_string($record->invoice_file)
+                                    ? json_decode($record->invoice_file, true)
+                                    : $record->invoice_file;
+
+                                if (is_array($invoiceFileArray)) {
+                                    foreach ($invoiceFileArray as $file) {
+                                        $invoiceFiles[] = url('storage/' . $file);
+                                    }
+                                }
+                            }
+
+                            $salesOrderFiles = [];
+                            if ($record->sales_order_file) {
+                                $salesOrderFileArray = is_string($record->sales_order_file)
+                                    ? json_decode($record->sales_order_file, true)
+                                    : $record->sales_order_file;
+
+                                if (is_array($salesOrderFileArray)) {
+                                    foreach ($salesOrderFileArray as $file) {
+                                        $salesOrderFiles[] = url('storage/' . $file);
+                                    }
+                                }
+                            }
+
+                            // Send email notification
+                            try {
+                                $viewName = 'emails.hardware_completed_notification';
+
+                                // Create email content structure
+                                $emailContent = [
+                                    'implementer' => [
+                                        'name' => $record->implementer,
+                                    ],
+                                    'company' => [
+                                        'name' => $companyName,
+                                    ],
+                                    'salesperson' => [
+                                        'name' => $salespersonName,
+                                    ],
+                                    'handover_id' => $handoverId,
+                                    'activatedAt' => now()->format('d M Y'),
+                                    'handoverFormUrl' => $handoverFormUrl,
+                                    'invoiceFiles' => $invoiceFiles,
+                                    'salesOrderFiles' => $salesOrderFiles,
+                                    'devices' => [
+                                        'tc10' => [
+                                            'quantity' => $record->tc10_quantity,
+                                            'status' => $record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'tc20' => [
+                                            'quantity' => $record->tc20_quantity,
+                                            'status' => $record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id5' => [
+                                            'quantity' => $record->face_id5_quantity,
+                                            'status' => $record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'face_id6' => [
+                                            'quantity' => $record->face_id6_quantity,
+                                            'status' => $record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'time_beacon' => [
+                                            'quantity' => $record->time_beacon_quantity,
+                                            'status' => $record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'nfc_tag' => [
+                                            'quantity' => $record->nfc_tag_quantity,
+                                            'status' => $record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ]
+                                    ]
+                                ];
+
+                                // Initialize recipients array
+                                $recipients = [];
+
+                                // Add implementer email if valid
+                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $implementerEmail;
+                                }
+
+                                // Add salesperson email if valid
+                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $salespersonEmail;
+                                }
+
+                                // Always include admin
+                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
+
+                                // Send email with template and custom subject format
+                                if (count($recipients) > 0) {
+                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                                        $message->from($senderEmail, $senderName)
+                                            ->to($recipients)
+                                            ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                    });
+
+                                    \Illuminate\Support\Facades\Log::info("License activation email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                }
+                            } catch (\Exception $e) {
+                                // Log error but don't stop the process
+                                \Illuminate\Support\Facades\Log::error("Email sending failed for software handover #{$record->id}: {$e->getMessage()}");
+                            }
+
+                            Notification::make()
+                                ->title('License has been activated successfully')
+                                ->success()
+                                ->body('Software handover has been marked as completed.')
+                                ->send();
+                        })
                 ])
                 ->button()
                 ->color('warning')

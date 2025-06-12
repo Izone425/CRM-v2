@@ -73,8 +73,7 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
         $query->whereNull('license_activated');
         $query->orderBy('updated_at', 'desc');
         $query->where(function ($q) {
-            $q->whereIn('id', [420, 520, 531, 539]) //4 Company included
-                ->orWhere('id', '>=', 540);
+            $q->where('id', '>=', 556);
         });
         return $query;
     }
@@ -85,11 +84,8 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
             ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
-            ->paginated(
-                auth()->user()->role_id === 2
-                    ? [5] : [3]
-            )
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -173,7 +169,7 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $company->company_name . '
                                 </a>');
                         }
                         $shortened = strtoupper(Str::limit($state, 20, '...'));

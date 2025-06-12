@@ -1,4 +1,35 @@
 <style>
+    .hint-message {
+        text-align: center;
+        padding: 2rem;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        border: 1px dashed #d1d5db;
+        margin: 1rem 0;
+    }
+
+    .hint-message .icon-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .hint-message i {
+        font-size: 3rem;
+        color: #6b7280;
+    }
+
+    .hint-message h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .hint-message p {
+        color: #6b7280;
+    }
+
     .hardware-handover-container {
         grid-column: 1 / -1; /* Span all columns in a grid */
         width: 100%;
@@ -73,16 +104,160 @@
     }
 </style>
 
-<div class="hardware-handover-container">
-    <livewire:software-handover-stats />
-    <br>
-    <livewire:software-handover-new />
-    <br>
-    <livewire:software-handover-kick-off-reminder/>
-    <br>
-    <livewire:software-handover-pending-license />
-    <br>
-    <livewire:software-handover-completed />
-    <br>
-    <livewire:software-handover-addon />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+@php
+// Calculate counts directly in the blade template
+use App\Models\SoftwareHandover;
+
+// Define queries for New
+$newCount = SoftwareHandover::whereIn('status', ['New'])->count();
+
+// Define queries for Pending Kick Off
+$pendingKickOffCount = SoftwareHandover::query()
+    ->whereIn('status', ['Completed'])
+    ->whereNull('kick_off_meeting')
+    ->where(function ($q) {
+        $q->whereIn('id', [420, 520, 531, 539])
+            ->orWhere('id', '>=', 540);
+    })->count();
+
+// Define queries for Pending License
+$pendingLicenseCount = SoftwareHandover::query()
+    ->whereIn('status', ['Completed'])
+    ->whereNull('license_activated')
+    ->where(function ($q) {
+        $q->where('id', '>=', 556);
+    })->count();
+
+// Define queries for Completed and Draft/Rejected
+$completedCount = SoftwareHandover::where('status', 'Completed')
+    ->count();
+
+$draftRejectedCount = SoftwareHandover::whereIn('status', ['Draft', 'Rejected'])->count();
+
+// Calculate combined pending count
+$pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
+@endphp
+
+<div id="software-handover-container" class="hardware-handover-container"
+     x-data="{
+         selectedStat: null,
+
+         setSelectedStat(value) {
+             console.log('Setting software stat to:', value);
+             if (this.selectedStat === value) {
+                 this.selectedStat = null;
+             } else {
+                 this.selectedStat = value;
+             }
+         },
+
+         init() {
+             console.log('Software handover Alpine component initialized');
+             this.selectedStat = null;
+         }
+     }"
+     x-init="init()">
+    <!-- Move stats directly here instead of using a separate component -->
+    <div class="dashboard-stats">
+        <div class="stat-box all"
+             :class="{'selected': selectedStat === 'pending-task'}">
+             {{-- @click="setSelectedStat('pending-task')" --}}
+            <div class="stat-count">{{ $pendingTaskCount }}</div>
+            <div class="stat-label">Pending Task</div>
+        </div>
+
+        <div class="stat-box new"
+             :class="{'selected': selectedStat === 'new'}"
+             @click="setSelectedStat('new')"
+             style="cursor: pointer;">
+            <div class="stat-count">{{ $newCount }}</div>
+            <div class="stat-label">New</div>
+        </div>
+
+        <div class="stat-box pending-stock"
+             :class="{'selected': selectedStat === 'pending-kick-off'}"
+             @click="setSelectedStat('pending-kick-off')"
+             style="cursor: pointer;">
+            <div class="stat-count">{{ $pendingKickOffCount }}</div>
+            <div class="stat-label">Pending Kick Off</div>
+        </div>
+
+        <div class="stat-box pending-migration"
+             :class="{'selected': selectedStat === 'pending-license'}"
+             @click="setSelectedStat('pending-license')"
+             style="cursor: pointer;">
+            <div class="stat-count">{{ $pendingLicenseCount }}</div>
+            <div class="stat-label">Pending License Activation</div>
+        </div>
+
+        <div class="stat-box completed"
+             :class="{'selected': selectedStat === 'completed'}"
+             @click="setSelectedStat('completed')"
+             style="cursor: pointer;">
+            <div class="stat-count">{{ $completedCount }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+
+        <div class="stat-box draft-rejected"
+             :class="{'selected': selectedStat === 'draft-rejected'}"
+             @click="setSelectedStat('draft-rejected')"
+             style="cursor: pointer;">
+            <div class="stat-count">{{ $draftRejectedCount }}</div>
+            <div class="stat-label">Draft / Rejected</div>
+        </div>
+    </div>
+
+    <div class="hint-message" x-show="selectedStat === null" x-transition>
+        <div class="icon-container" wire:poll.10s>
+            <i class="bi bi-hand-index"></i>
+    </div>
+        <h3>Select a category to view data</h3>
+        <p>Click on any of the stat boxes above to display the corresponding information</p>
+    </div>
+
+    <div x-show="selectedStat === 'new' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-new'">
+        <br>
+        @livewire('software-handover-new')
+    </div>
+
+    <div x-show="selectedStat === 'pending-kick-off' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-kick-off'">
+        <br>
+        @livewire('software-handover-kick-off-reminder')
+    </div>
+
+    <div x-show="selectedStat === 'pending-license' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-license'">
+        <br>
+        @livewire('software-handover-pending-license')
+    </div>
+
+    <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-completed'">
+        <br>
+        @livewire('software-handover-completed')
+    </div>
+
+    <div x-show="selectedStat === 'draft-rejected'" x-transition :key="selectedStat + '-rejected'">
+        <br>
+        @livewire('software-handover-addon')
+    </div>
 </div>
+
+<script>
+    // When the page loads, setup handlers for this component
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to reset the software component
+        window.resetSoftwareHandover = function() {
+            const container = document.getElementById('software-handover-container');
+            if (container && container.__x) {
+                container.__x.$data.selectedStat = null;
+                console.log('Software handover reset via global function');
+            }
+        };
+
+        // Listen for our custom reset event
+        window.addEventListener('reset-software-dashboard', function() {
+            window.resetSoftwareHandover();
+        });
+    });
+</script>

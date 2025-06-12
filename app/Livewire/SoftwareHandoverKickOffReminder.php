@@ -85,11 +85,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
             ->poll('10s')
             ->query($this->getNewSoftwareHandovers())
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
-            ->paginated(
-                auth()->user()->role_id === 2
-                    ? [5] : [3]
-            )
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -173,7 +170,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $company->company_name . '
                                 </a>');
                         }
                         $shortened = strtoupper(Str::limit($state, 20, '...'));

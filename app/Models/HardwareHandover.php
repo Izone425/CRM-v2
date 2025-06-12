@@ -45,6 +45,7 @@ class HardwareHandover extends Model
         'new_attachment_file',
         'invoice_file',
         'sales_order_file',
+        'completed_at',
         'submitted_at',
         'pending_stock_at',
         'pending_migration_at',

@@ -132,11 +132,8 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             ->query($this->getNewSoftwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(auth()->user()->role_id === 2 ? 5 : 3)
-            ->paginated(
-                auth()->user()->role_id === 2
-                    ? [5] : [3]
-            )
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 // Add this new filter for status
                 SelectFilter::make('status')
@@ -249,7 +246,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $company->company_name . '
                                 </a>');
                         }
 
@@ -809,23 +806,23 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->modalCancelAction(false)
                         ->modalWidth('3xl')
                         ->color('warning'),
-                    Action::make('mark_approved')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
+                    // Action::make('mark_approved')
+                    //     ->label('Approve')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->action(function (SoftwareHandover $record): void {
+                    //         $record->update(['status' => 'Approved']);
 
-                            Notification::make()
-                                ->title('Software Handover marked as approved')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
+                    //         Notification::make()
+                    //             ->title('Software Handover marked as approved')
+                    //             ->success()
+                    //             ->send();
+                    //     })
+                    //     ->requiresConfirmation()
+                    //     ->hidden(
+                    //         fn(SoftwareHandover $record): bool =>
+                    //         $record->status !== 'New' || auth()->user()->role_id === 2
+                    //     ),
                     Action::make('mark_rejected')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
@@ -1082,7 +1079,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->requiresConfirmation(false)
                         ->hidden(
                             fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'Approved' || auth()->user()->role_id === 2
+                            $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')

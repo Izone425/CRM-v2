@@ -1925,6 +1925,60 @@ class LeadResource extends Resource
                             ? 'Company Size: ' . implode(', ', $data['values'])
                             : null;
                     }),
+                Filter::make('id')
+                    ->form([
+                        TextInput::make('id')
+                            ->hiddenLabel()
+                            // ->numeric()
+                            ->placeholder('Enter Lead ID'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['id'])) {
+                            $query->where('id', $data['id']);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['id']) && $data['id'] !== null
+                            ? 'ID: ' . $data['id']
+                            : null;
+                    }),
+
+                // Filter for Lead Code (source)
+                SelectFilter::make('lead_code')
+                    ->label('')
+                    ->multiple()
+                    ->options(function () {
+                        // Get all unique lead_code values from the database
+                        $leadCodes = Lead::select('lead_code')
+                            ->distinct()
+                            ->whereNotNull('lead_code')
+                            ->pluck('lead_code')
+                            ->toArray();
+
+                        // Add a 'Null' option for leads without a code
+                        $options = array_combine($leadCodes, $leadCodes);
+                        $options['Null'] = 'No Lead Source';
+
+                        return $options;
+                    })
+                    ->placeholder('Select Lead Source')
+                    ->query(function (Builder $query, array $data) {
+                        $values = collect($data)->flatten()->filter()->values();
+
+                        if ($values->isEmpty()) {
+                            return; // Don't filter if nothing selected
+                        }
+
+                        $query->where(function ($subQuery) use ($values) {
+                            foreach ($values as $value) {
+                                if ($value === 'Null') {
+                                    $subQuery->orWhereNull('lead_code');
+                                } else {
+                                    $subQuery->orWhere('lead_code', $value);
+                                }
+                            }
+                        });
+                    }),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
                 ->columns([
