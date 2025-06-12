@@ -300,7 +300,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 }
 
                                 // Always include admin
-                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
