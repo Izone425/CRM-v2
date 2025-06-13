@@ -60,7 +60,7 @@
 
     .content-area {
         flex: 2; /* Keep flex: 1 to match the sidebar */
-        max-width: 75%; /* Cap at 50% of the container width */
+        max-width: 85%; /* Cap at 50% of the container width */
         min-width: 0; /* Prevent overflow */
     }
 
@@ -75,13 +75,14 @@
     /* Make the boxes a bit taller to fill the space better */
     .stat-box {
         background-color: white;
+        width: 300px;
+        height: 75px;
         border-radius: 8px;
-        padding: 47px; /* Increased padding */
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         text-align: center;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-top: 4px solid transparent; /* Changed to top border */
-        min-height: 100px; /* Set minimum height */
+        min-height: 50px; /* Set minimum height */
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -269,52 +270,50 @@ $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
     <div class="dashboard-container">
         <!-- Left sidebar with stats -->
         <div class="stats-sidebar">
-            <div class="dashboard-stats-grid">
-                <div class="stat-box all"
-                     :class="{'selected': selectedStat === 'pending-task'}">
-                    <div class="stat-count">{{ $pendingTaskCount }}</div>
-                    <div class="stat-label">Pending Task</div>
-                </div>
+            <div class="stat-box all"
+                    :class="{'selected': selectedStat === 'pending-task'}">
+                <div class="stat-count">{{ $pendingTaskCount }}</div>
+                <div class="stat-label">Pending Task</div>
+            </div>
 
-                <div class="stat-box new"
-                     :class="{'selected': selectedStat === 'new'}"
-                     @click="setSelectedStat('new')"
-                     style="cursor: pointer;">
-                    <div class="stat-count">{{ $newCount }}</div>
-                    <div class="stat-label">New</div>
-                </div>
+            <div class="stat-box new"
+                    :class="{'selected': selectedStat === 'new'}"
+                    @click="setSelectedStat('new')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $newCount }}</div>
+                <div class="stat-label">New Task</div>
+            </div>
 
-                <div class="stat-box completed"
-                     :class="{'selected': selectedStat === 'completed'}"
-                     @click="setSelectedStat('completed')"
-                     style="cursor: pointer;">
-                    <div class="stat-count">{{ $completedCount }}</div>
-                    <div class="stat-label">Completed</div>
-                </div>
+            <div class="stat-box pending-stock"
+                    :class="{'selected': selectedStat === 'pending-kick-off'}"
+                    @click="setSelectedStat('pending-kick-off')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $pendingKickOffCount }}</div>
+                <div class="stat-label">Pending Kick Off</div>
+            </div>
 
-                <div class="stat-box pending-stock"
-                     :class="{'selected': selectedStat === 'pending-kick-off'}"
-                     @click="setSelectedStat('pending-kick-off')"
-                     style="cursor: pointer;">
-                    <div class="stat-count">{{ $pendingKickOffCount }}</div>
-                    <div class="stat-label">Pending Kick Off</div>
-                </div>
+            <div class="stat-box pending-migration"
+                    :class="{'selected': selectedStat === 'pending-license'}"
+                    @click="setSelectedStat('pending-license')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $pendingLicenseCount }}</div>
+                <div class="stat-label">Pending License Activation</div>
+            </div>
 
-                <div class="stat-box draft-rejected"
-                     :class="{'selected': selectedStat === 'draft-rejected'}"
-                     @click="setSelectedStat('draft-rejected')"
-                     style="cursor: pointer;">
-                    <div class="stat-count">{{ $draftRejectedCount }}</div>
-                    <div class="stat-label">Draft / Rejected</div>
-                </div>
+            <div class="stat-box completed"
+                    :class="{'selected': selectedStat === 'completed'}"
+                    @click="setSelectedStat('completed')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $completedCount }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
 
-                <div class="stat-box pending-migration"
-                     :class="{'selected': selectedStat === 'pending-license'}"
-                     @click="setSelectedStat('pending-license')"
-                     style="cursor: pointer;">
-                    <div class="stat-count">{{ $pendingLicenseCount }}</div>
-                    <div class="stat-label">Pending License Activation</div>
-                </div>
+            <div class="stat-box draft-rejected"
+                    :class="{'selected': selectedStat === 'draft-rejected'}"
+                    @click="setSelectedStat('draft-rejected')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $draftRejectedCount }}</div>
+                <div class="stat-label">Draft / Rejected</div>
             </div>
         </div>
 
