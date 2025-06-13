@@ -171,6 +171,18 @@ class HardwareHandoverRelationManager extends RelationManager
                                     // Retrieve options from the reseller table
                                     return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
                                 })
+                                ->default(function (?HardwareHandover $record) {
+                                    // First check if record has category2 data already
+                                    if ($record && $record->category2) {
+                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                        if (isset($category2['reseller']) && !empty($category2['reseller'])) {
+                                            return $category2['reseller'];
+                                        }
+                                    }
+
+                                    // No default reseller if none found in the record
+                                    return null;
+                                })
                                 ->searchable()
                                 ->preload(),
                             TextArea::make('category2.courier_address')
@@ -223,23 +235,57 @@ class HardwareHandoverRelationManager extends RelationManager
                                         ->label('Name')
                                         ->required()
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->default(fn() => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name)
+                                        ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : $state)
+                                        ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : $state)
+                                        ->default(function (?HardwareHandover $record) {
+                                            // First check if record has category2 data already
+                                            if ($record && $record->category2) {
+                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                if (isset($category2['pic_name']) && !empty($category2['pic_name'])) {
+                                                    return $category2['pic_name'];
+                                                }
+                                            }
+
+                                            // If no record data, fall back to company detail
+                                            return $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name;
+                                        })
                                         ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+
                                     TextInput::make('category2.pic_phone')
                                         ->label('HP Number')
                                         ->tel()
                                         ->required()
-                                        ->default(fn() => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->contact_no)
+                                        ->default(function (?HardwareHandover $record) {
+                                            // First check if record has category2 data already
+                                            if ($record && $record->category2) {
+                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                if (isset($category2['pic_phone']) && !empty($category2['pic_phone'])) {
+                                                    return $category2['pic_phone'];
+                                                }
+                                            }
+
+                                            // If no record data, fall back to company detail
+                                            return $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->contact_no;
+                                        })
                                         ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+
                                     TextInput::make('category2.email')
                                         ->label('Email Address')
                                         ->required()
                                         ->email()
-                                        ->default(fn() => $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email)
-                                        ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+                                        ->default(function (?HardwareHandover $record) {
+                                            // First check if record has category2 data already
+                                            if ($record && $record->category2) {
+                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                if (isset($category2['email']) && !empty($category2['email'])) {
+                                                    return $category2['email'];
+                                                }
+                                            }
 
+                                            // If no record data, fall back to company detail
+                                            return $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email;
+                                        })
+                                        ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
                                 ]),
                         ]),
                 ]),
