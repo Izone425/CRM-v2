@@ -72,7 +72,7 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                         ]))
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->color('warning'),
 
                         Action::make('approve')

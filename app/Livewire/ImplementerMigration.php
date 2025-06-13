@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Filament\Filters\SortFilter;
+use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
+use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
@@ -23,15 +25,16 @@ use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 
-class HardwareHandoverPendingStock extends Component implements HasForms, HasTable
+class ImplementerMigration extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
     public function getOverdueHardwareHandovers()
     {
-        return HardwareHandover::query()
-            ->whereIn('status', ['Pending Stock'])
+        return SoftwareHandover::query()
+            ->whereIn('status', ['Completed'])
+            ->where('data_migrated', false)
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
@@ -72,19 +75,23 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('handover_pdf')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state) {
-                        // If handover_pdf is null, return a placeholder
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
-                            return '-';
+                            return 'Unknown';
                         }
 
-                        // Extract just the filename without extension
-                        $filename = basename($state, '.pdf');
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
 
-                        // Return just the formatted ID part
-                        return $filename;
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -94,40 +101,41 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
-                                return view('components.hardware-handover')
+                            ->modalContent(function (SoftwareHandover $record): View {
+                                return view('components.software-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
 
-                TextColumn::make('lead.salesperson')
-                    ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
-                        $lead = $record->lead;
-                        if (!$lead) {
-                            return '-';
-                        }
-
-                        $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
-                    })
+                TextColumn::make('salesperson')
+                    ->label('SALESPERSON')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
-                TextColumn::make('lead.companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+                        $company = CompanyDetail::where('company_name', $state)->first();
 
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($fullName) . '"
+                                    title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
-                                </a>';
+                                    ' . $company->company_name . '
+                                </a>');
+                        }
+
+                        $shortened = strtoupper(Str::limit($state, 20, '...'));
+                        return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
 
@@ -167,28 +175,26 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (HardwareHandover $record): View {
+                        ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
-                            return view('components.hardware-handover')
+                            return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('mark_as_completed')
-                        ->label('Mark as Completed')
+                    Action::make('mark_as_migrated')
+                        ->label('Complete Migration')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->requiresConfirmation()
-                        ->modalHeading("Mark as Completed")
-                        ->modalDescription('Are you sure you want to mark this handover as completed? This will complete the software handover process.')
-                        ->modalSubmitActionLabel('Yes, Mark as Completed')
+                        ->modalHeading("Mark as Migration Completed")
+                        ->modalDescription('Are you sure you want to mark this handover as migration completed? This will complete the software handover process.')
+                        ->modalSubmitActionLabel('Yes, Mark as Migration Completed')
                         ->modalCancelActionLabel('No, Cancel')
-                        ->action(function (HardwareHandover $record): void {
+                        ->action(function (SoftwareHandover $record): void {
                             // Get the implementer info
-                            $implementerId = $record->implementer;
-                            $implementer = \App\Models\User::find($implementerId);
+                            $implementer = \App\Models\User::where('name', $record->implementer)->first();
                             $implementerEmail = $implementer?->email ?? null;
-                            $implementerName = $implementer?->name ?? 'Unknown';
 
                             // Get the salesperson info
                             $salespersonId = $record->lead->salesperson ?? null;
@@ -202,7 +208,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             // Update the record
                             $record->update([
                                 'completed_at' => now(),
-                                'status' => 'Completed'
+                                'data_migrated' => true
                             ]);
 
                             // Format the handover ID properly
@@ -211,35 +217,9 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             // Get the handover PDF URL
                             $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
-                            $invoiceFiles = [];
-                            if ($record->invoice_file) {
-                                $invoiceFileArray = is_string($record->invoice_file)
-                                    ? json_decode($record->invoice_file, true)
-                                    : $record->invoice_file;
-
-                                if (is_array($invoiceFileArray)) {
-                                    foreach ($invoiceFileArray as $file) {
-                                        $invoiceFiles[] = url('storage/' . $file);
-                                    }
-                                }
-                            }
-
-                            $salesOrderFiles = [];
-                            if ($record->sales_order_file) {
-                                $salesOrderFileArray = is_string($record->sales_order_file)
-                                    ? json_decode($record->sales_order_file, true)
-                                    : $record->sales_order_file;
-
-                                if (is_array($salesOrderFileArray)) {
-                                    foreach ($salesOrderFileArray as $file) {
-                                        $salesOrderFiles[] = url('storage/' . $file);
-                                    }
-                                }
-                            }
-
                             // Send email notification
                             try {
-                                $viewName = 'emails.hardware_completed_notification';
+                                $viewName = 'emails.implementer_migrated';
 
                                 // Create email content structure
                                 $emailContent = [
@@ -253,36 +233,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         'name' => $salespersonName,
                                     ],
                                     'handover_id' => $handoverId,
-                                    'activatedAt' => now()->format('d M Y'),
-                                    'handoverFormUrl' => $handoverFormUrl,
-                                    'invoiceFiles' => $invoiceFiles,
-                                    'salesOrderFiles' => $salesOrderFiles,
-                                    'devices' => [
-                                        'tc10' => [
-                                            'quantity' => $record->tc10_quantity,
-                                            'status' => $record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'tc20' => [
-                                            'quantity' => $record->tc20_quantity,
-                                            'status' => $record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'face_id5' => [
-                                            'quantity' => $record->face_id5_quantity,
-                                            'status' => $record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'face_id6' => [
-                                            'quantity' => $record->face_id6_quantity,
-                                            'status' => $record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'time_beacon' => [
-                                            'quantity' => $record->time_beacon_quantity,
-                                            'status' => $record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'nfc_tag' => [
-                                            'quantity' => $record->nfc_tag_quantity,
-                                            'status' => $record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ]
-                                    ]
                                 ];
 
                                 // Initialize recipients array
@@ -299,7 +249,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 }
 
                                 // Always include admin
-                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
@@ -311,7 +261,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                     \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
                                         $message->from($senderEmail, $senderName)
                                             ->to($recipients)
-                                            ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                            ->subject("COMPLETED USER DATA MIGRATION | TIMETEC HR | {$companyName}");
                                     });
 
                                     \Illuminate\Support\Facades\Log::info("License activation email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
@@ -336,6 +286,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
 
     public function render()
     {
-        return view('livewire.hardware-handover-pending-stock');
+        return view('livewire.implementer-migration');
     }
 }

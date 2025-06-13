@@ -68,6 +68,8 @@ class SoftwareHandover extends Model
         'invoice_file',
         'new_attachment_file',
         'license_activated',
+        'data_migrated',
+        'license_certification_id',
 
         // Section 9: Status & Remarks
         'reject_reason',

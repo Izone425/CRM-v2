@@ -574,7 +574,7 @@
                     @elseif ($currentDashboard === 'Trainer')
                         {{-- @include('filament.pages.trainer') --}}
                     @elseif ($currentDashboard === 'Implementer')
-                        {{-- @include('filament.pages.implementer') --}}
+                        @include('filament.pages.implementer')
                     @elseif ($currentDashboard === 'Support')
                         {{-- @include('filament.pages.support') --}}
                     @else
