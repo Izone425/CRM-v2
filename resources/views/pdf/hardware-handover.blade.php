@@ -155,11 +155,75 @@
     </div>
 
     <div class="section">
-        <div class="section-title">1. INVOICE DETAILS</div>
+        <div class="section-title">1. INVOICE TYPE</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label" width="30%">Invoice Type</td>
+                <td width="70%">
+                    @if($hardwareHandover->invoice_type === 'combined')
+                        <strong>Combined Invoice</strong> (Hardware + Software)
+                    @else
+                        <strong>Single Invoice</strong> (Hardware Only)
+                    @endif
+                </td>
+            </tr>
+
+            @if($hardwareHandover->invoice_type === 'combined' && $hardwareHandover->related_software_handovers)
+                <tr>
+                    <td class="label">Related Software Handovers</td>
+                    <td>
+                        @php
+                            $relatedHandovers = is_string($hardwareHandover->related_software_handovers)
+                                ? json_decode($hardwareHandover->related_software_handovers, true)
+                                : $hardwareHandover->related_software_handovers;
+
+                            if (!is_array($relatedHandovers)) {
+                                $relatedHandovers = [];
+                            }
+                        @endphp
+
+                        @if(count($relatedHandovers) > 0)
+                            <ul>
+                                @foreach($relatedHandovers as $handoverId)
+                                    @php
+                                        $softwareHandover = \App\Models\SoftwareHandover::find($handoverId);
+                                        if ($softwareHandover) {
+                                            $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
+                                            $pdfUrl = $softwareHandover->handover_pdf
+                                                ? url('storage/' . $softwareHandover->handover_pdf)
+                                                : null;
+                                        }
+                                    @endphp
+
+                                    @if(isset($softwareHandover))
+                                        @if($pdfUrl)
+                                            <a href="{{ $pdfUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                                {{ $formattedId }}
+                                            </a>
+                                        @else
+                                            {{ $formattedId }}
+                                        @endif
+                                        ({{ $softwareHandover->created_at ? $softwareHandover->created_at->format('d M Y') : 'N/A' }})
+                                    @else
+                                        <li style="margin-bottom: 3px;">Software Handover #{{ $handoverId }} (Not found)</li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        @else
+                            <span style="font-style: italic; color: #777;">No related software handovers</span>
+                        @endif
+                    </td>
+                </tr>
+            @endif
+        </table>
     </div>
 
     <div class="section">
-        <div class="section-title">2. CONTACT DETAILS</div>
+        <div class="section-title">2. INVOICE DETAILS</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. CONTACT DETAILS</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -199,7 +263,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">3. CATEGORY 1</div>
+        <div class="section-title">4. CATEGORY 1</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -225,7 +289,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">4. CATEGORY 2</div>
+        <div class="section-title">5. CATEGORY 2</div>
         <table class="info-grid">
             <thead>
                 <tr>
@@ -238,7 +302,7 @@
             @endphp
 
             @if($hardwareHandover->installation_type === 'courier')
-                <tr>
+                {{-- <tr>
                     <td class="label" width="30%">Name</td>
                     <td width="70%">{{ $category2['pic_name'] ?? '-' }}</td>
                 </tr>
@@ -249,7 +313,7 @@
                 <tr>
                     <td class="label">Email</td>
                     <td>{{ $category2['email'] ?? '-' }}</td>
-                </tr>
+                </tr> --}}
                 <tr>
                     <td class="label">Courier Address</td>
                     <td>{{ $category2['courier_address'] ?? '-' }}</td>
@@ -278,6 +342,18 @@
                     <td class="label" width="30%">Reseller</td>
                     <td width="70%">{{ $reseller ? $reseller->company_name : 'Unknown Reseller' }}</td>
                 </tr>
+                <tr>
+                    <td class="label">Name</td>
+                    <td>{{ $category2['pic_name'] ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">HP Number</td>
+                    <td>{{ $category2['pic_phone'] ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Email</td>
+                    <td>{{ $category2['email'] ?? '-' }}</td>
+                </tr>
             @else
                 <tr>
                     <td class="label" width="30%">Installation Type</td>
@@ -288,7 +364,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">5. REMARK DETAILS</div>
+        <div class="section-title">6. REMARK DETAILS</div>
         <table>
             <thead>
                 <tr>
@@ -356,7 +432,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">6. PROFORMA INVOICE</div>
+        <div class="section-title">7. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
@@ -440,7 +516,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">7. ATTACHMENT</div>
+        <div class="section-title">8. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
@@ -597,7 +673,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">8. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">9. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">

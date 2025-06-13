@@ -13,16 +13,20 @@
         }
         table {
             border-collapse: collapse;
-            width: 100%;
+            width: 60%; /* Reduced from 100% to 80% */
             margin: 20px 0;
+            max-width: 600px; /* Added max-width for better control */
         }
         th, td {
             border: 1px solid #ddd;
             padding: 10px;
+            text-align: left; /* Explicitly set text alignment to left */
         }
         th {
             background-color: #f2f2f2;
             font-weight: normal;
+            text-align: left; /* Ensure header text aligns left */
+            width: 40%; /* Make the header column fixed width */
         }
         .contact-info {
             margin-top: 30px;
@@ -66,8 +70,5 @@
     <p>If you have any questions or need assistance getting started, please don't hesitate to contact our support team. They're happy to help! You can reach them by phone at 03-80709933 or by email at <a href="mailto:support@timeteccloud.com">support@timeteccloud.com</a>.</p>
 
     <p>Thank you for choosing TimeTec HR. We look forward to a successful partnership!</p>
-
-    <p>Best regards,<br>
-    TimeTec HR Team</p>
 </body>
 </html>
