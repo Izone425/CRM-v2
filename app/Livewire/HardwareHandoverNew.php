@@ -1019,7 +1019,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1331,7 +1331,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {

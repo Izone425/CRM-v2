@@ -181,8 +181,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('mark_as_migrated')
-                        ->label('Complete Migration')
+                    Action::make('create_license_Duration')
+                        ->label('Create License Duration')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->form([
@@ -274,10 +274,46 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         ->visible(fn (callable $get) => $get('paid_license_type') === 'custom'),
                                 ])
                                 ->compact(),
+
+                                \Filament\Forms\Components\Section::make('Email Recipients')
+                                ->schema([
+                                    \Filament\Forms\Components\Repeater::make('additional_recipients')
+                                        ->hiddenLabel()
+                                        ->helperText('By default, the company email (first email), implementer, and salesperson will receive the license certificate email. You can add additional recipients here.')
+                                        ->schema([
+                                            \Filament\Forms\Components\TextInput::make('email')
+                                                ->label('Email Address')
+                                                ->email()
+                                                ->required()
+                                                ->placeholder('Enter email address')
+                                        ])
+                                        ->defaultItems(1)  // Set to 1 to show one default item
+                                        ->minItems(0)
+                                        ->maxItems(5)
+                                        ->columnSpanFull()
+                                        ->default(function (SoftwareHandover $record = null) {
+                                            if (!$record) {
+                                                return [];
+                                            }
+
+                                            // Get company email from the record
+                                            $companyEmail = $record->lead->companyDetail->email ?? $record->lead->email ?? null;
+
+                                            // If there's a valid company email, return it as the first item
+                                            if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
+                                                return [
+                                                    ['email' => $companyEmail]
+                                                ];
+                                            }
+
+                                            return [];
+                                        }),
+                                ])
+                                ->compact(),
                         ])
-                        ->modalHeading("Complete Migration & Generate License Certificate")
-                        ->modalDescription('Please configure the license details before marking this handover as migration completed.')
-                        ->modalSubmitActionLabel('Complete Migration & Generate Certificate')
+                        ->modalHeading("Create License Duration")
+                        ->modalDescription('Please configure the license details before marking this handover as completed license certification.')
+                        ->modalSubmitActionLabel('Submit')
                         ->modalCancelActionLabel('Cancel')
                         ->action(function (array $data, SoftwareHandover $record): void {
                             // Get the implementer info
@@ -295,25 +331,55 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
                             // Calculate license dates
-                            $bufferMonths = (int) $data['buffer_months'];
-                            $paidLicenseYears = (int) $data['paid_license_years'];
                             $kickOffDate = now();
-                            $bufferEndDate = (clone $kickOffDate)->addMonths($bufferMonths);
+
+                            // Handle buffer license duration based on selection type
+                            if ($data['buffer_license_type'] === 'predefined') {
+                                $bufferMonths = (int) $data['buffer_months'];
+                                $bufferYears = 0;
+                            } else {
+                                $bufferMonths = (int) $data['buffer_custom_months'];
+                                $bufferYears = (int) $data['buffer_custom_years'];
+                            }
+
+                            // Handle paid license duration based on selection type
+                            if ($data['paid_license_type'] === 'predefined') {
+                                $paidLicenseYears = (int) $data['paid_license_years'];
+                                $paidLicenseMonths = 0;
+                            } else {
+                                $paidLicenseYears = (int) $data['paid_custom_years'];
+                                $paidLicenseMonths = (int) $data['paid_custom_months'];
+                            }
+
+                            // Calculate buffer duration in months for display
+                            $totalBufferMonths = ($bufferYears * 12) + $bufferMonths;
+
+                            // Calculate dates
+                            $bufferEndDate = (clone $kickOffDate)->addMonths($totalBufferMonths);
                             $paidStartDate = (clone $bufferEndDate)->addDay();
-                            $paidEndDate = (clone $paidStartDate)->addYears($paidLicenseYears)->subDay();
+                            $paidEndDate = (clone $paidStartDate)
+                                ->addYears($paidLicenseYears)
+                                ->addMonths($paidLicenseMonths)
+                                ->subDay();
                             $nextRenewalDate = (clone $paidEndDate)->addDay();
+
+                            // Format durations for display
+                            $bufferDuration = $this->formatDuration($bufferYears, $bufferMonths);
+                            $paidDuration = $this->formatDuration($paidLicenseYears, $paidLicenseMonths);
 
                             // Create a new license certificate record
                             $certificate = \App\Models\LicenseCertificate::create([
                                 'company_name' => $companyName,
-                                'software_handover_id' => $record->is_dir,
+                                'software_handover_id' => $record->id, // Fixed from is_dir to id
                                 'kick_off_date' => $record->kick_off_meeting ?? now(),
                                 'buffer_license_start' => $kickOffDate,
                                 'buffer_license_end' => $bufferEndDate,
+                                'buffer_months' => $totalBufferMonths, // Store total buffer months
                                 'paid_license_start' => $paidStartDate,
                                 'paid_license_end' => $paidEndDate,
+                                'paid_months' => ($paidLicenseYears * 12) + $paidLicenseMonths, // Store total paid months
                                 'next_renewal_date' => $nextRenewalDate,
-                                'license_years' => $paidLicenseYears,
+                                'license_years' => $paidLicenseYears + ($paidLicenseMonths / 12), // Store license years with decimal for months
                                 'created_by' => auth()->id(),
                                 'updated_by' => auth()->id(),
                             ]);
@@ -322,7 +388,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $record->update([
                                 'completed_at' => now(),
                                 'data_migrated' => true,
-                                'license_certificate_id' => $certificate->id,
+                                'license_certification_id' => $certificate->id,
                             ]);
 
                             // Format the handover ID properly
@@ -355,12 +421,12 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         'bufferLicense' => [
                                             'start' => $kickOffDate->format('d M Y'),
                                             'end' => $bufferEndDate->format('d M Y'),
-                                            'duration' => $bufferMonths . ' month' . ($bufferMonths > 1 ? 's' : '')
+                                            'duration' => $bufferDuration  // Use the formatted duration that includes both years and months
                                         ],
                                         'paidLicense' => [
                                             'start' => $paidStartDate->format('d M Y'),
                                             'end' => $paidEndDate->format('d M Y'),
-                                            'duration' => $paidLicenseYears . ' year' . ($paidLicenseYears > 1 ? 's' : '')
+                                            'duration' => $paidDuration  // Use the formatted duration that includes both years and months
                                         ],
                                         'nextRenewal' => $nextRenewalDate->format('d M Y')
                                     ],
@@ -369,18 +435,27 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 // Initialize recipients array
                                 $recipients = [];
 
-                                // Add implementer email if valid
+                                // Process additional recipients from the form data
+                                if (isset($data['additional_recipients']) && is_array($data['additional_recipients'])) {
+                                    foreach ($data['additional_recipients'] as $recipient) {
+                                        if (isset($recipient['email']) && filter_var($recipient['email'], FILTER_VALIDATE_EMAIL)) {
+                                            $recipients[] = $recipient['email'];
+                                        }
+                                    }
+                                }
+
+                                // Always add implementer email if valid (since checkbox fields are not present in the form)
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
                                     $recipients[] = $implementerEmail;
                                 }
 
-                                // Add salesperson email if valid
+                                // Always add salesperson email if valid
                                 if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
                                     $recipients[] = $salespersonEmail;
                                 }
 
                                 // Always include adminx
-                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
@@ -392,7 +467,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $certificateId, $companyName) {
                                         $message->from($senderEmail, $senderName)
                                             ->to($recipients)
-                                            ->subject("LICENSE CERTIFICATE | TIMETEC HR | {$certificateId} | {$companyName}");
+                                            ->subject("LICENSE CERTIFICATE | TIMETEC HR | {$companyName}");
                                     });
 
                                     \Illuminate\Support\Facades\Log::info("Data migration completion & license certification email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
@@ -403,9 +478,9 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             }
 
                             Notification::make()
-                                ->title('Migration completed with license certificate')
+                                ->title('License Duration Created')
                                 ->success()
-                                ->body("Data migration completed and license certificate {$certificateId} generated successfully.")
+                                ->body("License certificate duration generated successfully and email has been sent.")
                                 ->send();
                         })
                 ])
@@ -413,6 +488,25 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                 ->color('warning')
                 ->label('Actions')
             ]);
+    }
+
+    private function formatDuration(int $years, int $months): string
+    {
+        $parts = [];
+
+        if ($years > 0) {
+            $parts[] = $years . ' year' . ($years > 1 ? 's' : '');
+        }
+
+        if ($months > 0) {
+            $parts[] = $months . ' month' . ($months > 1 ? 's' : '');
+        }
+
+        if (empty($parts)) {
+            return '0 months';
+        }
+
+        return implode(' and ', $parts);
     }
 
     public function render()

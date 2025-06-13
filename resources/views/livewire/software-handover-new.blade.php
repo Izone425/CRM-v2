@@ -1,4 +1,4 @@
-<div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
+<div class="p-4 bg-white rounded-lg shadow-lg" style="min-height: 530px; height: auto;">
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">
             @if(auth()->user()->role_id === 2)

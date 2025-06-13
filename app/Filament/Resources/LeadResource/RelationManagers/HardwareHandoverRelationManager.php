@@ -57,7 +57,10 @@ class HardwareHandoverRelationManager extends RelationManager
                             'single' => 'Single Invoice (Hardware Only)',
                             'combined' => 'Combined Invoice (Hardware + Software)',
                         ])
-                        ->default('single')
+                        ->default(function (?HardwareHandover $record) {
+                            // Use the record's value if it exists, otherwise default to 'single'
+                            return $record?->invoice_type ?? 'single';
+                        })
                         ->reactive()
                         ->inline()
                         ->inlineLabel(false)

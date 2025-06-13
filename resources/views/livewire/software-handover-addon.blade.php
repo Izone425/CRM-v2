@@ -1,4 +1,4 @@
-<div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
+<div class="p-4 bg-white rounded-lg shadow-lg" style="min-height: 530px; height: auto;">
     <div class="flex items-center justify-between">
         <h3 class="text-lg font-bold">Draft / Rejected</h3>
         <span class="text-lg font-bold text-gray-500">(Count: {{ $this->getTableRecords()->total() }})</span>
