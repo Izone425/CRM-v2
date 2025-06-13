@@ -35,7 +35,7 @@ class ImplementerMigrationCompleted extends Component implements HasForms, HasTa
         return SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->where('data_migrated', true)
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+            ->orderBy('created_at', 'asc')
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
 

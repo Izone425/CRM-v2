@@ -12,7 +12,7 @@ class LicenseCertificate extends Model
 
     protected $fillable = [
         'company_name',
-        'lead_id',
+        'software_handover_id',
         'kick_off_date',
         'buffer_license_start',
         'buffer_license_end',

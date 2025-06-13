@@ -183,32 +183,30 @@
                         @endphp
 
                         @if(count($relatedHandovers) > 0)
-                            <ul>
-                                @foreach($relatedHandovers as $handoverId)
-                                    @php
-                                        $softwareHandover = \App\Models\SoftwareHandover::find($handoverId);
-                                        if ($softwareHandover) {
-                                            $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
-                                            $pdfUrl = $softwareHandover->handover_pdf
-                                                ? url('storage/' . $softwareHandover->handover_pdf)
-                                                : null;
-                                        }
-                                    @endphp
+                            @foreach($relatedHandovers as $handoverId)
+                                @php
+                                    $softwareHandover = \App\Models\SoftwareHandover::find($handoverId);
+                                    if ($softwareHandover) {
+                                        $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
+                                        $pdfUrl = $softwareHandover->handover_pdf
+                                            ? url('storage/' . $softwareHandover->handover_pdf)
+                                            : null;
+                                    }
+                                @endphp
 
-                                    @if(isset($softwareHandover))
-                                        @if($pdfUrl)
-                                            <a href="{{ $pdfUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
-                                                {{ $formattedId }}
-                                            </a>
-                                        @else
+                                @if(isset($softwareHandover))
+                                    @if($pdfUrl)
+                                        <a href="{{ $pdfUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
                                             {{ $formattedId }}
-                                        @endif
-                                        ({{ $softwareHandover->created_at ? $softwareHandover->created_at->format('d M Y') : 'N/A' }})
+                                        </a>
                                     @else
-                                        <li style="margin-bottom: 3px;">Software Handover #{{ $handoverId }} (Not found)</li>
+                                        {{ $formattedId }}
                                     @endif
-                                @endforeach
-                            </ul>
+                                    ({{ $softwareHandover->created_at ? $softwareHandover->created_at->format('d M Y') : 'N/A' }})
+                                @else
+                                    <li style="margin-bottom: 3px;">Software Handover #{{ $handoverId }} (Not found)</li>
+                                @endif
+                            @endforeach
                         @else
                             <span style="font-style: italic; color: #777;">No related software handovers</span>
                         @endif
@@ -432,7 +430,57 @@
     </div>
 
     <div class="section">
-        <div class="section-title">7. PROFORMA INVOICE</div>
+        <div class="section-title">7. VIDEO FILES</div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="15%">No.</th>
+                    <th width="85%">Video File</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(isset($hardwareHandover->video_files) && !empty($hardwareHandover->video_files))
+                    @php
+                        $videoFiles = is_string($hardwareHandover->video_files)
+                            ? json_decode($hardwareHandover->video_files, true)
+                            : $hardwareHandover->video_files;
+
+                        if (!is_array($videoFiles)) {
+                            $videoFiles = [];
+                        }
+                    @endphp
+
+                    @if(count($videoFiles) > 0)
+                        @foreach($videoFiles as $index => $file)
+                            <tr>
+                                <td>Video {{ $index + 1 }}</td>
+                                <td>
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('storage/' . $file);
+                                    @endphp
+                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                        {{ $fileName }}
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="2" style="text-align: center; font-style: italic;">No video files uploaded</td>
+                        </tr>
+                    @endif
+                @else
+                    <tr>
+                        <td colspan="2" style="text-align: center; font-style: italic;">No video files uploaded</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">8. PROFORMA INVOICE</div>
         <table>
             <thead>
                 <tr>
@@ -516,7 +564,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">8. ATTACHMENT</div>
+        <div class="section-title">9. ATTACHMENT</div>
         <table>
             <thead>
                 <tr>
@@ -673,7 +721,7 @@
     </div>
 
     <div class="section">
-        <div class="section-title">9. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
+        <div class="section-title">10. IMPLEMENTER DEPARTMENT - JOB DESCRIPTION</div>
         <table>
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">
