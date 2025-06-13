@@ -49,7 +49,53 @@ class HardwareHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Section::make('Step 1: Invoice Details')
+            Section::make('Step 1: Invoice Type')
+                ->schema([
+                    Forms\Components\Radio::make('invoice_type')
+                        ->hiddenLabel()
+                        ->options([
+                            'single' => 'Single Invoice (Hardware Only)',
+                            'combined' => 'Combined Invoice (Hardware + Software)',
+                        ])
+                        ->default('single')
+                        ->reactive()
+                        ->inline()
+                        ->inlineLabel(false)
+                        ->required(),
+
+                    Forms\Components\Select::make('related_software_handovers')
+                        ->label('Select Software Handovers to Combine With')
+                        ->options(function () {
+                            $leadId = $this->getOwnerRecord()->id;
+                            return \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
+                                ->get()
+                                ->mapWithKeys(function ($handover) {
+                                    $id = $handover->id;
+                                    $formattedId = 'SW_250' . str_pad($id, 3, '0', STR_PAD_LEFT);
+                                    $date = $handover->created_at ? $handover->created_at->format('d M Y') : 'Unknown date';
+                                    return [$id => "{$formattedId} - {$date}"];
+                                })
+                                ->toArray();
+                        })
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->visible(fn (callable $get) => $get('invoice_type') === 'combined')
+                        ->default(function (?HardwareHandover $record) {
+                            if (!$record || !$record->related_software_handovers) {
+                                return [];
+                            }
+
+                            if (is_string($record->related_software_handovers)) {
+                                return json_decode($record->related_software_handovers, true) ?? [];
+                            }
+
+                            return is_array($record->related_software_handovers) ? $record->related_software_handovers : [];
+                        }),
+                ]),
+
+            Section::make('Step 2: Invoice Details')
                 ->schema([
                     Grid::make(1)
                         ->schema([
@@ -67,7 +113,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->extraAttributes(['class' => 'space-y-2']),
                         ]),
                 ]),
-            Section::make('Step 2: Contact Detail')
+            Section::make('Step 3: Contact Detail')
                 ->schema([
                     Forms\Components\Repeater::make('contact_detail')
                         ->label('Contact Detail')
@@ -116,7 +162,7 @@ class HardwareHandoverRelationManager extends RelationManager
                 ]),
 
 
-            Section::make('Step 3: Category 1')
+            Section::make('Step 4: Category 1')
                 ->schema([
                     Forms\Components\Radio::make('installation_type')
                         ->label('')
@@ -143,7 +189,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->required(),
                 ]),
 
-            Section::make('Step 4: Category 2')
+            Section::make('Step 5: Category 2')
                 ->schema([
                     Forms\Components\Placeholder::make('installation_type_helper')
                         ->label('')
@@ -290,7 +336,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ]),
                 ]),
 
-            Section::make('Step 5: Remark Details')
+            Section::make('Step 6: Remark Details')
                 ->schema([
                     Forms\Components\Repeater::make('remarks')
                         ->label('Remarks')
@@ -382,7 +428,52 @@ class HardwareHandoverRelationManager extends RelationManager
                         }),
                 ]),
 
-            Section::make('Step 6: Proforma Invoice')
+            Section::make('Step 7: Video Details')
+                ->schema([
+                    FileUpload::make('video_files')
+                        ->label('Upload Videos (MP4, MOV, AVI)')
+                        ->disk('public')
+                        ->directory('handovers/videos')
+                        ->visibility('public')
+                        ->multiple()
+                        ->maxFiles(3)
+                        ->maxSize(10000) // 100MB max size
+                        ->acceptedFileTypes([
+                            'video/mp4',
+                            'video/quicktime',
+                            'video/x-msvideo',
+                            'video/x-ms-wmv',
+                            'video/webm'
+                        ])
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                            // Get lead ID from ownerRecord
+                            $leadId = $this->getOwnerRecord()->id;
+                            // Format ID with prefix (250) and padding
+                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Get extension
+                            $extension = $file->getClientOriginalExtension();
+
+                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                            $timestamp = now()->format('YmdHis');
+                            $random = rand(1000, 9999);
+
+                            return "{$formattedId}-HW-VIDEO-{$timestamp}-{$random}.{$extension}";
+                        })
+                        ->openable()
+                        ->previewable(false) // No preview for videos directly in form
+                        ->downloadable()
+                        ->default(function (?HardwareHandover $record) {
+                            if (!$record || !$record->video_files) {
+                                return [];
+                            }
+                            if (is_string($record->video_files)) {
+                                return json_decode($record->video_files, true) ?? [];
+                            }
+                            return is_array($record->video_files) ? $record->video_files : [];
+                        }),
+                ]),
+
+            Section::make('Step 8: Proforma Invoice')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(2)
@@ -435,7 +526,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ])
                 ]),
 
-            Section::make('Step 7: Attachment')
+            Section::make('Step 9: Attachment')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(2)
@@ -682,6 +773,20 @@ class HardwareHandoverRelationManager extends RelationManager
                         $data['proforma_invoice_number'] = json_encode($data['proforma_invoice_number']);
                     }
 
+                    if (isset($data['invoice_type']) && $data['invoice_type'] === 'combined') {
+                        if (isset($data['related_software_handovers']) && is_array($data['related_software_handovers'])) {
+                            $data['related_software_handovers'] = json_encode($data['related_software_handovers']);
+                        } else {
+                            $data['related_software_handovers'] = json_encode([]);
+                        }
+                    } else {
+                        $data['related_software_handovers'] = null;
+                    }
+
+                    if (isset($data['video_files']) && is_array($data['video_files'])) {
+                        $data['video_files'] = json_encode($data['video_files']);
+                    }
+
                     // Create the handover record
                     $handover = HardwareHandover::create($data);
 
@@ -911,6 +1016,20 @@ class HardwareHandoverRelationManager extends RelationManager
 
                             if (isset($data['proforma_invoice_number']) && is_array($data['proforma_invoice_number'])) {
                                 $data['proforma_invoice_number'] = json_encode($data['proforma_invoice_number']);
+                            }
+
+                            if (isset($data['invoice_type']) && $data['invoice_type'] === 'combined') {
+                                if (isset($data['related_software_handovers']) && is_array($data['related_software_handovers'])) {
+                                    $data['related_software_handovers'] = json_encode($data['related_software_handovers']);
+                                } else {
+                                    $data['related_software_handovers'] = json_encode([]);
+                                }
+                            } else {
+                                $data['related_software_handovers'] = null;
+                            }
+
+                            if (isset($data['video_files']) && is_array($data['video_files'])) {
+                                $data['video_files'] = json_encode($data['video_files']);
                             }
 
                             // Create the handover record

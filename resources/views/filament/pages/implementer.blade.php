@@ -110,34 +110,40 @@
 // Calculate counts directly in the blade template
 use App\Models\SoftwareHandover;
 
-// Define queries for New
-$newCount = SoftwareHandover::whereIn('status', ['New'])->count();
-
 // Define queries for Pending Kick Off
-$pendingKickOffCount = SoftwareHandover::query()
+$pendingMigrationCount = SoftwareHandover::query()
     ->whereIn('status', ['Completed'])
-    ->whereNull('kick_off_meeting')
+    ->where('data_migrated', false)
     ->where(function ($q) {
-        $q->whereIn('id', [420, 520, 531, 539])
-            ->orWhere('id', '>=', 540);
+        // $q->where('id', '>=', 561);
     })->count();
 
 // Define queries for Pending License
 $pendingLicenseCount = SoftwareHandover::query()
     ->whereIn('status', ['Completed'])
-    ->whereNull('license_activated')
+    ->whereNull('license_certification_id')
     ->where(function ($q) {
-        $q->where('id', '>=', 556);
+        // $q->where('id', '>=', 561);
     })->count();
 
 // Define queries for Completed and Draft/Rejected
-$completedCount = SoftwareHandover::where('status', 'Completed')
-    ->count();
+$completedMigrationCount = SoftwareHandover::query()
+    ->whereIn('status', ['Completed'])
+    ->where('data_migrated', true)
+    ->where(function ($q) {
+        // $q->where('id', '>=', 561);
+    })->count();
 
-$draftRejectedCount = SoftwareHandover::whereIn('status', ['Draft', 'Rejected'])->count();
+$completedLicenseCount = SoftwareHandover::query()
+    ->whereIn('status', ['Completed'])
+    ->whereNotNull('license_certification_id')
+    ->where(function ($q) {
+        // $q->where('id', '>=', 561);
+    })->count();
 
 // Calculate combined pending count
-$pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
+$pendingTaskCount = $pendingMigrationCount + $pendingLicenseCount;
+$all = $pendingMigrationCount + $pendingLicenseCount + $completedMigrationCount + $completedLicenseCount;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"
@@ -164,15 +170,13 @@ $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
         <div class="stat-box all"
             :class="{'selected': selectedStat === 'pending-task'}">
             {{-- @click="setSelectedStat('pending-task')" --}}
-        <div class="stat-count">{{ $pendingTaskCount }}</div>
+        <div class="stat-count">{{ $all }}</div>
         <div class="stat-label">All</div>
         </div>
 
         <div class="stat-box new"
-            :class="{'selected': selectedStat === 'new'}"
-            @click="setSelectedStat('new')"
-            style="cursor: pointer;">
-        <div class="stat-count">{{ $newCount }}</div>
+            :class="{'selected': selectedStat === 'new'}">
+        <div class="stat-count">{{ $pendingTaskCount }}</div>
         <div class="stat-label">Pending Task</div>
         </div>
 
@@ -180,7 +184,7 @@ $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
             :class="{'selected': selectedStat === 'pending-kick-off'}"
             @click="setSelectedStat('pending-kick-off')"
             style="cursor: pointer;">
-        <div class="stat-count">{{ $pendingKickOffCount }}</div>
+        <div class="stat-count">{{ $pendingMigrationCount }}</div>
         <div class="stat-label">Pending Data Migration</div>
         </div>
 
@@ -196,7 +200,7 @@ $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
             :class="{'selected': selectedStat === 'completed'}"
             @click="setSelectedStat('completed')"
             style="cursor: pointer;">
-        <div class="stat-count">{{ $completedCount }}</div>
+        <div class="stat-count">{{ $completedMigrationCount }}</div>
         <div class="stat-label">Completed Data Migration</div>
         </div>
 
@@ -204,7 +208,7 @@ $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
             :class="{'selected': selectedStat === 'draft-rejected'}"
             @click="setSelectedStat('draft-rejected')"
             style="cursor: pointer;">
-        <div class="stat-count">{{ $draftRejectedCount }}</div>
+        <div class="stat-count">{{ $completedLicenseCount }}</div>
         <div class="stat-label">Completed License Certification</div>
         </div>
     </div>

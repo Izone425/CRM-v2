@@ -39,6 +39,9 @@ class HardwareHandover extends Model
         'face_id6_quantity',
         'time_beacon_quantity',
         'nfc_tag_quantity',
+        'invoice_type',
+        'related_software_handovers',
+        'video_files',
         'confirmation_order_file',
         'hrdf_grant_file',
         'payment_slip_file',
@@ -56,6 +59,7 @@ class HardwareHandover extends Model
     protected $casts = [
         // Cast JSON-encoded fields as arrays
         'category2' => 'array',
+        'video_files' => 'array',
         'confirmation_order_file' => 'array',
         'hrdf_grant_file' => 'array',
         'payment_slip_file' => 'array',
@@ -65,6 +69,7 @@ class HardwareHandover extends Model
         'invoice_file' => 'array',
         'sales_order_file' => 'array',
         'remarks' => 'array',
+        'related_software_handovers' => 'array',
     ];
 
     /**

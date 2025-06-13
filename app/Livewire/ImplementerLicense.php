@@ -33,6 +33,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
     {
         return SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
+            ->whereNull('license_certification_id')
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
@@ -379,7 +380,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 }
 
                                 // Always include adminx
-                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
