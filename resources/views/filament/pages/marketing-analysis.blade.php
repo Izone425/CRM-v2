@@ -576,26 +576,44 @@
                     <h2 class="text-lg font-bold text-gray-800">Lead Source Breakdown</h2>
                 </div>
                 <div class="text-xs text-gray-500">
-                    Total: {{ $totalLeadTypes = array_sum($this->getLeadTypeCounts()) }}
+                    @php
+                        $leadTypeCounts = $this->getLeadTypeCounts();
+                        $totalLeadTypes = !empty($leadTypeCounts) ? array_sum($leadTypeCounts) : 0;
+                    @endphp
                 </div>
             </div>
 
             @php
-                $leadTypeCounts = $this->getLeadTypeCounts();
-                $totalLeadTypes = array_sum($leadTypeCounts);
-
                 // Dynamic color generation based on source name for consistency
                 function generateConsistentColor($string, $colors) {
+                    // Force string to be treated as a string by prefixing
+                    $string = 'key_' . $string;
                     $hash = 0;
+
                     for ($i = 0; $i < strlen($string); $i++) {
-                        $hash = ord($string[$i]) + (($hash << 5) - $hash);
+                        // Use a simpler hashing algorithm that won't produce negative values
+                        $hash = ($hash * 31 + ord($string[$i])) % 1000000;
                     }
-                    $hash = abs($hash) % count($colors);
-                    return $colors[$hash];
+
+                    // Ensure positive index
+                    $index = $hash % count($colors);
+                    return $colors[$index];
                 }
 
-                // Sort by count (optional, remove if you want to keep original order)
-                arsort($leadTypeCounts);
+                // Ensure all keys are strings by using a new array with prefixed keys
+                $sortedLeadTypeCounts = [];
+                foreach($leadTypeCounts as $source => $count) {
+                    // Use a string representation that won't be interpreted as numeric
+                    $sortedLeadTypeCounts['key_' . $source] = [
+                        'original_source' => $source,
+                        'count' => (int)$count
+                    ];
+                }
+
+                // Sort by count
+                uasort($sortedLeadTypeCounts, function($a, $b) {
+                    return $b['count'] - $a['count'];
+                });
 
                 // Define colors for bars
                 $colors = [
@@ -605,18 +623,20 @@
                 ];
 
                 // Calculate container width based on number of sources
-                $containerWidth = count($leadTypeCounts) > 8 ? 'auto' : '100%';
+                $containerWidth = count($sortedLeadTypeCounts) > 8 ? 'auto' : '100%';
                 $minBarWidth = 70; // Minimum width of each bar
             @endphp
 
-            @if(count($leadTypeCounts) > 0)
-                <div class="bars-container" style="display: flex; overflow-x: {{ count($leadTypeCounts) > 8 ? 'auto' : 'hidden' }}; height: 250px; padding: 20px 10px 10px; align-items: flex-end; gap: 24px; width: {{ $containerWidth }}; justify-content: {{ count($leadTypeCounts) <= 8 ? 'center' : 'flex-start' }};">
+            @if(count($sortedLeadTypeCounts) > 0)
+                <div class="bars-container" style="display: flex; overflow-x: {{ count($sortedLeadTypeCounts) > 8 ? 'auto' : 'hidden' }}; height: 250px; padding: 20px 10px 10px; align-items: flex-end; gap: 24px; width: {{ $containerWidth }}; justify-content: {{ count($sortedLeadTypeCounts) <= 8 ? 'center' : 'flex-start' }};">
 
-                    @foreach($leadTypeCounts as $source => $count)
+                    @foreach($sortedLeadTypeCounts as $key => $data)
                         @php
-                            $percentage = round(($count / max($totalLeadTypes, 1)) * 100, 2);
+                            $source = $data['original_source'];
+                            $count = $data['count'];
+                            $percentage = $totalLeadTypes > 0 ? round(($count / $totalLeadTypes) * 100, 2) : 0;
                             $barColor = generateConsistentColor($source, $colors);
-                            $displaySource = $source ?: 'Unknown'; // Handle empty sources
+                            $displaySource = !empty($source) ? $source : 'Unknown'; // Handle empty sources
 
                             // Truncate long source names for display
                             $displayLabel = strlen($displaySource) > 15 ?
@@ -625,8 +645,8 @@
                         @endphp
 
                         <div class="cursor-pointer bar-group"
-                             wire:click="openLeadSourceSlideOver('{{ $source }}')"
-                             style="min-width: {{ $minBarWidth }}px;">
+                            wire:click="openLeadSourceSlideOver('{{ $source }}')"
+                            style="min-width: {{ $minBarWidth }}px;">
                             <p class="percentage-label" style="font-size: 13px; margin-bottom: 5px;">
                                 {{ $count }}
                             </p>

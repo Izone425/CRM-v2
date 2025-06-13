@@ -298,11 +298,11 @@
                 </tr>
             </thead>
             <tbody>
-                @if(isset($softwareHandover->remarks) && !empty($softwareHandover->remarks))
+                @if(isset($hardwareHandover->remarks) && !empty($hardwareHandover->remarks))
                     @php
-                        $remarks = is_string($softwareHandover->remarks)
-                            ? json_decode($softwareHandover->remarks, true)
-                            : $softwareHandover->remarks;
+                        $remarks = is_string($hardwareHandover->remarks)
+                            ? json_decode($hardwareHandover->remarks, true)
+                            : $hardwareHandover->remarks;
 
                         if (!is_array($remarks)) {
                             $remarks = [];
@@ -312,7 +312,7 @@
                     @foreach($remarks as $index => $rmk)
                         <tr>
                             <td>Remark {{ $index + 1 }}</td>
-                            <td>{{ $rmk['remark'] ?? $rmk ?? '' }}</td>
+                            <td>{{ is_array($rmk) ? ($rmk['remark'] ?? '') : $rmk }}</td>
                             <td>
                                 @if(isset($rmk['attachments']) && !empty($rmk['attachments']))
                                     @php

@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Filament\Filters\SortFilter;
+use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
+use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
@@ -22,28 +24,17 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
-use Livewire\Attributes\On;
 
-class HardwareHandoverCompleted extends Component implements HasForms, HasTable
+class ImplementerMigrationCompleted extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public $selectedUser;
-
-    #[On('updateTablesForUser')] // Listen for updates
-    public function updateTablesForUser($selectedUser)
-    {
-        $this->selectedUser = $selectedUser;
-        session(['selectedUser' => $selectedUser]); // Store for consistency
-
-        $this->resetTable(); // Refresh the table
-    }
-
     public function getOverdueHardwareHandovers()
     {
-        return HardwareHandover::query()
+        return SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
+            ->where('data_migrated', true)
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
@@ -84,19 +75,23 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('handover_pdf')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state) {
-                        // If handover_pdf is null, return a placeholder
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
-                            return '-';
+                            return 'Unknown';
                         }
 
-                        // Extract just the filename without extension
-                        $filename = basename($state, '.pdf');
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
 
-                        // Return just the formatted ID part
-                        return $filename;
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -106,40 +101,41 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
-                                return view('components.hardware-handover')
+                            ->modalContent(function (SoftwareHandover $record): View {
+                                return view('components.software-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
 
-                TextColumn::make('lead.salesperson')
-                    ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
-                        $lead = $record->lead;
-                        if (!$lead) {
-                            return '-';
-                        }
-
-                        $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
-                    })
+                TextColumn::make('salesperson')
+                    ->label('SALESPERSON')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
-                TextColumn::make('lead.companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
+                        $company = CompanyDetail::where('company_name', $state)->first();
 
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($fullName) . '"
+                                    title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
-                                </a>';
+                                    ' . $company->company_name . '
+                                </a>');
+                        }
+
+                        $shortened = strtoupper(Str::limit($state, 20, '...'));
+                        return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
 
@@ -179,10 +175,10 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (HardwareHandover $record): View {
+                        ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
-                            return view('components.hardware-handover')
+                            return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
                 ])
@@ -194,6 +190,6 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.hardware-handover-completed');
+        return view('livewire.implementer-migration-completed');
     }
 }

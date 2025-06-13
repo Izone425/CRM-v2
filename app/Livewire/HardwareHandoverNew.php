@@ -183,7 +183,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -260,7 +260,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -737,7 +737,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     //     ]))
                     //     ->modalSubmitAction(false)
                     //     ->modalCancelAction(false)
-                    //     ->modalWidth('md')
+                    //     ->modalWidth('3xl')
                     //     ->color('warning'),
                     Action::make('pending_stock')
                         ->label('Pending Stock')
@@ -797,7 +797,18 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 })
                                 ->searchable()
                                 ->required()
-                                ->disabled()
+                                ->disabled(function (HardwareHandover $record) {
+                                    // Only disable if there's an implementer from software handover
+                                    if ($record && $record->lead_id) {
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                            ->latest()
+                                            ->first();
+
+                                        return $softwareHandover && $softwareHandover->implementer;
+                                    }
+
+                                    return false; // Enable field if no software handover exists
+                                })
                                 ->default(function (HardwareHandover $record) {
                                     // First, check if we already have a set implementer for this record
                                     if ($record && $record->implementer) {
@@ -869,10 +880,31 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 $data['sales_order_file'] = json_encode($data['sales_order_file']);
                             }
 
-                            $implementerId = $data['implementer'];
-                            $implementer = \App\Models\User::find($implementerId);
-                            $implementerName = $implementer?->name ?? 'Unknown';
-                            $implementerEmail = $implementer?->email ?? null;
+                            $implementerId = null;
+                            $implementerName = 'Unknown';
+                            $implementerEmail = null;
+
+                            // Check if implementer is selected from the form (when field is enabled)
+                            if (isset($data['implementer']) && !empty($data['implementer'])) {
+                                $implementerId = $data['implementer'];
+                                $implementer = \App\Models\User::find($implementerId);
+                                if ($implementer) {
+                                    $implementerName = $implementer->name;
+                                    $implementerEmail = $implementer->email;
+                                }
+                            } else {
+                                // Fallback to getting implementer from software handover
+                                $softwareHandover = $record->lead ? \App\Models\SoftwareHandover::where('lead_id', $record->lead->id)
+                                    ->latest()
+                                    ->first() : null;
+
+                                if ($softwareHandover && $softwareHandover->implementer) {
+                                    $implementerName = $softwareHandover->implementer;
+                                    // Try to find the user by name to get their email
+                                    $implementer = \App\Models\User::where('name', $implementerName)->first();
+                                    $implementerEmail = $implementer?->email ?? null;
+                                }
+                            }
 
                             // Get the salesperson info
                             $salespersonId = $record->lead->salesperson ?? null;
@@ -887,7 +919,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'face_id6_quantity' => $data['face_id6_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
-                                'implementer' => $data['implementer'],
+                                'implementer' => $implementerName,
                                 'pending_stock_at' => now(),
                                 'status' => 'Pending Stock',
                             ];
@@ -906,8 +938,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             try {
                                 $viewName = 'emails.pending_stock_notification';
 
-                                // Get implementer and company details
-                                $implementerName = $implementer?->name ?? 'Unknown';
                                 $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
                                 $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
@@ -946,7 +976,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 // Create email content structure
                                 $emailContent = [
                                     'implementer' => [
-                                        'name' => $data['implementer'],
+                                        'name' => $implementerName ?? null,
                                     ],
                                     'company' => [
                                         'name' => $companyName,
@@ -989,7 +1019,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1162,10 +1192,31 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 $data['sales_order_file'] = json_encode($data['sales_order_file']);
                             }
 
-                            $implementerId = $data['implementer'];
-                            $implementer = \App\Models\User::find($implementerId);
-                            $implementerName = $implementer?->name ?? 'Unknown';
-                            $implementerEmail = $implementer?->email ?? null;
+                            $implementerId = null;
+                            $implementerName = 'Unknown';
+                            $implementerEmail = null;
+
+                            // Check if implementer is selected from the form (when field is enabled)
+                            if (isset($data['implementer']) && !empty($data['implementer'])) {
+                                $implementerId = $data['implementer'];
+                                $implementer = \App\Models\User::find($implementerId);
+                                if ($implementer) {
+                                    $implementerName = $implementer->name;
+                                    $implementerEmail = $implementer->email;
+                                }
+                            } else {
+                                // Fallback to getting implementer from software handover
+                                $softwareHandover = $record->lead ? \App\Models\SoftwareHandover::where('lead_id', $record->lead->id)
+                                    ->latest()
+                                    ->first() : null;
+
+                                if ($softwareHandover && $softwareHandover->implementer) {
+                                    $implementerName = $softwareHandover->implementer;
+                                    // Try to find the user by name to get their email
+                                    $implementer = \App\Models\User::where('name', $implementerName)->first();
+                                    $implementerEmail = $implementer?->email ?? null;
+                                }
+                            }
 
                             // Get the salesperson info
                             $salespersonId = $record->lead->salesperson ?? null;
@@ -1180,7 +1231,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'face_id6_quantity' => $data['face_id6_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
-                                'implementer' => $data['implementer'],
+                                'implementer' => $implementerName ?? null,
                                 'pending_migration_at' => now(),
                                 'status' => 'Pending Migration',
                             ];
@@ -1199,8 +1250,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             try {
                                 $viewName = 'emails.pending_migration_notification';
 
-                                // Get implementer and company details
-                                $implementerName = $implementer?->name ?? 'Unknown';
                                 $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
                                 $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
@@ -1239,7 +1288,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 // Create email content structure
                                 $emailContent = [
                                     'implementer' => [
-                                        'name' => $data['implementer'],
+                                        'name' => $implementerName ?? null,
                                     ],
                                     'company' => [
                                         'name' => $companyName,
@@ -1282,7 +1331,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {

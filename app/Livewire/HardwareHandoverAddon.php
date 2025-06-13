@@ -196,14 +196,14 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -261,7 +261,7 @@ class HardwareHandoverAddon extends Component implements HasForms, HasTable
                             ->icon('heroicon-o-eye')
                             ->color('secondary')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             // Use a callback function instead of arrow function for more control

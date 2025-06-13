@@ -92,7 +92,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -164,7 +164,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
