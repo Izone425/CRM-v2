@@ -1,11 +1,12 @@
+<!-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/hardwarehandover.blade.php -->
 <style>
+    /* General hint message styling */
     .hint-message {
         text-align: center;
-        padding: 2rem;
         background-color: #f9fafb;
         border-radius: 0.5rem;
         border: 1px dashed #d1d5db;
-        margin: 1rem 0;
+        height: 530px;
     }
 
     .hint-message .icon-container {
@@ -23,64 +24,77 @@
         font-size: 1.25rem;
         font-weight: 600;
         color: #374151;
+        margin-top: 15rem;
         margin-bottom: 0.5rem;
     }
 
     .hint-message p {
         color: #6b7280;
+        min-height: 340px;
     }
 
+    /* Container styling */
     .hardware-handover-container {
         grid-column: 1 / -1; /* Span all columns in a grid */
         width: 100%;
     }
+
     .fi-ta-ctn .py-4 {
         padding-top: .5rem !important;
         padding-bottom: .5rem !important;
     }
 
-    .dashboard-stats {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
+    /* New dashboard layout structure */
+    .dashboard-container {
+        display: flex;
+        gap: 20px;
+        width: 100%;
     }
 
+    .stats-sidebar {
+        flex: 0.5; /* Change from 0 0 250px to 0.5 to make it grow */
+        max-width: 50%; /* Cap at 50% of the container width */
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .content-area {
+        flex: 2; /* Keep flex: 2 to make content area wider */
+        max-width: 85%; /* Cap at 85% of the container width */
+        min-width: 0; /* Prevent overflow */
+    }
+
+    /* Stat box styling */
     .stat-box {
         background-color: white;
+        width: 300px;
+        height: 75px;
         border-radius: 8px;
-        padding: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         text-align: center;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-left: 4px solid transparent; /* Changed to left border */
+        min-height: 50px; /* Set minimum height */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
+    /* Hover and selected states */
     .stat-box:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        background-color: #f9fafb;
+        transform: translateX(3px); /* Move slightly right */
     }
 
     .stat-box.selected {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        position: relative;
-    }
-
-    .stat-box.selected::after {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 8px solid transparent;
-        border-right: 8px solid transparent;
-        border-top: 8px solid white;
+        background-color: #f9fafb;
+        transform: translateX(5px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     }
 
     .stat-count {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: bold;
         margin: 5px 0;
     }
@@ -88,38 +102,94 @@
     .stat-label {
         color: #6b7280;
         font-size: 14px;
+        font-weight: 500;
     }
 
-    /* Color coding for different statuses */
-    .new { border-top: 4px solid #2563eb; }
+    /* Color coding for different statuses - using left border */
+    .new { border-left: 4px solid #2563eb; }
     .new .stat-count { color: #2563eb; }
 
-    .pending-stock { border-top: 4px solid #f59e0b; }
+    .pending-stock { border-left: 4px solid #f59e0b; }
     .pending-stock .stat-count { color: #f59e0b; }
 
-    .pending-migration { border-top: 4px solid #8b5cf6; }
+    .pending-migration { border-left: 4px solid #8b5cf6; }
     .pending-migration .stat-count { color: #8b5cf6; }
 
-    .completed { border-top: 4px solid #10b981; }
+    .completed { border-left: 4px solid #10b981; }
     .completed .stat-count { color: #10b981; }
 
-    .all { border-top: 4px solid #6b7280; }
+    .all { border-left: 4px solid #6b7280; }
     .all .stat-count { color: #6b7280; }
 
-    .draft-rejected { border-top: 4px solid #ef4444; }
+    .draft-rejected { border-left: 4px solid #ef4444; }
     .draft-rejected .stat-count { color: #ef4444; }
+
+    /* Add more visual distinction for selected state */
+    .stat-box.selected.new { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
+    .stat-box.selected.pending-stock { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
+    .stat-box.selected.pending-migration { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
+    .stat-box.selected.completed { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
+    .stat-box.selected.all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
+    .stat-box.selected.draft-rejected { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
 
     /* Responsive adjustments */
     @media (max-width: 1200px) {
-        .dashboard-stats {
-            grid-template-columns: repeat(3, 1fr);
+        .dashboard-container {
+            flex-direction: column;
         }
+
+        .stats-sidebar {
+            flex: none;
+            width: 100%;
+        }
+
+        .stat-box {
+            width: 100%;
+        }
+
+        .stat-box:hover, .stat-box.selected {
+            transform: translateY(-3px); /* Change to vertical movement for mobile */
+        }
+
+        /* Switch border back to top for responsive layout */
+        .stat-box {
+            border-left: none;
+            border-top: 4px solid transparent;
+        }
+
+        .new { border-top: 4px solid #2563eb; border-left: none; }
+        .pending-stock { border-top: 4px solid #f59e0b; border-left: none; }
+        .pending-migration { border-top: 4px solid #8b5cf6; border-left: none; }
+        .completed { border-top: 4px solid #10b981; border-left: none; }
+        .all { border-top: 4px solid #6b7280; border-left: none; }
+        .draft-rejected { border-top: 4px solid #ef4444; border-left: none; }
+
+        .stat-box.selected.new { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.pending-stock { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.pending-migration { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.completed { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.all { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.draft-rejected { border-top-width: 6px; border-left: none; }
     }
 
-    @media (max-width: 640px) {
-        .dashboard-stats {
-            grid-template-columns: repeat(2, 1fr);
-        }
+    /* Content area styling */
+    .content-area {
+        border-radius: 8px;
+    }
+
+    /* Table adjustments */
+    .content-area .fi-ta {
+        margin-top: 0;
+    }
+
+    /* Animation for tab switching */
+    [x-transition] {
+        transition: all 0.2s ease-out;
+    }
+
+    /* Remove excess padding in tables */
+    .content-area .fi-ta-content {
+        padding: 0.75rem !important;
     }
 </style>
 
@@ -159,86 +229,85 @@ $pendingTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount;
          }
      }"
      x-init="init()">
-    <div class="dashboard-stats">
-        <div class="stat-box all"
-             :class="{'selected': selectedStat === 'all'}">
-             {{-- @click="setSelectedStat('all')" --}}
-            <div class="stat-count">{{ HardwareHandover::count() }}</div>
-            <div class="stat-label">All</div>
+
+    <!-- New container structure -->
+    <div class="dashboard-container">
+        <!-- Left sidebar with stats -->
+        <div class="stats-sidebar">
+            <div class="stat-box all"
+                 :class="{'selected': selectedStat === 'pending-task'}">
+                <div class="stat-count">{{ $pendingTaskCount }}</div>
+                <div class="stat-label">Pending Task</div>
+            </div>
+
+            <div class="stat-box new"
+                 :class="{'selected': selectedStat === 'new'}"
+                 @click="setSelectedStat('new')"
+                 style="cursor: pointer;">
+                <div class="stat-count">{{ $newCount }}</div>
+                <div class="stat-label">New</div>
+            </div>
+
+            <div class="stat-box pending-stock"
+                 :class="{'selected': selectedStat === 'pending-stock'}"
+                 @click="setSelectedStat('pending-stock')"
+                 style="cursor: pointer;">
+                <div class="stat-count">{{ $pendingStockCount }}</div>
+                <div class="stat-label">Pending Stock</div>
+            </div>
+
+            <div class="stat-box pending-migration"
+                 :class="{'selected': selectedStat === 'pending-migration'}"
+                 @click="setSelectedStat('pending-migration')"
+                 style="cursor: pointer;">
+                <div class="stat-count">{{ $pendingMigrationCount }}</div>
+                <div class="stat-label">Pending Migration</div>
+            </div>
+
+            <div class="stat-box completed"
+                 :class="{'selected': selectedStat === 'completed'}"
+                 @click="setSelectedStat('completed')"
+                 style="cursor: pointer;">
+                <div class="stat-count">{{ $completedCount }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+
+            <div class="stat-box draft-rejected"
+                 :class="{'selected': selectedStat === 'draft-rejected'}"
+                 @click="setSelectedStat('draft-rejected')"
+                 style="cursor: pointer;">
+                <div class="stat-count">{{ $draftRejectedCount }}</div>
+                <div class="stat-label">Draft / Rejected</div>
+            </div>
         </div>
 
-        <div class="stat-box new"
-             :class="{'selected': selectedStat === 'new'}"
-             @click="setSelectedStat('new')"
-             style="cursor: pointer;">
-            <div class="stat-count">{{ $newCount }}</div>
-            <div class="stat-label">New</div>
+        <!-- Right content area -->
+        <div class="content-area">
+            <div class="hint-message" x-show="selectedStat === null" x-transition>
+                <h3>Select a category to view data</h3>
+                <p>Click on any of the stat boxes to display the corresponding information</p>
+            </div>
+
+            <div x-show="selectedStat === 'new' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-new'">
+                @livewire('hardware-handover-new')
+            </div>
+
+            <div x-show="selectedStat === 'pending-stock' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-stock'">
+                @livewire('hardware-handover-pending-stock')
+            </div>
+
+            <div x-show="selectedStat === 'pending-migration' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-migration'">
+                @livewire('hardware-handover-pending-migration')
+            </div>
+
+            <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-completed'">
+                @livewire('hardware-handover-completed')
+            </div>
+
+            <div x-show="selectedStat === 'draft-rejected'" x-transition :key="selectedStat + '-rejected'">
+                @livewire('hardware-handover-addon')
+            </div>
         </div>
-
-        <div class="stat-box pending-stock"
-             :class="{'selected': selectedStat === 'pending-stock'}"
-             @click="setSelectedStat('pending-stock')"
-             style="cursor: pointer;">
-            <div class="stat-count">{{ $pendingStockCount }}</div>
-            <div class="stat-label">Pending Stock</div>
-        </div>
-
-        <div class="stat-box pending-migration"
-             :class="{'selected': selectedStat === 'pending-migration'}"
-             @click="setSelectedStat('pending-migration')"
-             style="cursor: pointer;">
-            <div class="stat-count">{{ $pendingMigrationCount }}</div>
-            <div class="stat-label">Pending Migration</div>
-        </div>
-
-        <div class="stat-box completed"
-             :class="{'selected': selectedStat === 'completed'}"
-             @click="setSelectedStat('completed')"
-             style="cursor: pointer;">
-            <div class="stat-count">{{ $completedCount }}</div>
-            <div class="stat-label">Completed</div>
-        </div>
-
-        <div class="stat-box draft-rejected"
-             :class="{'selected': selectedStat === 'draft-rejected'}"
-             @click="setSelectedStat('draft-rejected')"
-             style="cursor: pointer;">
-            <div class="stat-count">{{ $draftRejectedCount }}</div>
-            <div class="stat-label">Draft / Rejected</div>
-        </div>
-    </div>
-
-    <div class="hint-message" x-show="selectedStat === null" x-transition>
-        <div class="icon-container" wire:poll.10s>
-            <i class="bi bi-hand-index"></i>
-        </div>
-        <h3>Select a category to view data</h3>
-        <p>Click on any of the stat boxes above to display the corresponding information</p>
-    </div>
-
-    <div x-show="selectedStat === 'new' || selectedStat === 'all'" x-transition :key="selectedStat + '-new'">
-        <br>
-        @livewire('hardware-handover-new')
-    </div>
-
-    <div x-show="selectedStat === 'pending-stock' || selectedStat === 'all'" x-transition :key="selectedStat + '-stock'">
-        <br>
-        @livewire('hardware-handover-pending-stock')
-    </div>
-
-    <div x-show="selectedStat === 'pending-migration' || selectedStat === 'all'" x-transition :key="selectedStat + '-migration'">
-        <br>
-        @livewire('hardware-handover-pending-migration')
-    </div>
-
-    <div x-show="selectedStat === 'completed' || selectedStat === 'all'" x-transition :key="selectedStat + '-completed'">
-        <br>
-        @livewire('hardware-handover-completed')
-    </div>
-
-    <div x-show="selectedStat === 'draft-rejected' || selectedStat === 'all'" x-transition :key="selectedStat + '-rejected'">
-        <br>
-        @livewire('hardware-handover-addon')
     </div>
 </div>
 
