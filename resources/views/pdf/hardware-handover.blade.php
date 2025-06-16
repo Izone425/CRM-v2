@@ -170,7 +170,7 @@
 
             @if($hardwareHandover->invoice_type === 'combined' && $hardwareHandover->related_software_handovers)
                 <tr>
-                    <td class="label">Related Software Handovers</td>
+                    <td class="label">Software Handovers</td>
                     <td>
                         @php
                             $relatedHandovers = is_string($hardwareHandover->related_software_handovers)

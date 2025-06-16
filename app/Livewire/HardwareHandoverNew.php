@@ -749,37 +749,37 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             Grid::make(3)
                                 ->schema([
                                     TextInput::make('tc10_quantity')
-                                        ->label('TC10 Quantity')
+                                        ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('face_id5_quantity')
-                                        ->label('FACE ID 5 Quantity')
+                                        ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('time_beacon_quantity')
-                                        ->label('TIME BEACON Quantity')
+                                        ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('tc20_quantity')
-                                        ->label('TC20 Quantity')
+                                        ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('face_id6_quantity')
-                                        ->label('FACE ID 6 Quantity')
+                                        ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('nfc_tag_quantity')
-                                        ->label('NFC TAG Quantity')
+                                        ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -853,6 +853,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                                 FileUpload::make('sales_order_file')
                                     ->label('Upload Sales Order')
+                                    ->required()
                                     ->disk('public')
                                     ->directory('handovers/sales_orders')
                                     ->visibility('public')
@@ -873,11 +874,43 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process file uploads
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
-                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                                // Get existing invoice files
+                                $existingFiles = [];
+                                if ($record->invoice_file) {
+                                    $existingFiles = is_string($record->invoice_file)
+                                        ? json_decode($record->invoice_file, true)
+                                        : $record->invoice_file;
+
+                                    if (!is_array($existingFiles)) {
+                                        $existingFiles = [];
+                                    }
+                                }
+
+                                // Merge existing files with newly uploaded ones
+                                $allFiles = array_merge($existingFiles, $data['invoice_file']);
+
+                                // Update data with combined files
+                                $data['invoice_file'] = json_encode($allFiles);
                             }
 
                             if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
-                                $data['sales_order_file'] = json_encode($data['sales_order_file']);
+                                // Get existing sales order files
+                                $existingFiles = [];
+                                if ($record->sales_order_file) {
+                                    $existingFiles = is_string($record->sales_order_file)
+                                        ? json_decode($record->sales_order_file, true)
+                                        : $record->sales_order_file;
+
+                                    if (!is_array($existingFiles)) {
+                                        $existingFiles = [];
+                                    }
+                                }
+
+                                // Merge existing files with newly uploaded ones
+                                $allFiles = array_merge($existingFiles, $data['sales_order_file']);
+
+                                // Update data with combined files
+                                $data['sales_order_file'] = json_encode($allFiles);
                             }
 
                             $implementerId = null;
@@ -933,6 +966,31 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             }
 
                             $record->update($updateData);
+
+                            try {
+                                // Get the controller for PDF generation
+                                $pdfController = new \App\Http\Controllers\GenerateHardwareHandoverPdfController();
+
+                                // Generate the new PDF
+                                $pdfPath = $pdfController->generateInBackground($record);
+
+                                if ($pdfPath) {
+                                    // Update the record with the new PDF path if needed
+                                    if ($pdfPath !== $record->handover_pdf) {
+                                        $record->update(['handover_pdf' => $pdfPath]);
+                                    }
+
+                                    \Illuminate\Support\Facades\Log::info("Hardware handover PDF regenerated successfully", [
+                                        'handover_id' => $record->id,
+                                        'pdf_path' => $pdfPath
+                                    ]);
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to regenerate hardware handover PDF", [
+                                    'handover_id' => $record->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
 
                             // Send email notification
                             try {
@@ -1072,37 +1130,37 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             Grid::make(3)
                                 ->schema([
                                     TextInput::make('tc10_quantity')
-                                        ->label('TC10 Quantity')
+                                        ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('face_id5_quantity')
-                                        ->label('FACE ID 5 Quantity')
+                                        ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('time_beacon_quantity')
-                                        ->label('TIME BEACON Quantity')
+                                        ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('tc20_quantity')
-                                        ->label('TC20 Quantity')
+                                        ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('face_id6_quantity')
-                                        ->label('FACE ID 6 Quantity')
+                                        ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
 
                                     TextInput::make('nfc_tag_quantity')
-                                        ->label('NFC TAG Quantity')
+                                        ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -1120,7 +1178,18 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 })
                                 ->searchable()
                                 ->required()
-                                ->disabled()
+                                ->disabled(function (HardwareHandover $record) {
+                                    // Only disable if there's an implementer from software handover
+                                    if ($record && $record->lead_id) {
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                            ->latest()
+                                            ->first();
+
+                                        return $softwareHandover && $softwareHandover->implementer;
+                                    }
+
+                                    return false; // Enable field if no software handover exists
+                                })
                                 ->default(function (HardwareHandover $record) {
                                     // First, check if we already have a set implementer for this record
                                     if ($record && $record->implementer) {
@@ -1147,6 +1216,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             ->schema([
                                 FileUpload::make('invoice_file')
                                     ->label('Upload Invoice')
+                                    ->required()
                                     ->disk('public')
                                     ->directory('handovers/invoices')
                                     ->visibility('public')
@@ -1185,11 +1255,43 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process file uploads
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
-                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                                // Get existing invoice files
+                                $existingFiles = [];
+                                if ($record->invoice_file) {
+                                    $existingFiles = is_string($record->invoice_file)
+                                        ? json_decode($record->invoice_file, true)
+                                        : $record->invoice_file;
+
+                                    if (!is_array($existingFiles)) {
+                                        $existingFiles = [];
+                                    }
+                                }
+
+                                // Merge existing files with newly uploaded ones
+                                $allFiles = array_merge($existingFiles, $data['invoice_file']);
+
+                                // Update data with combined files
+                                $data['invoice_file'] = json_encode($allFiles);
                             }
 
                             if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
-                                $data['sales_order_file'] = json_encode($data['sales_order_file']);
+                                // Get existing sales order files
+                                $existingFiles = [];
+                                if ($record->sales_order_file) {
+                                    $existingFiles = is_string($record->sales_order_file)
+                                        ? json_decode($record->sales_order_file, true)
+                                        : $record->sales_order_file;
+
+                                    if (!is_array($existingFiles)) {
+                                        $existingFiles = [];
+                                    }
+                                }
+
+                                // Merge existing files with newly uploaded ones
+                                $allFiles = array_merge($existingFiles, $data['sales_order_file']);
+
+                                // Update data with combined files
+                                $data['sales_order_file'] = json_encode($allFiles);
                             }
 
                             $implementerId = null;
@@ -1245,6 +1347,31 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             }
 
                             $record->update($updateData);
+
+                            try {
+                                // Get the controller for PDF generation
+                                $pdfController = new \App\Http\Controllers\GenerateHardwareHandoverPdfController();
+
+                                // Generate the new PDF
+                                $pdfPath = $pdfController->generateInBackground($record);
+
+                                if ($pdfPath) {
+                                    // Update the record with the new PDF path if needed
+                                    if ($pdfPath !== $record->handover_pdf) {
+                                        $record->update(['handover_pdf' => $pdfPath]);
+                                    }
+
+                                    \Illuminate\Support\Facades\Log::info("Hardware handover PDF regenerated successfully", [
+                                        'handover_id' => $record->id,
+                                        'pdf_path' => $pdfPath
+                                    ]);
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to regenerate hardware handover PDF", [
+                                    'handover_id' => $record->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
 
                             // Send email notification
                             try {

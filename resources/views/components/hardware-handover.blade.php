@@ -69,7 +69,7 @@
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Hardware Handover ID:</span>
-                    {{ isset($record->id) ? 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
+                    {{ isset($record->id) ? 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT) : '-' }}
                 </p>
                 <p class="mb-4">
                     <span class="font-semibold">Hardware Handover Form:</span>
@@ -186,22 +186,22 @@
 
                 <p class="mb-2">
                     <span class="font-semibold">Date Submit:</span>
-                    {{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d M Y') : 'Not submitted' }}
+                    {{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d M Y') : 'Not Available' }}
                 </p>
 
                 <p class="mb-2">
                     <span class="font-semibold">Date Pending Stock:</span>
-                    {{ $record->pending_stock_at ? \Carbon\Carbon::parse($record->pending_stock_at)->format('d M Y') : 'Not set' }}
+                    {{ $record->pending_stock_at ? \Carbon\Carbon::parse($record->pending_stock_at)->format('d M Y') : 'Not Available' }}
                 </p>
 
                 <p class="mb-2">
                     <span class="font-semibold">Date Pending Migration:</span>
-                    {{ $record->pending_migration_at ? \Carbon\Carbon::parse($record->pending_migration_at)->format('d M Y') : 'Not set' }}
+                    {{ $record->pending_migration_at ? \Carbon\Carbon::parse($record->pending_migration_at)->format('d M Y') : 'Not Available' }}
                 </p>
 
                 <p class="mb-2">
                     <span class="font-semibold">Date Completed:</span>
-                    {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not completed' }}
+                    {{ $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : 'Not Available' }}
                 </p>
             </div>
 

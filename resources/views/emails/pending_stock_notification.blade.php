@@ -10,7 +10,7 @@
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -49,7 +49,7 @@
         }
         th {
             background-color: #f2f2f2;
-            width: 40%;
+            width: 30%;
         }
         .button-container {
             text-align: center;
@@ -182,7 +182,7 @@
             @if($emailContent['handoverFormUrl'])
                 <div class="button-container">
                     <a href="{{ $emailContent['handoverFormUrl'] }}" class="button" target="_blank">
-                        Click here to view software handover form
+                        Click here to view hardware handover form
                     </a>
                 </div>
             @else

@@ -210,6 +210,18 @@ class HardwareHandoverRelationManager extends RelationManager
                                     // Retrieve options from the installer table
                                     return \App\Models\Installer::pluck('company_name', 'id')->toArray();
                                 })
+                                ->default(function (?HardwareHandover $record) {
+                                    // First check if record has category2 data already
+                                    if ($record && $record->category2) {
+                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                        if (isset($category2['installer']) && !empty($category2['installer'])) {
+                                            return $category2['installer'];
+                                        }
+                                    }
+
+                                    // No default installer if none found in the record
+                                    return null;
+                                })
                                 ->searchable()
                                 ->preload(),
                             Select::make('category2.reseller')
@@ -238,7 +250,18 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->label('Courier Address')
                                 ->required()
                                 ->rows(2)
-                                ->default(function () {
+                                ->default(function (?HardwareHandover $record = null) {
+                                    // First check if record has category2 data already
+                                    if ($record && $record->category2) {
+                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+
+                                        // If courier_address exists in the category2 data, use it
+                                        if (isset($category2['courier_address']) && !empty($category2['courier_address'])) {
+                                            return $category2['courier_address'];
+                                        }
+                                    }
+
+                                    // If no record data or no courier_address in category2, use the lead's address
                                     $owner = $this->getOwnerRecord();
 
                                     if ($owner->companyDetail) {
@@ -788,6 +811,36 @@ class HardwareHandoverRelationManager extends RelationManager
 
                     if (isset($data['video_files']) && is_array($data['video_files'])) {
                         $data['video_files'] = json_encode($data['video_files']);
+                    }
+
+                    if (isset($data['related_software_handovers']) && !empty($data['related_software_handovers'])) {
+                        // Decode if it's already been JSON encoded
+                        $softwareHandovers = is_string($data['related_software_handovers'])
+                            ? json_decode($data['related_software_handovers'], true)
+                            : $data['related_software_handovers'];
+
+                        if (!empty($softwareHandovers)) {
+                            $firstSoftwareHandoverId = is_array($softwareHandovers) ? $softwareHandovers[0] : $softwareHandovers;
+
+                            if ($firstSoftwareHandoverId) {
+                                $softwareHandover = \App\Models\SoftwareHandover::find($firstSoftwareHandoverId);
+
+                                if ($softwareHandover && $softwareHandover->implementer) {
+                                    $data['implementer'] = $softwareHandover->implementer;
+                                }
+                            }
+                        }
+                    } else {
+                        // If no related software handovers, check for other software handovers for this lead
+                        $leadId = $this->getOwnerRecord()->id;
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                            ->whereNotNull('implementer')
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($softwareHandover && $softwareHandover->implementer) {
+                            $data['implementer'] = $softwareHandover->implementer;
+                        }
                     }
 
                     // Create the handover record

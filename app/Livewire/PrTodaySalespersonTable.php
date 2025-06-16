@@ -48,8 +48,15 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
         $query = Lead::query()
             ->where('categories', '!=', 'Inactive')
             ->where('lead_status', '!=', 'Demo-Assigned')
-            ->whereDate('follow_up_date', today())
-            ->where('follow_up_counter', true)
+            ->where(function ($query) {
+                // For "Demo Cancelled" status, don't filter by follow_up_date
+                $query->where('lead_status', 'Demo Cancelled')
+                    ->orWhere(function ($subquery) {
+                        $subquery->where('lead_status', '!=', 'Demo Cancelled')
+                            ->whereDate('follow_up_date', today())
+                            ->where('follow_up_counter', true);
+                    });
+            })
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         // Salesperson filter logic
