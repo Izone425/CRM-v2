@@ -503,7 +503,7 @@ class SoftwareHandoverResource extends Resource
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('thire')
                     ->label('THIRE')
@@ -512,7 +512,7 @@ class SoftwareHandoverResource extends Resource
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('tacc')
                     ->label('TACC')
@@ -521,7 +521,7 @@ class SoftwareHandoverResource extends Resource
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('tpbi')
                     ->label('TPBI')
@@ -530,11 +530,12 @@ class SoftwareHandoverResource extends Resource
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('payroll_code')
                     ->label('Payroll Code')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('company_size_label')
                     ->label('Company Size')
                     ->formatStateUsing(function ($state, $record) {
@@ -581,19 +582,22 @@ class SoftwareHandoverResource extends Resource
                             return 'Error: ' . $e->getMessage();
                         }
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('go_live_date')
                     ->label('Go Live Date')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('kick_off_meeting')
                     ->label('Kick Off Date')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('webinar_training')
                     ->label('Webinar Date')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 // Existing date range filter

@@ -196,7 +196,7 @@ class HardwareHandoverRelationManager extends RelationManager
                 ->schema([
                     Forms\Components\Placeholder::make('installation_type_helper')
                         ->label('')
-                        ->content('Please select an installation type in Step 2 to see the relevant fields')
+                        ->content('Please select any option Category 1 at Step 4 to see the relevant fields.')
                         ->visible(fn(callable $get) => empty($get('installation_type')))
                         ->inlineLabel(),
 
@@ -250,6 +250,9 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->label('Courier Address')
                                 ->required()
                                 ->rows(2)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                 ->default(function (?HardwareHandover $record = null) {
                                     // First check if record has category2 data already
                                     if ($record && $record->category2) {
