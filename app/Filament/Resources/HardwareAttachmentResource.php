@@ -155,7 +155,7 @@ class HardwareAttachmentResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(function ($query) {
-                $query->where('status', 'Completed');
+                $query->whereIn('status', ['Completed', 'Pending Migration', 'Pending Stock']);
                 if (auth()->user()->role_id === 2) {
                     $userId = auth()->id();
 
@@ -222,7 +222,7 @@ class HardwareAttachmentResource extends Resource
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $shortened . '
+                                    ' . $fullName . '
                                 </a>';
                     })
                     ->html(),
@@ -239,15 +239,15 @@ class HardwareAttachmentResource extends Resource
                         return User::find($salespersonId)?->name ?? '-';
                     }),
 
-                TextColumn::make('hardwareHandover.implementer')
+                TextColumn::make('implementer')
                     ->label('Implementer')
                     ->sortable(),
 
-                // TextColumn::make('hardwareHandover.completed_at')
-                //     ->label('Completed Date & Time')
-                //     ->dateTime()
-                //     ->sortable()
-                //     ->toggleable(),
+                TextColumn::make('completed_at')
+                    ->label('Date Completed')
+                    ->date('d M Y')
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 // Tables\Filters\SelectFilter::make('hardware_handover_id')

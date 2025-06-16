@@ -5,6 +5,15 @@ namespace App\Livewire;
 use App\Filament\Filters\SortFilter;
 use App\Models\HardwareHandover;
 use App\Models\User;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -22,11 +31,15 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HardwareHandoverPendingMigration extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    protected static ?int $indexRepeater = 0;
+    protected static ?int $indexRepeater2 = 0;
 
     public function getOverdueHardwareHandovers()
     {
@@ -179,12 +192,334 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->requiresConfirmation()
+                        ->modalWidth('3xl')
+                        // ->requiresConfirmation()
                         ->modalHeading("Mark as Completed")
                         ->modalDescription('Are you sure you want to mark this handover as completed? This will complete the software handover process.')
                         ->modalSubmitActionLabel('Yes, Mark as Completed')
                         ->modalCancelActionLabel('No, Cancel')
-                        ->action(function (HardwareHandover $record): void {
+                        ->form([
+                            \Filament\Forms\Components\Section::make('Category 1')
+                            ->schema([
+                                // Hidden field to store the actual value
+                                \Filament\Forms\Components\Hidden::make('installation_type')
+                                    ->default(function ($record) {
+                                        return $record->installation_type ?? null;
+                                    }),
+
+                                // Display the selected installation type
+                                \Filament\Forms\Components\Grid::make(1)
+                                    ->schema([
+                                        \Filament\Forms\Components\Placeholder::make('installation_type_display')
+                                            ->label('Selected Installation Type')
+                                            ->inlineLabel()
+                                            ->content(function ($get) {
+                                                $type = $get('installation_type');
+                                                $label = match($type) {
+                                                    'courier' => 'Courier',
+                                                    'internal_installation' => 'Internal Installation',
+                                                    'external_installation' => 'External Installation',
+                                                    default => 'Not Selected'
+                                                };
+
+                                                // Different styles for different installation types
+                                                $styles = match($type) {
+                                                    'courier' => 'background-color: #ecfdf5; color: #065f46; padding: 8px 12px; border-radius: 4px; display: inline-block; font-weight: 500; border: 1px solid #10b981;',
+                                                    'internal_installation' => 'background-color: #eff6ff; color: #1e40af; padding: 8px 12px; border-radius: 4px; display: inline-block; font-weight: 500; border: 1px solid #3b82f6;',
+                                                    'external_installation' => 'background-color: #fffbeb; color: #92400e; padding: 8px 12px; border-radius: 4px; display: inline-block; font-weight: 500; border: 1px solid #f59e0b;',
+                                                    default => 'background-color: #f3f4f6; color: #1f2937; padding: 8px 12px; border-radius: 4px; display: inline-block; font-weight: 500; border: 1px solid #9ca3af;',
+                                                };
+
+                                                return new \Illuminate\Support\HtmlString(
+                                                    "<span style=\"{$styles}\">{$label}</span>"
+                                                );
+                                            })
+                                    ])
+                            ]),
+
+                            \Filament\Forms\Components\Section::make('Category 2')
+                                ->schema([
+                                    \Filament\Forms\Components\Placeholder::make('installation_type_helper')
+                                        ->label('')
+                                        ->content('Please select an installation type in Step 4 to see the relevant fields')
+                                        ->visible(fn(callable $get) => empty($get('installation_type')))
+                                        ->inlineLabel(),
+
+                                    \Filament\Forms\Components\Grid::make(1)
+                                        ->schema([
+                                            \Filament\Forms\Components\Select::make('category2.installer')
+                                                ->label('Installer')
+                                                ->visible(fn(callable $get) => $get('installation_type') === 'internal_installation')
+                                                ->required(fn(callable $get) => $get('installation_type') === 'internal_installation')
+                                                ->options(function () {
+                                                    // Retrieve options from the installer table
+                                                    return \App\Models\Installer::pluck('company_name', 'id')->toArray();
+                                                })
+                                                ->disabled()
+                                                ->default(function ($record) {
+                                                    // First check if record has category2 data already
+                                                    if ($record && $record->category2) {
+                                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                        if (isset($category2['installer']) && !empty($category2['installer'])) {
+                                                            return $category2['installer'];
+                                                        }
+                                                    }
+                                                    return null;
+                                                })
+                                                ->searchable()
+                                                ->preload(),
+
+                                            \Filament\Forms\Components\Select::make('category2.reseller')
+                                                ->label('Reseller')
+                                                ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                                ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                                ->options(function () {
+                                                    // Retrieve options from the reseller table
+                                                    return \App\Models\Reseller::pluck('company_name', 'id')->toArray();
+                                                })
+                                                ->disabled()
+                                                ->default(function ($record) {
+                                                    // First check if record has category2 data already
+                                                    if ($record && $record->category2) {
+                                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                        if (isset($category2['reseller']) && !empty($category2['reseller'])) {
+                                                            return $category2['reseller'];
+                                                        }
+                                                    }
+                                                    return null;
+                                                })
+                                                ->searchable()
+                                                ->preload(),
+
+                                            \Filament\Forms\Components\Textarea::make('category2.courier_address')
+                                                ->label('Courier Address')
+                                                ->required(fn(callable $get) => $get('installation_type') === 'courier')
+                                                ->rows(2)
+                                                ->disabled()
+                                                ->default(function ($record) {
+                                                    // First check if record has category2 data already
+                                                    if ($record && $record->category2) {
+                                                        $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                        if (isset($category2['courier_address']) && !empty($category2['courier_address'])) {
+                                                            return $category2['courier_address'];
+                                                        }
+                                                    }
+
+                                                    // If no record data, try to get lead address
+                                                    $lead = \App\Models\Lead::find($record->lead_id);
+                                                    if ($lead && $lead->companyDetail) {
+                                                        $address = $lead->companyDetail->company_address1 ?? '';
+                                                        if (!empty($lead->companyDetail->company_address2)) {
+                                                            $address .= ", " . $lead->companyDetail->company_address2;
+                                                        }
+                                                        if (!empty($lead->companyDetail->postcode) || !empty($lead->companyDetail->state)) {
+                                                            $address .= ", " . ($lead->companyDetail->postcode ?? '') . " " .
+                                                                ($lead->companyDetail->state ?? '');
+                                                        }
+                                                        return $address;
+                                                    } else if ($lead) {
+                                                        $address = $lead->address1 ?? '';
+                                                        if (!empty($lead->address2)) {
+                                                            $address .= ", " . $lead->address2;
+                                                        }
+                                                        if (!empty($lead->postcode) || !empty($lead->state)) {
+                                                            $address .= ", " . ($lead->postcode ?? '') . " " . ($lead->state ?? '');
+                                                        }
+                                                        return $address;
+                                                    }
+                                                    return '';
+                                                })
+                                                ->visible(fn(callable $get) => $get('installation_type') === 'courier'),
+
+                                            \Filament\Forms\Components\Grid::make(3)
+                                                ->schema([
+                                                    \Filament\Forms\Components\TextInput::make('category2.pic_name')
+                                                        ->label('Name')
+                                                        ->disabled()
+                                                        ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->default(function ($record) {
+                                                            if ($record && $record->category2) {
+                                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                                if (isset($category2['pic_name']) && !empty($category2['pic_name'])) {
+                                                                    return $category2['pic_name'];
+                                                                }
+                                                            }
+                                                            $lead = \App\Models\Lead::find($record->lead_id);
+                                                            return $lead->companyDetail->name ?? $lead->name ?? '';
+                                                        })
+                                                        ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+
+                                                    \Filament\Forms\Components\TextInput::make('category2.pic_phone')
+                                                        ->label('HP Number')
+                                                        ->disabled()
+                                                        ->tel()
+                                                        ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                                        ->default(function ($record) {
+                                                            if ($record && $record->category2) {
+                                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                                if (isset($category2['pic_phone']) && !empty($category2['pic_phone'])) {
+                                                                    return $category2['pic_phone'];
+                                                                }
+                                                            }
+                                                            $lead = \App\Models\Lead::find($record->lead_id);
+                                                            return $lead->companyDetail->contact_no ?? $lead->contact_no ?? '';
+                                                        })
+                                                        ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+
+                                                    \Filament\Forms\Components\TextInput::make('category2.email')
+                                                        ->label('Email Address')
+                                                        ->disabled()
+                                                        ->email()
+                                                        ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                                        ->default(function ($record) {
+                                                            if ($record && $record->category2) {
+                                                                $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                                                if (isset($category2['email']) && !empty($category2['email'])) {
+                                                                    return $category2['email'];
+                                                                }
+                                                            }
+                                                            $lead = \App\Models\Lead::find($record->lead_id);
+                                                            return $lead->companyDetail->email ?? $lead->email ?? '';
+                                                        })
+                                                        ->visible(fn(callable $get) => $get('installation_type') === 'external_installation'),
+                                                ]),
+                                        ]),
+                                ]),
+                            Section::make('Remark')
+                                ->schema([
+                                    Repeater::make('remarks')
+                                        ->label('Remarks')
+                                        ->hiddenLabel(true)
+                                        ->schema([
+                                            Grid::make(2)
+                                                ->schema([
+                                                    Textarea::make('remark')
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                        ->hiddenLabel(true)
+                                                        ->label(function ($livewire) {
+                                                            // Get the current array key from the state path
+                                                            $statePath = $livewire->getFormStatePath();
+                                                            $matches = [];
+                                                            if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                                                $index = (int) $matches[1];
+                                                                return 'Remark ' . ($index + 1);
+                                                            }
+
+                                                            return 'Remark';
+                                                        })
+                                                        ->placeholder('Enter remark here')
+                                                        ->autosize()
+                                                        ->rows(3),
+
+                                                    FileUpload::make('attachments')
+                                                        ->hiddenLabel(true)
+                                                        ->disk('public')
+                                                        ->directory('handovers/remark_attachments')
+                                                        ->visibility('public')
+                                                        ->multiple()
+                                                        ->maxFiles(3)
+                                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                        ->openable()
+                                                        ->downloadable()
+                                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                                            // In the context of a form within a table action, we can get the record from the mountedTableActionRecord property
+                                                            $record = $this->mountedTableActionRecord;
+
+                                                            if (!$record || !($record instanceof \App\Models\HardwareHandover)) {
+                                                                // Fallback if record not available
+                                                                $leadId = rand(1, 999); // Use a random number as fallback
+                                                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                            } else {
+                                                                // Use the lead ID from the record
+                                                                $leadId = $record->lead_id ?? $record->id;
+                                                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                            }
+
+                                                            // Get extension
+                                                            $extension = $file->getClientOriginalExtension();
+
+                                                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                                                            $timestamp = now()->format('YmdHis');
+                                                            $random = rand(1000, 9999);
+
+                                                            return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                                        }),
+                                                ])
+                                        ])
+                                        ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
+                                        ->addActionLabel('Add Remark')
+                                        ->maxItems(5)
+                                        ->defaultItems(1)
+                                        ->default(function (?HardwareHandover $record) {
+                                            if ($record && $record->remarks) {
+                                                // If it's a string, decode it
+                                                if (is_string($record->remarks)) {
+                                                    $decoded = json_decode($record->remarks, true);
+
+                                                    // Process each remark to handle its attachments
+                                                    if (is_array($decoded)) {
+                                                        foreach ($decoded as $key => $remark) {
+                                                            // Decode the attachments if they're stored as JSON string
+                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                            }
+                                                        }
+                                                        return $decoded;
+                                                    }
+                                                    return [];
+                                                }
+
+                                                // If it's already an array, return it but process attachments
+                                                if (is_array($record->remarks)) {
+                                                    $remarks = $record->remarks;
+                                                    foreach ($remarks as $key => $remark) {
+                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                                        }
+                                                    }
+                                                    return $remarks;
+                                                }
+                                            }
+                                            return [];
+                                        }),
+                                ]),
+                        ])
+                        ->action(function (HardwareHandover $record, array $data): void {
+                            // Process remarks to merge with existing ones
+                            if (isset($data['remarks']) && is_array($data['remarks'])) {
+                                // Get existing remarks
+                                $existingRemarks = [];
+                                if ($record->remarks) {
+                                    $existingRemarks = is_string($record->remarks)
+                                        ? json_decode($record->remarks, true)
+                                        : $record->remarks;
+
+                                    if (!is_array($existingRemarks)) {
+                                        $existingRemarks = [];
+                                    }
+                                }
+
+                                // Process new remarks and encode attachments
+                                foreach ($data['remarks'] as $key => $remark) {
+                                    if (isset($remark['attachments']) && is_array($remark['attachments'])) {
+                                        $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                                    }
+
+                                    // Add timestamp to new remarks
+                                    $data['remarks'][$key]['created_at'] = now()->format('Y-m-d H:i:s');
+                                    $data['remarks'][$key]['user_name'] = auth()->user()->name;
+                                }
+
+                                // Merge existing remarks with new ones
+                                $allRemarks = array_merge($existingRemarks, $data['remarks']);
+
+                                // Update the data array with merged remarks
+                                $data['remarks'] = json_encode($allRemarks);
+                            }
+
                             // Get the implementer info
                             $implementerId = $record->implementer;
                             $implementer = \App\Models\User::find($implementerId);
@@ -200,14 +535,36 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                             // Get the company name
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
-                            // Update the record
-                            $record->update([
+                            // Update the record with merged remarks and status change
+                            $updateData = [
                                 'completed_at' => now(),
                                 'status' => 'Completed'
-                            ]);
+                            ];
+
+                            // Only include remarks in update if they exist
+                            if (isset($data['remarks'])) {
+                                $updateData['remarks'] = $data['remarks'];
+                            }
+
+                            $record->update($updateData);
+
+                            // Regenerate PDF with updated information
+                            try {
+                                $pdfController = new \App\Http\Controllers\GenerateHardwareHandoverPdfController();
+                                $pdfPath = $pdfController->generateInBackground($record);
+
+                                if ($pdfPath && $pdfPath !== $record->handover_pdf) {
+                                    $record->update(['handover_pdf' => $pdfPath]);
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to regenerate hardware handover PDF", [
+                                    'handover_id' => $record->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
 
                             // Format the handover ID properly
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
                             // Get the handover PDF URL
                             $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
@@ -291,13 +648,13 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                 }
                             } catch (\Exception $e) {
                                 // Log error but don't stop the process
-                                \Illuminate\Support\Facades\Log::error("Email sending failed for software handover #{$record->id}: {$e->getMessage()}");
+                                \Illuminate\Support\Facades\Log::error("Email sending failed for hardware handover #{$record->id}: {$e->getMessage()}");
                             }
 
                             Notification::make()
-                                ->title('License has been activated successfully')
+                                ->title('Hardware handover has been completed successfully')
                                 ->success()
-                                ->body('Software handover has been marked as completed.')
+                                ->body('Hardware handover has been marked as completed.')
                                 ->send();
                         })
                 ])
