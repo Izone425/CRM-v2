@@ -192,37 +192,55 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc10_quantity ?? 0;
+                                        }),
 
                                     TextInput::make('face_id5_quantity')
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->face_id5_quantity ?? 0;
+                                        }),
 
                                     TextInput::make('time_beacon_quantity')
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->time_beacon_quantity ?? 0;
+                                        }),
 
                                     TextInput::make('tc20_quantity')
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc20_quantity ?? 0;
+                                        }),
 
                                     TextInput::make('face_id6_quantity')
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->face_id6_quantity ?? 0;
+                                        }),
 
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->disabled()
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->nfc_tag_quantity ?? 0;
+                                        }),
                                 ]),
 
                             Select::make('implementer')

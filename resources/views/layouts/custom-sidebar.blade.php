@@ -444,7 +444,7 @@
 
                             <!-- Level 3 dropdown content -->
                             <div class="nested-dropdown-content">
-                                <a href="{{ route('filament.admin.resources.hardware-handovers.index') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard</span>
                                 </a>
@@ -542,12 +542,12 @@
 
                         <!-- Level 3 dropdown content -->
                         <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.resources.hardware-handovers.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - All</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.resources.hardware-pending-stocks.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - Pending Stock</span>
                             </a>
@@ -793,7 +793,7 @@
                     @endif
 
                     <!-- Hardware Handover -->
-                    @if(auth()->user()->hasAccessToAny(['filament.admin.resources.hardware-handovers.index', 'filament.admin.pages.future-enhancement']) || in_array(auth()->user()->role_id, [4]))
+                    @if(auth()->user()->hasAccessToAny(['filament.admin.pages.hardware-dashboard-all', 'filament.admin.pages.future-enhancement']) || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-cpu"></i>
@@ -803,7 +803,7 @@
 
                         <div class="nested-dropdown-content">
                             @if(auth()->user()->hasRouteAccess('filament.admin.resources.hardware-handovers.index') || in_array(auth()->user()->role_id, [4]))
-                            <a href="{{ route('filament.admin.resources.hardware-handovers.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard</span>
                             </a>

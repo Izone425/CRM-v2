@@ -177,6 +177,43 @@
                         @endif
                     </td>
                 </tr>
+                @if(!empty($emailContent['admin_remarks']))
+                <tr>
+                    <th>Admin Remarks</th>
+                    <td>
+                        <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                            <tbody>
+                                @foreach($emailContent['admin_remarks'] as $index => $remark)
+                                    <tr>
+                                        <td style="border: 1px solid #e0e0e0; padding: 12px; background-color: {{ $index % 2 == 0 ? '#f9f9f9' : '#ffffff' }};">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                                <div style="font-weight: bold; color: #10b981;">Remark {{ $index + 1 }}</div>
+                                            </div>
+
+                                            <div style="margin-bottom: 10px; padding-left: 10px; border-left: 3px solid #10b981;">
+                                                {{ $remark['text'] }}
+                                            </div>
+
+                                            @if(!empty($remark['attachments']))
+                                                <div style="margin-top: 10px;">
+                                                    <div style="font-weight: bold; margin-bottom: 5px;">Attachments:</div>
+                                                    <div>
+                                                        @foreach($remark['attachments'] as $attachment)
+                                                            <a href="{{ $attachment['url'] }}" target="_blank" style="background-color: #10b981; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 5px; margin-bottom: 5px;">
+                                                                {{ pathinfo($attachment['filename'], PATHINFO_FILENAME) }}
+                                                            </a>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                @endif
             </table>
 
             @if($emailContent['handoverFormUrl'])

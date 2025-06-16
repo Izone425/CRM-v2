@@ -72,7 +72,7 @@ class QuotationRelationManager extends RelationManager
                     ->label('Add Quotation')
                     // ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
                     ->color('primary')
-                    ->visible(fn () => in_array(auth('web')->user()->role_id, [2, 3]))
+                    ->visible(fn () => in_array(auth('web')->user()->role_id, [1, 2, 3]))
                     ->action(function () {
                         // Check if company address is incomplete
                         // if ($this->isCompanyAddressIncomplete()) {
