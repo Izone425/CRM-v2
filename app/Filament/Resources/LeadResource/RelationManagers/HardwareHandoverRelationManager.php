@@ -971,7 +971,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     })
                     ->wrap()
                     ->html() // Important: Add this to render the HTML content
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
