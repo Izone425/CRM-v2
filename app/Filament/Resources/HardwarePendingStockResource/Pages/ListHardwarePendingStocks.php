@@ -9,7 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListHardwarePendingStocks extends ListRecords
 {
     protected static string $resource = HardwarePendingStockResource::class;
-    protected static ?string $title = 'Hardware Handover - Pending Stocks';
+    protected static ?string $title = 'Dashboard - Pending Stocks';
 
     protected function getHeaderActions(): array
     {

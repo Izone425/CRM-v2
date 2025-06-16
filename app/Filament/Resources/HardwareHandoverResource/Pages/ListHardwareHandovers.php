@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListHardwareHandovers extends ListRecords
 {
     protected static string $resource = HardwareHandoverResource::class;
+    protected static ?string $title = 'Dashboard - All';
 
     protected function getHeaderActions(): array
     {
