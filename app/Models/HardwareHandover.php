@@ -31,6 +31,7 @@ class HardwareHandover extends Model
         'reseller',
         'implementer',
         'remarks',
+        'admin_remarks',
         'proforma_invoice_hrdf',
         'proforma_invoice_product',
         'tc10_quantity',
@@ -70,6 +71,7 @@ class HardwareHandover extends Model
         'sales_order_file' => 'array',
         'remarks' => 'array',
         'related_software_handovers' => 'array',
+        'admin_remarks' => 'array',
     ];
 
     /**

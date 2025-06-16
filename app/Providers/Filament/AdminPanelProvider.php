@@ -9,6 +9,8 @@ use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
+use App\Filament\Pages\HardwareDashboardAll;
+use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
@@ -28,7 +30,6 @@ use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
 use App\Filament\Resources\HardwareAttachmentResource;
-use App\Filament\Resources\HardwareHandoverResource;
 use App\Filament\Resources\HardwarePendingStockResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InstallerResource;
@@ -146,7 +147,6 @@ class AdminPanelProvider extends PanelProvider
                 UserResource::class,
                 ResellerResource::class,
                 SoftwareHandoverResource::class,
-                HardwareHandoverResource::class,
                 RoleResource::class,
                 SoftwareAttachmentResource::class,
                 HardwareAttachmentResource::class,
@@ -173,6 +173,8 @@ class AdminPanelProvider extends PanelProvider
                 SalesForecastSummary::class,
                 PagesFutureEnhancement::class,
                 SearchLead::class,
+                HardwareDashboardAll::class,
+                HardwareDashboardPendingStock::class,
                 // SoftwareHandoverAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

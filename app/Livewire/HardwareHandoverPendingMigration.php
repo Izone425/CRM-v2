@@ -451,80 +451,74 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                         ])
                                         ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
                                         ->addActionLabel('Add Remark')
-                                        ->maxItems(5)
-                                        ->defaultItems(1)
-                                        ->default(function (?HardwareHandover $record) {
-                                            if ($record && $record->remarks) {
-                                                // If it's a string, decode it
-                                                if (is_string($record->remarks)) {
-                                                    $decoded = json_decode($record->remarks, true);
-
-                                                    // Process each remark to handle its attachments
-                                                    if (is_array($decoded)) {
-                                                        foreach ($decoded as $key => $remark) {
-                                                            // Decode the attachments if they're stored as JSON string
-                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                                            }
-                                                        }
-                                                        return $decoded;
-                                                    }
-                                                    return [];
-                                                }
-
-                                                // If it's already an array, return it but process attachments
-                                                if (is_array($record->remarks)) {
-                                                    $remarks = $record->remarks;
-                                                    foreach ($remarks as $key => $remark) {
-                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                                        }
-                                                    }
-                                                    return $remarks;
-                                                }
-                                            }
-                                            return [];
-                                        }),
+                                        ->maxItems(5),
                                 ]),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process remarks to merge with existing ones
                             if (isset($data['remarks']) && is_array($data['remarks'])) {
-                                // Get existing remarks
-                                $existingRemarks = [];
-                                if ($record->remarks) {
-                                    $existingRemarks = is_string($record->remarks)
-                                        ? json_decode($record->remarks, true)
-                                        : $record->remarks;
+                                // Get existing admin remarks
+                                $existingAdminRemarks = [];
+                                if ($record->admin_remarks) {
+                                    $existingAdminRemarks = is_string($record->admin_remarks)
+                                        ? json_decode($record->admin_remarks, true)
+                                        : $record->admin_remarks;
 
-                                    if (!is_array($existingRemarks)) {
-                                        $existingRemarks = [];
+                                    if (!is_array($existingAdminRemarks)) {
+                                        $existingAdminRemarks = [];
                                     }
                                 }
 
                                 // Process new remarks and encode attachments
                                 foreach ($data['remarks'] as $key => $remark) {
+                                    // Store attachments in a proper format
                                     if (isset($remark['attachments']) && is_array($remark['attachments'])) {
                                         $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
                                     }
-
-                                    // Add timestamp to new remarks
-                                    $data['remarks'][$key]['created_at'] = now()->format('Y-m-d H:i:s');
-                                    $data['remarks'][$key]['user_name'] = auth()->user()->name;
                                 }
 
-                                // Merge existing remarks with new ones
-                                $allRemarks = array_merge($existingRemarks, $data['remarks']);
+                                // Merge existing admin remarks with new ones
+                                $allAdminRemarks = array_merge($existingAdminRemarks, $data['remarks']);
 
-                                // Update the data array with merged remarks
-                                $data['remarks'] = json_encode($allRemarks);
+                                // Update the record with admin remarks
+                                $updateData = [
+                                    'completed_at' => now(),
+                                    'status' => 'Completed',
+                                    'admin_remarks' => json_encode($allAdminRemarks)
+                                ];
+
+                                $record->update($updateData);
+                            }
+                            else {
+                                // If no remarks provided, just update status
+                                $record->update([
+                                    'completed_at' => now(),
+                                    'status' => 'Completed'
+                                ]);
                             }
 
                             // Get the implementer info
-                            $implementerId = $record->implementer;
-                            $implementer = \App\Models\User::find($implementerId);
-                            $implementerEmail = $implementer?->email ?? null;
-                            $implementerName = $implementer?->name ?? 'Unknown';
+                            $implementerName = $record->implementer ?? 'Unknown';
+                            $implementer = null;
+                            $implementerEmail = null;
+
+                            // Check if implementer is a name (string) or an ID
+                            if ($implementerName && is_string($implementerName)) {
+                                // Try to find user by name
+                                $implementer = \App\Models\User::where('name', $implementerName)->first();
+                                if (!$implementer) {
+                                    // As fallback, check if it might be an ID despite being stored as implementer
+                                    $implementer = \App\Models\User::find($implementerName);
+                                }
+
+                                // Get email if we found a user
+                                $implementerEmail = $implementer?->email ?? null;
+                            } else if (is_numeric($implementerName)) {
+                                // If implementer is stored as an ID
+                                $implementer = \App\Models\User::find($implementerName);
+                                $implementerEmail = $implementer?->email ?? null;
+                                $implementerName = $implementer?->name ?? 'Unknown';
+                            }
 
                             // Get the salesperson info
                             $salespersonId = $record->lead->salesperson ?? null;
@@ -534,17 +528,6 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
 
                             // Get the company name
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
-
-                            // Update the record with merged remarks and status change
-                            $updateData = [
-                                'completed_at' => now(),
-                                'status' => 'Completed'
-                            ];
-
-                            // Only include remarks in update if they exist
-                            if (isset($data['remarks'])) {
-                                $updateData['remarks'] = $data['remarks'];
-                            }
 
                             $record->update($updateData);
 
@@ -612,8 +595,46 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                             'quantity' => $record->nfc_tag_quantity,
                                             'status' => $record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ]
-                                    ]
+                                    ],
+                                    'admin_remarks' => []
                                 ];
+
+                                if ($record->admin_remarks) {
+                                    $adminRemarks = is_string($record->admin_remarks)
+                                        ? json_decode($record->admin_remarks, true)
+                                        : $record->admin_remarks;
+
+                                    if (is_array($adminRemarks)) {
+                                        foreach ($adminRemarks as $remark) {
+                                            $formattedRemark = [
+                                                'text' => $remark['remark'] ?? '',
+                                                'created_by' => $remark['user_name'] ?? 'Admin',
+                                                'created_at' => isset($remark['created_at'])
+                                                    ? Carbon::parse($remark['created_at'])->format('d M Y h:i A')
+                                                    : now()->format('d M Y h:i A'),
+                                                'attachments' => []
+                                            ];
+
+                                            // Process attachments for this remark
+                                            if (isset($remark['attachments'])) {
+                                                $attachments = is_string($remark['attachments'])
+                                                    ? json_decode($remark['attachments'], true)
+                                                    : $remark['attachments'];
+
+                                                if (is_array($attachments)) {
+                                                    foreach ($attachments as $attachment) {
+                                                        $formattedRemark['attachments'][] = [
+                                                            'url' => url('storage/' . $attachment),
+                                                            'filename' => basename($attachment)
+                                                        ];
+                                                    }
+                                                }
+                                            }
+
+                                            $emailContent['admin_remarks'][] = $formattedRemark;
+                                        }
+                                    }
+                                }
 
                                 // Initialize recipients array
                                 $recipients = [];
@@ -629,7 +650,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                 }
 
                                 // Always include admin
-                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
