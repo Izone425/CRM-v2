@@ -1435,28 +1435,28 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                     'salesOrderFiles' => $salesOrderFiles,
                                     'devices' => [
                                         'tc10' => [
-                                            'quantity' => (int)$record->tc10_quantity,
-                                            'status' => (int)$record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['tc10_quantity'],
+                                            'status' => (int)$data['tc10_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'tc20' => [
-                                            'quantity' => (int)$record->tc20_quantity,
-                                            'status' => (int)$record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['tc20_quantity'],
+                                            'status' => (int)$data['tc20_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id5' => [
-                                            'quantity' => (int)$record->face_id5_quantity,
-                                            'status' => (int)$record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['face_id5_quantity'],
+                                            'status' => (int)$data['face_id5_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id6' => [
-                                            'quantity' => (int)$record->face_id6_quantity,
-                                            'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['face_id6_quantity'],
+                                            'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
-                                            'quantity' => (int)$record->time_beacon_quantity,
-                                            'status' => (int)$record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['time_beacon_quantity'],
+                                            'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'nfc_tag' => [
-                                            'quantity' => (int)$record->nfc_tag_quantity,
-                                            'status' => (int)$record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$data['nfc_tag_quantity'],
+                                            'status' => (int)$data['nfc_tag_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ]
                                     ]
                                 ];
