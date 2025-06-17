@@ -26,13 +26,15 @@ class DashboardForm extends Page
 
     public function mount()
     {
-        $this->users = User::whereIn('role_id', [1, 2, 4])->get(); // Fetch users with roles 1 and 2
+        $this->users = User::whereIn('role_id', [1, 2, 4, 5])->get(); // Fetch users with roles 1 and 2
 
         $currentUser = auth()->user();
         $defaultDashboard = match($currentUser->role_id) {
             1 => 'LeadOwner',
             2 => 'Salesperson',
             3 => 'Manager',
+            4 => 'Implementer',
+            5 => 'Implementer',
             default => 'LeadOwner',
         };
 
@@ -121,7 +123,7 @@ class DashboardForm extends Page
                         1 => 'LeadOwner',
                         2 => 'Salesperson',
                         3 => 'Manager',
-                        4 => 'Implementer', // Add this line for implementers
+                        4, 5 => 'Implementer',
                         default => 'Manager',
                     });
                 }

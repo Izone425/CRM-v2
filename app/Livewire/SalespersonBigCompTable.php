@@ -19,6 +19,8 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\Filter;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class SalespersonBigCompTable extends Component implements HasForms, HasTable
 {
@@ -44,6 +46,27 @@ class SalespersonBigCompTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'SalesPerson (25 Above) - ' . $this->getActiveBigCompanyLeadsWithSalesperson()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                Filter::make('created_at')
+                ->form([
+                    DateRangePicker::make('date_range')
+                        ->label('')
+                        ->placeholder('Select created date range'),
+                ])
+                ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                    if (!empty($data['date_range'])) {
+                        // Parse the date range from the "start - end" format
+                        [$start, $end] = explode(' - ', $data['date_range']);
+
+                        // Ensure valid dates
+                        $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                        $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                        // Apply the filter
+                        $query->whereBetween('created_at', [$startDate, $endDate]);
+                    }
+                })
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

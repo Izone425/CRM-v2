@@ -19,6 +19,8 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Tables\Filters\Filter;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class InactiveSmallCompTable extends Component implements HasForms, HasTable
 {
@@ -31,7 +33,7 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
             ->where('categories', 'Inactive') // Only Inactive leads
             ->where('company_size', '=', '1-24') // Only small companies (1-24)
             ->whereNotNull('salesperson')
-            ->where('lead_status', '!=', 'Closed') 
+            ->where('lead_status', '!=', 'Closed')
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }
 
@@ -45,6 +47,27 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
             // ->heading(fn () => 'Inactive (1-24) - ' . $this->getInactiveSmallCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->filters([
+                Filter::make('created_at')
+                ->form([
+                    DateRangePicker::make('date_range')
+                        ->label('')
+                        ->placeholder('Select created date range'),
+                ])
+                ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                    if (!empty($data['date_range'])) {
+                        // Parse the date range from the "start - end" format
+                        [$start, $end] = explode(' - ', $data['date_range']);
+
+                        // Ensure valid dates
+                        $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                        $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                        // Apply the filter
+                        $query->whereBetween('created_at', [$startDate, $endDate]);
+                    }
+                })
+            ])
             ->columns([
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')

@@ -686,7 +686,7 @@
                          :class="{'selected': selectedStat === 'active-small'}"
                          @click="setSelectedStat('active-small')">
                         <div class="stat-info">
-                            <div class="stat-label">Active Small Comp</div>
+                            <div class="stat-label">Active | Small Company</div>
                         </div>
                         <div class="stat-count">{{ $activeSmallCompCount }}</div>
                     </div>
@@ -695,7 +695,7 @@
                          :class="{'selected': selectedStat === 'active-big'}"
                          @click="setSelectedStat('active-big')">
                         <div class="stat-info">
-                            <div class="stat-label">Active Big Comp</div>
+                            <div class="stat-label">Active | Big Company</div>
                         </div>
                         <div class="stat-count">{{ $activeBigCompCount }}</div>
                     </div>
@@ -704,7 +704,7 @@
                          :class="{'selected': selectedStat === 'call-attempt-small'}"
                          @click="setSelectedStat('call-attempt-small')">
                         <div class="stat-info">
-                            <div class="stat-label">Call Attempts Small</div>
+                            <div class="stat-label">Call Attempt | Small Company</div>
                         </div>
                         <div class="stat-count">{{ $callAttemptSmallCount }}</div>
                     </div>
@@ -713,7 +713,7 @@
                          :class="{'selected': selectedStat === 'call-attempt-big'}"
                          @click="setSelectedStat('call-attempt-big')">
                         <div class="stat-info">
-                            <div class="stat-label">Call Attempts Big</div>
+                            <div class="stat-label">Call Attempt | Big Company</div>
                         </div>
                         <div class="stat-count">{{ $callAttemptBigCount }}</div>
                     </div>
@@ -725,7 +725,8 @@
                          :class="{'selected': selectedStat === 'inactive-small1'}"
                          @click="setSelectedStat('inactive-small1')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Small 1</div>
+                            <div class="stat-label">InActive | Small Company</div>
+                            <div class="stat-label">Follow Up 1</div>
                         </div>
                         <div class="stat-count">{{ $inactiveSmall1Count }}</div>
                     </div>
@@ -734,7 +735,8 @@
                          :class="{'selected': selectedStat === 'inactive-big1'}"
                          @click="setSelectedStat('inactive-big1')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Big 1</div>
+                            <div class="stat-label">InActive | Big Company</div>
+                            <div class="stat-label">Follow Up 1</div>
                         </div>
                         <div class="stat-count">{{ $inactiveBig1Count }}</div>
                     </div>
@@ -743,7 +745,8 @@
                          :class="{'selected': selectedStat === 'inactive-small2'}"
                          @click="setSelectedStat('inactive-small2')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Small 2</div>
+                            <div class="stat-label">InActive | Small Company</div>
+                            <div class="stat-label">Follow Up 2</div>
                         </div>
                         <div class="stat-count">{{ $inactiveSmall2Count }}</div>
                     </div>
@@ -752,7 +755,8 @@
                          :class="{'selected': selectedStat === 'inactive-big2'}"
                          @click="setSelectedStat('inactive-big2')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Big 2</div>
+                            <div class="stat-label">InActive | Big Company</div>
+                            <div class="stat-label">Follow Up 2</div>
                         </div>
                         <div class="stat-count">{{ $inactiveBig2Count }}</div>
                     </div>
@@ -764,7 +768,8 @@
                          :class="{'selected': selectedStat === 'salesperson-small'}"
                          @click="setSelectedStat('salesperson-small')">
                         <div class="stat-info">
-                            <div class="stat-label">Salesperson Small</div>
+                            <div class="stat-label">SalesPerson | Active</div>
+                            <div class="stat-label">Small Company</div>
                         </div>
                         <div class="stat-count">{{ $salespersonSmallCount }}</div>
                     </div>
@@ -773,7 +778,8 @@
                          :class="{'selected': selectedStat === 'salesperson-big'}"
                          @click="setSelectedStat('salesperson-big')">
                         <div class="stat-info">
-                            <div class="stat-label">Salesperson Big</div>
+                            <div class="stat-label">SalesPerson | Active</div>
+                            <div class="stat-label">Big Company</div>
                         </div>
                         <div class="stat-count">{{ $salespersonBigCount }}</div>
                     </div>
@@ -782,7 +788,8 @@
                             :class="{'selected': selectedStat === 'inactive-small'}"
                             @click="setSelectedStat('inactive-small')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Small</div>
+                            <div class="stat-label">SalesPerson | InActive</div>
+                            <div class="stat-label">Small Company</div>
                         </div>
                         <div class="stat-count">{{ $inactiveSmallCount }}</div>
                     </div>
@@ -791,7 +798,8 @@
                             :class="{'selected': selectedStat === 'inactive-big'}"
                             @click="setSelectedStat('inactive-big')">
                         <div class="stat-info">
-                            <div class="stat-label">Inactive Big</div>
+                            <div class="stat-label">SalesPerson | InActive</div>
+                            <div class="stat-label">Big Company</div>
                         </div>
                         <div class="stat-count">{{ $inactiveBigCount }}</div>
                     </div>

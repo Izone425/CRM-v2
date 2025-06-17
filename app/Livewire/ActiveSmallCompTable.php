@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\CategoryService;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -76,6 +77,19 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
+                TextColumn::make('company_size_label')
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('created_at')
                     ->label('Created Time')
                     ->sortable()

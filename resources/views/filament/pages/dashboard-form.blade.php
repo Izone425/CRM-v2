@@ -87,6 +87,44 @@
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 @include('filament.pages.salesperson')
             </div>
+        @elseif(auth()->user()->role_id == 5)
+            <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
+                <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Implementer Dashboard</h1>
+
+                <div class="flex items-center mb-6">
+                    <div>
+                        <select
+                            wire:model.live="selectedUser"
+                            id="userFilter"
+                            class="border-gray-300 rounded-md shadow-sm"
+                        >
+                            <option value="{{ auth()->id() }}">Dashboard</option>
+
+                            <option value="all-implementer">All Implementers</option>
+
+                            <optgroup label="Implementer">
+                                @foreach ($users->whereIn('role_id', [4,5])->where('id', '!=', auth()->id()) as $user)
+                                    <option value="{{ $user->id }}">
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                @include('filament.pages.implementer')
+            </div>
+        @elseif (auth()->user()->role_id == 4)
+            <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
+                <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Implementer Dashboard</h1>
+            </div>
+            <br>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                @include('filament.pages.implementer')
+            </div>
         @elseif (auth()->user()->role_id == 3)
         <div class="space-y-4">
             <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
@@ -116,7 +154,7 @@
                             </optgroup>
 
                             <optgroup label="Implementer">
-                                @foreach ($users->where('role_id', 4) as $user)
+                                @foreach ($users->whereIn('role_id', [4, 5]) as $user)
                                     <option value="{{ $user->id }}">
                                         {{ $user->name }}
                                     </option>
@@ -565,7 +603,7 @@
                     @include('filament.pages.salesperson')
                 @elseif ($selectedUserRole == 3)
                     @include('filament.pages.manager')
-                @elseif ($selectedUserRole == 4)
+                @elseif ($selectedUserRole == 4 || $selectedUserRole == 5)
                     @include('filament.pages.implementer')
                 @else
                     @if ($currentDashboard === 'LeadOwner')
