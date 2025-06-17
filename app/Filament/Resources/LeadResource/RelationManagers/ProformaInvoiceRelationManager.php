@@ -180,7 +180,7 @@ class ProformaInvoiceRelationManager extends RelationManager
                 ->label('View Proforma Invoice')
                 ->color('primary')
                 ->icon('heroicon-o-document-text')
-                ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice', $quotation))
+                ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice-v2', $quotation))
                 ->openUrlInNewTab()
                 ->hidden(fn(Quotation $quotation) => $quotation->status != QuotationStatusEnum::accepted),
             ]);
