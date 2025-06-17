@@ -74,6 +74,16 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::where('role_id', '4')
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementers')
+                    ->multiple(),
+
                 SortFilter::make("sort_by"),
             ])
             ->columns([
@@ -396,17 +406,11 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             $salespersonEmail = $salesperson?->email ?? null;
                             $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                            // $updateData = [
-                            //     'tc10_quantity' => $data['tc10_quantity'],
-                            //     'tc20_quantity' => $data['tc20_quantity'],
-                            //     'face_id5_quantity' => $data['face_id5_quantity'],
-                            //     'face_id6_quantity' => $data['face_id6_quantity'],
-                            //     'time_beacon_quantity' => $data['time_beacon_quantity'],
-                            //     'nfc_tag_quantity' => $data['nfc_tag_quantity'],
-                            //     'implementer' => $implementerName ?? null,
-                            //     'pending_migration_at' => now(),
-                            //     'status' => 'Pending Migration',
-                            // ];
+                            $updateData = [
+                                'implementer' => $implementerName ?? null,
+                                'pending_migration_at' => now(),
+                                'status' => 'Pending Migration',
+                            ];
 
                             if (isset($data['invoice_file'])) {
                                 $updateData['invoice_file'] = $data['invoice_file'];
