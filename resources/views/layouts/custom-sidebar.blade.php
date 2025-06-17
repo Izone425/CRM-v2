@@ -446,7 +446,17 @@
                             <div class="nested-dropdown-content">
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
-                                    <span>Dashboard</span>
+                                    <span>Dashboard - All</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard - Pending Stock</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard - Inventory</span>
                                 </a>
 
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
@@ -802,12 +812,20 @@
                         </div>
 
                         <div class="nested-dropdown-content">
-                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.hardware-handovers.index') || in_array(auth()->user()->role_id, [4]))
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
-                                <span>Dashboard</span>
+                                <span>Dashboard - All</span>
                             </a>
-                            @endif
+
+                            <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Dashboard - Pending Stock</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Dashboard - Inventory</span>
+                            </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>

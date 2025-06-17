@@ -37,12 +37,12 @@ class HardwareDashboardAll extends Page implements HasTable
             ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration'])
             ->orderBy('created_at', 'desc');
 
-        if (auth()->user()->role_id === 2) {
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        }
+        // if (auth()->user()->role_id === 2) {
+        //     $userId = auth()->id();
+        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+        //         $leadQuery->where('salesperson', $userId);
+        //     });
+        // }
 
         return $query;
     }
@@ -53,12 +53,12 @@ class HardwareDashboardAll extends Page implements HasTable
             ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration']);
 
         // Apply salesperson filter for sales users
-        if (auth()->user()->role_id === 2) {
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        }
+        // if (auth()->user()->role_id === 2) {
+        //     $userId = auth()->id();
+        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+        //         $leadQuery->where('salesperson', $userId);
+        //     });
+        // }
 
         // Sum the quantities
         return $query->sum($columnName) ?? 0;
@@ -70,12 +70,12 @@ class HardwareDashboardAll extends Page implements HasTable
             ->where('status', $status);
 
         // Apply salesperson filter for sales users
-        if (auth()->user()->role_id === 2) {
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        }
+        // if (auth()->user()->role_id === 2) {
+        //     $userId = auth()->id();
+        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+        //         $leadQuery->where('salesperson', $userId);
+        //     });
+        // }
 
         return $query->count();
     }
@@ -90,12 +90,12 @@ class HardwareDashboardAll extends Page implements HasTable
         $query = HardwareHandover::query();
 
         // Apply salesperson filter for sales users
-        if (auth()->user()->role_id === 2) {
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
-        }
+        // if (auth()->user()->role_id === 2) {
+        //     $userId = auth()->id();
+        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+        //         $leadQuery->where('salesperson', $userId);
+        //     });
+        // }
 
         return $query->count();
     }
@@ -106,12 +106,12 @@ class HardwareDashboardAll extends Page implements HasTable
             ->query(
                 HardwareHandover::query()
                     ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration'])
-                    ->when(auth()->user()->role_id === 2, function ($query) {
-                        $userId = auth()->id();
-                        $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                            $leadQuery->where('salesperson', $userId);
-                        });
-                    })
+                    // ->when(auth()->user()->role_id === 2, function ($query) {
+                    //     $userId = auth()->id();
+                    //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    //         $leadQuery->where('salesperson', $userId);
+                    //     });
+                    // })
                     ->orderBy('created_at', 'desc')
             )
             ->columns([

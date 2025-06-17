@@ -63,7 +63,7 @@ class DemoAppointmentRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            // ->poll('10s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([
