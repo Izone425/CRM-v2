@@ -125,6 +125,10 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                     })
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
+                TextColumn::make('implementer')
+                    ->label('Implementer')
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()

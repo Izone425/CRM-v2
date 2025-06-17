@@ -147,7 +147,7 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
 
 
                 TextColumn::make('salesperson')
-                    ->label('SALESPERSON')
+                    ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('implementer')

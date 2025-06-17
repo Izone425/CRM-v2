@@ -726,9 +726,9 @@
             <tr>
                 <td style="font-size: 10px; line-height: 1.5;">
                     <ol style="margin: 0; padding-left: 15px;">
-                        <li>Implementer will need to raise ticket for any customization details under hardware Handover Form from the date received.</li>
-                        <li>Implementer will need to raise ticket for any enhancement details under hardware Handover Form from the date received.</li>
-                        <li>Implementer will need to take note any special remark under hardware Handover Form from the date received.</li>
+                        <li>Implementer will need to raise ticket for any customization details under Hardware Handover Form from the date received.</li>
+                        <li>Implementer will need to raise ticket for any enhancement details under Hardware Handover Form from the date received.</li>
+                        <li>Implementer will need to take note any special remark under Hardware Handover Form from the date received.</li>
                     </ol>
                 </td>
             </tr>

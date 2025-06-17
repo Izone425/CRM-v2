@@ -154,7 +154,7 @@
                     <td>
                         @if(!empty($emailContent['invoiceFiles']) && count($emailContent['invoiceFiles']) > 0)
                             @foreach($emailContent['invoiceFiles'] as $index => $fileUrl)
-                                <a href="{{ $fileUrl }}" target="_blank" class="button" style="background-color: #2ecc71; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 5px; margin-bottom: 5px;">
+                                <a href="{{ $fileUrl }}" target="_blank" class="button" style="background-color: #2ecc71; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 12px; display: inline-block; margin-right: 5px; margin-bottom: 5px; width: 75px; text-align: center">
                                     Invoice {{ $index + 1 }}
                                 </a>
                             @endforeach

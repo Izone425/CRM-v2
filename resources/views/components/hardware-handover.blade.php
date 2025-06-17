@@ -317,8 +317,8 @@
                                 <tbody>
                                     @if(isset($record->tc10_quantity) && $record->tc10_quantity > 0)
                                         <tr>
-                                            <td class="px-4 py-2 border border-gray-300">TC10</td>
-                                            <td class="px-4 py-2 text-center border border-gray-300">{{ $record->tc10_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">TC10</td>
+                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->tc10_quantity }}</td>
                                         </tr>
                                     @endif
 
