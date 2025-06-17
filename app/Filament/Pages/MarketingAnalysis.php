@@ -81,6 +81,9 @@ class MarketingAnalysis extends Page
     public $closedWonBySource = [];
 
     public $appointmentTypeBySource = [];
+
+    public $noResponseByCallAttempt = [];
+
     //Slide Modal Variables
     public $showSlideOver = false;
     public $slideOverTitle = '';
@@ -181,6 +184,7 @@ class MarketingAnalysis extends Page
         $this->calculateWebinarDemoAverages();
         $this->fetchClosedWonBySource();
         $this->fetchAppointmentTypeBySource();
+        $this->noResponseByCallAttempt = $this->fetchNoResponseByCallAttempts();
     }
 
     public function updated($propertyName)
@@ -1157,6 +1161,79 @@ class MarketingAnalysis extends Page
         $this->appointmentTypeBySource = $sortedResults;
     }
 
+    public function fetchNoResponseByCallAttempts()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        // Role-based filtering
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        if (!empty($this->selectedLeadCode)) {
+            if ($this->selectedLeadCode === 'Null') {
+                $query->whereNull('lead_code');
+            } else {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+        }
+
+        // Only get leads with No Response status
+        $query->where('lead_status', 'No Response');
+
+        // Get the leads
+        $leads = $query->get();
+
+        // Find the maximum call attempt value
+        $maxCallAttempt = 0;
+        foreach ($leads as $lead) {
+            $attempts = (int)$lead->call_attempt;
+            if ($attempts > $maxCallAttempt) {
+                $maxCallAttempt = $attempts;
+            }
+        }
+
+        // Create call attempt groups dynamically based on data
+        $callAttemptGroups = [];
+        for ($i = 0; $i <= $maxCallAttempt; $i++) {
+            $callAttemptGroups[(string)$i] = 0;
+        }
+
+        // Count leads per call attempt
+        foreach ($leads as $lead) {
+            $attempts = (int)$lead->call_attempt;
+            $callAttemptGroups[(string)$attempts]++;
+        }
+
+        return $callAttemptGroups;
+    }
+
     public function openLeadStatusSlideOver($status)
     {
         $this->slideOverTitle = "Leads - " . ucfirst($status);
@@ -1770,6 +1847,60 @@ class MarketingAnalysis extends Page
         });
 
         $this->slideOverList = $leads;
+        $this->showSlideOver = true;
+    }
+
+    public function openNoResponseByCallAttemptsSlideOver($attempts)
+    {
+        $this->slideOverTitle = "No Response Leads - Call Attempts: " . $attempts;
+
+        $user = Auth::user();
+        $query = Lead::query()->with('companyDetail');
+
+        // UTM filters
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        if (!empty($this->selectedLeadCode)) {
+            if ($this->selectedLeadCode === 'Null') {
+                $query->whereNull('lead_code');
+            } else {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+        }
+
+        // Only get leads with No Response status
+        $query->where('lead_status', 'No Response');
+
+        // Filter by exact call attempts value
+        $query->where('call_attempt', $attempts);
+
+        $this->slideOverList = $query->get();
         $this->showSlideOver = true;
     }
 

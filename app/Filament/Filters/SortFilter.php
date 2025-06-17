@@ -11,10 +11,11 @@ class SortFilter extends Filter
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->form([
             Select::make('sort_by')
                 ->live()
+                ->default('seq_desc')
                 ->options([
                     'latest_action' => 'Latest Action',
                     'seq_desc' => 'Sequence Descending',
@@ -27,7 +28,7 @@ class SortFilter extends Filter
     public function applyToBaseQuery(Builder $query, array $data = []): Builder
     {
         $filterData = $this->getState();
-        
+
         if (empty($filterData['sort_by'])) {
             return $query;
         }

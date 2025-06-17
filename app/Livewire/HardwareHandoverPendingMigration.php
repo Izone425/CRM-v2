@@ -159,6 +159,15 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                     })
                     ->html(),
 
+                TextColumn::make('invoice_type')
+                    ->label('Invoice Type')
+                    ->formatStateUsing(fn (string $state): string => match($state) {
+                        'single' => 'Single Invoice (Hardware Only)',
+                        'combined' => 'Combined Invoice (Hardware + Software)',
+                        default => ucfirst($state ?? 'Unknown')
+                    })
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {

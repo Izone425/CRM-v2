@@ -1168,6 +1168,66 @@
                 @endif
             </div>
         </div>
+
+        <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="text-lg text-orange-500 fa fa-phone-alt"></i>&nbsp;&nbsp;
+                    <h2 class="text-lg font-bold text-gray-800">No Response Leads by Call Attempts</h2>
+                </div>
+                <i class="bi bi-question-circle" title="Breakdown of No Response leads by number of call attempts"></i>
+            </div>
+
+            @php
+                $hasData = array_sum($noResponseByCallAttempt) > 0;
+            @endphp
+
+            @if($hasData)
+                <div class="lead-summary-box">
+                    <div class="bars-container" style="display: flex; gap: 30px; height: 200px; align-items: center; justify-content: center; width: 100%; margin-left: 0;">
+                        @php
+                            $maxValue = max(array_values($noResponseByCallAttempt));
+                            $colors = ['#FFE29C', '#FFD59C', '#FFB066', '#FF8A8A', '#ff7c7c', '#B3B0F7'];
+                            $bgcolors = ['#FFF9EB', '#FFF5E9', '#FFF2E3', '#FFEDED', '#fdcccc', '#F0EEFC'];
+                        @endphp
+
+                        @foreach($noResponseByCallAttempt as $attempts => $count)
+                            @php
+                                $heightPercent = $maxValue > 0 ? ($count / $maxValue) * 100 : 0;
+                                $colorIndex = $loop->index % count($colors);
+                                $color = $colors[$colorIndex];
+                                $bgcolor = $bgcolors[$colorIndex];
+                                $percentage = array_sum($noResponseByCallAttempt) > 0
+                                    ? round(($count / array_sum($noResponseByCallAttempt)) * 100, 1)
+                                    : 0;
+                            @endphp
+
+                            <div class="cursor-pointer bar-group"
+                                 wire:click="openNoResponseByCallAttemptsSlideOver('{{ $attempts }}')"
+                                 style="min-width: 50px; text-align: center;">
+                                <div style="font-size: 13px; margin-bottom: 5px; font-weight: bold;">
+                                    {{ $count }}
+                                </div>
+                                <div class="bar-wrapper" style="background-color: {{ $bgcolor }}; width: 65px; height: 120px;">
+                                    @if($count > 0)
+                                        <div class="bar-fill" style="height: {{ max($heightPercent, 3) }}%; background-color: {{ $color }};">
+                                        </div>
+                                    @endif
+                                </div>
+                                <div style="margin-top: 8px; font-size: 13px; width: 70px;">
+                                    {{ $attempts }} {{ $attempts === '1' ? 'Call' : 'Calls' }}
+                                </div>
+                                <div class="hover-message">{{ $percentage }}%</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="flex items-center justify-center h-48 text-gray-500">
+                    No call attempt data available
+                </div>
+            @endif
+        </div>
     </div>
     <div
     x-data="{ open: @entangle('showSlideOver') }"
