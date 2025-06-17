@@ -123,13 +123,13 @@ if ($selectedUser === 'all-implementer') {
 } elseif (is_numeric($selectedUser)) {
     $user = User::find($selectedUser);
 
-    if ($user && $user->role_id === 4) {
+    if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
         $baseQuery->where('implementer', $user->name);
     }
 } else {
     $currentUser = auth()->user();
 
-    if ($currentUser->role_id === 4) {
+    if ($currentUser->role_id === 4 || $currentUser->role_id === 5) {
         $baseQuery->where('implementer', $currentUser->name);
     }
 }
