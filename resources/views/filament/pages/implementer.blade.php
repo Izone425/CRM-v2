@@ -109,9 +109,34 @@
 @php
 // Calculate counts directly in the blade template
 use App\Models\SoftwareHandover;
+use App\Models\User;
+
+// Get the selected user from session or default to current user
+$selectedUser = session('selectedUser') ?? auth()->user()->id;
+
+// Build base queries with user filtering
+$baseQuery = SoftwareHandover::query();
+
+// Apply user filtering based on selected user
+if ($selectedUser === 'all-implementer') {
+    // Show handovers for all implementers - no additional filtering
+} elseif (is_numeric($selectedUser)) {
+    $user = User::find($selectedUser);
+
+    if ($user && $user->role_id === 4) {
+        $baseQuery->where('implementer', $user->name);
+    }
+} else {
+    $currentUser = auth()->user();
+
+    if ($currentUser->role_id === 4) {
+        $baseQuery->where('implementer', $currentUser->name);
+    }
+}
 
 // Define queries for Pending Kick Off
-$pendingMigrationCount = SoftwareHandover::query()
+$pendingMigrationQuery = clone $baseQuery;
+$pendingMigrationCount = $pendingMigrationQuery
     ->whereIn('status', ['Completed'])
     ->where('data_migrated', false)
     ->where(function ($q) {
@@ -119,7 +144,8 @@ $pendingMigrationCount = SoftwareHandover::query()
     })->count();
 
 // Define queries for Pending License
-$pendingLicenseCount = SoftwareHandover::query()
+$pendingLicenseQuery = clone $baseQuery;
+$pendingLicenseCount = $pendingLicenseQuery
     ->whereIn('status', ['Completed'])
     ->whereNull('license_certification_id')
     ->where(function ($q) {
@@ -127,14 +153,16 @@ $pendingLicenseCount = SoftwareHandover::query()
     })->count();
 
 // Define queries for Completed and Draft/Rejected
-$completedMigrationCount = SoftwareHandover::query()
+$completedMigrationQuery = clone $baseQuery;
+$completedMigrationCount = $completedMigrationQuery
     ->whereIn('status', ['Completed'])
     ->where('data_migrated', true)
     ->where(function ($q) {
         // $q->where('id', '>=', 561);
     })->count();
 
-$completedLicenseCount = SoftwareHandover::query()
+$completedLicenseQuery = clone $baseQuery;
+$completedLicenseCount = $completedLicenseQuery
     ->whereIn('status', ['Completed'])
     ->whereNotNull('license_certification_id')
     ->where(function ($q) {
