@@ -515,7 +515,13 @@ class SoftwareHandoverRelationManager extends RelationManager
                     }
 
                     // Create the handover record
-                    $handover = SoftwareHandover::create($data);
+                    $nextId = $this->getNextAvailableId();
+
+                    // Create the handover record with specific ID
+                    $handover = new SoftwareHandover();
+                    $handover->id = $nextId;
+                    $handover->fill($data);
+                    $handover->save();
 
                     // Generate PDF for non-draft handovers
                     if ($handover->status !== 'Draft') {
@@ -1253,5 +1259,29 @@ class SoftwareHandoverRelationManager extends RelationManager
         }
 
         return false;
+    }
+
+    private function getNextAvailableId()
+    {
+        // Get all existing IDs in the table
+        $existingIds = SoftwareHandover::pluck('id')->toArray();
+
+        if (empty($existingIds)) {
+            return 1; // If table is empty, start with ID 1
+        }
+
+        // Find the highest ID currently in use
+        $maxId = max($existingIds);
+
+        // Check for gaps from ID 1 to maxId
+        for ($i = 1; $i <= $maxId; $i++) {
+            if (!in_array($i, $existingIds)) {
+                // Found a gap, return this ID
+                return $i;
+            }
+        }
+
+        // No gaps found, return next ID after max
+        return $maxId + 1;
     }
 }
