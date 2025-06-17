@@ -110,9 +110,9 @@
                         <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                             <thead>
                                 <tr>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Product</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2;">Quantity</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2;">Status</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2; width: 35%;">Product</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 15%;">Quantity</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 50%;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>

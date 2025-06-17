@@ -26,7 +26,7 @@ class DashboardForm extends Page
 
     public function mount()
     {
-        $this->users = User::whereIn('role_id', [1, 2])->get(); // Fetch users with roles 1 and 2
+        $this->users = User::whereIn('role_id', [1, 2, 4])->get(); // Fetch users with roles 1 and 2
 
         $currentUser = auth()->user();
         $defaultDashboard = match($currentUser->role_id) {
@@ -99,10 +99,13 @@ class DashboardForm extends Page
         $this->selectedUser = $userId;
         session(['selectedUser' => $userId]);
 
-        if (in_array($userId, ['all-lead-owners', 'all-salespersons'])) {
-            $this->selectedUserRole = $userId === 'all-salespersons' ? 2 : 1;
+        if (in_array($userId, ['all-lead-owners', 'all-salespersons', 'all-implementer'])) {
+            $this->selectedUserRole =
+                $userId === 'all-salespersons' ? 2 :
+                ($userId === 'all-implementer' ? 4 : 1);
             $this->selectedUserModel = null; // No specific user model for group selections
-            $this->toggleDashboard($this->selectedUserRole === 2 ? 'Salesperson' : 'LeadOwner');
+            $this->toggleDashboard($this->selectedUserRole === 2 ? 'Salesperson' :
+                ($this->selectedUserRole === 4 ? 'Implementer' : 'LeadOwner'));
         } else {
             $selectedUser = User::find($userId);
 
@@ -118,6 +121,7 @@ class DashboardForm extends Page
                         1 => 'LeadOwner',
                         2 => 'Salesperson',
                         3 => 'Manager',
+                        4 => 'Implementer', // Add this line for implementers
                         default => 'Manager',
                     });
                 }

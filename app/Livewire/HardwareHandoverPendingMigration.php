@@ -83,6 +83,16 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::where('role_id', '4')
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementers')
+                    ->multiple(),
+
                 SortFilter::make("sort_by"),
             ])
             ->columns([
@@ -199,7 +209,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                         ->modalWidth('3xl')
                         // ->requiresConfirmation()
                         ->modalHeading("Mark as Completed")
-                        ->modalDescription('Are you sure you want to mark this handover as completed? This will complete the software handover process.')
+                        ->modalDescription('Are you sure you want to mark this handover as completed? This will complete the hardware handover process.')
                         ->modalSubmitActionLabel('Yes, Mark as Completed')
                         ->modalCancelActionLabel('No, Cancel')
                         ->form([
@@ -390,10 +400,10 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                                 ]),
                                         ]),
                                 ]),
-                            Section::make('Remark')
+                            Section::make('Admin Remark')
                                 ->schema([
                                     Repeater::make('remarks')
-                                        ->label('Remarks')
+                                        ->label('Admin Remarks')
                                         ->hiddenLabel(true)
                                         ->schema([
                                             Grid::make(2)
@@ -409,13 +419,14 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                                             $matches = [];
                                                             if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
                                                                 $index = (int) $matches[1];
-                                                                return 'Remark ' . ($index + 1);
+                                                                return 'Admin Remark ' . ($index + 1);
                                                             }
 
                                                             return 'Remark';
                                                         })
                                                         ->placeholder('Enter remark here')
                                                         ->autosize()
+                                                        ->required()
                                                         ->rows(3),
 
                                                     FileUpload::make('attachments')
@@ -428,6 +439,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
                                                         ->openable()
                                                         ->downloadable()
+                                                        ->required()
                                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                                             // In the context of a form within a table action, we can get the record from the mountedTableActionRecord property
                                                             $record = $this->mountedTableActionRecord;
@@ -453,8 +465,8 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                                         }),
                                                 ])
                                         ])
-                                        ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
-                                        ->addActionLabel('Add Remark')
+                                        ->itemLabel(fn() => __('Admin Remark') . ' ' . ++self::$indexRepeater2)
+                                        ->addActionLabel('Add Admin Remark')
                                         ->maxItems(5),
                                 ]),
                         ])
@@ -556,6 +568,32 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                             // Get the handover PDF URL
                             $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
+                            $invoiceFiles = [];
+                            if ($record->invoice_file) {
+                                $invoiceFileArray = is_string($record->invoice_file)
+                                    ? json_decode($record->invoice_file, true)
+                                    : $record->invoice_file;
+
+                                if (is_array($invoiceFileArray)) {
+                                    foreach ($invoiceFileArray as $file) {
+                                        $invoiceFiles[] = url('storage/' . $file);
+                                    }
+                                }
+                            }
+
+                            $salesOrderFiles = [];
+                            if ($record->sales_order_file) {
+                                $salesOrderFileArray = is_string($record->sales_order_file)
+                                    ? json_decode($record->sales_order_file, true)
+                                    : $record->sales_order_file;
+
+                                if (is_array($salesOrderFileArray)) {
+                                    foreach ($salesOrderFileArray as $file) {
+                                        $salesOrderFiles[] = url('storage/' . $file);
+                                    }
+                                }
+                            }
+
                             // Send email notification
                             try {
                                 $viewName = 'emails.hardware_completed_notification';
@@ -574,32 +612,34 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                     'handover_id' => $handoverId,
                                     'activatedAt' => now()->format('d M Y'),
                                     'handoverFormUrl' => $handoverFormUrl,
+                                    'invoiceFiles' => $invoiceFiles,
+                                    'salesOrderFiles' => $salesOrderFiles,
                                     'devices' => [
                                         'tc10' => [
-                                            'quantity' => $record->tc10_quantity,
-                                            'status' => $record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->tc10_quantity,
+                                            'status' => (int)$record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'tc20' => [
-                                            'quantity' => $record->tc20_quantity,
-                                            'status' => $record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->tc20_quantity,
+                                            'status' => (int)$record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id5' => [
-                                            'quantity' => $record->face_id5_quantity,
-                                            'status' => $record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->face_id5_quantity,
+                                            'status' => (int)$record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id6' => [
-                                            'quantity' => $record->face_id6_quantity,
-                                            'status' => $record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->face_id6_quantity,
+                                            'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
-                                            'quantity' => $record->time_beacon_quantity,
-                                            'status' => $record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->time_beacon_quantity,
+                                            'status' => (int)$record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'nfc_tag' => [
-                                            'quantity' => $record->nfc_tag_quantity,
-                                            'status' => $record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->nfc_tag_quantity,
+                                            'status' => (int)$record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ]
-                                    ],
+                                        ],
                                     'admin_remarks' => []
                                 ];
 

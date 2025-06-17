@@ -103,11 +103,20 @@
 
                             <optgroup label="All Groups">
                                 <option value="all-lead-owners">All Lead Owners</option>
+                                <option value="all-implementer">All Implementer</option>
                                 <option value="all-salespersons">All Salespersons</option>
                             </optgroup>
 
                             <optgroup label="Lead Owner">
                                 @foreach ($users->where('role_id', 1) as $user)
+                                    <option value="{{ $user->id }}">
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+
+                            <optgroup label="Implementer">
+                                @foreach ($users->where('role_id', 4) as $user)
                                     <option value="{{ $user->id }}">
                                         {{ $user->name }}
                                     </option>
@@ -556,6 +565,8 @@
                     @include('filament.pages.salesperson')
                 @elseif ($selectedUserRole == 3)
                     @include('filament.pages.manager')
+                @elseif ($selectedUserRole == 4)
+                    @include('filament.pages.implementer')
                 @else
                     @if ($currentDashboard === 'LeadOwner')
                         @include('filament.pages.leadowner')
