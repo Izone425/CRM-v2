@@ -116,19 +116,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @php
-                                    $hasPendingDevices = false;
-                                    if(isset($emailContent['devices'])) {
-                                        foreach($emailContent['devices'] as $device => $details) {
-                                            if($details['quantity'] == 0) {
-                                                $hasPendingDevices = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                @endphp
-
-                                @if(isset($emailContent['devices']) && $hasPendingDevices)
+                                @if(isset($emailContent['devices']))
                                     @foreach($emailContent['devices'] as $device => $details)
                                         @if($details['quantity'] !== 0)
                                             <tr>
