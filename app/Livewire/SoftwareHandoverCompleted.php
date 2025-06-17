@@ -201,7 +201,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                 //     ->html(),
 
                 TextColumn::make('salesperson')
-                    ->label('SALESPERSON')
+                    ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('implementer')

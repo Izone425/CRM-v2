@@ -148,7 +148,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
 
                 TextColumn::make('salesperson')
-                    ->label('Salesperson')
+                    ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('implementer')

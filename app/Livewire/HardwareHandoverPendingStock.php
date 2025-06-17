@@ -118,6 +118,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                     })
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
+                TextColumn::make('implementer')
+                    ->label('Implementer')
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -392,17 +396,17 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             $salespersonEmail = $salesperson?->email ?? null;
                             $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                            $updateData = [
-                                'tc10_quantity' => $data['tc10_quantity'],
-                                'tc20_quantity' => $data['tc20_quantity'],
-                                'face_id5_quantity' => $data['face_id5_quantity'],
-                                'face_id6_quantity' => $data['face_id6_quantity'],
-                                'time_beacon_quantity' => $data['time_beacon_quantity'],
-                                'nfc_tag_quantity' => $data['nfc_tag_quantity'],
-                                'implementer' => $implementerName ?? null,
-                                'pending_migration_at' => now(),
-                                'status' => 'Pending Migration',
-                            ];
+                            // $updateData = [
+                            //     'tc10_quantity' => $data['tc10_quantity'],
+                            //     'tc20_quantity' => $data['tc20_quantity'],
+                            //     'face_id5_quantity' => $data['face_id5_quantity'],
+                            //     'face_id6_quantity' => $data['face_id6_quantity'],
+                            //     'time_beacon_quantity' => $data['time_beacon_quantity'],
+                            //     'nfc_tag_quantity' => $data['nfc_tag_quantity'],
+                            //     'implementer' => $implementerName ?? null,
+                            //     'pending_migration_at' => now(),
+                            //     'status' => 'Pending Migration',
+                            // ];
 
                             if (isset($data['invoice_file'])) {
                                 $updateData['invoice_file'] = $data['invoice_file'];
@@ -497,28 +501,28 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                     'salesOrderFiles' => $salesOrderFiles,
                                     'devices' => [
                                         'tc10' => [
-                                            'quantity' => (int)$data['tc10_quantity'],
-                                            'status' => (int)$data['tc10_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->tc10_quantity,
+                                            'status' => (int)$record->tc10_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'tc20' => [
-                                            'quantity' => (int)$data['tc20_quantity'],
-                                            'status' => (int)$data['tc20_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->tc20_quantity,
+                                            'status' => (int)$record->tc20_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id5' => [
-                                            'quantity' => (int)$data['face_id5_quantity'],
-                                            'status' => (int)$data['face_id5_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->face_id5_quantity,
+                                            'status' => (int)$record->face_id5_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'face_id6' => [
-                                            'quantity' => (int)$data['face_id6_quantity'],
-                                            'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->face_id6_quantity,
+                                            'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
-                                            'quantity' => (int)$data['time_beacon_quantity'],
-                                            'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->time_beacon_quantity,
+                                            'status' => (int)$record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'nfc_tag' => [
-                                            'quantity' => (int)$data['nfc_tag_quantity'],
-                                            'status' => (int)$data['nfc_tag_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                            'quantity' => (int)$record->nfc_tag_quantity,
+                                            'status' => (int)$record->nfc_tag_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ]
                                     ]
                                 ];
