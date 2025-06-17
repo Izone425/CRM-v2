@@ -24,19 +24,57 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 
 class ImplementerMigrationCompleted extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
+    public $selectedUser;
+
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
+    {
+        if ($selectedUser) {
+            $this->selectedUser = $selectedUser;
+            session(['selectedUser' => $selectedUser]); // Store selected user
+        } else {
+            // Reset to "Your Own Dashboard" (value = 7)
+            $this->selectedUser = 7;
+            session(['selectedUser' => 7]);
+        }
+
+        $this->resetTable(); // Refresh the table
+    }
+
     public function getOverdueHardwareHandovers()
     {
-        return SoftwareHandover::query()
+        $query  = SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->where('data_migrated', true)
             ->orderBy('created_at', 'asc')
             ->with(['lead', 'lead.companyDetail', 'creator']);
+
+        if ($this->selectedUser === 'all-implementer') {
+
+        }
+        elseif (is_numeric($this->selectedUser)) {
+            $user = User::find($this->selectedUser);
+
+            if ($user && $user->role_id === 4) {
+                $query->where('implementer', $user->name);
+            }
+        }
+        else {
+            $currentUser = auth()->user();
+
+            if ($currentUser->role_id === 4) {
+                $query->where('implementer', $currentUser->name);
+            }
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table

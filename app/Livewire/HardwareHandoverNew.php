@@ -157,6 +157,16 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::where('role_id', '4')
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementers')
+                    ->multiple(),
+
                 SortFilter::make("sort_by"),
             ])
             ->columns([
