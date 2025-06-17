@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class InactiveBigCompTable extends Component implements HasForms, HasTable
@@ -48,6 +49,41 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
+                SelectFilter::make('company_size_label') // Use the correct filter key
+                    ->label('')
+                    ->options([
+                        'Small' => 'Small',
+                        'Medium' => 'Medium',
+                        'Large' => 'Large',
+                        'Enterprise' => 'Enterprise',
+                    ])
+                    ->multiple() // Enables multi-selection
+                    ->placeholder('Select Company Size')
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['values'])) { // 'values' stores multiple selections
+                            $sizeMap = [
+                                'Small' => '1-24',
+                                'Medium' => '25-99',
+                                'Large' => '100-500',
+                                'Enterprise' => '501 and Above',
+                            ];
+
+                            // Convert selected sizes to DB values
+                            $dbValues = collect($data['values'])->map(fn ($size) => $sizeMap[$size] ?? null)->filter();
+
+                            if ($dbValues->isNotEmpty()) {
+                                $query->whereHas('companyDetail', function ($query) use ($dbValues) {
+                                    $query->whereIn('company_size', $dbValues);
+                                });
+                            }
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return !empty($data['values'])
+                            ? 'Company Size: ' . implode(', ', $data['values'])
+                            : null;
+                    }),
+
                 Filter::make('created_at')
                 ->form([
                     DateRangePicker::make('date_range')

@@ -135,7 +135,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
-                SortFilter::make("sort_by"),
+                SortFilter::make("sort_by")
             ])
             ->columns([
                 TextColumn::make('id')
