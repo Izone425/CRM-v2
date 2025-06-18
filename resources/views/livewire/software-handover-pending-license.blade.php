@@ -1,4 +1,4 @@
-<div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
+<div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;" x-data="{ showRefresh: false }" @mouseenter="showRefresh = true" @mouseleave="showRefresh = false">
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
             <h3 class="text-lg font-bold">Pending License Activation</h3>
@@ -6,6 +6,13 @@
                 <button
                     wire:click="refreshTable"
                     wire:loading.attr="disabled"
+                    x-show="showRefresh"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 transform scale-90"
+                    x-transition:enter-end="opacity-100 transform scale-100"
+                    x-transition:leave="transition ease-in duration-200"
+                    x-transition:leave-start="opacity-100 transform scale-100"
+                    x-transition:leave-end="opacity-0 transform scale-90"
                     class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 tooltip"
                     title="Last refreshed: {{ $lastRefreshTime }}"
                 >

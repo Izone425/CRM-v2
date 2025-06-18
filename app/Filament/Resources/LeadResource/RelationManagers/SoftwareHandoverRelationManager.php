@@ -77,9 +77,473 @@ class SoftwareHandoverRelationManager extends RelationManager
         return $ownerRecord->user_id === auth()->id();
     }
 
+    public function defaultForm()
+    {
+        return [
+            Section::make('Step 1: Database')
+                ->schema([
+                    Grid::make(3)
+                        ->schema([
+                            TextInput::make('company_name')
+                                ->label('Company Name')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->default(fn (?SoftwareHandover $record = null) =>
+                                    $record?->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
+                            TextInput::make('pic_name')
+                                ->label('Name')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->default(fn (?SoftwareHandover $record = null) =>
+                                    $record?->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
+                            TextInput::make('pic_phone')
+                                ->label('HP Number')
+                                ->tel()
+                                ->default(fn (?SoftwareHandover $record = null) =>
+                                    $record?->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
+                        ]),
+                    Grid::make(3)
+                        ->schema([
+                            TextInput::make('salesperson')
+                                ->readOnly()
+                                ->label('Salesperson')
+                                ->default(fn (?SoftwareHandover $record = null) =>
+                                    $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
+                            TextInput::make('headcount')
+                                ->numeric()
+                                ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
+                                ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
+                                    /**
+                                     * set this company's category based on head count
+                                     */
+                                    $set('category', $category->retrieve($state));
+                                })
+                                ->required()
+                                ->default(fn (?SoftwareHandover $record = null) => $record?->headcount ?? null),
+                            TextInput::make('category')
+                                ->label('Company Size')
+                                ->dehydrated(false)
+                                ->autocapitalize()
+                                ->placeholder('Select a category')
+                                ->default(function (?SoftwareHandover $record = null, CategoryService $category = null) {
+                                    // If record exists with headcount, calculate category from headcount
+                                    if ($record && $record->headcount && $category) {
+                                        return $category->retrieve($record->headcount);
+                                    }
+                                    // If record has a saved category, use that
+                                    if ($record && $record->category) {
+                                        return $record->category;
+                                    }
+                                    return null;
+                                })
+                                ->readOnly(),
+                        ]),
+                ]),
+
+            Section::make('Step 2: Invoice Details')
+                ->schema([
+                    Grid::make(1)
+                        ->schema([
+                            Forms\Components\Actions::make([
+                                Forms\Components\Actions\Action::make('export_invoice_info')
+                                    ->label('Export Invoice Information to Excel')
+                                    ->color('success')
+                                    ->icon('heroicon-o-document-arrow-down')
+                                    ->url(function () {
+                                        $leadId = $this->getOwnerRecord()->id;
+                                        return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($leadId)]);
+                                    })
+                                    ->openUrlInNewTab(),
+                            ])
+                            ->extraAttributes(['class' => 'space-y-2']),
+                        ]),
+                ]),
+
+            Section::make('Step 3: Implementation Details')
+                ->schema([
+                    Forms\Components\Repeater::make('implementation_pics')
+                        ->hiddenLabel(true)
+                        ->schema([
+                            Grid::make(4)
+                            ->schema([
+                                TextInput::make('pic_name_impl')
+                                    ->required()
+                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                    ->label('Name'),
+                                TextInput::make('position')
+                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                    ->label('Position'),
+                                TextInput::make('pic_phone_impl')
+                                    ->required()
+                                    ->tel()
+                                    ->label('HP Number'),
+                                TextInput::make('pic_email_impl')
+                                    ->label('Email Address')
+                                    ->required()
+                                    ->email(),
+                            ]),
+                        ])
+                        ->addActionLabel('Add PIC')
+                        ->minItems(1)
+                        ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
+                        ->columns(2)
+                        // Add default implementation PICs from lead data or existing record
+                        ->default(function (?SoftwareHandover $record = null) {
+                            if ($record && $record->implementation_pics) {
+                                // If it's a string, decode it
+                                if (is_string($record->implementation_pics)) {
+                                    return json_decode($record->implementation_pics, true);
+                                }
+                                // If it's already an array, return it
+                                if (is_array($record->implementation_pics)) {
+                                    return $record->implementation_pics;
+                                }
+                            }
+
+                            // If no record, use lead data as default
+                            $lead = $this->getOwnerRecord();
+                            return [
+                                [
+                                    'pic_name_impl' => $lead->companyDetail->name ?? $lead->name ?? '',
+                                    'position' => $lead->companyDetail->position ?? '',
+                                    'pic_phone_impl' => $lead->companyDetail->contact_no ?? $lead->phone ?? '',
+                                    'pic_email_impl' => $lead->companyDetail->email ?? $lead->email ?? '',
+                                ],
+                            ];
+                        }),
+                ]),
+
+            Section::make('Step 4: Remark Details')
+                ->schema([
+                    Forms\Components\Repeater::make('remarks')
+                        ->label('Remarks')
+                        ->hiddenLabel(true)
+                        ->schema([
+                            Grid::make(2)
+                            ->schema([
+                                Textarea::make('remark')
+                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                    ->hiddenLabel(true)
+                                    ->label(function (Forms\Get $get, ?string $state, $livewire) {
+                                        // Get the current array key from the state path
+                                        $statePath = $livewire->getFormStatePath();
+                                        $matches = [];
+                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
+                                            $index = (int) $matches[1];
+                                            return 'Remark ' . ($index + 1);
+                                        }
+                                        return 'Remark';
+                                    })
+                                    ->placeholder('Enter remark here')
+                                    ->autosize()
+                                    ->rows(3),
+
+                                FileUpload::make('attachments')
+                                    ->hiddenLabel(true)
+                                    ->disk('public')
+                                    ->directory('handovers/remark_attachments')
+                                    ->visibility('public')
+                                    ->multiple()
+                                    ->maxFiles(3)
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                    ->openable()
+                                    ->downloadable()
+                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                        // Get lead ID from ownerRecord
+                                        $leadId = $this->getOwnerRecord()->id;
+                                        // Format ID with prefix (250) and padding
+                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                        // Get extension
+                                        $extension = $file->getClientOriginalExtension();
+
+                                        // Generate a unique identifier (timestamp) to avoid overwriting files
+                                        $timestamp = now()->format('YmdHis');
+                                        $random = rand(1000, 9999);
+
+                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                    }),
+                            ])
+                        ])
+                        ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
+                        ->addActionLabel('Add Remark')
+                        ->maxItems(5)
+                        ->defaultItems(1)
+                        ->default(function (?SoftwareHandover $record = null) {
+                            if ($record && $record->remarks) {
+                                // If it's a string, decode it
+                                if (is_string($record->remarks)) {
+                                    $decoded = json_decode($record->remarks, true);
+
+                                    // Process each remark to handle its attachments
+                                    if (is_array($decoded)) {
+                                        foreach ($decoded as $key => $remark) {
+                                            // Decode the attachments if they're stored as JSON string
+                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                            }
+                                        }
+                                        return $decoded;
+                                    }
+                                }
+
+                                // If it's already an array, return it but process attachments
+                                if (is_array($record->remarks)) {
+                                    $remarks = $record->remarks;
+                                    foreach ($remarks as $key => $remark) {
+                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
+                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
+                                        }
+                                    }
+                                    return $remarks;
+                                }
+                            }
+                            return [];
+                        }),
+                ]),
+
+            Section::make('Step 5: Training Category')
+                ->schema([
+                    Forms\Components\Radio::make('training_type')
+                        ->label('')
+                        ->options([
+                            'online_webinar_training' => 'Online Webinar Training',
+                            'online_hrdf_training' => 'Online HRDF Training',
+                        ])
+                        ->columns(2)
+                        ->required()
+                        ->default(fn (?SoftwareHandover $record = null) => $record?->training_type ?? null),
+                ]),
+
+            Section::make('Step 6: Speaker Category')
+                ->schema([
+                    Forms\Components\Radio::make('speaker_category')
+                        ->label('')
+                        ->options([
+                            'english / malay' => 'English / Malay',
+                            'mandarin' => 'Mandarin',
+                        ])
+                        ->columns(2)
+                        ->live() // Make it react to headcount changes
+                        ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
+                            $headcount = (int)$get('headcount');
+
+                            // If headcount <= 25 and value is mandarin, reset to english/malay
+                            if ($headcount <= 25 && $state === 'mandarin') {
+                                $set('speaker_category', 'english / malay');
+                            }
+                        })
+                        ->required()
+                        ->default(fn (?SoftwareHandover $record = null) => $record?->speaker_category ?? null),
+                ]),
+
+            Section::make('Step 7: Proforma Invoice')
+                ->columnSpan(1) // Ensure it spans one column
+                ->schema([
+                    Grid::make(2)
+                        ->schema([
+                            Select::make('proforma_invoice_product')
+                                ->required()
+                                ->label('Product')
+                                ->options(function (RelationManager $livewire) {
+                                    $leadId = $livewire->getOwnerRecord()->id;
+                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                        ->where('quotation_type', 'product')
+                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->pluck('pi_reference_no', 'id')
+                                        ->toArray();
+                                })
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    if (!$record || !$record->proforma_invoice_product) {
+                                        return [];
+                                    }
+                                    if (is_string($record->proforma_invoice_product)) {
+                                        return json_decode($record->proforma_invoice_product, true) ?? [];
+                                    }
+                                    return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                                }),
+                            Select::make('proforma_invoice_hrdf')
+                                ->label('HRDF')
+                                ->options(function (RelationManager $livewire) {
+                                    $leadId = $livewire->getOwnerRecord()->id;
+                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                        ->where('quotation_type', 'hrdf')
+                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->pluck('pi_reference_no', 'id')
+                                        ->toArray();
+                                })
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    if (!$record || !$record->proforma_invoice_hrdf) {
+                                        return [];
+                                    }
+                                    if (is_string($record->proforma_invoice_hrdf)) {
+                                        return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                    }
+                                    return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                                }),
+                        ])
+                ]),
+
+            Section::make('Step 8: Attachment')
+                ->columnSpan(1) // Ensure it spans one column
+                ->schema([
+                    Grid::make(2)
+                        ->schema([
+                        FileUpload::make('confirmation_order_file')
+                            ->label('Upload Confirmation Order')
+                            ->disk('public')
+                            ->directory('handovers/confirmation_orders')
+                            ->visibility('public')
+                            ->multiple()
+                            ->maxFiles(1)
+                            ->openable()
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                // Get lead ID from ownerRecord
+                                $leadId = $this->getOwnerRecord()->id;
+                                // Format ID with prefix (250) and padding
+                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Get extension
+                                $extension = $file->getClientOriginalExtension();
+
+                                // Generate a unique identifier (timestamp) to avoid overwriting files
+                                $timestamp = now()->format('YmdHis');
+                                $random = rand(1000, 9999);
+
+                                return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                            })
+                            ->default(function (?SoftwareHandover $record = null) {
+                                if (!$record || !$record->confirmation_order_file) {
+                                    return [];
+                                }
+                                if (is_string($record->confirmation_order_file)) {
+                                    return json_decode($record->confirmation_order_file, true) ?? [];
+                                }
+                                return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
+                            }),
+
+                        FileUpload::make('payment_slip_file')
+                            ->label('Upload Payment Slip')
+                            ->disk('public')
+                            ->live(debounce:500)
+                            ->directory('handovers/payment_slips')
+                            ->visibility('public')
+                            ->multiple()
+                            ->maxFiles(1)
+                            ->openable()
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->openable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                // Get lead ID from ownerRecord
+                                $leadId = $this->getOwnerRecord()->id;
+                                // Format ID with prefix (250) and padding
+                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Get extension
+                                $extension = $file->getClientOriginalExtension();
+
+                                // Generate a unique identifier (timestamp) to avoid overwriting files
+                                $timestamp = now()->format('YmdHis');
+                                $random = rand(1000, 9999);
+
+                                return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                            })
+                            ->default(function (?SoftwareHandover $record = null) {
+                                if (!$record || !$record->payment_slip_file) {
+                                    return [];
+                                }
+                                if (is_string($record->payment_slip_file)) {
+                                    return json_decode($record->payment_slip_file, true) ?? [];
+                                }
+                                return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                            }),
+
+                        FileUpload::make('hrdf_grant_file')
+                            ->label('Upload HRDF Grant Approval Letter')
+                            ->disk('public')
+                            ->directory('handovers/hrdf_grant')
+                            ->visibility('public')
+                            ->multiple()
+                            ->maxFiles(10)
+                            ->openable()
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->openable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                // Get lead ID from ownerRecord
+                                $leadId = $this->getOwnerRecord()->id;
+                                // Format ID with prefix (250) and padding
+                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Get extension
+                                $extension = $file->getClientOriginalExtension();
+
+                                // Generate a unique identifier (timestamp) to avoid overwriting files
+                                $timestamp = now()->format('YmdHis');
+                                $random = rand(1000, 9999);
+
+                                return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
+                            })
+                            ->afterStateUpdated(function () {
+                                // Reset the counter after the upload is complete
+                                session()->forget('hrdf_upload_count');
+                            })
+                            ->default(function (?SoftwareHandover $record = null) {
+                                if (!$record || !$record->hrdf_grant_file) {
+                                    return [];
+                                }
+                                if (is_string($record->hrdf_grant_file)) {
+                                    return json_decode($record->hrdf_grant_file, true) ?? [];
+                                }
+                                return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
+                            }),
+
+                        FileUpload::make('invoice_file')
+                            ->label('Upload Invoice')
+                            ->disk('public')
+                            ->directory('handovers/invoices')
+                            ->visibility('public')
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            ->multiple()
+                            ->maxFiles(10)
+                            ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                            ->openable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                $date = now()->format('Y-m-d');
+                                $random = Str::random(5);
+                                $extension = $file->getClientOriginalExtension();
+
+                                return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                            })
+                            ->default(function (?SoftwareHandover $record = null) {
+                                if (!$record || !$record->invoice_file) {
+                                    return [];
+                                }
+                                if (is_string($record->invoice_file)) {
+                                    return json_decode($record->invoice_file, true) ?? [];
+                                }
+                                return is_array($record->invoice_file) ? $record->invoice_file : [];
+                            }),
+                        ])
+                ]),
+        ];
+    }
+
     public function headerActions(): array
     {
-        $isEInvoiceIncomplete = $this->isCompanyDetailsIncomplete();
+        $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+        $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
@@ -87,13 +551,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-pencil')
                 ->color('gray')
-                ->visible(function () {
-                    $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
-                    $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
-
-                    // Only show this warning if:
-                    // 1. The lead status is NOT closed, OR
-                    // 2. The company details information is incomplete
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
                 })
                 ->action(function () {
@@ -102,16 +560,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->title('Action Required')
                         ->body('Please close the lead and complete the company details before proceeding with the software handover.')
                         ->persistent()
-                        // ->actions([
-                        //     \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
-                        //         ->label('Copy E-Invoice Link')
-                        //         ->button()
-                        //         ->color('primary')
-                        //         ->close(),
-                        //     \Filament\Notifications\Actions\Action::make('cancel')
-                        //         ->label('Cancel')
-                        //         ->close(),
-                        // ])
                         ->send();
                 }),
 
@@ -120,373 +568,20 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-pencil')
                 ->color('primary')
-                ->visible(function () {
-                    $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
-                    $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
-
-                    // Only show this button when:
-                    // 1. The lead status IS closed, AND
-                    // 2. The company details information is complete
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
                 })
                 ->slideOver()
                 ->modalHeading('Software Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
                 ->modalSubmitActionLabel('Save')
-                ->form([
-                    Section::make('Step 1: Database')
-                        ->schema([
-                            Grid::make(3)
-                                ->schema([
-                                    TextInput::make('company_name')
-                                        ->label('Company Name')
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                    TextInput::make('pic_name')
-                                        ->label('Name')
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                    TextInput::make('pic_phone')
-                                        ->label('HP Number')
-                                        ->tel()
-                                        ->default(fn () => $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-
-                                ]),
-                            Grid::make(3)
-                                ->schema([
-                                    TextInput::make('salesperson')
-                                        ->readOnly()
-                                        ->label('Salesperson')
-                                        ->default(fn () => $this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null),
-                                    TextInput::make('headcount')
-                                        ->numeric()
-                                        ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
-                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
-                                            /**
-                                             * set this company's category based on head count
-                                             */
-                                            $set('category', $category->retrieve($state));
-                                        })
-                                        ->required(),
-                                    TextInput::make('category')
-                                        ->label('Company Size')
-                                        ->dehydrated(false)
-                                        ->autocapitalize()
-                                        ->placeholder('Select a category')
-                                        ->readOnly(),
-                                ]),
-                        ]),
-
-                    Section::make('Step 2: Invoice Details')
-                        ->schema([
-                            Grid::make(1)
-                                ->schema([
-                                    Forms\Components\Actions::make([
-                                        Forms\Components\Actions\Action::make('export_invoice_info')
-                                            ->label('Export Invoice Information to Excel')
-                                            ->color('success')
-                                            ->icon('heroicon-o-document-arrow-down')
-                                            ->url(function () {
-                                                $leadId = $this->getOwnerRecord()->id;
-                                                return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($leadId)]);
-                                            })
-                                            ->openUrlInNewTab(),
-                                    ])
-                                    ->extraAttributes(['class' => 'space-y-2']),
-                                ]),
-                        ]),
-
-                    Section::make('Step 3: Implementation Details')
-                        ->schema([
-                            Forms\Components\Repeater::make('implementation_pics')
-                                ->hiddenLabel(true)
-                                ->schema([
-                                    Grid::make(4)
-                                    ->schema([
-                                        TextInput::make('pic_name_impl')
-                                            ->required()
-                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                            ->label('Name'),
-                                        TextInput::make('position')
-                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                            ->label('Position'),
-                                        TextInput::make('pic_phone_impl')
-                                            ->required()
-                                            ->tel()
-                                            ->label('HP Number'),
-                                        TextInput::make('pic_email_impl')
-                                            ->label('Email Address')
-                                            ->required()
-                                            ->email(),
-                                    ]),
-                                ])
-                                ->addActionLabel('Add PIC')
-                                ->minItems(1)
-                                ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
-                                ->columns(2)
-                                // Add default implementation PICs from lead data
-                                ->default(function () {
-                                    $lead = $this->getOwnerRecord();
-
-                                    // Create an array with the lead's default contact information
-                                    return [
-                                        [
-                                            'pic_name_impl' => $lead->companyDetail->name ?? $lead->name ?? '',
-                                            'position' => $lead->companyDetail->position ?? '',
-                                            'pic_phone_impl' => $lead->companyDetail->contact_no ?? $lead->phone ?? '',
-                                            'pic_email_impl' => $lead->companyDetail->email ?? $lead->email ?? '',
-                                        ],
-                                    ];
-                                }),
-                        ]),
-
-                    Section::make('Step 4: Remark Details')
-                            ->schema([
-                                Forms\Components\Repeater::make('remarks')
-                                    ->label('Remarks')
-                                    ->hiddenLabel(true)
-                                    ->schema([
-                                        Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('remark')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->hiddenLabel(true)
-                                                ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                                    // Get the current array key from the state path
-                                                    $statePath = $livewire->getFormStatePath();
-                                                    $matches = [];
-                                                    if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                        $index = (int) $matches[1];
-                                                        return 'Remark ' . ($index + 1);
-                                                    }
-
-                                                    return 'Remark';
-                                                })
-                                                ->placeholder('Enter remark here')
-                                                ->autosize()
-                                                ->rows(3),
-
-                                            FileUpload::make('attachments')
-                                                ->hiddenLabel(true)
-                                                ->disk('public')
-                                                ->directory('handovers/remark_attachments')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(3)
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                                ->openable()
-                                                ->downloadable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    // Get lead ID from ownerRecord
-                                                    $leadId = $this->getOwnerRecord()->id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                                }),
-                                        ])
-                                    ])
-                                    ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
-                                    ->addActionLabel('Add Remark')
-                                    ->maxItems(5)
-                                    ->defaultItems(1),
-                            ]),
-
-                        Section::make('Step 5: Training Category')
-                            ->schema([
-                                Forms\Components\Radio::make('training_type')
-                                    ->label('')
-                                    ->options([
-                                        'online_webinar_training' => 'Online Webinar Training',
-                                        'online_hrdf_training' => 'Online HRDF Training',
-                                    ])
-                                    // ->inline()
-                                    ->columns(2)
-                                    ->required(),
-                            ]),
-
-                        Section::make('Step 6: Speaker Category')
-                            ->schema([
-                                Forms\Components\Radio::make('speaker_category')
-                                    ->label('')
-                                    ->options([
-                                        'english / malay' => 'English / Malay',
-                                        'mandarin' => 'Mandarin',
-                                    ])
-                                    ->columns(2)
-                                    ->live() // Make it react to headcount changes
-                                    ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
-                                        $headcount = (int)$get('headcount');
-
-                                        // If headcount <= 25 and value is mandarin, reset to english/malay
-                                        if ($headcount <= 25 && $state === 'mandarin') {
-                                            $set('speaker_category', 'english / malay');
-                                        }
-                                    })
-                                    ->required(),
-                            ]),
-
-                        Section::make('Step 7: Proforma Invoice')
-                            ->columnSpan(1) // Ensure it spans one column
-                            ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        Select::make('proforma_invoice_product')
-                                            ->required()
-                                            ->label('Product')
-                                            ->options(function (RelationManager $livewire) {
-                                                $leadId = $livewire->getOwnerRecord()->id;
-                                                return \App\Models\Quotation::where('lead_id', $leadId)
-                                                    ->where('quotation_type', 'product')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload(),
-                                        Select::make('proforma_invoice_hrdf')
-                                            ->label('HRDF')
-                                            ->options(function (RelationManager $livewire) {
-                                                $leadId = $livewire->getOwnerRecord()->id;
-                                                return \App\Models\Quotation::where('lead_id', $leadId)
-                                                    ->where('quotation_type', 'hrdf')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload(),
-                                    ])
-                            ]),
-
-                        Section::make('Step 8: Attachment')
-                            ->columnSpan(1) // Ensure it spans one column
-                            ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                    FileUpload::make('confirmation_order_file')
-                                        ->label('Upload Confirmation Order')
-                                        ->disk('public')
-                                        ->directory('handovers/confirmation_orders')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(1)
-                                        ->openable()
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
-                                        }),
-
-                                    FileUpload::make('payment_slip_file')
-                                        ->label('Upload Payment Slip')
-                                        ->disk('public')
-                                        ->live(debounce:500)
-                                        ->directory('handovers/payment_slips')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(1)
-                                        ->openable()
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
-                                        }),
-
-                                    FileUpload::make('hrdf_grant_file')
-                                        ->label('Upload HRDF Grant Approval Letter')
-                                        ->disk('public')
-                                        ->directory('handovers/hrdf_grant')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->openable()
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
-                                        })
-                                        ->afterStateUpdated(function () {
-                                            // Reset the counter after the upload is complete
-                                            session()->forget('hrdf_upload_count');
-                                        }),
-
-                                    FileUpload::make('invoice_file')
-                                        ->label('Upload Invoice')
-                                        ->disk('public')
-                                        ->directory('handovers/invoices')
-                                        ->visibility('public')
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                        ->multiple()
-                                        ->maxFiles(10)
-                                        ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
-                                        ->openable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                            $date = now()->format('Y-m-d');
-                                            $random = Str::random(5);
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                        }),
-                                    ])
-                            ]),
-                ])
+                ->form($this->defaultForm())
                 ->action(function (array $data): void {
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'Draft';
 
+                    // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {
                         foreach ($data['remarks'] as $key => $remark) {
                             // Encode the attachments array for each remark
@@ -499,24 +594,12 @@ class SoftwareHandoverRelationManager extends RelationManager
                     }
 
                     // Handle file array encodings
-                    if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
-                        $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
-                    }
-
-                    if (isset($data['payment_slip_file']) && is_array($data['payment_slip_file'])) {
-                        $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
-                    }
-
-                    if (isset($data['proforma_invoice_hrdf']) && is_array($data['proforma_invoice_hrdf'])) {
-                        $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
-                    }
-
-                    if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
-                        $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
-                    }
-
-                    if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
-                        $data['invoice_file'] = json_encode($data['invoice_file']);
+                    foreach (['confirmation_order_file', 'payment_slip_file', 'proforma_invoice_hrdf',
+                            'proforma_invoice_product', 'invoice_file', 'implementation_pics',
+                            'hrdf_grant_file'] as $field) {
+                        if (isset($data[$field]) && is_array($data[$field])) {
+                            $data[$field] = json_encode($data[$field]);
+                        }
                     }
 
                     // Create the handover record
@@ -665,514 +748,25 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
-                        ->form([
-                            Section::make('Step 1: Database')
-                                ->schema([
-                                    Grid::make(3)
-                                        ->schema([
-                                            TextInput::make('company_name')
-                                                ->label('Company Name')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                                            TextInput::make('pic_name')
-                                                ->label('Name')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                                            TextInput::make('pic_phone')
-                                                ->label('HP Number')
-                                                ->tel()
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-                                        ]),
-                                    Grid::make(3)
-                                        ->schema([
-                                            TextInput::make('salesperson')
-                                                ->readOnly()
-                                                ->label('Salesperson')
-                                                ->default(fn (SoftwareHandover $record) =>
-                                                    $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
-                                            TextInput::make('headcount')
-                                                ->numeric()
-                                                ->label('Company Size')
-                                                ->live(debounce:550)
-                                                ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
-                                                    $set('category', $category->retrieve($state));
-                                                })
-                                                ->default(fn (SoftwareHandover $record) => $record->headcount ?? null)
-                                                ->required(),
-                                            TextInput::make('category')
-                                                ->autocapitalize()
-                                                ->live(debounce:550)
-                                                ->placeholder('Select a category')
-                                                ->dehydrated(false)
-                                                ->default(function (SoftwareHandover $record, CategoryService $category) {
-                                                    // If record exists with headcount, calculate category from headcount
-                                                    if ($record && $record->headcount) {
-                                                        return $category->retrieve($record->headcount);
-                                                    }
-                                                    // If record has a saved category, use that
-                                                    if ($record && $record->category) {
-                                                        return $record->category;
-                                                    }
-                                                    return null;
-                                                })
-                                                ->readOnly(),
-                                       ]),
-                                ]),
-
-                            Section::make('Step 2: Invoice Details')
-                                ->schema([
-                                    Grid::make(1)
-                                        ->schema([
-                                            Forms\Components\Actions::make([
-                                                Forms\Components\Actions\Action::make('export_invoice_info')
-                                                    ->label('Export Invoice Information to Excel')
-                                                    ->color('success')
-                                                    ->icon('heroicon-o-document-arrow-down')
-                                                    ->url(function () {
-                                                        $leadId = $this->getOwnerRecord()->id;
-                                                        return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($leadId)]);
-                                                    })
-                                                    ->openUrlInNewTab(),
-                                            ])
-                                            ->extraAttributes(['class' => 'space-y-2']),
-                                        ]),
-                                ]),
-
-                            Section::make('Step 3: Implementation PICs')
-                                ->schema([
-                                    Forms\Components\Repeater::make('implementation_pics')
-                                        ->label('Implementation PICs')
-                                        ->hiddenLabel(true)
-                                        ->schema([
-                                            Grid::make(4)
-                                            ->schema([
-                                                TextInput::make('pic_name_impl')
-                                                    ->required()
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                    ->label('Name'),
-                                                TextInput::make('position')
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                    ->label('Position'),
-                                                TextInput::make('pic_phone_impl')
-                                                    ->required()
-                                                    ->numeric()
-                                                    ->label('HP Number'),
-                                                TextInput::make('pic_email_impl')
-                                                    ->required()
-                                                    ->label('Email Address')
-                                                    ->email(),
-                                            ]),
-                                        ])
-                                        ->itemLabel(fn() => __('Person In Charge') . ' ' . ++self::$indexRepeater)
-                                        ->columns(2)
-                                        ->default(function (SoftwareHandover $record) {
-                                            if ($record && $record->implementation_pics) {
-                                                // If it's a string, decode it
-                                                if (is_string($record->implementation_pics)) {
-                                                    return json_decode($record->implementation_pics, true);
-                                                }
-                                                // If it's already an array, return it
-                                                if (is_array($record->implementation_pics)) {
-                                                    return $record->implementation_pics;
-                                                }
-                                            }
-                                            return [];
-                                        }),
-                                ]),
-
-                            Section::make('Step 4: Remark Details')
-                                ->schema([
-                                    Forms\Components\Repeater::make('remarks')
-                                        ->label('Remarks')
-                                        ->hiddenLabel(true)
-                                        ->schema([
-                                            Grid::make(2)
-                                            ->schema([
-                                                Textarea::make('remark')
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                    ->hiddenLabel(true)
-                                                    ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                                        // Get the current array key from the state path
-                                                        $statePath = $livewire->getFormStatePath();
-                                                        $matches = [];
-                                                        if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                            $index = (int) $matches[1];
-                                                            return 'Remark ' . ($index + 1);
-                                                        }
-                                                        return 'Remark';
-                                                    })
-                                                    ->placeholder('Enter remark here')
-                                                    ->rows(3),
-
-                                                // Add file attachments for each remark
-                                                FileUpload::make('attachments')
-                                                    ->hiddenLabel(true)
-                                                    ->disk('public')
-                                                    ->directory('handovers/remark_attachments')
-                                                    ->visibility('public')
-                                                    ->multiple()
-                                                    ->maxFiles(5)
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                                    ->openable()
-                                                    ->downloadable()
-                                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                        // Get lead ID from ownerRecord
-                                                        $leadId = $this->getOwnerRecord()->id;
-                                                        // Format ID with prefix (250) and padding
-                                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                        // Get extension
-                                                        $extension = $file->getClientOriginalExtension();
-
-                                                        // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                        $timestamp = now()->format('YmdHis');
-                                                        $random = rand(1000, 9999);
-
-                                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                                    }),
-                                            ]),
-                                        ])
-                                        ->itemLabel(function (array $state, Forms\Components\Component $component) {
-                                            // Extract the index from the state path using regex
-                                            $statePath = $component->getStatePath();
-                                            $matches = [];
-                                            if (preg_match('/remarks\.(\d+)/', $statePath, $matches)) {
-                                                $index = (int) $matches[1];
-                                                return 'Remark ' . ($index + 1);
-                                            }
-                                            return 'Remark';
-                                        })
-                                        ->addActionLabel('Add Remark')
-                                        ->default(function (SoftwareHandover $record) {
-                                            if ($record && $record->remarks) {
-                                                // If it's a string, decode it
-                                                if (is_string($record->remarks)) {
-                                                    $decoded = json_decode($record->remarks, true);
-
-                                                    // Process each remark to handle its attachments
-                                                    if (is_array($decoded)) {
-                                                        foreach ($decoded as $key => $remark) {
-                                                            // Decode the attachments if they're stored as JSON string
-                                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                                            }
-                                                        }
-                                                        return $decoded;
-                                                    }
-                                                    return [];
-                                                }
-
-                                                // If it's already an array, return it but process attachments
-                                                if (is_array($record->remarks)) {
-                                                    $remarks = $record->remarks;
-                                                    foreach ($remarks as $key => $remark) {
-                                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                                        }
-                                                    }
-                                                    return $remarks;
-                                                }
-                                            }
-                                            return [];
-                                        }),
-                                ]),
-
-                            Section::make('Step 5: Training Category')
-                                ->columnSpan(1)
-                                ->schema([
-                                    Forms\Components\Radio::make('training_type')
-                                        ->label('')
-                                        ->options([
-                                            'online_webinar_training' => 'Online Webinar Training',
-                                            'online_hrdf_training' => 'Online HRDF Training',
-                                        ])
-                                        // ->inline()
-                                        ->columns(2)
-                                        ->required()
-                                        ->default(function (SoftwareHandover $record) {
-                                            // Return the saved training type if it exists
-                                            return $record->training_type ?? null;
-                                        }),
-                                ]),
-
-                            Section::make('Step 6: Speaker Category')
-                                ->columnSpan(1)
-                                ->schema([
-                                    Forms\Components\Radio::make('speaker_category')
-                                        ->label('')
-                                        ->options([
-                                            'english / malay' => 'English / Malay',
-                                            'mandarin' => 'Mandarin',
-                                        ])
-                                        ->columns(2)
-                                        ->live() // Make it react to headcount changes
-                                        ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
-                                            $headcount = (int)$get('headcount');
-
-                                            // If headcount <= 25 and value is mandarin, reset to english/malay
-                                            if ($headcount <= 25 && $state === 'mandarin') {
-                                                $set('speaker_category', 'english / malay');
-                                            }
-                                        })
-                                        ->required()
-                                        ->default(function (SoftwareHandover $record) {
-                                            // Return the saved speaker category if it exists
-                                            return $record->speaker_category ?? null;
-                                        }),
-                                ]),
-
-                            Section::make('Step 7: Proforma Invoice')
-                                ->columnSpan(1)
-                                ->schema([
-                                    Grid::make(2)
-                                    ->schema([
-                                        Select::make('proforma_invoice_product')
-                                            ->required()
-                                            ->label('Proforma Invoice Product')
-                                            ->options(function (RelationManager $livewire) {
-                                                $leadId = $livewire->getOwnerRecord()->id;
-                                                return \App\Models\Quotation::where('lead_id', $leadId)
-                                                    ->where('quotation_type', 'product')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->proforma_invoice_product) {
-                                                    return [];
-                                                }
-                                                if (is_string($record->proforma_invoice_product)) {
-                                                    return json_decode($record->proforma_invoice_product, true) ?? [];
-                                                }
-                                                return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
-                                            }),
-                                        Select::make('proforma_invoice_hrdf')
-                                            ->label('Proforma Invoice HRDF')
-                                            ->options(function (RelationManager $livewire) {
-                                                $leadId = $livewire->getOwnerRecord()->id;
-                                                return \App\Models\Quotation::where('lead_id', $leadId)
-                                                    ->where('quotation_type', 'hrdf')
-                                                    ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                                    ->pluck('pi_reference_no', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->multiple()
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(function (SoftwareHandover $record) {
-                                                if (!$record || !$record->proforma_invoice_hrdf) {
-                                                    return [];
-                                                }
-                                                if (is_string($record->proforma_invoice_hrdf)) {
-                                                    return json_decode($record->proforma_invoice_hrdf, true) ?? [];
-                                                }
-                                                return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
-                                            }),
-                                    ])
-                                ]),
-
-                            Section::make('Step 8: Attachment')
-                                ->columnSpan(1)
-                                ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            FileUpload::make('confirmation_order_file')
-                                                ->label('Upload Confirmation Order')
-                                                ->disk('public')
-                                                ->directory('handovers/confirmation_orders')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(1)
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    // Get lead ID from ownerRecord
-                                                    $leadId = $this->getOwnerRecord()->id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
-                                                })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->confirmation_order_file) {
-                                                        return [];
-                                                    }
-                                                    if (is_string($record->confirmation_order_file)) {
-                                                        return json_decode($record->confirmation_order_file, true) ?? [];
-                                                    }
-                                                    return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
-                                                }),
-
-                                            FileUpload::make('payment_slip_file')
-                                                ->label('Upload Payment Slip')
-                                                ->disk('public')
-                                                ->live(debounce:500)
-                                                ->directory('handovers/payment_slips')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(1)
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    // Get lead ID from ownerRecord
-                                                    $leadId = $this->getOwnerRecord()->id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
-                                                })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->payment_slip_file) {
-                                                        return [];
-                                                    }
-                                                    if (is_string($record->payment_slip_file)) {
-                                                        return json_decode($record->payment_slip_file, true) ?? [];
-                                                    }
-                                                    return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
-                                                }),
-
-                                            FileUpload::make('hrdf_grant_file')
-                                                ->label('Upload HRDF Grant Approval Letter')
-                                                ->disk('public')
-                                                ->directory('handovers/hrdf_grant')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(10)
-                                                ->openable()
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    // Get lead ID from ownerRecord
-                                                    $leadId = $this->getOwnerRecord()->id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                                    // Get extension
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
-
-                                                    return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
-                                                })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->hrdf_grant_file) {
-                                                        return [];
-                                                    }
-                                                    if (is_string($record->hrdf_grant_file)) {
-                                                        return json_decode($record->hrdf_grant_file, true) ?? [];
-                                                    }
-                                                    return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
-                                                }),
-
-                                            FileUpload::make('invoice_file')
-                                                ->label('Upload Invoice')
-                                                ->disk('public')
-                                                ->directory('handovers/invoices')
-                                                ->visibility('public')
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->multiple()
-                                                ->maxFiles(10)
-                                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
-                                                ->openable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                                    $date = now()->format('Y-m-d');
-                                                    $random = Str::random(5);
-                                                    $extension = $file->getClientOriginalExtension();
-
-                                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                                })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    if (!$record || !$record->invoice_file) {
-                                                        return [];
-                                                    }
-                                                    if (is_string($record->invoice_file)) {
-                                                        return json_decode($record->invoice_file, true) ?? [];
-                                                    }
-                                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
-                                                }),
-                                        ]),
-                                ]),
-                        ])
+                        ->form($this->defaultForm())
                         ->action(function (SoftwareHandover $record, array $data): void {
-                            // Handle file array encodings
-                            if (isset($data['remarks']) && is_array($data['remarks'])) {
-                                foreach ($data['remarks'] as $key => $remark) {
-                                    // Encode attachments only if they exist and are array
-                                    if (!empty($remark['attachments'])) {
-                                        // If attachments is already a string (JSON), leave it as is
-                                        if (!is_string($remark['attachments'])) {
-                                            $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                            // Process JSON encoding for array fields
+                            foreach (['remarks', 'confirmation_order_file', 'payment_slip_file', 'implementation_pics',
+                                     'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file'] as $field) {
+                                if (isset($data[$field]) && is_array($data[$field])) {
+                                    // Special handling for remarks to process attachments
+                                    if ($field === 'remarks') {
+                                        foreach ($data[$field] as $key => $remark) {
+                                            // Encode attachments only if they exist and are array
+                                            if (!empty($remark['attachments']) && !is_string($remark['attachments'])) {
+                                                $data[$field][$key]['attachments'] = json_encode($remark['attachments']);
+                                            }
                                         }
-                                    } else {
-                                        // Set to empty array encoded as JSON if no attachments
-                                        $data['remarks'][$key]['attachments'] = json_encode([]);
                                     }
+                                    $data[$field] = json_encode($data[$field]);
                                 }
-
-                                // Encode the entire remarks structure after processing attachments
-                                $data['remarks'] = json_encode($data['remarks']);
                             }
 
-                            if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
-                                $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
-                            }
-
-                            if (isset($data['hrdf_grant_file']) && is_array($data['hrdf_grant_file'])) {
-                                $data['hrdf_grant_file'] = json_encode($data['hrdf_grant_file']);
-                            }
-
-                            if (isset($data['payment_slip_file']) && is_array($data['payment_slip_file'])) {
-                                $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
-                            }
-
-                            if (isset($data['implementation_pics']) && is_array($data['implementation_pics'])) {
-                                $data['implementation_pics'] = json_encode($data['implementation_pics']);
-                            }
-
-                            if (isset($data['remarks']) && is_array($data['remarks'])) {
-                                $data['remarks'] = json_encode($data['remarks']);
-                            }
-
-                            if (isset($data['proforma_invoice_product']) && is_array($data['proforma_invoice_product'])) {
-                                $data['proforma_invoice_product'] = json_encode($data['proforma_invoice_product']);
-                            }
-
-                            if (isset($data['proforma_invoice_hrdf']) && is_array($data['proforma_invoice_hrdf'])) {
-                                $data['proforma_invoice_hrdf'] = json_encode($data['proforma_invoice_hrdf']);
-                            }
-
-                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
-                                $data['invoice_file'] = json_encode($data['invoice_file']);
-                            }
                             // Update the record
                             $record->update($data);
 
