@@ -78,7 +78,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->query($this->getOverdueHardwareHandovers())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))

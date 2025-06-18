@@ -1699,7 +1699,7 @@ class LeadResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50])
             ->modifyQueryUsing(function ($query) {
