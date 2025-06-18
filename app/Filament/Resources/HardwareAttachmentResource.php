@@ -155,15 +155,27 @@ class HardwareAttachmentResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(function ($query) {
-                $query->whereIn('status', ['Completed', 'Pending Migration', 'Pending Stock']);
-                if (auth()->user()->role_id === 2) {
-                    $userId = auth()->id();
+                $query->where('status', 'Completed');
 
+                // Get user information
+                $user = auth()->user();
+                $userId = auth()->id();
+
+                // Filter for salespeople (role_id = 2)
+                if ($user->role_id === 2) {
                     // Since we're working directly with SoftwareHandover model now,
                     // we need to filter on the lead relationship directly
                     $query->whereHas('lead', function ($leadQuery) use ($userId) {
                         $leadQuery->where('salesperson', $userId);
                     });
+                }
+                // Filter for implementers (role_id = 4)
+                elseif ($user->role_id === 4) {
+                    // Get the implementer's name
+                    $implementerName = $user->name;
+
+                    // Filter where implementer field matches the current user's name
+                    $query->where('implementer', $implementerName);
                 }
             })
             ->columns([
