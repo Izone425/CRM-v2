@@ -794,7 +794,7 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
                             </a>
@@ -832,7 +832,7 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
                             </a>

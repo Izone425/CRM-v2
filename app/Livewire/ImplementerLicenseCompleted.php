@@ -79,6 +79,7 @@ class ImplementerLicenseCompleted extends Component implements HasForms, HasTabl
         $query = SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->whereNotNull('license_certification_id')
+            ->where('id', '>=', 561)
             ->orderBy('created_at', 'asc')
             ->with(['lead', 'lead.companyDetail', 'creator']);
 

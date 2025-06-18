@@ -246,7 +246,7 @@ $pendingMigrationCount = $pendingMigrationQuery
     ->whereIn('status', ['Completed'])
     ->where('data_migrated', false)
     ->where(function ($q) {
-        // $q->where('id', '>=', 561);
+        $q->where('id', '>=', 561);
     })->count();
 
 // Define queries for Pending License
@@ -255,7 +255,7 @@ $pendingLicenseCount = $pendingLicenseQuery
     ->whereIn('status', ['Completed'])
     ->whereNull('license_certification_id')
     ->where(function ($q) {
-        // $q->where('id', '>=', 561);
+        $q->where('id', '>=', 561);
     })->count();
 
 // Define queries for Completed and Draft/Rejected
@@ -264,7 +264,7 @@ $completedMigrationCount = $completedMigrationQuery
     ->whereIn('status', ['Completed'])
     ->where('data_migrated', true)
     ->where(function ($q) {
-        // $q->where('id', '>=', 561);
+        $q->where('id', '>=', 561);
     })->count();
 
 $completedLicenseQuery = clone $baseQuery;
@@ -272,7 +272,7 @@ $completedLicenseCount = $completedLicenseQuery
     ->whereIn('status', ['Completed'])
     ->whereNotNull('license_certification_id')
     ->where(function ($q) {
-        // $q->where('id', '>=', 561);
+        $q->where('id', '>=', 561);
     })->count();
 
 // Calculate combined pending count

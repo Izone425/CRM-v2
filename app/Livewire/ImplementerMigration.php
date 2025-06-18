@@ -79,6 +79,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->where('data_migrated', false)
+            ->where('id', '>=', 561)
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
 
