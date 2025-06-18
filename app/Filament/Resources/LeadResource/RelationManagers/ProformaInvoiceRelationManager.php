@@ -42,6 +42,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Livewire\Attributes\On;
 
 class ProformaInvoiceRelationManager extends RelationManager
 {
@@ -51,6 +52,13 @@ class ProformaInvoiceRelationManager extends RelationManager
     use InteractsWithTable;
     use InteractsWithForms;
 
+    #[On('refresh-proforma-invoices')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
+
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         return $ownerRecord->user_id === auth()->id();
@@ -59,7 +67,7 @@ class ProformaInvoiceRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->query(function () {
                 $leadId = $this->getOwnerRecord()->id; // Get the lead ID dynamically
