@@ -709,45 +709,35 @@ class HardwareHandoverRelationManager extends RelationManager
 
     public function headerActions(): array
     {
-        $isEInvoiceIncomplete = $this->isEInvoiceDetailsIncomplete();
+        $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
+        $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
-            // Tables\Actions\Action::make('EInvoiceWarning')
-            //     ->label('Add Hardware Handover')
-            //     ->icon('heroicon-o-pencil')
-            //     ->color('gray')
-            //     ->visible(fn () => $isEInvoiceIncomplete)
-            //     ->action(function () {
-            //         Notification::make()
-            //             ->warning()
-            //             ->title('Action Required')
-            //             ->body('Please collect all e-invoices information before proceeding with the handover process.')
-            //             ->persistent()
-            //             ->actions([
-            //                 \Filament\Notifications\Actions\Action::make('copyEInvoiceLink')
-            //                     ->label('Copy E-Invoice Link')
-            //                     ->button()
-            //                     ->color('primary')
-            //                     // ->url(route('filament.admin.resources.leads.edit', [
-            //                     //     'record' => Encryptor::encrypt($this->getOwnerRecord()->id),
-            //                     //     'activeTab' => 'einvoice'
-            //                     // ]), true)
-            //                     // ->openUrlInNewTab()
-            //                     ->close(),
-            //                 \Filament\Notifications\Actions\Action::make('cancel')
-            //                     ->label('Cancel')
-            //                     ->close(),
-            //             ])
-            //             ->send();
-            //     }),
+            Tables\Actions\Action::make('EInvoiceWarning')
+                ->label('Add Hardware Handover')
+                ->icon('heroicon-o-pencil')
+                ->color('gray')
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
+                })
+                ->action(function () {
+                    Notification::make()
+                        ->warning()
+                        ->title('Action Required')
+                        ->body('Please close the lead and complete the company details before proceeding with the hardware handover.')
+                        ->persistent()
+                        ->send();
+                }),
 
             // Action 2: Actual form when e-invoice is complete
             Tables\Actions\Action::make('AddHardwareHandover')
                 ->label('Add Hardware Handover')
                 ->icon('heroicon-o-pencil')
                 ->color('primary')
-                // ->visible(fn () => !$isEInvoiceIncomplete)
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                })
                 ->slideOver()
                 ->modalSubmitActionLabel('Save')
                 ->modalHeading('Add Hardware Handover')
@@ -1139,31 +1129,33 @@ class HardwareHandoverRelationManager extends RelationManager
             ]);
     }
 
-    protected function isEInvoiceDetailsIncomplete(): bool
+    protected function isCompanyDetailsIncomplete(): bool
     {
-        $leadId = $this->getOwnerRecord()->id;
-        $eInvoiceDetails = \App\Models\EInvoiceDetail::where('lead_id', $leadId)->first();
+        $lead = $this->getOwnerRecord();
+        $companyDetail = $lead->companyDetail ?? null;
 
-        // If no e-invoice details exist at all
-        if (!$eInvoiceDetails) {
+        // If no company details exist at all
+        if (!$companyDetail) {
             return true;
         }
 
-        // Check if any required field is null or empty
+        // Check if any essential company details are missing
         $requiredFields = [
-            'pic_email',
-            'registration_name',
-            'identity_type',
-            'business_address',
-            'contact_number',
-            'email_address',
-            'city',
-            'country',
-            'state'
+            'company_name',
+            'industry',
+            'contact_no',
+            'email',
+            'name',
+            'position',
+            'reg_no_new',
+            'state',
+            'postcode',
+            'company_address1',
+            'company_address2',
         ];
 
         foreach ($requiredFields as $field) {
-            if (empty($eInvoiceDetails->$field)) {
+            if (empty($companyDetail->$field)) {
                 return true;
             }
         }

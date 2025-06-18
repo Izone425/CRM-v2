@@ -214,13 +214,24 @@
         @elseif (auth()->user()->role_id == 3)
         <div class="space-y-4">
             <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
-                <div class="flex items-center space-x-2">
-                    <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Dashboard</h1>
-                    <div x-data="{ lastRefresh: '{{ now()->format('Y-m-d H:i:s') }}' }" class="relative">
+                <div class="flex items-center space-x-2" x-data="{ showRefresh: false }"
+                    @mouseenter="showRefresh = true"
+                    @mouseleave="showRefresh = false">
+                    <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">
+                        Dashboard
+                    </h1>
+                    <div class="relative ml-2" x-cloak>
                         <button
+                            x-show="showRefresh"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 transform scale-95"
+                            x-transition:enter-end="opacity-100 transform scale-100"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 transform scale-100"
+                            x-transition:leave-end="opacity-0 transform scale-95"
                             wire:click="refreshTable"
                             wire:loading.attr="disabled"
-                            class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 tooltip"
+                            class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             title="Last refreshed: {{ $lastRefreshTime }}"
                         >
                             <span wire:loading.remove wire:target="refreshTable">
