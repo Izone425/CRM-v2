@@ -30,6 +30,30 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
     use InteractsWithForms;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hardwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
@@ -160,8 +184,8 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 TextColumn::make('invoice_type')
                     ->label('Invoice Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice (Hardware Only)',
-                        'combined' => 'Combined Invoice (Hardware + Software)',
+                        'single' => 'Single Invoice',
+                        'combined' => 'Combined Invoice',
                         default => ucfirst($state ?? 'Unknown')
                     })
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),

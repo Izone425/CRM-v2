@@ -59,6 +59,7 @@ use Twilio\Rest\Client;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model as MicrosoftGraph;
 use Microsoft\Graph\Model\Event;
+use Livewire\Attributes\On;
 
 class ActivityLogRelationManager extends RelationManager
 {
@@ -74,6 +75,13 @@ class ActivityLogRelationManager extends RelationManager
     protected $activityLog;
 
     protected $listeners = ['setActiveTab'];
+
+    #[On('refresh-activity-logs')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
 
     public function setActiveTab($tab)
     {
@@ -112,7 +120,7 @@ class ActivityLogRelationManager extends RelationManager
         $this->totalnum = ActivityLog::where('subject_id', $this->getOwnerRecord()->id)->count();
 
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
             ->columns([
@@ -1836,8 +1844,6 @@ class ActivityLogRelationManager extends RelationManager
                                     ->performedOn($lead)
                                     ->withProperties(['description' => $cancelFollowUpDescription]);
                             }
-
-                            $appointment = $lead->demoAppointment(); // Assuming a relation exists
 
                             if ($appointment) {
                                 $appointment->update([

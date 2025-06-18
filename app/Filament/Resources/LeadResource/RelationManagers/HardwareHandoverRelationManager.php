@@ -32,14 +32,19 @@ use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Attributes\On;
 
 class HardwareHandoverRelationManager extends RelationManager
 {
     protected static string $relationship = 'hardwareHandover'; // Define the relationship name in the Lead model
     protected static ?int $indexRepeater2 = 0;
 
-    // use InteractsWithTable;
-    // use InteractsWithForms;
+    #[On('refresh-hardware-handovers')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -866,7 +871,7 @@ class HardwareHandoverRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->emptyState(fn() => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([

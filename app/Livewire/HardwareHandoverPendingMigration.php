@@ -32,6 +32,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Attributes\On;
 
 class HardwareHandoverPendingMigration extends Component implements HasForms, HasTable
 {
@@ -40,6 +41,30 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
 
     protected static ?int $indexRepeater = 0;
     protected static ?int $indexRepeater2 = 0;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hardwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     public function getOverdueHardwareHandovers()
     {

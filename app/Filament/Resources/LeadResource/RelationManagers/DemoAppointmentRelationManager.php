@@ -45,10 +45,18 @@ use Illuminate\Support\HtmlString;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Event;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Livewire\Attributes\On;
 
 class DemoAppointmentRelationManager extends RelationManager
 {
     protected static string $relationship = 'demoAppointment';
+
+    #[On('refresh-demo-appointments')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
 
     protected function getTableHeading(): string
     {
@@ -63,7 +71,7 @@ class DemoAppointmentRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            // ->poll('10s')
+            ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([

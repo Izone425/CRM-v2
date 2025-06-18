@@ -57,6 +57,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Attributes\On;
 
 class SoftwareHandoverRelationManager extends RelationManager
 {
@@ -64,8 +65,12 @@ class SoftwareHandoverRelationManager extends RelationManager
     protected static ?int $indexRepeater = 0;
     protected static ?int $indexRepeater2 = 0;
 
-    // use InteractsWithTable;
-    // use InteractsWithForms;
+    #[On('refresh-software-handovers')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -540,7 +545,7 @@ class SoftwareHandoverRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->columns([

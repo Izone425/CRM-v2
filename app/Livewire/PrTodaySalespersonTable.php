@@ -31,6 +31,30 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
     use InteractsWithForms;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-salesperson-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
@@ -48,15 +72,8 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
         $query = Lead::query()
             ->where('categories', '!=', 'Inactive')
             ->where('lead_status', '!=', 'Demo-Assigned')
-            ->where(function ($query) {
-                // For "Demo Cancelled" status, don't filter by follow_up_date
-                $query->where('lead_status', 'Demo Cancelled')
-                    ->orWhere(function ($subquery) {
-                        $subquery->where('lead_status', '!=', 'Demo Cancelled')
-                            ->whereDate('follow_up_date', today())
-                            ->where('follow_up_counter', true);
-                    });
-            })
+            ->whereDate('follow_up_date', today())
+            ->where('follow_up_counter', true)
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         // Salesperson filter logic

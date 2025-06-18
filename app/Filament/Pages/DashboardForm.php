@@ -23,10 +23,35 @@ class DashboardForm extends Page
     public $assignToMeModalVisible = false;
     public $currentLeadId;
     public $selectedAdditionalRole;
+    public $lastRefreshTime;
+
+    public function refreshTable()
+    {
+        // Update timestamp
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        // Dispatch events to refresh child components
+        $this->dispatch('refresh-implementer-tables');
+        $this->dispatch('refresh-leadowner-tables');
+        $this->dispatch('refresh-softwarehandover-tables');
+        $this->dispatch('refresh-hardwarehandover-tables');
+        $this->dispatch('refresh-salesperson-tables');
+        $this->dispatch('refresh-manager-tables');
+
+        // Force Alpine components to reset
+        $this->dispatch('forceResetDashboards');
+
+        // Show notification
+        Notification::make()
+            ->title('Dashboard refreshed')
+            ->success()
+            ->send();
+    }
 
     public function mount()
     {
         $this->users = User::whereIn('role_id', [1, 2, 4, 5])->get(); // Fetch users with roles 1 and 2
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         $currentUser = auth()->user();
         $defaultDashboard = match($currentUser->role_id) {

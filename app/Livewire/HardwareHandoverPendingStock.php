@@ -27,11 +27,37 @@ use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\Attributes\On;
 
 class HardwareHandoverPendingStock extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hardwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     public function getOverdueHardwareHandovers()
     {
@@ -153,8 +179,8 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                 TextColumn::make('invoice_type')
                     ->label('Invoice Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice (Hardware Only)',
-                        'combined' => 'Combined Invoice (Hardware + Software)',
+                        'single' => 'Single Invoice',
+                        'combined' => 'Combined Invoice',
                         default => ucfirst($state ?? 'Unknown')
                     })
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),

@@ -38,7 +38,7 @@
     </style>
 </head>
 <body>
-    <p>Dear {{ $emailContent['company']['name'] }},</p>
+    <p>Dear Customer,</p>
 
     <p>We're excited to welcome you to TimeTec HR! This email confirms that your license has been successfully activated.</p>
 

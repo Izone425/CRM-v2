@@ -301,7 +301,7 @@ $all = $pendingMigrationCount + $pendingLicenseCount + $completedMigrationCount 
      x-init="init()">
 
     <!-- New container structure -->
-    <div class="dashboard-container">
+    <div class="dashboard-container" wire:poll.300s>
         <!-- Left sidebar with stats -->
         <div class="stats-sidebar">
             <div class="stat-box all">
