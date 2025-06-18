@@ -1040,7 +1040,7 @@
 
         <!-- Appointment Type by Lead Source Section -->
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-4">
                 <!-- Left side: Icon and title -->
                 <div class="flex items-center space-x-2">
                     <i class="text-lg text-blue-500 fa fa-calendar-alt"></i>&nbsp;&nbsp;
@@ -1059,7 +1059,10 @@
                     </div>
                 </div>
             </div>
-            <div class="bars-container" style="display: flex; overflow-x: auto; height: 320px; padding: 25px 10px 15px; align-items: flex-end; gap: 30px;">
+
+            <br><br><br>
+
+            <div class="flex flex-wrap justify-center gap-8 overflow-visible">
                 @forelse ($appointmentTypeBySource as $data)
                     @php
                         $source = $data['source'] === 'Null' ? 'Unknown' : $data['source'];
@@ -1072,10 +1075,10 @@
                             continue;
                         }
 
-                        // Calculate proportional heights (max height 200px)
+                        // Calculate proportional heights (max height 140px)
                         $maxHeight = 140;
 
-                        // Find the max value differently since we're dealing with an array
+                        // Find the max value
                         $maxValue = 0;
                         foreach($appointmentTypeBySource as $item) {
                             $itemTotal = array_sum($item['types'] ?? []);
@@ -1094,57 +1097,48 @@
                             ? round(($total / $totalAllAppointments) * 100, 1)
                             : 0;
 
-                        // Colors matching your design
+                        // Colors
                         $newDemoColor = '#3B82F6'; // Blue
                         $webinarDemoColor = '#F59E0B'; // Orange
                     @endphp
 
                     <div class="relative text-center cursor-pointer bar-group group" wire:click="openAppointmentTypeSlideOver('{{ $data['source'] }}')">
-                        <div class="absolute text-xs font-semibold text-center"
-                            style="top: -20px; left: 0; right: 0; color: #374151;">
+                        <p style="margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #374151;">
                             {{ $sourcePercentage }}%
-                        </div>
-                        <!-- First stacked bar: NEW DEMO (Blue) -->
-                        @if ($newDemos > 0)
-                            <div class="absolute text-xs font-semibold text-center text-white"
-                                style="bottom: {{ $webinarDemoHeight + 2 }}px; left: 0; right: 0;">
-                                {{ $newDemos }}
-                            </div>
-                        @endif
-
-                        <!-- Second stacked bar: WEBINAR DEMO (Orange) -->
-                        @if ($webinarDemos > 0)
-                            <div class="absolute text-xs font-semibold text-center text-white"
-                                style="bottom: 2px; left: 0; right: 0;">
-                                {{ $webinarDemos }}
-                            </div>
-                        @endif
+                        </p>
 
                         <div style="width: 70px; height: {{ $maxHeight }}px; position: relative;">
                             <!-- NEW DEMO portion (top) -->
-                            <div style="position: absolute; bottom: {{ $webinarDemoHeight }}px; height: {{ $newDemoHeight }}px; width: 100%; background-color: {{ $newDemoColor }}; border-radius: {{ $webinarDemoHeight > 0 ? '4px 4px 0 0' : '4px' }};"></div>
+                            <div style="position: absolute; bottom: {{ $webinarDemoHeight }}px; height: {{ $newDemoHeight }}px; width: 100%; background-color: {{ $newDemoColor }}; border-radius: {{ $webinarDemoHeight > 0 ? '4px 4px 0 0' : '4px' }};">
+                                @if ($newDemos > 0)
+                                    <div class="absolute w-full text-xs font-semibold text-center text-white"
+                                        style="bottom: 50%; transform: translateY(50%);">
+                                        <!-- {{ $newDemos }} -->
+                                    </div>
+                                @endif
+                            </div>
 
                             <!-- WEBINAR DEMO portion (bottom) -->
-                            <div style="position: absolute; bottom: 0; height: {{ $webinarDemoHeight }}px; width: 100%; background-color: {{ $webinarDemoColor }}; border-radius: {{ $newDemoHeight > 0 ? '0 0 4px 4px' : '4px' }};"></div>
+                            <div style="position: absolute; bottom: 0; height: {{ $webinarDemoHeight }}px; width: 100%; background-color: {{ $webinarDemoColor }}; border-radius: {{ $newDemoHeight > 0 ? '0 0 4px 4px' : '4px' }};">
+                                @if ($webinarDemos > 0)
+                                    <div class="absolute w-full text-xs font-semibold text-center text-white"
+                                        style="bottom: 50%; transform: translateY(50%);">
+                                        <!-- {{ $webinarDemos }} -->
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
-                        <p class="mt-2 text-xs text-gray-600" style="width: 70px; word-wrap: break-word; text-align: center; overflow: hidden; white-space: normal; display: flex; justify-content: center; min-height: 30px;">
-                            {{ Str::limit($source, 30) }}
+                        <p class="mt-2 text-xs text-gray-600" style="width: 70px; overflow-wrap: break-word; white-space: normal;">
+                            {{ $source }}
                         </p>
 
-                        <div class="appointment-tooltip">
-                            <strong style="font-size: 13px; display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 3px;">
-                                {{ Str::limit($source, 8) }} <span style="float: right; opacity: 0.9;">({{ $sourcePercentage }}%)</span>
-                            </strong>
-                            <div style="font-size: 12px; line-height: 1.5;">
-                                <div><span style="display: inline-block; width: 90px;">Total:</span> {{ $total }}</div>
-                                <div><span style="display: inline-block; width: 90px;">New Demo:</span> {{ $newDemos }}</div>
-                                <div><span style="display: inline-block; width: 90px;">Webinar Demo:</span> {{ $webinarDemos }}</div>
-                            </div>
+                        <div class="hover-message">
+                            Total: {{ $total }} | New: {{ $newDemos }} | Webinar: {{ $webinarDemos }}
                         </div>
                     </div>
                 @empty
-                    <div class="flex items-center justify-center w-full h-full">
+                    <div class="flex items-center justify-center w-full h-48">
                         <p class="text-gray-500">No appointment data available</p>
                     </div>
                 @endforelse
@@ -1162,7 +1156,7 @@
                 @endphp
 
                 @if ($allZero && count($appointmentTypeBySource) > 0)
-                    <div class="flex items-center justify-center w-full h-full">
+                    <div class="flex items-center justify-center w-full h-48">
                         <p class="text-gray-500">No appointment data available</p>
                     </div>
                 @endif
