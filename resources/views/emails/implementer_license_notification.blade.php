@@ -13,9 +13,9 @@
         }
         table {
             border-collapse: collapse;
-            width: 60%; /* Reduced from 100% to 80% */
+            width: 100%; /* Reduced from 100% to 80% */
             margin: 20px 0;
-            max-width: 600px; /* Added max-width for better control */
+            max-width: 700px; /* Added max-width for better control */
         }
         th, td {
             border: 1px solid #ddd;
@@ -46,15 +46,15 @@
 
     <table>
         <tr>
-            <th>KICK-OFF/ACTIVATION DATE</th>
+            <th>Kick Off Meeting Date</th>
             <td>{{ $emailContent['licenses']['kickOffDate'] }}</td>
         </tr>
         <tr>
-            <th>BUFFER LICENSE</th>
+            <th>Buffer License</th>
             <td>{{ $emailContent['licenses']['bufferLicense']['start'] }} – {{ $emailContent['licenses']['bufferLicense']['end'] }}</td>
         </tr>
         <tr>
-            <th>PAID LICENSE</th>
+            <th>Paid License</th>
             <td>{{ $emailContent['licenses']['paidLicense']['start'] }} – {{ $emailContent['licenses']['paidLicense']['end'] }}</td>
         </tr>
         <tr>
@@ -62,7 +62,7 @@
             <td>{{ str_replace(' and 0 months', '', $emailContent['licenses']['paidLicense']['duration']) }}</td>
         </tr>
         <tr>
-            <th>NEXT RENEWAL</th>
+            <th>Next Renewal</th>
             <td>{{ $emailContent['licenses']['nextRenewal'] }}</td>
         </tr>
     </table>
