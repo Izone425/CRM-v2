@@ -11,6 +11,7 @@ use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -26,6 +27,30 @@ class ProspectReminderTodayTable extends Component implements HasForms, HasTable
     use InteractsWithForms;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-leadowner-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)

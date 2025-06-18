@@ -504,10 +504,12 @@ class LeadResource extends Resource
                                                                 ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
                                                             TextInput::make('company_address1')
                                                                 ->label('Company Address 1')
+                                                                ->maxLength(40)
                                                                 ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-')
                                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                                                             TextInput::make('company_address2')
                                                                 ->label('Company Address 2')
+                                                                ->maxLength(40)
                                                                 ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
                                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                                                             Grid::make(3) // Create a 3-column grid

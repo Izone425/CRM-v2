@@ -49,10 +49,18 @@ use Filament\Notifications\Livewire\Notifications;
 use Filament\Support\Enums\Alignment;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\On;
 
 class QuotationRelationManager extends RelationManager
 {
     protected static string $relationship = 'quotations'; // Define the relationship name in the Lead model
+
+    #[On('refresh-quotations')]
+    #[On('refresh')] // General refresh event
+    public function refresh()
+    {
+        $this->resetTable();
+    }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -62,7 +70,7 @@ class QuotationRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->modifyQueryUsing(function ($query) {
                 $query
                     ->orderBy('created_at', 'desc');

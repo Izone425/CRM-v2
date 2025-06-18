@@ -18,6 +18,30 @@ use Illuminate\Support\Str;
 class ViewLeadRecord extends ViewRecord
 {
     protected static string $resource = LeadResource::class;
+    public $lastRefreshTime;
+
+    // Add this method to the class to handle refreshing
+    public function refreshPage()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        // Refresh all relation managers and components
+        $this->dispatch('refresh');
+
+        // Refresh specific relation managers if needed
+        $this->dispatch('refresh-activity-logs');
+        $this->dispatch('refresh-demo-appointments');
+        $this->dispatch('refresh-quotations');
+        $this->dispatch('refresh-proforma-invoices');
+        $this->dispatch('refresh-software-handovers');
+        $this->dispatch('refresh-hardware-handovers');
+
+        // Show notification
+        Notification::make()
+            ->title('Page refreshed')
+            ->success()
+            ->send();
+    }
 
     public function mount($record): void
     {
@@ -72,26 +96,13 @@ class ViewLeadRecord extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Action::make('whatsappMe')
-            //     ->label(__('WhatsApp to Lead'))
-            //     ->color('success')
-            //     ->size(ActionSize::Large)
-            //     ->button()
-            //     ->icon('heroicon-o-chat-bubble-oval-left-ellipsis')
-            //     ->url(function () {
-            //         $lead = $this->record;
-            //         // $userName = auth()->user()->name; // Get current user's name
-            //         $whatsappNumber = $lead->phone; // Ensure the user model has this field
-
-            //         // Prepare WhatsApp message content
-            //         // $message = "Hi, {$userName} here";
-
-            //         // // Encode the message for URL
-            //         // $encodedMessage = urlencode($message);
-
-            //         // Generate WhatsApp URL
-            //         return "https://wa.me/{$whatsappNumber}";
-            //     }, true),
+            Action::make('refreshPage')
+                ->hiddenLabel()
+                ->tooltip('Refresh')
+                ->icon('heroicon-o-arrow-path')
+                ->color('primary')
+                ->extraAttributes(['class' => 'refresh-btn'])
+                ->action('refreshPage'),
             Action::make('updateLeadOwner')
                 ->label(__('Assign to Me'))
                 ->requiresConfirmation()

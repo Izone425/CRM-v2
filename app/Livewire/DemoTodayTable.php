@@ -29,6 +29,30 @@ class DemoTodayTable extends Component implements HasForms, HasTable
     use InteractsWithForms;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-salesperson-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
@@ -64,7 +88,7 @@ class DemoTodayTable extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->query($this->getTodayDemos())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

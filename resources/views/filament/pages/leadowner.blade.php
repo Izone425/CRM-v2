@@ -599,7 +599,7 @@
             }
         }">
 
-        <div class="dashboard-layout" wire:poll.10s>
+        <div class="dashboard-layout" wire:poll.300s>
             <div class="group-column">
                 <div class="group-container">
                     <!-- Group 1: New Leads -->

@@ -22,11 +22,36 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Livewire\Attributes\On;
 
 class InactiveBigCompTable1 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-leadowner-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     public function getInactiveBigCompanyLeads()
     {
@@ -42,7 +67,7 @@ class InactiveBigCompTable1 extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->query($this->getInactiveBigCompanyLeads())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))

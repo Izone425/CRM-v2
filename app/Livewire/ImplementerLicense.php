@@ -31,6 +31,30 @@ class ImplementerLicense extends Component implements HasForms, HasTable
     use InteractsWithForms;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-implementer-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
@@ -81,7 +105,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->query($this->getOverdueSoftwareHandovers())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
@@ -147,8 +171,12 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                     ),
 
                 TextColumn::make('salesperson')
-                    ->label('SALESPERSON')
+                    ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
+                TextColumn::make('implementer')
+                    ->label('Implementer')
+                    ->visible(fn(): bool => auth()->user()->role_id !== 4),
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
@@ -226,133 +254,84 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->form([
-                            \Filament\Forms\Components\Section::make('Buffer License')
-                                ->schema([
-                                    \Filament\Forms\Components\Radio::make('buffer_license_type')
-                                        ->hiddenLabel()
-                                        ->options([
-                                            'predefined' => 'Select from options',
-                                            'custom' => 'Enter custom duration',
-                                        ])
-                                        ->default('predefined')
-                                        ->inline()
-                                        ->reactive(),
+                            \Filament\Forms\Components\Grid::make(3)
+                            ->schema([
+                                \Filament\Forms\Components\DatePicker::make('confirmed_kickoff_date')
+                                    ->label('Confirmed Kick-off Meeting Date')
+                                    ->required()
+                                    ->native(false)
+                                    ->displayFormat('d M Y')
+                                    ->default(function (SoftwareHandover $record) {
+                                        return $record->kick_off_meeting ?? now();
+                                    })
+                                    ->columnSpan(1),
 
-                                    \Filament\Forms\Components\Select::make('buffer_months')
-                                        ->label('Duration')
-                                        ->options([
-                                            '1' => '1 month',
-                                            '2' => '2 months',
-                                            '3' => '3 months',
-                                            '6' => '6 months',
-                                            '12' => '12 months',
-                                        ])
-                                        ->required()
-                                        ->default('2')
-                                        ->visible(fn (callable $get) => $get('buffer_license_type') === 'predefined'),
+                                \Filament\Forms\Components\Select::make('buffer_months')
+                                    ->label('Buffer License Duration')
+                                    ->options([
+                                        '1' => '1 month',
+                                        '2' => '2 months',
+                                        '3' => '3 months',
+                                        '4' => '4 months',
+                                        '5' => '5 months',
+                                        '6' => '6 months',
+                                        '7' => '7 months',
+                                        '8' => '8 months',
+                                        '9' => '9 months',
+                                        '10' => '10 months',
+                                        '11' => '11 months',
+                                        '12' => '12 months',
+                                    ])
+                                    ->required()
+                                    ->default('1'),
 
-                                    \Filament\Forms\Components\Grid::make(2)
-                                        ->schema([
-                                            \Filament\Forms\Components\TextInput::make('buffer_custom_years')
-                                                ->label('Years')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->maxValue(10)
-                                                ->default(0),
-
-                                            \Filament\Forms\Components\TextInput::make('buffer_custom_months')
-                                                ->label('Months')
-                                                ->numeric()
-                                                ->minValue(1)
-                                                ->maxValue(12)
-                                                ->default(2),
-                                        ])
-                                        ->visible(fn (callable $get) => $get('buffer_license_type') === 'custom'),
-                                ])
-                                ->compact(),
-
-                            \Filament\Forms\Components\Section::make('Paid License')
-                                ->schema([
-                                    \Filament\Forms\Components\Radio::make('paid_license_type')
-                                        ->hiddenLabel()
-                                        ->options([
-                                            'predefined' => 'Select from options',
-                                            'custom' => 'Enter custom duration',
-                                        ])
-                                        ->default('predefined')
-                                        ->inline()
-                                        ->reactive(),
-
-                                    \Filament\Forms\Components\Select::make('paid_license_years')
-                                        ->label('Duration')
-                                        ->options([
-                                            '1' => '1 year',
-                                            '2' => '2 years',
-                                            '3' => '3 years',
-                                            '5' => '5 years',
-                                        ])
-                                        ->required()
-                                        ->default('1')
-                                        ->visible(fn (callable $get) => $get('paid_license_type') === 'predefined'),
-
-                                    \Filament\Forms\Components\Grid::make(2)
-                                        ->schema([
-                                            \Filament\Forms\Components\TextInput::make('paid_custom_years')
-                                                ->label('Years')
-                                                ->numeric()
-                                                ->minValue(1)
-                                                ->maxValue(10)
-                                                ->default(1),
-
-                                            \Filament\Forms\Components\TextInput::make('paid_custom_months')
-                                                ->label('Months')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->maxValue(12)
-                                                ->default(0),
-                                        ])
-                                        ->visible(fn (callable $get) => $get('paid_license_type') === 'custom'),
-                                ])
-                                ->compact(),
-
-                                \Filament\Forms\Components\Section::make('Email Recipients')
-                                ->schema([
-                                    \Filament\Forms\Components\Repeater::make('additional_recipients')
-                                        ->hiddenLabel()
-                                        ->helperText('By default, the company email (first email), implementer, and salesperson will receive the license certificate email. You can add additional recipients here.')
-                                        ->schema([
-                                            \Filament\Forms\Components\TextInput::make('email')
-                                                ->label('Email Address')
-                                                ->email()
-                                                ->required()
-                                                ->placeholder('Enter email address')
-                                        ])
-                                        ->defaultItems(1)  // Set to 1 to show one default item
-                                        ->minItems(0)
-                                        ->maxItems(5)
-                                        ->columnSpanFull()
-                                        ->default(function (SoftwareHandover $record = null) {
-                                            if (!$record) {
-                                                return [];
-                                            }
-
-                                            // Get company email from the record
-                                            $companyEmail = $record->lead->companyDetail->email ?? $record->lead->email ?? null;
-
-                                            // If there's a valid company email, return it as the first item
-                                            if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
-                                                return [
-                                                    ['email' => $companyEmail]
-                                                ];
-                                            }
-
+                                \Filament\Forms\Components\Select::make('paid_license_years')
+                                    ->label('Paid License Duration')
+                                    ->options([
+                                        '1' => '1 year',
+                                        '2' => '2 years',
+                                        '3' => '3 years',
+                                        '4' => '4 years',
+                                        '5' => '5 years',
+                                    ])
+                                    ->required()
+                                    ->default('1'),
+                            ]),
+                            \Filament\Forms\Components\Section::make('Email Recipients')
+                            ->schema([
+                                \Filament\Forms\Components\Repeater::make('additional_recipients')
+                                    ->hiddenLabel()
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('email')
+                                            ->label('Email Address')
+                                            ->email()
+                                            ->required()
+                                            ->placeholder('Enter email address')
+                                    ])
+                                    ->defaultItems(1)  // Set to 1 to show one default item
+                                    ->minItems(0)
+                                    ->maxItems(5)
+                                    ->columnSpanFull()
+                                    ->default(function (SoftwareHandover $record = null) {
+                                        if (!$record) {
                                             return [];
-                                        }),
-                                ])
-                                ->compact(),
+                                        }
+
+                                        // Get company email from the record
+                                        $companyEmail = $record->lead->companyDetail->email ?? $record->lead->email ?? null;
+
+                                        // If there's a valid company email, return it as the first item
+                                        if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
+                                            return [
+                                                ['email' => $companyEmail]
+                                            ];
+                                        }
+
+                                        return [];
+                                    }),
+                            ]),
                         ])
                         ->modalHeading("Create License Duration")
-                        ->modalDescription('Please configure the license details before marking this handover as completed license certification.')
                         ->modalSubmitActionLabel('Submit')
                         ->modalCancelActionLabel('Cancel')
                         ->action(function (array $data, SoftwareHandover $record): void {
@@ -371,25 +350,15 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
                             // Calculate license dates
-                            $kickOffDate = now();
+                            $kickOffDate = $record->kick_off_meeting ?? now();
 
                             // Handle buffer license duration based on selection type
-                            if ($data['buffer_license_type'] === 'predefined') {
-                                $bufferMonths = (int) $data['buffer_months'];
-                                $bufferYears = 0;
-                            } else {
-                                $bufferMonths = (int) $data['buffer_custom_months'];
-                                $bufferYears = (int) $data['buffer_custom_years'];
-                            }
+                            $bufferMonths = (int) $data['buffer_months'];
+                            $bufferYears = 0;
 
                             // Handle paid license duration based on selection type
-                            if ($data['paid_license_type'] === 'predefined') {
-                                $paidLicenseYears = (int) $data['paid_license_years'];
-                                $paidLicenseMonths = 0;
-                            } else {
-                                $paidLicenseYears = (int) $data['paid_custom_years'];
-                                $paidLicenseMonths = (int) $data['paid_custom_months'];
-                            }
+                            $paidLicenseYears = (int) $data['paid_license_years'];
+                            $paidLicenseMonths = 0;
 
                             // Calculate buffer duration in months for display
                             $totalBufferMonths = ($bufferYears * 12) + $bufferMonths;
@@ -429,6 +398,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 'completed_at' => now(),
                                 'data_migrated' => true,
                                 'license_certification_id' => $certificate->id,
+                                'kick_off_meeting' => $data['confirmed_kickoff_date'] ?? $record->kick_off_meeting,
                             ]);
 
                             // Format the handover ID properly
@@ -457,7 +427,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     'certificate_id' => $certificateId,
                                     'activatedAt' => now()->format('d M Y'),
                                     'licenses' => [
-                                        'kickOffDate' => $kickOffDate->format('d M Y'),
+                                        'kickOffDate' => $record->kick_off_meeting ? $record->kick_off_meeting->format('d M Y') : now()->format('d M Y'),
                                         'bufferLicense' => [
                                             'start' => $kickOffDate->format('d M Y'),
                                             'end' => $bufferEndDate->format('d M Y'),

@@ -56,6 +56,30 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
     protected static ?int $indexRepeater2 = 0;
 
     public $selectedUser;
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-softwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     #[On('updateTablesForUser')] // Listen for updates
     public function updateTablesForUser($selectedUser)
@@ -81,7 +105,7 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('300s')
             ->query($this->getNewSoftwareHandovers())
             ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
