@@ -141,6 +141,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             })
                     ),
 
+                TextColumn::make('implementer')
+                    ->label('Implementer')
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
                     ->getStateUsing(function (HardwareHandover $record) {
@@ -152,10 +156,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                         $salespersonId = $lead->salesperson;
                         return User::find($salespersonId)?->name ?? '-';
                     })
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                TextColumn::make('implementer')
-                    ->label('Implementer')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('lead.companyDetail.company_name')

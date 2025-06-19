@@ -226,10 +226,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             })
                     ),
 
-                TextColumn::make('implementer')
-                    ->label('Implementer')
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
                     ->getStateUsing(function (HardwareHandover $record) {
@@ -241,6 +237,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         $salespersonId = $lead->salesperson;
                         return User::find($salespersonId)?->name ?? '-';
                     })
+                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+
+                TextColumn::make('implementer')
+                    ->label('Implementer')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('lead.companyDetail.company_name')
