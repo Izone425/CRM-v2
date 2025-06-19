@@ -201,8 +201,8 @@ class SoftwareHandoverResource extends Resource
                                 Select::make('implementer')
                                     ->label('Implementer')
                                     ->options(function () {
-                                        return \App\Models\User::where('role_id', 4)
-                                            ->orderBy('name')
+                                        return \App\Models\User::whereIn('role_id', [4, 5])
+                                        ->orderBy('name')
                                             ->pluck('name', 'name')
                                             ->toArray();
                                     })
@@ -214,7 +214,7 @@ class SoftwareHandoverResource extends Resource
                                         }
 
                                         // Otherwise try to find the first available implementer
-                                        $firstImplementer = \App\Models\User::where('role_id', 4)->first();
+                                        $firstImplementer = \App\Models\User::whereIn('role_id', [4, 5])->first();
                                         return $firstImplementer ? $firstImplementer->id : null;
                                     })
                                     ->searchable()
@@ -222,18 +222,47 @@ class SoftwareHandoverResource extends Resource
                                     ->afterStateUpdated(function ($state, $old, $record, $component) {
                                         // Only send email if this is an existing record and the implementer actually changed
                                         if ($record && $record->exists && $old !== $state && $old !== null) {
-                                            $newImplementer = \App\Models\User::where('name', $state)->first();
-                                            $oldImplementer = \App\Models\User::where('name', $old)->first();
+                                            // Add debug logging to see what's happening
+                                            \Illuminate\Support\Facades\Log::info("Implementer change detected", [
+                                                'record_id' => $record->id,
+                                                'old_implementer' => $old,
+                                                'new_implementer' => $state
+                                            ]);
 
-                                            if ($newImplementer) {
-                                                // Send email notification
-                                                try {
+                                            // Initialize variables with safe defaults
+                                            $emailContent = [];
+                                            $recipients = [];
+
+                                            try {
+                                                // Find the implementers - use firstOrFail() to catch missing users
+                                                $newImplementer = \App\Models\User::where('name', $state)->first();
+
+                                                // For old implementer, don't fail if not found
+                                                $oldImplementer = \App\Models\User::where('name', $old)->first();
+                                                $oldImplementerName = $oldImplementer ? $oldImplementer->name : $old;
+
+                                                // Only proceed if new implementer exists
+                                                if ($newImplementer) {
                                                     $viewName = 'emails.handover_changeimplementer';
 
-                                                    // Get salesperson and company details
-                                                    $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
-                                                    $salespersonId = $record->lead->salesperson ?? null;
-                                                    $salesperson = \App\Models\User::find($salespersonId);
+                                                    // Get company name with fallbacks
+                                                    $companyName = $record->company_name;
+                                                    if (empty($companyName) && isset($record->lead) && isset($record->lead->companyDetail)) {
+                                                        $companyName = $record->lead->companyDetail->company_name;
+                                                    }
+                                                    if (empty($companyName)) {
+                                                        $companyName = 'Unknown Company';
+                                                    }
+
+                                                    // Get salesperson with safety checks
+                                                    $salesperson = null;
+                                                    $salespersonName = 'Unknown';
+                                                    if (isset($record->lead) && isset($record->lead->salesperson)) {
+                                                        $salesperson = \App\Models\User::find($record->lead->salesperson);
+                                                        if ($salesperson) {
+                                                            $salespersonName = $salesperson->name;
+                                                        }
+                                                    }
 
                                                     // Format the handover ID properly
                                                     $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
@@ -241,6 +270,7 @@ class SoftwareHandoverResource extends Resource
                                                     // Get the handover PDF URL
                                                     $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
+                                                    // Process invoice files safely
                                                     $invoiceFiles = [];
                                                     if ($record->invoice_file) {
                                                         $invoiceFileArray = is_string($record->invoice_file)
@@ -254,66 +284,84 @@ class SoftwareHandoverResource extends Resource
                                                         }
                                                     }
 
-                                                    // Create email content structure
+                                                    // Create email content structure with safe data
                                                     $emailContent = [
                                                         'implementer' => [
                                                             'name' => $newImplementer->name,
                                                         ],
                                                         'oldImplementer' => [
-                                                            'name' => $oldImplementer->name,
+                                                            'name' => $oldImplementerName,
                                                         ],
                                                         'company' => [
                                                             'name' => $companyName,
                                                         ],
                                                         'salesperson' => [
-                                                            'name' => $salesperson->name,
+                                                            'name' => $salespersonName,
                                                         ],
                                                         'handover_id' => $handoverId,
-                                                        // CHANGE created_at to completed_at
-                                                        'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
+                                                        'createdAt' => $record->completed_at
+                                                            ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y')
+                                                            : now()->format('d M Y'),
                                                         'handoverFormUrl' => $handoverFormUrl,
-                                                        'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
+                                                        'invoiceFiles' => $invoiceFiles,
                                                     ];
 
                                                     // Initialize recipients array with admin email
-                                                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // UNCOMMENTED - Always include admin
 
-                                                    // Add implementer email if valid
+                                                    // Add new implementer email if valid
                                                     if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
                                                         $recipients[] = $newImplementer->email;
                                                     }
 
-                                                    // Add old implementer email if valid
-                                                    if ($oldImplementer->email && filter_var($oldImplementer->email, FILTER_VALIDATE_EMAIL)) {
+                                                    // Add old implementer email if valid and user exists
+                                                    if ($oldImplementer && $oldImplementer->email && filter_var($oldImplementer->email, FILTER_VALIDATE_EMAIL)) {
                                                         $recipients[] = $oldImplementer->email;
                                                     }
 
-                                                    // Add salesperson email if valid
-                                                    if ($salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
+                                                    // Add salesperson email if valid and user exists
+                                                    if ($salesperson && $salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
                                                         $recipients[] = $salesperson->email;
                                                     }
 
-                                                    // Get authenticated user's email for sender
+                                                    // Get authenticated user's email for sender with fallbacks
                                                     $authUser = auth()->user();
-                                                    $senderEmail = $authUser->email;
-                                                    $senderName = $authUser->name;
+                                                    $senderEmail = $authUser->email ?? 'no-reply@timeteccloud.com';
+                                                    $senderName = $authUser->name ?? 'TimeTec System';
 
-                                                    // Send email with template and custom subject format
+                                                    // Log what we're about to do
+                                                    \Illuminate\Support\Facades\Log::info("About to send email", [
+                                                        'recipients' => $recipients,
+                                                        'sender' => $senderEmail,
+                                                        'subject' => "SOFTWARE HANDOVER ID {$handoverId} | {$companyName}"
+                                                    ]);
+
+                                                    // Send email with template and custom subject format if we have recipients
                                                     if (count($recipients) > 0) {
                                                         \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
                                                             $message->from($senderEmail, $senderName)
                                                                 ->to($recipients)
                                                                 ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
-                                                            //   $message->from("itsupport@timeteccloud.com","IT Support")
-                                                            //     ->to("adly.shahromazmi@timeteccloud.com")
-                                                            //     ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
                                                         });
 
                                                         \Illuminate\Support\Facades\Log::info("Project assignment email - Change Implementer sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                                    } else {
+                                                        \Illuminate\Support\Facades\Log::warning("No valid recipients for email notification");
                                                     }
-                                                } catch (\Exception $e) {
-                                                    // Log error but don't stop the process
-                                                    \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                                                } else {
+                                                    \Illuminate\Support\Facades\Log::warning("New implementer not found: {$state}");
+                                                }
+                                            } catch (\Exception $e) {
+                                                // Better error logging with context
+                                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: " . $e->getMessage(), [
+                                                    'exception' => $e,
+                                                    'trace' => $e->getTraceAsString(),
+                                                    'old_implementer' => $old,
+                                                    'new_implementer' => $state
+                                                ]);
+
+                                                // Only try to log email content if it was created
+                                                if (!empty($emailContent)) {
                                                     \Illuminate\Support\Facades\Log::debug("Email content for handover #{$record->id}:", $emailContent);
                                                 }
                                             }
