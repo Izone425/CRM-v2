@@ -17,12 +17,12 @@
         // Using a database transaction to ensure data integrity
         \Illuminate\Support\Facades\DB::transaction(function() use ($lead, $totalDealAmount) {
             $lead->deal_amount = $totalDealAmount;
-            $lead->save();
+            $lead->updateQuietly(['deal_amount' => $totalDealAmount]);
         });
     }
 @endphp
 
-<div class="grid gap-6" wire:poll.1s>
+<div class="grid gap-6" wire:poll.300s>
     {{-- Row: Deal Amount + Quotations --}}
     <div style="display: grid; gap: 24px;" class="grid gap-6 md:grid-cols-3">
         {{-- Deal Amount --}}
