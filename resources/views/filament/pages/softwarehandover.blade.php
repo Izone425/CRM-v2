@@ -231,7 +231,10 @@ $pendingKickOffCount = SoftwareHandover::query()
 // Define queries for Pending License
 $pendingLicenseCount = SoftwareHandover::query()
     ->whereIn('status', ['Completed'])
-    ->whereNull('license_activated')
+    ->where(function($query) {
+        $query->whereNull('license_activated')
+              ->orWhere('license_activated', 0);
+    })
     ->where(function ($q) {
         $q->where('id', '>=', 556);
     })->count();

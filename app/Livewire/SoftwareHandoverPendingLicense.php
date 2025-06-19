@@ -94,7 +94,14 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
     {
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
-        $query->whereNull('license_activated');
+
+        // Check for both NULL and false (0) values for license_activated
+        $query->where(function ($q) {
+            $q->whereNull('license_activated')
+            ->orWhere('license_activated', 0)
+            ->orWhere('license_activated', false);
+        });
+
         $query->orderBy('updated_at', 'desc');
         $query->where(function ($q) {
             $q->where('id', '>=', 556);

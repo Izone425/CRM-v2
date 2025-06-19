@@ -47,7 +47,6 @@ class ViewLeadRecord extends ViewRecord
     {
             $code = str_replace(' ', '+', $record); // Replace spaces with +
             $leadId = Encryptor::decrypt($code); // Decrypt the encrypted record ID
-            // dd($leadId);
             $this->record = $this->getModel()::findOrFail($leadId); // Fetch the lead record
     }
 
