@@ -66,10 +66,46 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function getOverdueHardwareHandovers()
     {
-        return HardwareHandover::query()
-            ->whereIn('status', ['Completed'])
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+        $query = HardwareHandover::query()
+            ->whereIn('status', ['Completed']);
+
+        // Apply normal salesperson filtering for other roles
+        if ($this->selectedUser === 'all-salespersons') {
+            // Keep as is - show all salespersons' handovers
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
+        } elseif (is_numeric($this->selectedUser)) {
+            // Validate that the selected user exists and is a salesperson
+            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+
+            if ($userExists) {
+                $selectedUser = $this->selectedUser; // Create a local variable
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
+                });
+            } else {
+                // Invalid user ID or not a salesperson, fall back to default
+                $query->whereHas('lead', function ($leadQuery) {
+                    $leadQuery->where('salesperson', auth()->id());
+                });
+            }
+        } else {
+            if (auth()->user()->role_id === 2) {
+                // Salespersons (role_id 2) can only see their own records
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            }
+            // Other users (admin, managers) can see all records - no additional filter needed
+        }
+
+        $query->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
+
+        return $query;
     }
 
     public function table(Table $table): Table
