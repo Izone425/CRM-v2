@@ -579,6 +579,35 @@
                         </div>
                     </div>
 
+                    <!-- Admin Repair Section -->
+                    <div class="nested-dropdown">
+                        <div class="sidebar-item nested-dropdown-trigger">
+                            <i class="bi bi-cpu"></i>
+                            <span>Admin - Repair</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+
+                        <!-- Level 3 dropdown content -->
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Dashboard</span>
+                            </a>
+
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Analysis</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Attachment</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Admin Training Section -->
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">

@@ -95,7 +95,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
         $query = HardwareHandover::query();
 
         if ($this->selectedUser === 'all-salespersons') {
-            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved']);
+            $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved', 'Pending Migration', 'Pending Stock']);
 
             // Keep as is - show all salespersons' handovers
             $salespersonIds = User::where('role_id', 2)->pluck('id');
