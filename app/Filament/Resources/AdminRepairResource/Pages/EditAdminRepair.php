@@ -19,10 +19,13 @@ class EditAdminRepair extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Add debugging
-        \Illuminate\Support\Facades\Log::info('EditAdminRepair data before fill:', [
-            'remarks_type' => isset($data['remarks']) ? gettype($data['remarks']) : 'not set',
-        ]);
+        if (!empty($data['devices'])) {
+            $devices = json_decode($data['devices'], true);
+            if (is_array($devices) && !empty($devices[0])) {
+                $data['device_model'] = $devices[0]['device_model'] ?? null;
+                $data['device_serial'] = $devices[0]['device_serial'] ?? null;
+            }
+        }
 
         // Ensure remarks is decoded if it's a string
         if (isset($data['remarks']) && is_string($data['remarks'])) {

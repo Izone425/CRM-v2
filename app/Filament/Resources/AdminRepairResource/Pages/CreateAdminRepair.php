@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateAdminRepair extends CreateRecord
 {
     protected static string $resource = AdminRepairResource::class;
+    protected static bool $canCreateAnother = false;
 
     protected function getRedirectUrl(): string
     {
@@ -18,6 +19,14 @@ class CreateAdminRepair extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Process JSON encoding for array fields
+        if (!empty($data['devices'])) {
+            $devices = json_decode($data['devices'], true);
+            if (is_array($devices) && !empty($devices[0])) {
+                $data['device_model'] = $devices[0]['device_model'] ?? null;
+                $data['device_serial'] = $devices[0]['device_serial'] ?? null;
+            }
+        }
+
         if (isset($data['remarks']) && is_array($data['remarks'])) {
             foreach ($data['remarks'] as $key => $remark) {
                 // Encode the attachments array for each remark
