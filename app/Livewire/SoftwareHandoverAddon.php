@@ -109,7 +109,7 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
         }
 
         // Salesperson filter logic
-        if (auth()->user()->role_id === 3) {
+        if (auth()->user()->role_id === 3 || auth()->user()->role_id === 1) {
             // Role 3 users can see all handovers regardless of salesperson
             // No filtering needed here - we'll skip the salesperson filters
         } else {
