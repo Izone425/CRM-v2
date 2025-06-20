@@ -397,7 +397,6 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             // Update the software handover record with license information
                             $record->update([
                                 'completed_at' => now(),
-                                'data_migrated' => true,
                                 'license_certification_id' => $certificate->id,
                                 'kick_off_meeting' => $data['confirmed_kickoff_date'] ?? $record->kick_off_meeting,
                             ]);

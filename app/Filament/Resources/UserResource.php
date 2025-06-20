@@ -32,6 +32,16 @@ class UserResource extends Resource
         // Handover
         'software_handover' => 'filament.admin.resources.software-handovers.index',
         'hardware_handover' => 'filament.admin.resources.hardware-handovers.index',
+        'software_attachments' => 'filament.admin.resources.software-attachments.index',
+        'hardware_attachments' => 'filament.admin.resources.hardware-attachments.index',
+
+        // Hardware Dashboard
+        'hardware_dashboard_all' => 'filament.admin.pages.hardware-dashboard-all',
+        'hardware_dashboard_pending_stock' => 'filament.admin.pages.hardware-dashboard-pending-stock',
+
+        // Repair
+        'admin_repair_dashboard' => 'filament.admin.pages.admin-repair-dashboard',
+        'admin_repairs' => 'filament.admin.resources.admin-repairs.index',
 
         // Sales Forecast
         'sales_forecast' => 'filament.admin.pages.sales-forecast',
@@ -58,6 +68,8 @@ class UserResource extends Resource
         'lead_sources' => 'filament.admin.resources.lead-sources.index',
         'invalid_lead_reasons' => 'filament.admin.resources.invalid-lead-reasons.index',
         'resellers' => 'filament.admin.resources.resellers.index',
+        'installers' => 'filament.admin.resources.installers.index',
+        'spare_parts' => 'filament.admin.resources.spare-parts.index',
     ];
 
     public static function canAccess(): bool
@@ -70,7 +82,6 @@ class UserResource extends Resource
 
         return $user->hasRouteAccess('filament.admin.resources.users.index');
     }
-
 
     public static function form(Form $form): Form
     {
@@ -90,9 +101,18 @@ class UserResource extends Resource
                                 4 => 'Implementer',
                                 6 => 'Trainer',
                                 3 => 'Manager',
+                                5 => 'Admin Handover',
                             ])
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if (!$state) return;
+
+                                // Auto-set additional_role to 1 if role_id is 5 (Admin Handover)
+                                if ((int)$state === 5) {
+                                    $set('role_id', 1);
+                                    $set('additional_role', 1);
+                                } else {
+                                    $set('additional_role', 0);
+                                }
 
                                 // Define default permissions for each role
                                 $rolePermissions = match ((int) $state) {
@@ -123,6 +143,14 @@ class UserResource extends Resource
                                         'lead_sources' => false,
                                         'invalid_lead_reasons' => false,
                                         'resellers' => false,
+                                        'installers' => false,
+                                        'spare_parts' => false,
+                                        'software_attachments' => false,
+                                        'hardware_attachments' => false,
+                                        'hardware_dashboard_all' => false,
+                                        'hardware_dashboard_pending_stock' => false,
+                                        'admin_repair_dashboard' => false,
+                                        'admin_repairs' => false,
                                     ],
 
                                     // Salesperson Permissions
@@ -132,8 +160,8 @@ class UserResource extends Resource
                                         'quotations' => true,
                                         'proforma_invoices' => false,
                                         'chat_room' => false,
-                                        'software_handover' => false,
-                                        'hardware_handover' => false,
+                                        'software_handover' => true,
+                                        'hardware_handover' => true,
                                         'sales_forecast' => true,
                                         'sales_forecast_summary' => false,
                                         'calendar' => true,
@@ -152,6 +180,88 @@ class UserResource extends Resource
                                         'lead_sources' => false,
                                         'invalid_lead_reasons' => false,
                                         'resellers' => false,
+                                        'installers' => false,
+                                        'spare_parts' => false,
+                                        'software_attachments' => true,
+                                        'hardware_attachments' => true,
+                                        'hardware_dashboard_all' => true,
+                                        'hardware_dashboard_pending_stock' => true,
+                                        'admin_repair_dashboard' => false,
+                                        'admin_repairs' => false,
+                                    ],
+
+                                    // Implementer Permissions
+                                    4 => [
+                                        'leads' => false,
+                                        'search_lead' => false,
+                                        'quotations' => false,
+                                        'proforma_invoices' => false,
+                                        'chat_room' => false,
+                                        'software_handover' => true,
+                                        'hardware_handover' => true,
+                                        'sales_forecast' => false,
+                                        'sales_forecast_summary' => false,
+                                        'calendar' => false,
+                                        'weekly_calendar_v2' => false,
+                                        'monthly_calendar' => false,
+                                        'demo_ranking' => false,
+                                        'lead_analysis' => false,
+                                        'demo_analysis' => false,
+                                        'marketing_analysis' => false,
+                                        'sales_admin_analysis_v1' => false,
+                                        'sales_admin_analysis_v2' => false,
+                                        'sales_admin_analysis_v3' => false,
+                                        'products' => false,
+                                        'users' => false,
+                                        'industries' => false,
+                                        'lead_sources' => false,
+                                        'invalid_lead_reasons' => false,
+                                        'resellers' => false,
+                                        'installers' => false,
+                                        'spare_parts' => false,
+                                        'software_attachments' => true,
+                                        'hardware_attachments' => true,
+                                        'hardware_dashboard_all' => true,
+                                        'hardware_dashboard_pending_stock' => true,
+                                        'admin_repair_dashboard' => false,
+                                        'admin_repairs' => false,
+                                    ],
+
+                                    // Trainer Permissions
+                                    6 => [
+                                        'leads' => false,
+                                        'search_lead' => false,
+                                        'quotations' => false,
+                                        'proforma_invoices' => false,
+                                        'chat_room' => false,
+                                        'software_handover' => false,
+                                        'hardware_handover' => false,
+                                        'sales_forecast' => false,
+                                        'sales_forecast_summary' => false,
+                                        'calendar' => false,
+                                        'weekly_calendar_v2' => false,
+                                        'monthly_calendar' => false,
+                                        'demo_ranking' => false,
+                                        'lead_analysis' => false,
+                                        'demo_analysis' => false,
+                                        'marketing_analysis' => false,
+                                        'sales_admin_analysis_v1' => false,
+                                        'sales_admin_analysis_v2' => false,
+                                        'sales_admin_analysis_v3' => false,
+                                        'products' => false,
+                                        'users' => false,
+                                        'industries' => false,
+                                        'lead_sources' => false,
+                                        'invalid_lead_reasons' => false,
+                                        'resellers' => false,
+                                        'installers' => false,
+                                        'spare_parts' => false,
+                                        'software_attachments' => false,
+                                        'hardware_attachments' => false,
+                                        'hardware_dashboard_all' => false,
+                                        'hardware_dashboard_pending_stock' => false,
+                                        'admin_repair_dashboard' => false,
+                                        'admin_repairs' => false,
                                     ],
 
                                     // Manager (full access)
@@ -203,6 +313,17 @@ class UserResource extends Resource
                                     if ($record) {
                                         $permissions = $record->route_permissions ?? [];
                                         $routeName = self::$routePermissionMap['leads'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.search_lead')
+                                ->label('Search Lead')
+                                ->helperText('Access to search leads')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['search_lead'];
                                         $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                     }
                                 }),
@@ -296,29 +417,6 @@ class UserResource extends Resource
                     // Salesperson Section
                     Forms\Components\Fieldset::make('Salesperson')
                         ->schema([
-                            // Calendar
-                            Forms\Components\Checkbox::make('permissions.search_lead')
-                                ->label('Search Lead')
-                                ->helperText('Access to search the lead')
-                                ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                    if ($record) {
-                                        $permissions = $record->route_permissions ?? [];
-                                        $routeName = self::$routePermissionMap['search_lead'];
-                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                    }
-                                }),
-
-                            Forms\Components\Checkbox::make('permissions.calendar')
-                                ->label('Salesperson - Calendar V1')
-                                ->helperText('Access to calendar view for salesperson')
-                                ->afterStateHydrated(function ($component, $state, ?User $record) {
-                                    if ($record) {
-                                        $permissions = $record->route_permissions ?? [];
-                                        $routeName = self::$routePermissionMap['calendar'];
-                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
-                                    }
-                                }),
-
                             // Commercial Part
                             Forms\Components\Checkbox::make('permissions.quotations')
                                 ->label('Quotations')
@@ -390,10 +488,9 @@ class UserResource extends Resource
                         ])
                         ->columns(2),
 
-                    // Admin Section
-                    Forms\Components\Fieldset::make('Admin')
+                    // Implementer Section
+                    Forms\Components\Fieldset::make('Implementer')
                         ->schema([
-                            // Handover section
                             Forms\Components\Checkbox::make('permissions.software_handover')
                                 ->label('Software Handover')
                                 ->helperText('Manage software handover documents')
@@ -412,6 +509,82 @@ class UserResource extends Resource
                                     if ($record) {
                                         $permissions = $record->route_permissions ?? [];
                                         $routeName = self::$routePermissionMap['hardware_handover'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.software_attachments')
+                                ->label('Software Attachments')
+                                ->helperText('Access to software attachments')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['software_attachments'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.hardware_attachments')
+                                ->label('Hardware Attachments')
+                                ->helperText('Access to hardware attachments')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['hardware_attachments'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
+
+                    // Hardware Dashboard Section
+                    Forms\Components\Fieldset::make('Hardware Dashboard')
+                        ->schema([
+                            Forms\Components\Checkbox::make('permissions.hardware_dashboard_all')
+                                ->label('Hardware Dashboard - All')
+                                ->helperText('Access to hardware dashboard - all view')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['hardware_dashboard_all'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.hardware_dashboard_pending_stock')
+                                ->label('Hardware Dashboard - Pending Stock')
+                                ->helperText('Access to hardware dashboard - pending stock')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['hardware_dashboard_pending_stock'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(2),
+
+                    // Repair Section
+                    Forms\Components\Fieldset::make('Repair')
+                        ->schema([
+                            Forms\Components\Checkbox::make('permissions.admin_repair_dashboard')
+                                ->label('Repair Dashboard')
+                                ->helperText('Access to repair dashboard')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_repair_dashboard'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_repairs')
+                                ->label('Repair Attachments')
+                                ->helperText('Access to repair attachments')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_repairs'];
                                         $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                     }
                                 }),
@@ -489,6 +662,28 @@ class UserResource extends Resource
                                     if ($record) {
                                         $permissions = $record->route_permissions ?? [];
                                         $routeName = self::$routePermissionMap['resellers'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.installers')
+                                ->label('Installers')
+                                ->helperText('Manage installers')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['installers'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.spare_parts')
+                                ->label('Spare Parts')
+                                ->helperText('Manage spare parts')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['spare_parts'];
                                         $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                     }
                                 }),
