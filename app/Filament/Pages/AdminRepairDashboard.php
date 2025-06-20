@@ -721,10 +721,9 @@ class AdminRepairDashboard extends Page implements HasTable
 
                                 // Define recipients
                                 $recipients = [
-                                    // 'admin.timetec.hr@timeteccloud.com',
-                                    // 'support@timeteccloud.com',
-                                    // 'izzuddin@timeteccloud.com'
-                                    'zilih020906@gmail.com',
+                                    'admin.timetec.hr@timeteccloud.com',
+                                    'support@timeteccloud.com',
+                                    'izzuddin@timeteccloud.com'
                                 ];
 
                                 // Send email notification
