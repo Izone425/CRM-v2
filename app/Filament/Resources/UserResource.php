@@ -102,6 +102,7 @@ class UserResource extends Resource
                                 6 => 'Trainer',
                                 3 => 'Manager',
                                 5 => 'Admin Handover',
+                                8 => 'Support',
                             ])
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if (!$state) return;
