@@ -589,7 +589,7 @@
 
                         <!-- Level 3 dropdown content -->
                         <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard</span>
                             </a>
@@ -601,7 +601,7 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
                             </a>
@@ -1162,6 +1162,13 @@
                             <a href="{{ route('filament.admin.resources.installers.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Installers</span>
+                            </a>
+                            @endif
+
+                            @if(auth()->user()->hasRouteAccess('filament.admin.resources.spare-parts.index'))
+                            <a href="{{ route('filament.admin.resources.spare-parts.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>SparePart</span>
                             </a>
                             @endif
                         </div>

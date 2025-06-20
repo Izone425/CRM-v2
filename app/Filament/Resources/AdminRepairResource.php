@@ -14,13 +14,16 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class AdminRepairResource extends Resource
@@ -28,8 +31,9 @@ class AdminRepairResource extends Resource
     protected static ?string $model = AdminRepair::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench';
-    protected static ?string $navigationLabel = 'Admin Repair';
+    protected static ?string $navigationLabel = 'Admin Repair Attachments';
     protected static ?int $indexRemarkCounter = 0;
+    protected static ?int $indexDeviceCounter = 0;
 
     public static function form(Form $form): Form
     {
@@ -125,35 +129,78 @@ class AdminRepairResource extends Resource
                 Grid::make(3)
                 ->schema([
                     // FIELD 5 – DROP DOWN LIST DEVICE MODEL
-                    Select::make('device_model')
-                        ->label('Device Model')
-                        ->columnSpan(1)
-                        ->options([
-                            'TimeTec TA100C' => 'TimeTec TA100C',
-                            'TimeTec TA100CR' => 'TimeTec TA100CR',
-                            'TimeTec TA500' => 'TimeTec TA500',
-                            'TimeTec TA700W' => 'TimeTec TA700W',
-                            'TimeTec Face ID 2' => 'TimeTec Face ID 2',
-                            'TimeTec Face ID 3' => 'TimeTec Face ID 3',
-                            'TimeTec Face ID 4' => 'TimeTec Face ID 4',
-                            'TimeTec Face ID 4d' => 'TimeTec Face ID 4d',
-                            'TimeTec i-Clock 680' => 'TimeTec i-Clock 680',
-                            'Other' => 'Other (Please specify in remarks)',
+                    Section::make('Device Details')
+                    ->columnSpan(2) // Make it span 2 columns
+                    ->schema([
+                        Forms\Components\Repeater::make('devices')
+                        ->hiddenLabel()
+                        ->schema([
+                            Grid::make(2)
+                            ->schema([
+                                Select::make('device_model')
+                                    ->label('Device Model')
+                                    ->options([
+                                        'TC10' => 'TC10',
+                                        'TC20' => 'TC20',
+                                        'FACE ID 5' => 'FACE ID 5',
+                                        'FACE ID 6' => 'FACE ID 6',
+                                        'TIME BEACON' => 'TIME BEACON',
+                                        'NFC TAG' => 'NFC TAG',
+                                    ])
+                                    ->searchable()
+                                    ->required(),
+
+                                TextInput::make('device_serial')
+                                    ->label('Serial Number')
+                                    ->required()
+                                    ->maxLength(100),
+                            ])
                         ])
-                        ->searchable()
-                        ->required(),
+                        ->itemLabel(fn() => __('Device') . ' ' . ++self::$indexDeviceCounter)
+                        ->addActionLabel('Add Another Device')
+                        ->maxItems(5) // Limit to 5 devices
+                        ->defaultItems(1) // Start with 1 device
+                        // Handle device data when loading form
+                        ->default(function (?AdminRepair $record = null) {
+                            if (!$record) {
+                                return [
+                                    ['device_model' => '', 'device_serial' => '']
+                                ];
+                            }
 
-                    // FIELD 6 – DEVICE SERIAL NUMBER
-                    TextInput::make('device_serial')
-                        ->label('Device Serial Number')
-                        ->columnSpan(1)
-                        ->required()
-                        ->maxLength(100),
+                            // If we have existing devices in JSON format
+                            if ($record->devices && is_string($record->devices)) {
+                                $devices = json_decode($record->devices, true);
+                                if (is_array($devices) && !empty($devices)) {
+                                    return $devices;
+                                }
+                            }
 
-                    TextInput::make('zoho_ticket')
-                        ->label('Zoho Desk Ticket Number')
-                        ->columnSpan(1)
-                        ->maxLength(50),
+                            // If no devices array but we have single device fields populated
+                            if ($record->device_model || $record->device_serial) {
+                                return [
+                                    [
+                                        'device_model' => $record->device_model ?? '',
+                                        'device_serial' => $record->device_serial ?? ''
+                                    ]
+                                ];
+                            }
+
+                            return [
+                                ['device_model' => '', 'device_serial' => '']
+                            ];
+                        })
+                        // Process device data before saving
+                        ->mutateDehydratedStateUsing(function ($state) {
+                            return json_encode($state);
+                        }),
+                    ]),
+
+                // Move your Zoho ticket field elsewhere, perhaps under this section
+                TextInput::make('zoho_ticket')
+                    ->label('Zoho Desk Ticket Number')
+                    ->columnSpan(1)
+                    ->maxLength(50),
                 ]),
 
                 Grid::make(2)
@@ -351,11 +398,32 @@ class AdminRepairResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordUrl(null)
             ->columns([
                 TextColumn::make('id')
-                    ->label('Ticket #')
-                    ->sortable()
-                    ->searchable(),
+                    ->label('ID')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        // If no state (ID) is provided, return a fallback
+                        if (!$state) {
+                            return 'Unknown';
+                        }
+
+                        // // For handover_pdf, extract filename
+                        // if ($record->handover_pdf) {
+                        //     // Extract just the filename without extension
+                        //     $filename = basename($record->handover_pdf, '.pdf');
+                        //     return $filename;
+                        // }
+
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    })
+                    ->color('primary') // Makes it visually appear as a link
+                    ->weight('bold')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        // Custom sorting logic that uses the raw ID value
+                        return $query->orderBy('id', $direction);
+                    }),
 
                 TextColumn::make('created_at')
                     ->label('Date Created')
@@ -371,9 +439,62 @@ class AdminRepairResource extends Resource
                     ->label('PIC Name')
                     ->searchable(),
 
-                TextColumn::make('device_model')
-                    ->label('Device Model')
-                    ->searchable(),
+                TextColumn::make('devices')
+                    ->label('Devices')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        // If using the new devices field
+                        if ($record->devices) {
+                            $devices = is_string($record->devices)
+                                ? json_decode($record->devices, true)
+                                : $record->devices;
+
+                            if (is_array($devices)) {
+                                return collect($devices)
+                                    ->map(fn ($device) =>
+                                        "{$device['device_model']} (SN: {$device['device_serial']})")
+                                    ->join('<br>');
+                            }
+                        }
+
+                        // Fallback to legacy fields if no devices array
+                        if ($record->device_model) {
+                            return "{$record->device_model} (SN: {$record->device_serial})";
+                        }
+
+                        return '—';
+                    })
+                    ->html()
+                    ->default(function (?AdminRepair $record = null) {
+                        if (!$record) {
+                            return [
+                                ['device_model' => '', 'device_serial' => '']
+                            ];
+                        }
+
+                        // If we have existing devices
+                        if ($record->devices && is_array($record->devices)) {
+                            return $record->devices;
+                        }
+
+                        // If no devices array but we have single device fields populated
+                        if ($record->device_model || $record->device_serial) {
+                            return [
+                                [
+                                    'device_model' => $record->device_model ?? '',
+                                    'device_serial' => $record->device_serial ?? ''
+                                ]
+                            ];
+                        }
+
+                        return [
+                            ['device_model' => '', 'device_serial' => '']
+                        ];
+                    })
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where('device_model', 'like', "%{$search}%")
+                            ->orWhere('device_serial', 'like', "%{$search}%")
+                            ->orWhere('devices', 'like', "%{$search}%");
+                    }),
 
                 TextColumn::make('device_serial')
                     ->label('Serial Number')
@@ -407,8 +528,78 @@ class AdminRepairResource extends Resource
                     ]),
             ])
             ->actions([
-                // Tables\Actions\EditAction::make(),
-                // Tables\Actions\ViewAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Action::make('viewRepairDetails')
+                        ->label('View')
+                        ->icon('heroicon-o-eye')
+                        ->modalHeading(' ')
+                        ->modalWidth('3xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalContent(function (AdminRepair $record): View {
+                            return view('components.repair-detail')
+                                ->with('record', $record);
+                        }),
+
+                    Action::make('uploadNewAttachment')
+                        ->label('Upload New Attachment')
+                        ->icon('heroicon-o-arrow-up-tray')
+                        ->color('success')
+                        ->form([
+                            FileUpload::make('files')
+                                ->required()
+                                ->multiple()
+                                ->disk('public')
+                                ->directory('hardware-handover-attachments')
+                                ->visibility('public')
+                                ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                ->maxSize(10240) // 10MB
+                                ->maxFiles(10)
+                                ->downloadable()
+                                ->openable()
+                                ->previewable()
+                                ->reorderable()
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                    $date = now()->format('Y-m-d');
+                                    $random = Str::random(8);
+                                    $extension = $file->getClientOriginalExtension();
+                                    return "attachment-{$date}-{$random}.{$extension}";
+                                }),
+                        ])
+                        ->action(function (AdminRepair $record, array $data) {
+                            // Get the handover record
+                            $handover = $record;
+
+                            // Check if new_attachment_file already exists
+                            $existingFiles = $handover->new_attachment_file ?
+                                (is_string($handover->new_attachment_file) ? json_decode($handover->new_attachment_file, true) : $handover->new_attachment_file) :
+                                [];
+
+                            // Add new files to existing files
+                            $allFiles = array_merge($existingFiles, $data['files']);
+
+                            // Update the handover record with new files
+                            $handover->update([
+                                'new_attachment_file' => json_encode($allFiles),
+                            ]);
+
+                            // Show success notification
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Attachment Uploaded')
+                                ->body('New attachment files have been added successfully.')
+                                ->send();
+                        }),
+
+                    // Tables\Actions\ViewAction::make()
+                    //     ->visible(fn (AdminRepair $record): bool => $record->status !== 'Draft'),
+
+                    // Tables\Actions\Action::make('print')
+                    //     ->label('Print')
+                    //     ->icon('heroicon-o-printer')
+                    //     ->url(fn (AdminRepair $record) => route('admin.repairs.print', $record))
+                    //     ->openUrlInNewTab(),
+                ])
             ])
             ->bulkActions([
                 // Tables\Actions\BulkActionGroup::make([
@@ -424,12 +615,17 @@ class AdminRepairResource extends Resource
         ];
     }
 
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListAdminRepairs::route('/'),
-            'create' => Pages\CreateAdminRepair::route('/create'),
-            'edit' => Pages\EditAdminRepair::route('/{record}/edit'),
+            // 'create' => Pages\CreateAdminRepair::route('/create'),
+            // 'edit' => Pages\EditAdminRepair::route('/{record}/edit'),
         ];
     }
 }

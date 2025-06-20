@@ -17,8 +17,12 @@ class AdminRepair extends Model
         'pic_email',
         'device_model',
         'device_serial',
+        'devices',
         'remarks',
+        'repair_remark',
+        'spare_parts',
         'attachments',
+        'new_attachment_file',
         'video_files',
         'zoho_ticket',
         'status',
@@ -29,15 +33,17 @@ class AdminRepair extends Model
 
     protected $casts = [
         'remarks' => 'array',
+        'repair_remark' => 'array',
         'attachments' => 'array',
         'video_files' => 'array',
+        'devices' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     // Default status for new repair tickets
     protected $attributes = [
-        'status' => 'New',
+        'status' => 'Draft',
     ];
 
     // Relationship to Company Details

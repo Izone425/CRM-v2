@@ -33,6 +33,7 @@ use Illuminate\Support\Str;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SoftwareHandoverResource extends Resource
@@ -747,104 +748,177 @@ class SoftwareHandoverResource extends Resource
                         }
                     }),
             ])
-            ->filtersFormColumns(1);
-        // ->actions([
-        //     // Tables\Actions\EditAction::make(),
-        //     Tables\Actions\Action::make('create_attachment')
-        //     ->label('Create Attachment')
-        //     ->icon('heroicon-o-paper-clip')
-        //     ->color('success')
-        //     ->form([
-        //         Forms\Components\TextInput::make('title')
-        //             ->label('Attachment Title')
-        //             ->default(function (SoftwareHandover $record) {
-        //                 return "Files for {$record->company_name}";
-        //             })
-        //             ->required(),
+            ->filtersFormColumns(1)
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('updateImplementer')
+                    ->label('Batch Update Implementer')
+                    ->icon('heroicon-o-user-group')
+                    ->color('warning')
+                    ->form([
+                        Forms\Components\Select::make('implementer')
+                            ->label('New Implementer')
+                            ->options(function () {
+                                return \App\Models\User::whereIn('role_id', [4, 5])
+                                    ->orderBy('name')
+                                    ->pluck('name', 'name')
+                                    ->toArray();
+                            })
+                            ->required()
+                            ->searchable()
+                            ->placeholder('Select new implementer'),
+                    ])
+                    ->action(function (array $data, Collection $records) {
+                        $implementer = $data['implementer'];
+                        $count = 0;
 
-        //         Forms\Components\Textarea::make('description')
-        //             ->label('Description')
-        //             ->default(function (SoftwareHandover $record) {
-        //                 return "Combined files for {$record->company_name} (Handover #{$record->id})";
-        //             }),
-        //     ])
-        //     ->action(function (array $data, SoftwareHandover $record) {
-        //         // Collect all available files from the handover
-        //         $allFiles = [];
+                        // Find the new implementer user
+                        $newImplementerUser = \App\Models\User::where('name', $implementer)->first();
+                        if (!$newImplementerUser) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body("Could not find implementer with name '{$implementer}'.")
+                                ->danger()
+                                ->send();
+                            return;
+                        }
 
-        //         // Add invoice files if available
-        //         if (!empty($record->invoice_file)) {
-        //             $allFiles = array_merge($allFiles, is_array($record->invoice_file) ? $record->invoice_file : [$record->invoice_file]);
-        //         }
+                        // Prepare data for batch email
+                        $updatedHandovers = [];
 
-        //         // Add confirmation order files if available
-        //         if (!empty($record->confirmation_order_file)) {
-        //             $allFiles = array_merge($allFiles, is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [$record->confirmation_order_file]);
-        //         }
+                        foreach ($records as $record) {
+                            // Skip if implementer is already the same
+                            if ($record->implementer === $implementer) {
+                                continue;
+                            }
 
-        //         // Add HRDF grant files if available
-        //         if (!empty($record->hrdf_grant_file)) {
-        //             $allFiles = array_merge($allFiles, is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [$record->hrdf_grant_file]);
-        //         }
+                            // Store old implementer for tracking
+                            $oldImplementer = $record->implementer ?? 'Unknown';
 
-        //         // Add payment slip files if available
-        //         if (!empty($record->payment_slip_file)) {
-        //             $allFiles = array_merge($allFiles, is_array($record->payment_slip_file) ? $record->payment_slip_file : [$record->payment_slip_file]);
-        //         }
+                            // Update the record
+                            $record->update([
+                                'implementer' => $implementer,
+                            ]);
 
-        //         // Check if any files are available
-        //         if (empty($allFiles)) {
-        //             Notification::make()
-        //                 ->title('No files available')
-        //                 ->body("This handover has no files to create an attachment from.")
-        //                 ->danger()
-        //                 ->send();
-        //             return;
-        //         }
+                            $count++;
 
-        //         // Create a new software attachment with all files
-        //         $attachment = \App\Models\SoftwareAttachment::create([
-        //             'software_handover_id' => $record->id,
-        //             'title' => $data['title'],
-        //             'description' => $data['description'],
-        //             'files' => $allFiles, // Add all collected files
-        //             'created_by' => auth()->id(),
-        //             'updated_by' => auth()->id()
-        //         ]);
+                            // Format the handover ID properly
+                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
-        //         // Show success notification
-        //         if ($attachment) {
-        //             $fileCount = count($allFiles);
-        //             Notification::make()
-        //                 ->title('Attachment Created')
-        //                 ->body("Successfully created attachment with {$fileCount} file" . ($fileCount != 1 ? 's' : '') . ".")
-        //                 ->success()
-        //                 ->send();
-        //         } else {
-        //             Notification::make()
-        //                 ->title('Error')
-        //                 ->body('Failed to create attachment.')
-        //                 ->danger()
-        //                 ->send();
-        //         }
-        //     })
-        //     ->visible(function (SoftwareHandover $record): bool {
-        //         // Only show this action if the record has any files
-        //         return !empty($record->invoice_file) ||
-        //             !empty($record->confirmation_order_file) ||
-        //             !empty($record->hrdf_grant_file) ||
-        //             !empty($record->payment_slip_file);
-        //     })
-        //     ->requiresConfirmation()
-        //     ->modalHeading('Create Attachment with All Files')
-        //     ->modalDescription('This will create a single attachment containing all files from this handover.')
-        //     ->modalSubmitActionLabel('Create Attachment'),
-        // ]);
-        // ->bulkActions([
-        //     Tables\Actions\BulkActionGroup::make([
-        //         Tables\Actions\DeleteBulkAction::make(),
-        //     ]),
-        // ]);
+                            // Get company name with fallbacks
+                            $companyName = $record->company_name;
+                            if (empty($companyName) && isset($record->lead) && isset($record->lead->companyDetail)) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+                            if (empty($companyName)) {
+                                $companyName = 'Unknown Company';
+                            }
+
+                            // Get salesperson name with fallbacks
+                            $salespersonName = 'Unknown';
+                            $salesperson = null;
+                            if (isset($record->lead) && isset($record->lead->salesperson)) {
+                                $salesperson = \App\Models\User::find($record->lead->salesperson);
+                                if ($salesperson) {
+                                    $salespersonName = $salesperson->name;
+                                }
+                            }
+
+                            // Get the handover PDF URL
+                            $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                            // Process invoice files safely
+                            $invoiceFiles = [];
+                            if ($record->invoice_file) {
+                                $invoiceFileArray = is_string($record->invoice_file)
+                                    ? json_decode($record->invoice_file, true)
+                                    : $record->invoice_file;
+
+                                if (is_array($invoiceFileArray)) {
+                                    foreach ($invoiceFileArray as $file) {
+                                        $invoiceFiles[] = url('storage/' . $file);
+                                    }
+                                }
+                            }
+
+                            // Add to the collection of updated handovers
+                            $updatedHandovers[] = [
+                                'id' => $record->id,
+                                'handover_id' => $handoverId,
+                                'company_name' => $companyName,
+                                'salesperson' => $salespersonName,
+                                'old_implementer' => $oldImplementer,
+                                'date_created' => $record->completed_at
+                                    ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y')
+                                    : now()->format('d M Y'),
+                                'handover_url' => $handoverFormUrl,
+                                'invoice_files' => $invoiceFiles,
+                                // Add any additional data you want in the email
+                                'modules' => [
+                                    'ta' => $record->ta ? true : false,
+                                    'tl' => $record->tl ? true : false,
+                                    'tc' => $record->tc ? true : false,
+                                    'tp' => $record->tp ? true : false,
+                                    'tapp' => $record->tapp ? true : false,
+                                    'thire' => $record->thire ? true : false,
+                                    'tacc' => $record->tacc ? true : false,
+                                    'tpbi' => $record->tpbi ? true : false,
+                                ]
+                            ];
+                        }
+
+                        // If any records were updated, send a consolidated email
+                        if ($count > 0) {
+                            try {
+                                // Initialize recipients for the batch email
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+
+                                // Add new implementer email if valid
+                                if ($newImplementerUser->email && filter_var($newImplementerUser->email, FILTER_VALIDATE_EMAIL)) {
+                                    $recipients[] = $newImplementerUser->email;
+                                }
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email ?? 'no-reply@timeteccloud.com';
+                                $senderName = $authUser->name ?? 'TimeTec System';
+
+                                // Prepare the consolidated email content
+                                $emailContent = [
+                                    'implementer' => [
+                                        'name' => $newImplementerUser->name,
+                                    ],
+                                    'handovers' => $updatedHandovers,
+                                    'total_count' => $count,
+                                    'updated_by' => $authUser->name ?? 'Admin User',
+                                    'updated_at' => now()->format('d M Y, h:i A'),
+                                ];
+
+                                // Send the consolidated email
+                                \Illuminate\Support\Facades\Mail::send('emails.handover_batch_update', ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $count, $implementer) {
+                                    $message->from($senderEmail, $senderName)
+                                        ->to($recipients)
+                                        ->subject("BATCH UPDATE: {$count} Software Handovers Assigned to {$implementer}");
+                                });
+
+                                \Illuminate\Support\Facades\Log::info("Batch update email sent for {$count} handovers assigned to {$implementer}");
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to send batch update email: " . $e->getMessage());
+                            }
+                        }
+
+                        // Show notification with results
+                        Notification::make()
+                            ->title('Implementer Updated')
+                            ->body("Successfully updated implementer to '{$implementer}' for {$count} " . Str::plural('record', $count) . ".")
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion()
+                    ->requiresConfirmation()
+                    ->modalHeading('Update Implementer for Selected Records')
+                    ->modalDescription('This will change the implementer for all selected records and send a single consolidated notification email.')
+                    ->modalSubmitActionLabel('Update Implementer'),
+                ]);
     }
 
     // public static function getRelations(): array

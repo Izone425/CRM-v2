@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
@@ -44,6 +45,7 @@ use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\RoleResource;
 use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
+use App\Filament\Resources\SparePartResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
 use Filament\Pages;
@@ -70,6 +72,7 @@ use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
 use App\Models\Role;
+use App\Models\SparePart;
 use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
@@ -84,7 +87,7 @@ class AdminPanelProvider extends PanelProvider
             // ->notifications()
             // ->livewire(Notification::class)
             // ->registration()
-            ->passwordReset()
+            // ->passwordReset()
             ->emailVerification()
             ->profile(EditProfile::class)
             // ->databaseNotifications()
@@ -153,7 +156,8 @@ class AdminPanelProvider extends PanelProvider
                 HardwareAttachmentResource::class,
                 InstallerResource::class,
                 HardwarePendingStockResource::class,
-                AdminRepairResource::class,
+                SparePartResource::class,
+                AdminRepairResource::class
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -177,6 +181,7 @@ class AdminPanelProvider extends PanelProvider
                 SearchLead::class,
                 HardwareDashboardAll::class,
                 HardwareDashboardPendingStock::class,
+                AdminRepairDashboard::class,
                 // SoftwareHandoverAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

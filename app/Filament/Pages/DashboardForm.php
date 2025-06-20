@@ -94,6 +94,7 @@ class DashboardForm extends Page
             'HardwareHandover',
             'SoftwareAdmin',
             'HardwareAdmin',
+            'AdminRepair',
             'Training',
             'Finance',
             'HRDF',
@@ -102,7 +103,8 @@ class DashboardForm extends Page
             'Credit Controller',
             'Trainer',
             'Implementer',
-            'Support'
+            'Support',
+            'Technician',
         ];
 
         if (in_array($dashboard, $validDashboards)) {
