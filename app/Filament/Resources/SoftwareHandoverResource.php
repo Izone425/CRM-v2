@@ -693,14 +693,35 @@ class SoftwareHandoverResource extends Resource
 
                 // New implementer filter
                 Tables\Filters\SelectFilter::make('implementer')
-                    ->label('Implementer')
-                    ->options(function () {
-                        return \App\Models\User::where('role_id', 4) // Assuming role_id 4 is for implementers
-                            ->orderBy('name')
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->searchable(),
+                ->label('Implementer')
+                ->options(function () {
+                    // Get users with role_id 4 or 5 first (standard implementers)
+                    $implementers = \App\Models\User::whereIn('role_id', [4, 5])
+                        ->orderBy('name')
+                        ->pluck('name', 'name')
+                        ->toArray();
+
+                    // Add specific implementers who might not be in roles 4 or 5
+                    $specificImplementers = [
+                        'addzim' => 'Addzim',
+                        'azrul' => 'Azrul',
+                        'hanif' => 'Hanif',
+                        'alif faisal' => 'Alif Faisal',
+                    ];
+
+                    // Merge arrays, ensuring there are no duplicates
+                    foreach ($specificImplementers as $key => $value) {
+                        if (!array_key_exists($key, $implementers)) {
+                            $implementers[$key] = $value;
+                        }
+                    }
+
+                    // Sort alphabetically for better user experience
+                    ksort($implementers);
+
+                    return $implementers;
+                })
+                ->searchable(),
 
                 // Status handover filter
                 Tables\Filters\SelectFilter::make('status_handover')
@@ -754,6 +775,7 @@ class SoftwareHandoverResource extends Resource
                     ->label('Batch Update Implementer')
                     ->icon('heroicon-o-user-group')
                     ->color('warning')
+                    ->visible(fn() => auth()->user()->role_id === 3)
                     ->form([
                         Forms\Components\Select::make('implementer')
                             ->label('New Implementer')
