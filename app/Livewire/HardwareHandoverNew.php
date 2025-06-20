@@ -961,7 +961,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             }
 
                             $implementerId = null;
-                            $implementerName = 'Unknown';
+                            $implementerName = $record->implementer ?? null;
                             $implementerEmail = null;
 
                             // Check if implementer is selected from the form (when field is enabled)
