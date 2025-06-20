@@ -485,9 +485,8 @@ class TechnicianNew extends Component implements HasForms, HasTable
 
                                 // Recipients
                                 $recipients = [
-                                    // 'admin.timetec.hr@timeteccloud.com',
-                                    // 'izzuddin@timeteccloud.com',
-                                    'zilih020906@gmail.com',
+                                    'admin.timetec.hr@timeteccloud.com',
+                                    'izzuddin@timeteccloud.com',
                                 ];
 
                                 // Send the email
