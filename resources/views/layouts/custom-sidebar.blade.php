@@ -869,6 +869,34 @@
                     </div>
                     @endif
 
+                    <div class="nested-dropdown">
+                        <div class="sidebar-item nested-dropdown-trigger">
+                            <i class="bi bi-cpu"></i>
+                            <span>Repair Handover</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+
+                        <!-- Level 3 dropdown content -->
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Dashboard</span>
+                            </a>
+
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Analysis</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Attachment</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Project -->
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [4]))
                     <div class="nested-dropdown">
@@ -951,7 +979,7 @@
             @endif
 
             <!-- Support Section -->
-            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+            @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3)
             <div class="sidebar-dropdown">
                 <div class="sidebar-item dropdown-trigger" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; padding: 12px 0; position: relative; text-align: center;">
                     <div class="sidebar-icon" style="display: flex; justify-content: center; align-items: center; font-size: 1.25rem; margin-bottom: 4px;">

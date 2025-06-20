@@ -295,8 +295,7 @@ class UserResource extends Resource
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255),
                         Forms\Components\TextInput::make('api_user_id')
-                            ->label('Staff ID')
-                            ->required(),
+                            ->label('Staff ID'),
                     ])
                     ->columns(2),
 
