@@ -25,6 +25,7 @@ class AdminRepair extends Model
         'new_attachment_file',
         'video_files',
         'zoho_ticket',
+        'address',
         'status',
         'assigned_to',
         'created_by',
