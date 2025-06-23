@@ -178,6 +178,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
+                            'self_pick_up' => 'Self Pick-Up',
                         ])
                         // ->inline()
                         ->live(debounce: 500)
@@ -192,7 +193,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 $set('category2.email', $this->getOwnerRecord()->companyDetail->email ?? $this->getOwnerRecord()->email);
                             }
                         })
-                        ->columns(3)
+                        ->columns(4)
                         ->default(fn(?HardwareHandover $record) => $record->installation_type ?? null)
                         ->required(),
                 ]),
@@ -309,6 +310,17 @@ class HardwareHandoverRelationManager extends RelationManager
                                     }
                                 })
                                 ->visible(fn(callable $get) => $get('installation_type') === 'courier'),
+                            TextArea::make('category2.pickup_address')
+                                ->label('Pickup Address')
+                                ->required()
+                                ->rows(2)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->default(function (?HardwareHandover $record = null) {
+                                    return 'TimeTec Cloud @ PFCC, Puchong Selangor';
+                                })
+                                ->visible(fn(callable $get) => $get('installation_type') === 'self_pick_up'),
                             Grid::make(3)
                                 ->schema([
                                     TextInput::make('category2.pic_name')
@@ -887,6 +899,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
+                            'self_pick_up' => 'Self Pick-Up',
                             default => ucfirst($state),
                         };
                     })

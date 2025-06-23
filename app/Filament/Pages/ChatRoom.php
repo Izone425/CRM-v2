@@ -389,30 +389,50 @@ class ChatRoom extends Page
 
         $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
+        // Array to store all found leads
+        $foundLeads = [];
+        $primaryLead = null;
+
         // STEP 1: Try to find lead by phone
-        $lead = \App\Models\Lead::with('companyDetail')
+        $leadsByPhone = \App\Models\Lead::with('companyDetail')
             ->where('phone', $chatParticipant)
-            ->first();
+            ->orderBy('id', 'desc') // Most recent first
+            ->get();
+
+        if ($leadsByPhone->isNotEmpty()) {
+            foreach ($leadsByPhone as $lead) {
+                $foundLeads[] = $lead;
+            }
+            $primaryLead = $leadsByPhone->first(); // Use most recent as primary
+        }
 
         // STEP 2: If not found, try finding via company contact_no
-        if (!$lead) {
-            $company = \App\Models\CompanyDetail::where('contact_no', $chatParticipant)->first();
+        if (empty($foundLeads)) {
+            $companiesByContactNo = \App\Models\CompanyDetail::where('contact_no', $chatParticipant)
+                ->orderBy('id', 'desc')
+                ->get();
 
-            if ($company && $company->lead) {
-                $lead = $company->lead->load('companyDetail');
+            foreach ($companiesByContactNo as $company) {
+                if ($company->lead) {
+                    $foundLeads[] = $company->lead->load('companyDetail');
+                }
+            }
+
+            if (!empty($foundLeads)) {
+                $primaryLead = $foundLeads[0]; // Use first one as primary
             }
         }
 
         // STEP 3: Fallback - Create lead if message found and no lead exists
-        if (!$lead && $chatParticipant !== $twilioNumber && strtolower($chatParticipant) !== 'unknown') {
+        if (empty($foundLeads) && $chatParticipant !== $twilioNumber && strtolower($chatParticipant) !== 'unknown') {
             $lastMessage = \App\Models\ChatMessage::where(function ($query) use ($chatParticipant) {
                 $query->where('sender', $chatParticipant)
                     ->orWhere('receiver', $chatParticipant);
             })->latest()->first();
 
             if ($lastMessage) {
-                // 1. Create the Lead
-                $lead = \App\Models\Lead::create([
+                // Create the Lead
+                $newLead = \App\Models\Lead::create([
                     'name' => $lastMessage->profile_name ?? 'Unknown',
                     'phone' => $chatParticipant,
                     'company_size' => '1-24',
@@ -422,53 +442,63 @@ class ChatRoom extends Page
                     'lead_code' => 'WhatsApp - TimeTec',
                 ]);
 
-                // 2. Create the CompanyDetail
+                // Create the CompanyDetail
                 $companyDetail = \App\Models\CompanyDetail::create([
-                    'lead_id' => $lead->id,
+                    'lead_id' => $newLead->id,
                     'contact_no' => $chatParticipant,
                     'company_name' => $lastMessage->profile_name ?? 'Unknown',
                     'name' => $lastMessage->profile_name ?? 'Unknown',
                 ]);
 
-                // 3. Quietly update the lead's `company_name` field with the company_detail id
-                $lead->company_name = $companyDetail->id;
-                $lead->saveQuietly();
+                // Update the lead's `company_name` field with the company_detail id
+                $newLead->company_name = $companyDetail->id;
+                $newLead->saveQuietly();
 
-                // 4. Load the relationship for return use
-                $lead->load('companyDetail');
-            }
+                // Load the relationship for return use
+                $newLead->load('companyDetail');
+                $foundLeads[] = $newLead;
+                $primaryLead = $newLead;
 
-            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                ->orderByDesc('created_at')
-                ->first();
+                $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
+                    ->orderByDesc('created_at')
+                    ->first();
 
-            // ✅ Update the latest activity log description
-            if ($latestActivityLog) {
-                $latestActivityLog->update([
-                    'description' => 'New lead created from WhatsApp',
-                ]);
+                // Update the latest activity log description
+                if ($latestActivityLog) {
+                    $latestActivityLog->update([
+                        'description' => 'New lead created from WhatsApp',
+                    ]);
+                }
             }
         }
 
-        // STEP 4: Build final response
-        if ($lead) {
+        // STEP 4: Build final response with slash-separated names if needed
+        if ($primaryLead) {
+            $namesList = [];
+
+            // Add names from all found leads, with newest first
+            foreach ($foundLeads as $lead) {
+                $namesList[] = $lead->companyDetail->name ?? $lead->name ?? 'Unknown';
+            }
+
+            // Create a slash-separated list of unique names
+            $uniqueNames = array_unique($namesList);
+            $displayName = implode(' / ', $uniqueNames);
+
             return [
-                'name' => $lead->companyDetail->name
-                    ?? $lead->name
-                    ?? 'Unknown',
-                'email' => $lead->companyDetail->email ?? $lead->email ?? 'N/A',
-                'phone' => $chatParticipant ?? $lead->companyDetail->contact_no ?? $lead->phone,
-                'company' => $lead->companyDetail->company_name ?? 'N/A',
-                'company_url' => url('admin/leads/' . Encryptor::encrypt($lead->id)),
-                'source' => $lead->lead_code ?? 'N/A',
-                'lead_status' => $lead->lead_status ?? 'N/A',
+                'name' => $displayName, // Slash-separated list
+                'email' => $primaryLead->companyDetail->email ?? $primaryLead->email ?? 'N/A',
+                'phone' => $chatParticipant ?? $primaryLead->companyDetail->contact_no ?? $primaryLead->phone,
+                'company' => $primaryLead->companyDetail->company_name ?? 'N/A',
+                'company_url' => url('admin/leads/' . Encryptor::encrypt($primaryLead->id)),
+                'source' => $primaryLead->lead_code ?? 'N/A',
+                'lead_status' => $primaryLead->lead_status ?? 'N/A',
             ];
         }
 
         // STEP 5: No match found at all
         return $this->defaultParticipantResponse($chatParticipant);
     }
-
     // Reusable fallback
     private function defaultParticipantResponse($phone)
     {

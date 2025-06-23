@@ -278,6 +278,8 @@
                         External Installation
                     @elseif($hardwareHandover->installation_type === 'courier')
                         Courier
+                    @elseif($hardwareHandover->installation_type === 'self_pick_up')
+                        Self Pick-Up
                     @else
                         {{ $hardwareHandover->installation_type ?? 'Not specified' }}
                     @endif
@@ -315,6 +317,11 @@
                 <tr>
                     <td class="label">Courier Address</td>
                     <td>{{ $category2['courier_address'] ?? '-' }}</td>
+                </tr>
+            @elseif($hardwareHandover->installation_type === 'self_pick_up')
+                <tr>
+                    <td class="label">Pickup Address</td>
+                    <td>{{ $category2['pickup_address'] ?? '-' }}</td>
                 </tr>
             @elseif($hardwareHandover->installation_type === 'internal_installation')
                 @php

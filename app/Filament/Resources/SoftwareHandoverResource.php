@@ -705,8 +705,8 @@ class SoftwareHandoverResource extends Resource
                     $specificImplementers = [
                         'addzim' => 'Addzim',
                         'azrul' => 'Azrul',
-                        'hanif' => 'Hanif',
-                        'alif faisal' => 'Alif Faisal',
+                        'Hanis Nadiah' => 'Hanis Nadiah',
+                        'Muhammad Alif Faisal' => 'Muhammad Alif Faisal',
                     ];
 
                     // Merge arrays, ensuring there are no duplicates
