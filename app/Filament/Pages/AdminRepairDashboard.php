@@ -106,6 +106,24 @@ class AdminRepairDashboard extends Page implements HasTable
                                                 $set('pic_email', $company->email);
                                             }
 
+                                            // Build and set address
+                                            $address = $company->company_address1 ?? '';
+
+                                            // Add address2 if it exists
+                                            if (!empty($company->company_address2)) {
+                                                $address .= ", " . $company->company_address2;
+                                            }
+
+                                            // Add postcode and state
+                                            if (!empty($company->postcode) || !empty($company->state)) {
+                                                $address .= ", " .
+                                                    ($company->postcode ?? '') . " " .
+                                                    ($company->state ?? '');
+                                            }
+
+                                            // Set the address field with uppercase text
+                                            $set('address', Str::upper($address));
+
                                             // If any fields are still empty, try to get from the related lead
                                             if (empty($company->contact_person) || empty($company->contact_phone) || empty($company->contact_email)) {
                                                 $lead = $company->lead;
@@ -166,6 +184,47 @@ class AdminRepairDashboard extends Page implements HasTable
                                     $record?->zoho_ticket ?? null)
                                 ->maxLength(50),
                         ]),
+                        TextArea::make('address')
+                            ->label('Address')
+                            ->required()
+                            ->rows(2)
+                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                            ->default(function (?AdminRepair $record = null) {
+                                // First check if record has category2 data already
+                                if ($record && $record->address) {
+                                    return $record->address;
+                                }
+
+                                // Get company ID either from existing record or from form state
+                                $companyId = $record->company_id ?? $this->company_id ?? request('company_id');
+
+                                if ($companyId) {
+                                    // Find the company detail
+                                    $companyDetail = \App\Models\CompanyDetail::find($companyId);
+
+                                    if ($companyDetail) {
+                                        // Use company details if available
+                                        $address = $companyDetail->company_address1 ?? '';
+
+                                        // Add address2 if it exists
+                                        if (!empty($companyDetail->company_address2)) {
+                                            $address .= ", " . $companyDetail->company_address2;
+                                        }
+
+                                        // Add postcode and state
+                                        if (!empty($companyDetail->postcode) || !empty($companyDetail->state)) {
+                                            $address .= ", " .
+                                                ($companyDetail->postcode ?? '') . " " .
+                                                ($companyDetail->state ?? '');
+                                        }
+
+                                        return $address;
+                                    }
+                                }
+                                return '';
+                            })
                 ]),
 
             // Section 2: Device Details
@@ -543,6 +602,25 @@ class AdminRepairDashboard extends Page implements HasTable
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket')
                     ->searchable(),
+
+                TextColumn::make('creator.name')
+                    ->label('Submitted By')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        // If relationship or name is null, try to get the user manually
+                        if (!$state && $record->created_by) {
+                            $user = \App\Models\User::find($record->created_by);
+                            return $user ? $user->name : "User #{$record->created_by}";
+                        }
+                        return $state ?? "Unknown";
+                    })
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('creator', fn ($q) =>
+                            $q->where('name', 'like', "%{$search}%")
+                        )
+                        ->orWhereHas('creator', fn ($q) =>
+                            $q->where('email', 'like', "%{$search}%")
+                        );
+                    }),
 
                 TextColumn::make('status')
                     ->label('Status')

@@ -25,6 +25,10 @@
                     <span class="font-semibold">Email:</span>
                     {{ $record->pic_email }}
                 </p>
+                <p class="mb-2">
+                    <span class="font-semibold">Address:</span>
+                    {{ $record->address }}
+                </p>
             </div>
 
             <!-- Separator Line -->

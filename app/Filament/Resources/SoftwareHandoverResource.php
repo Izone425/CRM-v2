@@ -775,7 +775,22 @@ class SoftwareHandoverResource extends Resource
                     ->label('Batch Update Implementer')
                     ->icon('heroicon-o-user-group')
                     ->color('warning')
-                    ->visible(fn() => auth()->user()->role_id === 3)
+                    ->visible(function() {
+                        $user = auth()->user();
+
+                        // Allow access if user is a manager (role_id 3)
+                        if ($user->role_id === 3) {
+                            return true;
+                        }
+
+                        // OR if user is lead owner (role_id 1) with admin privileges (additional_role 1)
+                        if ($user->role_id === 1 && $user->additional_role === 1) {
+                            return true;
+                        }
+
+                        // Otherwise hide the action
+                        return false;
+                    })
                     ->form([
                         Forms\Components\Select::make('implementer')
                             ->label('New Implementer')
@@ -835,16 +850,6 @@ class SoftwareHandoverResource extends Resource
                                 $companyName = 'Unknown Company';
                             }
 
-                            // Get salesperson name with fallbacks
-                            $salespersonName = 'Unknown';
-                            $salesperson = null;
-                            if (isset($record->lead) && isset($record->lead->salesperson)) {
-                                $salesperson = \App\Models\User::find($record->lead->salesperson);
-                                if ($salesperson) {
-                                    $salespersonName = $salesperson->name;
-                                }
-                            }
-
                             // Get the handover PDF URL
                             $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
@@ -867,7 +872,7 @@ class SoftwareHandoverResource extends Resource
                                 'id' => $record->id,
                                 'handover_id' => $handoverId,
                                 'company_name' => $companyName,
-                                'salesperson' => $salespersonName,
+                                'salesperson' => $record->salesperson ?? 'Unknown',
                                 'old_implementer' => $oldImplementer,
                                 'date_created' => $record->completed_at
                                     ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y')
