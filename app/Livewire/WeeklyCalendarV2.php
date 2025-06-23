@@ -154,24 +154,34 @@ class WeeklyCalendarV2 extends Component
     public $modalArray = [];
     public $modalProp = [];
 
-    public function openModal($date,$startTime,$endTime,$salespersonID){
+    public function openModal($date, $startTime, $endTime, $salespersonID, $demoType = null){
         $this->modalOpen = true;
-        $this->modalProp = ["date" => $date, "startTime" => $startTime, "endTime" => $endTime, "salespersonID" => $salespersonID];
+        $this->modalProp = [
+            "date" => $date,
+            "startTime" => $startTime,
+            "endTime" => $endTime,
+            "salespersonID" => $salespersonID,
+            "demoType" => $demoType // Add this parameter
+        ];
         $this->loadModalArray();
-
     }
 
     public function loadModalArray(){
-        $appointments = DB::table('appointments')
-        ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
-        ->select('company_details.*','appointments.type',"appointments.status",'appointments.appointment_type')
-        ->where("appointments.date",$this->modalProp["date"])
-        ->where("appointments.start_time",$this->modalProp["startTime"])
-        ->where("appointments.end_time",$this->modalProp["endTime"])
-        ->where("appointments.salesperson",$this->modalProp["salespersonID"])
-        ->whereNot("appointments.status","Cancelled")
-        ->get()
-        ->toArray();
+        $query = DB::table('appointments')
+            ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
+            ->select('company_details.*','appointments.type',"appointments.status",'appointments.appointment_type')
+            ->where("appointments.date", $this->modalProp["date"])
+            ->where("appointments.start_time", $this->modalProp["startTime"])
+            ->where("appointments.end_time", $this->modalProp["endTime"])
+            ->where("appointments.salesperson", $this->modalProp["salespersonID"])
+            ->whereNot("appointments.status", "Cancelled");
+
+        // Filter by demo type if specified
+        if (!empty($this->modalProp["demoType"])) {
+            $query->where("appointments.type", $this->modalProp["demoType"]);
+        }
+
+        $appointments = $query->get()->toArray();
 
         $result = array_map(function ($value) {
             $value->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($value->lead_id)]);
@@ -180,7 +190,6 @@ class WeeklyCalendarV2 extends Component
 
         $this->modalArray = $result;
     }
-
 
     public function render()
     {

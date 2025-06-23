@@ -470,6 +470,7 @@ class ActivityLogRelationManager extends RelationManager
                                             return $options;
                                         })
                                         ->default('NEW DEMO')
+                                        ->live()
                                         ->required()
                                         ->label('DEMO TYPE'),
 

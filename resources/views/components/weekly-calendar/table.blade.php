@@ -110,11 +110,12 @@
                 @endif
 
                 @foreach ($matched as $item)
-                    <div @if (isset($item)) wire:click="openModal(        
+                    <div @if (isset($item)) wire:click="openModal(
                         '{{ $item['date'] }}',
                         '{{ $item['start_time'] }}',
                         '{{ $item['end_time'] }}',
-                        '{{ $item['salesperson'] }}')" @endif
+                        '{{ $item['salesperson'] }}',
+                        '{{ isset($item['type']) ? $item['type'] : null }}')" @endif
                         class="grid-cell @if (isset($item)) cursor-pointer transition hover:brightness-90 @endif"
                         style="
                     @if (isset($item) && $item['type'] == 'NEW DEMO') background-color: #71eb71;
