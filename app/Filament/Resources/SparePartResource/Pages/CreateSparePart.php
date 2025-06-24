@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateSparePart extends CreateRecord
 {
     protected static string $resource = SparePartResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

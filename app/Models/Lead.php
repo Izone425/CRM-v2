@@ -185,6 +185,16 @@ class Lead extends Model
         return $this->hasMany(Appointment::class, 'lead_id', 'id');
     }
 
+    public function repairAppointment(): HasMany
+    {
+        return $this->hasMany(RepairAppointment::class, 'lead_id', 'id');
+    }
+
+    public function repairHandover(): HasMany
+    {
+        return $this->hasMany(AdminRepair::class, 'lead_id', 'id');
+    }
+
     public function systemQuestion(): HasOne
     {
         return $this->hasOne(SystemQuestion::class, 'lead_id', 'id');

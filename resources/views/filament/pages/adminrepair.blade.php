@@ -224,6 +224,14 @@ $repairAccepted = AdminRepair::query()
     ->whereIn('status', ['Accepted'])
     ->count();
 
+$repairPendingConfirmation = AdminRepair::query()
+    ->whereIn('status', ['Pending Confirmation'])
+    ->count();
+
+$repairPendingOnsiteRepair = AdminRepair::query()
+    ->whereIn('status', ['Pending Onsite Repair'])
+    ->count();
+
 // Define queries for Completed and Draft/Rejected
 $completedCount = AdminRepair::where('status', 'Completed')
     ->count();
@@ -279,6 +287,22 @@ $pendingTaskCount = $newCount + $repairAccepted;
                 <div class="stat-count">{{ $repairAccepted }}</div>
                 <div class="stat-label">Accepted Task</div>
             </div>
+
+            <div class="stat-box new"
+                    :class="{'selected': selectedStat === 'pending_confirmation'}"
+                    @click="setSelectedStat('pending_confirmation')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $repairPendingConfirmation }}</div>
+                <div class="stat-label">Pending Confirmation</div>
+            </div>
+
+            <div class="stat-box new"
+                    :class="{'selected': selectedStat === 'pending_confirmation'}"
+                    @click="setSelectedStat('pending_onsite_repair')"
+                    style="cursor: pointer;">
+                <div class="stat-count">{{ $repairPendingOnsiteRepair }}</div>
+                <div class="stat-label">Pending Onsite Repair</div>
+            </div>
         </div>
 
         <!-- Right content area -->
@@ -294,6 +318,14 @@ $pendingTaskCount = $newCount + $repairAccepted;
 
             <div x-show="selectedStat === 'accepted'" x-transition :key="selectedStat + '-new'">
                 @livewire('admin-repair-accepted')
+            </div>
+
+            <div x-show="selectedStat === 'pending_confirmation'" x-transition :key="selectedStat + '-new'">
+                @livewire('admin-repair-pending-confirmation')
+            </div>
+
+            <div x-show="selectedStat === 'pending_onsite_repair'" x-transition :key="selectedStat + '-new'">
+                @livewire('admin-repair-pending-onsite-repair')
             </div>
         </div>
     </div>

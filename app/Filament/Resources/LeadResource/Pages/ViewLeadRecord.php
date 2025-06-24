@@ -13,12 +13,14 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
-
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\Session;
 
 class ViewLeadRecord extends ViewRecord
 {
     protected static string $resource = LeadResource::class;
     public $lastRefreshTime;
+    public $visibleTabs = [];
 
     // Add this method to the class to handle refreshing
     public function refreshPage()
@@ -48,6 +50,35 @@ class ViewLeadRecord extends ViewRecord
             $code = str_replace(' ', '+', $record); // Replace spaces with +
             $leadId = Encryptor::decrypt($code); // Decrypt the encrypted record ID
             $this->record = $this->getModel()::findOrFail($leadId); // Fetch the lead record
+
+            $this->visibleTabs = Session::get('lead_visible_tabs', $this->getDefaultVisibleTabs());
+    }
+
+    private function getDefaultVisibleTabs(): array
+    {
+        $roleId = auth()->user()->role_id;
+
+        if ($roleId === 1) { // Lead Owner
+            return ['lead', 'company'];
+        } elseif ($roleId === 2) { // Salesperson
+            return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
+        } else { // Manager (role_id = 3) or others
+            return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice', 'debtor_follow_up', 'software_handover', 'hardware_handover'];
+        }
+    }
+
+    public function updateVisibleTabs(array $tabs): void
+    {
+        $this->visibleTabs = $tabs;
+        Session::put('lead_visible_tabs', $tabs);
+
+        // Refresh the page to apply changes
+        $this->refreshPage();
+    }
+
+    public function isTabVisible(string $tabKey): bool
+    {
+        return in_array($tabKey, $this->visibleTabs);
     }
 
     public function getTitle(): HtmlString
@@ -102,6 +133,88 @@ class ViewLeadRecord extends ViewRecord
                 ->color('primary')
                 ->extraAttributes(['class' => 'refresh-btn'])
                 ->action('refreshPage'),
+
+            Action::make('filterTabs')
+                ->label('Filter Tabs')
+                ->icon('heroicon-o-adjustments-horizontal')
+                ->color('gray')
+                ->visible(function () {
+                    $user = auth()->user();
+                    // Show to managers (role_id 3) OR lead owners (role_id 1) with additional_role 1
+                    return $user->role_id === 3 || ($user->role_id === 1 && $user->additional_role === 1);
+                })
+                ->form(function () {
+                    $user = auth()->user();
+
+                    // Define available options based on user role
+                    $roleOptions = [];
+
+                    // For role_id 3 (managers) - show all options
+                    if ($user->role_id === 3) {
+                        $roleOptions = [
+                            'lead_owner' => 'Lead Owner View',
+                            'admin_repair' => 'Admin Repair View',
+                            'salesperson' => 'Salesperson View',
+                            'manager' => 'Manager View (All Tabs)',
+                        ];
+                    }
+                    // For role_id 1 with additional_role 1 - show limited options
+                    elseif ($user->role_id === 1 && $user->additional_role === 1) {
+                        $roleOptions = [
+                            'lead_owner' => 'Lead Owner View',
+                            'admin_repair' => 'Admin Repair View',
+                        ];
+                    }
+
+                    return [
+                        Select::make('role_view')
+                            ->label('Select View')
+                            ->options($roleOptions)
+                            ->default(function () {
+                                $user = auth()->user();
+
+                                if ($user->role_id === 1 && $user->additional_role === 1) {
+                                    return 'admin_repair';
+                                } elseif ($user->role_id === 1) {
+                                    return 'lead_owner';
+                                } elseif ($user->role_id === 2) {
+                                    return 'salesperson';
+                                } elseif ($user->role_id === 3) {
+                                    return 'manager';
+                                }
+                            })
+                            ->required()
+                            ->helperText('Choose which tabs to display based on your role')
+                    ];
+                })
+                ->action(function (array $data) {
+                    // Set the visible tabs based on the selected role
+                    $tabs = [];
+                    $roleView = $data['role_view'] ?? 'lead_owner';
+
+                    switch ($roleView) {
+                        case 'lead_owner':
+                            $tabs = ['lead', 'company'];
+                            break;
+                        case 'admin_repair':
+                            $tabs = ['lead', 'company', 'appointment', 'quotation', 'repair_appointment'];
+                            break;
+                        case 'salesperson':
+                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
+                            break;
+                        case 'manager':
+                        default:
+                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice', 'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                            break;
+                    }
+
+                    $this->updateVisibleTabs($tabs);
+
+                    Notification::make()
+                        ->title('Tab visibility updated')
+                        ->success()
+                        ->send();
+                }),
             Action::make('updateLeadOwner')
                 ->label(__('Assign to Me'))
                 ->requiresConfirmation()

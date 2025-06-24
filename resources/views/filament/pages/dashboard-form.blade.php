@@ -46,39 +46,195 @@
                             Lead Owner
                         </button>
 
-                        <!-- Software Handover Button -->
-                        <button
-                            wire:click="toggleDashboard('SoftwareHandover')"
-                            style="
-                                padding: 10px 15px;
-                                font-size: 14px;
-                                font-weight: bold;
-                                border: none;
-                                border-radius: 20px;
-                                background: {{ $currentDashboard === 'SoftwareHandover' ? '#431fa1' : 'transparent' }};
-                                color: {{ $currentDashboard === 'SoftwareHandover' ? '#ffffff' : '#555' }};
-                                cursor: pointer;
-                            "
-                        >
-                            Software Handover
-                        </button>
+                        <div class="admin-dropdown admin-dropdown-3" id="adminDropdown2" style="position: relative; display: inline-block;">
+                            <button
+                                class="admin-dropdown-button"
+                                style="
+                                    padding: 10px 15px;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    border: none;
+                                    border-radius: 20px;
+                                    background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
+                                    color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 4px;
+                                "
+                            >
+                                Admin <i class="fas fa-caret-down" style="font-size: 12px;"></i>
+                            </button>
 
-                        <!-- Hardware Handover Button -->
-                        <button
-                            wire:click="toggleDashboard('HardwareHandover')"
-                            style="
-                                padding: 10px 15px;
-                                font-size: 14px;
-                                font-weight: bold;
-                                border: none;
-                                border-radius: 20px;
-                                background: {{ $currentDashboard === 'HardwareHandover' ? '#431fa1' : 'transparent' }};
-                                color: {{ $currentDashboard === 'HardwareHandover' ? '#ffffff' : '#555' }};
-                                cursor: pointer;
-                            "
-                        >
-                            Hardware Handover
-                        </button>
+                            <!-- This is the bridge element that covers the gap -->
+                            <div class="dropdown-bridge" style="
+                                position: absolute;
+                                height: 20px;
+                                left: 0;
+                                right: 0;
+                                bottom: -10px;
+                                background: transparent;
+                                z-index: 999;
+                            "></div>
+
+                            <div class="admin-dropdown-content" style="
+                                display: none;
+                                position: absolute;
+                                background-color: white;
+                                min-width: 160px;
+                                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                                z-index: 1000;
+                                border-radius: 6px;
+                                overflow: hidden;
+                                top: 100%; /* Position at the bottom of the button */
+                                left: 0;
+                                margin-top: 5px; /* Add a small gap */
+                            ">
+                                <button
+                                    wire:click="toggleDashboard('SoftwareAdmin')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Software
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('HardwareAdmin')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Hardware
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('AdminRepair')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Repair
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('Training')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Training
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('Finance')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Finance
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('HRDF')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - HRDF
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('Renewal')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'Renewal' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Renewal
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('General')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'General' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - General
+                                </button>
+
+                                <button
+                                    wire:click="toggleDashboard('Credit Controller')"
+                                    style="
+                                        display: block;
+                                        width: 100%;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'Credit Controller' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin - Credit Controller
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -89,10 +245,12 @@
                 @if (auth()->user()->additional_role == 1)
                     @if ($currentDashboard === 'LeadOwner')
                         @include('filament.pages.leadowner')
-                    @elseif ($currentDashboard === 'SoftwareHandover')
+                    @elseif ($currentDashboard === 'SoftwareAdmin')
                         @include('filament.pages.softwarehandover')
-                    @elseif ($currentDashboard === 'HardwareHandover')
+                    @elseif ($currentDashboard === 'HardwareAdmin')
                         @include('filament.pages.hardwarehandover')
+                    @elseif ($currentDashboard === 'AdminRepair')
+                        @include('filament.pages.adminrepair')
                     @endif
                 @else
                     <!-- Regular Lead Owner view for role_id=1 users without additional_role=1 -->
@@ -375,7 +533,7 @@
                                 </button>
 
                                 <!-- Admin Dropdown -->
-                                <div class="admin-dropdown" style="position: relative; display: inline-block;">
+                                <div class="admin-dropdown admin-dropdown-1" id="adminDropdown1" style="position: relative; display: inline-block;">
                                     <button
                                         class="admin-dropdown-button"
                                         style="
@@ -632,130 +790,197 @@
                                 </button>
                             </div>
                         </div>
-
-                        <!-- JavaScript for dropdown behavior -->
-                        <script>
-                            document.addEventListener('DOMContentLoaded', function() {
-                                const adminDropdown = document.querySelector('.admin-dropdown');
-                                const adminDropdownButton = document.querySelector('.admin-dropdown-button');
-                                const adminDropdownContent = document.querySelector('.admin-dropdown-content');
-                                const bridge = document.querySelector('.dropdown-bridge');
-
-                                if (adminDropdown && adminDropdownButton && adminDropdownContent) {
-                                    // Show dropdown on mouseenter for button
-                                    adminDropdownButton.addEventListener('mouseenter', function() {
-                                        adminDropdownContent.style.display = 'block';
-                                    });
-
-                                    // Keep dropdown open when hovering over dropdown content
-                                    adminDropdownContent.addEventListener('mouseenter', function() {
-                                        adminDropdownContent.style.display = 'block';
-                                    });
-
-                                    // Keep dropdown open when hovering over bridge
-                                    if (bridge) {
-                                        bridge.addEventListener('mouseenter', function() {
-                                            adminDropdownContent.style.display = 'block';
-                                        });
-                                    }
-
-                                    // Hide dropdown when mouse leaves entire component
-                                    adminDropdown.addEventListener('mouseleave', function(e) {
-                                        // Check if mouse moves to dropdown content
-                                        if (!e.relatedTarget ||
-                                            (!adminDropdownContent.contains(e.relatedTarget) &&
-                                            !bridge.contains(e.relatedTarget))) {
-                                            adminDropdownContent.style.display = 'none';
-                                        }
-                                    });
-
-                                    // Hide dropdown when mouse leaves dropdown content
-                                    adminDropdownContent.addEventListener('mouseleave', function(e) {
-                                        // Check if mouse returns to button or bridge
-                                        if (!e.relatedTarget ||
-                                            (!adminDropdownButton.contains(e.relatedTarget) &&
-                                            !bridge.contains(e.relatedTarget))) {
-                                            adminDropdownContent.style.display = 'none';
-                                        }
-                                    });
-
-                                    // Handle click for mobile devices
-                                    adminDropdownButton.addEventListener('click', function(e) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-
-                                        if (adminDropdownContent.style.display === 'block') {
-                                            adminDropdownContent.style.display = 'none';
-                                        } else {
-                                            adminDropdownContent.style.display = 'block';
-                                        }
-                                    });
-
-                                    // Close when clicking elsewhere
-                                    document.addEventListener('click', function(e) {
-                                        if (!adminDropdown.contains(e.target)) {
-                                            adminDropdownContent.style.display = 'none';
-                                        }
-                                    });
-                                }
-                            });
-                        </script>
                     @endif
 
                     <!-- Additional toggle for users with role_id=1 and additional_role=1 -->
                     @if ((auth()->user()->role_id == 1 && auth()->user()->additional_role == 1) ||
                         (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1))
-                            <div style="display: flex; align-items: center;">
-                                <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
-                                    <!-- Lead Owner Button -->
+                            <div class="admin-dropdown admin-dropdown-2" id="adminDropdown2" style="position: relative; display: inline-block;">
+                                <button
+                                    class="admin-dropdown-button"
+                                    style="
+                                        padding: 10px 15px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border: none;
+                                        border-radius: 20px;
+                                        background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                        cursor: pointer;
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 4px;
+                                    "
+                                >
+                                    Admin <i class="fas fa-caret-down" style="font-size: 12px;"></i>
+                                </button>
+
+                                <!-- This is the bridge element that covers the gap -->
+                                <div class="dropdown-bridge" style="
+                                    position: absolute;
+                                    height: 20px;
+                                    left: 0;
+                                    right: 0;
+                                    bottom: -10px;
+                                    background: transparent;
+                                    z-index: 999;
+                                "></div>
+
+                                <div class="admin-dropdown-content" style="
+                                    display: none;
+                                    position: absolute;
+                                    background-color: white;
+                                    min-width: 160px;
+                                    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                                    z-index: 1000;
+                                    border-radius: 6px;
+                                    overflow: hidden;
+                                    top: 100%; /* Position at the bottom of the button */
+                                    left: 0;
+                                    margin-top: 5px; /* Add a small gap */
+                                ">
                                     <button
-                                        wire:click="toggleDashboard('LeadOwner')"
+                                        wire:click="toggleDashboard('SoftwareAdmin')"
                                         style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
                                             border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
+                                            background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
+                                            font-size: 14px;
                                         "
                                     >
-                                        Lead Owner
+                                        Admin - Software
                                     </button>
 
-                                    <!-- Software Handover Button -->
                                     <button
-                                        wire:click="toggleDashboard('SoftwareHandover')"
+                                        wire:click="toggleDashboard('HardwareAdmin')"
                                         style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
                                             border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'SoftwareHandover' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'SoftwareHandover' ? '#ffffff' : '#555' }};
+                                            background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
+                                            font-size: 14px;
                                         "
                                     >
-                                        Software Handover
+                                        Admin - Hardware
                                     </button>
 
-                                    <!-- Hardware Handover Button -->
                                     <button
-                                        wire:click="toggleDashboard('HardwareHandover')"
+                                        wire:click="toggleDashboard('AdminRepair')"
                                         style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
                                             border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'HardwareHandover' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'HardwareHandover' ? '#ffffff' : '#555' }};
+                                            background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
+                                            font-size: 14px;
                                         "
                                     >
-                                        Hardware Handover
+                                        Admin - Repair
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('Training')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Training
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('Finance')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Finance
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('HRDF')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - HRDF
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('Renewal')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'Renewal' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Renewal
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('General')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'General' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - General
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('Credit Controller')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'Credit Controller' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Credit Controller
                                     </button>
                                 </div>
                             </div>
@@ -817,56 +1042,116 @@
                 @endif
             </div>
         @endif
+        <!-- JavaScript for dropdown behavior -->
+        <script>
+            // Function to initialize all dropdowns
+            function initializeDropdowns() {
+                const adminDropdowns = document.querySelectorAll('.admin-dropdown');
+
+                // Clear existing event listeners
+                adminDropdowns.forEach(function(dropdown) {
+                    const button = dropdown.querySelector('.admin-dropdown-button');
+                    if (button) {
+                        const newButton = button.cloneNode(true);
+                        if (button.parentNode) {
+                            button.parentNode.replaceChild(newButton, button);
+                        }
+                    }
+                });
+
+                // Re-attach event listeners
+                adminDropdowns.forEach(function(dropdown) {
+                    const button = dropdown.querySelector('.admin-dropdown-button');
+                    const content = dropdown.querySelector('.admin-dropdown-content');
+                    const bridge = dropdown.querySelector('.dropdown-bridge');
+
+                    if (button && content) {
+                        // Show dropdown on mouseenter for button
+                        button.addEventListener('mouseenter', function() {
+                            content.style.display = 'block';
+                        });
+
+                        // Keep dropdown open when hovering over dropdown content
+                        content.addEventListener('mouseenter', function() {
+                            content.style.display = 'block';
+                        });
+
+                        // Keep dropdown open when hovering over bridge
+                        if (bridge) {
+                            bridge.addEventListener('mouseenter', function() {
+                                content.style.display = 'block';
+                            });
+                        }
+
+                        // Hide dropdown when mouse leaves entire component
+                        dropdown.addEventListener('mouseleave', function() {
+                            content.style.display = 'none';
+                        });
+
+                        // MODIFIED: Don't prevent default for the button - allow events to bubble
+                        button.addEventListener('click', function() {
+                            if (content.style.display === 'block') {
+                                content.style.display = 'none';
+                            } else {
+                                // Close all other dropdowns first
+                                document.querySelectorAll('.admin-dropdown-content').forEach(function(otherContent) {
+                                    if (otherContent !== content) {
+                                        otherContent.style.display = 'none';
+                                    }
+                                });
+                                content.style.display = 'block';
+                            }
+                        });
+                    }
+
+                    // Add specific handling for menu items with wire:click
+                    const menuItems = dropdown.querySelectorAll('.admin-dropdown-content button[wire\\:click]');
+                    menuItems.forEach(function(item) {
+                        // Remove existing click handlers
+                        const newItem = item.cloneNode(true);
+                        item.parentNode.replaceChild(newItem, item);
+
+                        // Add new click handler that closes the dropdown but allows the wire:click to function
+                        newItem.addEventListener('click', function() {
+                            // Hide the dropdown after a short delay to allow the wire:click to process
+                            setTimeout(function() {
+                                content.style.display = 'none';
+                            }, 50);
+                        });
+                    });
+                });
+
+                // Only close dropdowns when clicking outside (but not on dropdown menu items)
+                document.addEventListener('click', function(event) {
+                    // Check if the click was on a wire:click element in a dropdown
+                    const clickedWireElement = event.target.closest('button[wire\\:click]');
+                    if (clickedWireElement) {
+                        // Don't interfere with wire:click elements
+                        return;
+                    }
+
+                    // For other clicks outside dropdowns, close all dropdowns
+                    adminDropdowns.forEach(function(dropdown) {
+                        if (!dropdown.contains(event.target)) {
+                            const content = dropdown.querySelector('.admin-dropdown-content');
+                            if (content) {
+                                content.style.display = 'none';
+                            }
+                        }
+                    });
+                }, { capture: true });
+            }
+
+            // Initialize on DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', initializeDropdowns);
+
+            // Re-initialize on Livewire updates
+            document.addEventListener('livewire:navigated', initializeDropdowns);
+            document.addEventListener('livewire:load', initializeDropdowns);
+            document.addEventListener('livewire:update', initializeDropdowns);
+
+            // Re-initialize periodically to ensure dropdowns work
+            setInterval(initializeDropdowns, 2000);
+        </script>
     </div>
-    {{-- <script>
-        // Create a global direct reset function that doesn't rely on component references
-        window.forceResetDashboards = function() {
-            console.log('Force resetting all dashboards');
-
-            // Reset software dashboard
-            const softwareContainer = document.getElementById('software-handover-container');
-            if (softwareContainer && softwareContainer.__x) {
-                softwareContainer.__x.$data.selectedStat = null;
-                console.log('Software container found and reset');
-            } else {
-                console.log('Software container not available');
-            }
-
-            // Reset hardware dashboard
-            const hardwareContainer = document.getElementById('hardware-handover-container');
-            if (hardwareContainer && hardwareContainer.__x) {
-                hardwareContainer.__x.$data.selectedStat = null;
-                console.log('Hardware container found and reset');
-            } else {
-                console.log('Hardware container not available');
-            }
-        };
-
-        // Create global non-Alpine event listener for Livewire events
-        document.addEventListener('livewire:initialized', function() {
-            window.Livewire.on('dashboard-changed', function(data) {
-                console.log('Dashboard changed directly via Livewire:', data.dashboard);
-
-                // Force immediate reset regardless of dashboard manager
-                setTimeout(window.forceResetDashboards, 100);
-
-                // Trigger both dashboard resets
-                window.dispatchEvent(new CustomEvent('reset-software-dashboard'));
-                window.dispatchEvent(new CustomEvent('reset-hardware-dashboard'));
-            });
-        });
-
-        document.addEventListener('livewire:initialized', function() {
-            window.Livewire.on('forceResetDashboards', function() {
-                console.log('Force reset dashboards triggered');
-
-                // Force immediate reset of all Alpine components
-                window.forceResetDashboards();
-
-                // Trigger both dashboard resets
-                window.dispatchEvent(new CustomEvent('reset-software-dashboard'));
-                window.dispatchEvent(new CustomEvent('reset-hardware-dashboard'));
-            });
-        });
-    </script> --}}
 </x-filament::page>

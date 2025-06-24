@@ -26,6 +26,8 @@ use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
+use App\Filament\Pages\TrainingCalendar;
+use App\Filament\Pages\TrainingCalendarBulkManagement;
 use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Resources\AdminRepairResource;
 use App\Filament\Resources\ChatMessageResource;
@@ -46,6 +48,7 @@ use App\Filament\Resources\RoleResource;
 use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Resources\SparePartResource;
+use App\Filament\Resources\TrainingBookingResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
 use Filament\Pages;
@@ -157,7 +160,8 @@ class AdminPanelProvider extends PanelProvider
                 InstallerResource::class,
                 HardwarePendingStockResource::class,
                 SparePartResource::class,
-                AdminRepairResource::class
+                AdminRepairResource::class,
+                TrainingBookingResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -182,6 +186,8 @@ class AdminPanelProvider extends PanelProvider
                 HardwareDashboardAll::class,
                 HardwareDashboardPendingStock::class,
                 AdminRepairDashboard::class,
+                TrainingCalendar::class,
+                TrainingCalendarBulkManagement::class,
                 // SoftwareHandoverAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

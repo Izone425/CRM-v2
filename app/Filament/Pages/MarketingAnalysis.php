@@ -311,79 +311,79 @@ class MarketingAnalysis extends Page
     }
 
     public function getLeadTypeCounts()
-{
-    $user = Auth::user();
-    $query = Lead::query();
+    {
+        $user = Auth::user();
+        $query = Lead::query();
 
-    // UTM filter
-    $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-    $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+        // UTM filter
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
-    if ($utmFilterApplied && !empty($utmLeadIds)) {
-        $query->whereIn('id', $utmLeadIds);
-    }
-
-    if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-        $query->where('salesperson', $this->selectedUser);
-    }
-
-    if ($user->role_id == 2) {
-        $query->where('salesperson', $user->id);
-    }
-
-    if (!empty($this->selectedLeadOwner)) {
-        $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-        $query->where('lead_owner', $ownerName);
-    }
-
-    if (!empty($this->startDate) && !empty($this->endDate)) {
-        $query->whereBetween('created_at', [
-            Carbon::parse($this->startDate)->startOfDay(),
-            Carbon::parse($this->endDate)->endOfDay(),
-        ]);
-    }
-
-    if (!empty($this->selectedLeadCode)) {
-        if ($this->selectedLeadCode === 'Null') {
-            $query->whereNull('lead_code');
-        } else {
-            $query->where('lead_code', $this->selectedLeadCode);
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
         }
-    }
 
-    // Get all leads for counting
-    $leads = $query->get();
-
-    // Create a dynamic count for ALL lead codes
-    $result = [];
-
-    // Group leads by lead_code and count them directly into the result array
-    foreach ($leads as $lead) {
-        // Use string keys and handle null values
-        $code = (string)($lead->lead_code ?? 'Null');
-
-        if (!isset($result[$code])) {
-            $result[$code] = 0;
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
         }
-        $result[$code]++;
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        if (!empty($this->selectedLeadCode)) {
+            if ($this->selectedLeadCode === 'Null') {
+                $query->whereNull('lead_code');
+            } else {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+        }
+
+        // Get all leads for counting
+        $leads = $query->get();
+
+        // Create a dynamic count for ALL lead codes
+        $result = [];
+
+        // Group leads by lead_code and count them directly into the result array
+        foreach ($leads as $lead) {
+            // Use string keys and handle null values
+            $code = (string)($lead->lead_code ?? 'Null');
+
+            if (!isset($result[$code])) {
+                $result[$code] = 0;
+            }
+            $result[$code]++;
+        }
+
+        // Get distinct lead codes for the dropdown
+        $this->leadCodes = Lead::query()
+            ->select('lead_code')
+            ->distinct()
+            ->pluck('lead_code')
+            ->map(function ($value) {
+                return (string)($value ?? 'Null'); // Ensure string and replace null with 'Null'
+            })
+            ->sortBy(function($code) {
+                return $code; // Sort by string value
+            })
+            ->values()
+            ->toArray();
+
+        return $result;
     }
-
-    // Get distinct lead codes for the dropdown
-    $this->leadCodes = Lead::query()
-        ->select('lead_code')
-        ->distinct()
-        ->pluck('lead_code')
-        ->map(function ($value) {
-            return (string)($value ?? 'Null'); // Ensure string and replace null with 'Null'
-        })
-        ->sortBy(function($code) {
-            return $code; // Sort by string value
-        })
-        ->values()
-        ->toArray();
-
-    return $result;
-}
 
     public function fetchLeads()
     {

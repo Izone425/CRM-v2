@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AdminRepair extends Model
@@ -12,6 +13,7 @@ class AdminRepair extends Model
 
     protected $fillable = [
         'company_id',
+        'lead_id',
         'pic_name',
         'pic_phone',
         'pic_email',
@@ -22,11 +24,16 @@ class AdminRepair extends Model
         'repair_remark',
         'spare_parts',
         'attachments',
+        'invoice_date',
         'new_attachment_file',
+        'invoice_file',
+        'sales_order_file',
+        'payment_slip_file',
         'video_files',
         'zoho_ticket',
         'address',
         'status',
+        'devices_warranty',
         'assigned_to',
         'created_by',
         'updated_by',
@@ -40,12 +47,20 @@ class AdminRepair extends Model
         'devices' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'invoice_file' => 'array',
+        'sales_order_file' => 'array',
+        'payment_slip_file' => 'array',
     ];
 
     // Default status for new repair tickets
     protected $attributes = [
         'status' => 'Draft',
     ];
+
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class, 'id');
+    }
 
     // Relationship to Company Details
     public function companyDetail()
@@ -59,6 +74,11 @@ class AdminRepair extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function repairAppointment(): HasMany
+    {
+        return $this->hasMany(RepairAppointment::class, 'lead_id', 'id');
+    }
+
     // Relationship to User (creator)
     public function creator()
     {
@@ -69,5 +89,10 @@ class AdminRepair extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function setPicNameAttribute($value)
+    {
+        $this->attributes['pic_name'] = strtoupper($value);
     }
 }
