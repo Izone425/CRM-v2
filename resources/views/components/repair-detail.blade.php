@@ -1,7 +1,7 @@
 <div class="p-6 bg-white rounded-lg">
     <!-- Title -->
     <div class="mb-4 text-center">
-        <h2 class="text-lg font-semibold text-gray-800">Repair Ticket Details</h2>
+        <h2 class="text-lg font-semibold text-gray-800">Repair Handover Form</h2>
         <p class="text-blue-600">{{ $record->companyDetail->company_name ?? 'Repair Ticket' }}</p>
     </div>
 
@@ -10,24 +10,77 @@
             <!-- Company Information -->
             <div class="mb-6">
                 <p class="mb-2">
-                    <span class="font-semibold">Company Name:</span>
-                    {{ $record->companyDetail->company_name ?? 'N/A' }}
-                </p>
-                <p class="mb-2">
-                    <span class="font-semibold">Contact Person:</span>
+                    <span class="font-semibold">PIC Name:</span>
                     {{ $record->pic_name }}
                 </p>
                 <p class="mb-2">
-                    <span class="font-semibold">Phone:</span>
+                    <span class="font-semibold">PIC HP Number:</span>
                     {{ $record->pic_phone }}
                 </p>
                 <p class="mb-2">
-                    <span class="font-semibold">Email:</span>
+                    <span class="font-semibold">PIC Email Address:</span>
                     {{ $record->pic_email }}
                 </p>
                 <p class="mb-2">
-                    <span class="font-semibold">Address:</span>
-                    {{ $record->address }}
+                    <span class="font-semibold">Company Address:</span>
+                    <a href="#"
+                       x-data
+                       @click.prevent="$dispatch('open-address-modal')"
+                       style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                       onmouseover="this.style.textDecoration='underline'"
+                       onmouseout="this.style.textDecoration='none'">
+                        View Address
+                    </a>
+                </p>
+
+                <!-- Address Modal -->
+                <div
+                     x-data="{ addressModalOpen: false }"
+                     @open-address-modal.window="addressModalOpen = true"
+                     x-show="addressModalOpen"
+                     x-transition
+                     @click.outside="addressModalOpen = false"
+                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50"
+                     style="display: none;">
+                    <div class="relative w-full max-w-md p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="addressModalOpen = false">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Company Address</h3>
+                            <button type="button" @click="addressModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-4 mb-4 bg-gray-100 rounded-lg">
+                            <p class="whitespace-pre-line">{{ $record->address ?: 'No address available' }}</p>
+                        </div>
+
+                        <!-- Google Maps Link (if address is available) -->
+                        @if($record->address)
+                            <div class="mb-4 text-center">
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($record->address) }}"
+                                   target="_blank"
+                                   class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Open in Google Maps
+                                </a>
+                            </div>
+                        @endif
+
+                        <div class="text-center">
+                            <button @click="addressModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p class="mb-2">
+                    <span class="font-semibold">Zoho Ticket Number:</span>
+                    {{ $record->zoho_ticket ?? 'N/A' }}
                 </p>
             </div>
 
@@ -51,39 +104,251 @@
                     </span>
                 </p>
                 <p class="mb-2">
-                    <span class="font-semibold">Ticket ID:</span>
+                    <span class="font-semibold">Repair Handover Form:</span>
                     RP_250{{ str_pad($record->id, 3, '0', STR_PAD_LEFT) }}
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Submitted Date:</span>
                     {{ $record->created_at->format('d M Y, h:i A') }}
                 </p>
-                <p class="mb-2">
-                    <span class="font-semibold">Zoho Ticket:</span>
-                    {{ $record->zoho_ticket ?? 'N/A' }}
-                </p>
             </div>
         </div>
 
         <div>
+            <!-- Remarks Section -->
+            <div x-data="{ remarkOpen: false }">
+                <p class="mb-2">
+                    <span class="font-semibold">Repair Remarks:</span>
+                    <a href="#"
+                       @click.prevent="remarkOpen = true"
+                       style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                       onmouseover="this.style.textDecoration='underline'"
+                       onmouseout="this.style.textDecoration='none'">
+                        View Remarks
+                    </a>
+                </p>
+
+                <!-- Remarks Modal -->
+                <div x-show="remarkOpen"
+                     x-transition
+                     @click.outside="remarkOpen = false"
+                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarkOpen = false">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Repair Remarks</h3>
+                            <button type="button" @click="remarkOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="max-h-[60vh] overflow-y-auto">
+                            @if($record->remarks)
+                                @php
+                                    $remarks = is_string($record->remarks) ? json_decode($record->remarks, true) : $record->remarks;
+                                @endphp
+
+                                @if(is_array($remarks) && count($remarks) > 0)
+                                    <div class="space-y-4">
+                                        @foreach($remarks as $index => $remark)
+                                            <div class="p-4 border border-gray-200 rounded-lg">
+                                                <h4 class="mb-2 font-semibold text-gray-700 text-md">Remark {{ $index + 1 }}</h4>
+
+                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <!-- Remark (Left Column) -->
+                                                    <div class="p-3 text-gray-800 bg-gray-100 rounded">
+                                                        <h5 class="mb-2 font-medium">Remark:</h5>
+                                                        <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
+                                                    </div>
+
+                                                    <!-- Attachments (Right Column) -->
+                                                    <div>
+                                                        @if(!empty($remark['attachments']))
+                                                            @php
+                                                                $attachments = is_string($remark['attachments'])
+                                                                    ? json_decode($remark['attachments'], true)
+                                                                    : $remark['attachments'];
+                                                            @endphp
+
+                                                            @if(is_array($attachments) && count($attachments) > 0)
+                                                                <div class="h-full p-3 rounded bg-gray-50">
+                                                                    <h5 class="mb-3 font-medium">Attachments:</h5>
+                                                                    <div class="space-y-2">
+                                                                        @foreach($attachments as $attIndex => $attachment)
+                                                                            <a
+                                                                                href="{{ asset('storage/' . $attachment) }}"
+                                                                                target="_blank"
+                                                                                class="flex items-center px-3 py-2 text-sm text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100"
+                                                                            >
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                                                                </svg>
+                                                                                Attachment {{ $attIndex + 1 }}
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            @else
+                                                                <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
+                                                                    <p class="italic text-gray-500">No attachments available</p>
+                                                                </div>
+                                                            @endif
+                                                        @else
+                                                            <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
+                                                                <p class="italic text-gray-500">No attachments available</p>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-center text-gray-500">No remarks available</p>
+                                @endif
+                            @else
+                                <p class="text-center text-gray-500">No remarks available</p>
+                            @endif
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <button @click="remarkOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Files Section -->
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Video Attachment:</span>
+                </p>
+
+                @php
+                    $videos = $record->video_files
+                        ? (is_string($record->video_files)
+                            ? json_decode($record->video_files, true)
+                            : $record->video_files)
+                        : [];
+
+                    $hasVideos = is_array($videos) && count($videos) > 0;
+                @endphp
+
+                @if($hasVideos)
+                    <ul class="pl-6 list-none">
+                        @foreach($videos as $index => $video)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a
+                                    href="{{ asset('storage/' . $video) }}"
+                                    target="_blank"
+                                    style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                                    onmouseover="this.style.textDecoration='underline'"
+                                    onmouseout="this.style.textDecoration='none'"
+                                >
+                                    Video {{ $index + 1 }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="pl-6 italic text-gray-500">No videos available</p>
+                @endif
+            </div>
+
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Invoice Attachment:</span>
+                </p>
+
+                @php
+                    $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
+                @endphp
+
+                @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($invoiceFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Invoice {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No invoices uploaded</span>
+                @endif
+            </div>
+
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Sales Order Attachment:</span>
+                </p>
+
+                @php
+                    $salesOrderFiles = $record->sales_order_file ? (is_string($record->sales_order_file) ? json_decode($record->sales_order_file, true) : $record->sales_order_file) : [];
+                @endphp
+
+                @if(is_array($salesOrderFiles) && count($salesOrderFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($salesOrderFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sales Order {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No sales order uploaded</span>
+                @endif
+            </div>
+
+            <div class="mb-6">
+                <p class="mb-2">
+                    <span class="font-semibold">Payment Slip Attachment:</span>
+                </p>
+
+                @php
+                    $paymentSlipFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
+                @endphp
+
+                @if(is_array($paymentSlipFiles) && count($salesOrderFiles) > 0)
+                    <ul class="pl-6 list-none">
+                        @foreach($paymentSlipFiles as $index => $file)
+                            <li class="mb-1">
+                                <span class="mr-2">➤</span>
+                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Payment Slip {{ $index + 1 }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <span>No sales order uploaded</span>
+                @endif
+            </div>
+
+            <!-- Separator Line -->
+            <hr class="my-4 border-gray-300">
+
             <!-- Devices Section -->
             <div x-data="{ deviceModalOpen: false }">
                 <p class="mb-2">
                     <span class="font-semibold">Devices:</span>
                     <a href="#"
-                       @click.prevent="deviceModalOpen = true"
-                       style="color: #2563EB; text-decoration: none; font-weight: 500;"
-                       onmouseover="this.style.textDecoration='underline'"
-                       onmouseout="this.style.textDecoration='none'">
+                    @click.prevent="deviceModalOpen = true"
+                    style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                    onmouseover="this.style.textDecoration='underline'"
+                    onmouseout="this.style.textDecoration='none'">
                         View Devices
                     </a>
                 </p>
 
                 <!-- Devices Modal -->
                 <div x-show="deviceModalOpen"
-                     x-transition
-                     @click.outside="deviceModalOpen = false"
-                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                    x-transition
+                    @click.outside="deviceModalOpen = false"
+                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
                     <div class="relative w-full max-w-lg p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="deviceModalOpen = false">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Device Details</h3>
@@ -144,97 +409,6 @@
                 </div>
             </div>
 
-            <!-- Remarks Section -->
-            <div x-data="{ remarkOpen: false }">
-                <p class="mb-2">
-                    <span class="font-semibold">Repair Remarks:</span>
-                    <a href="#"
-                       @click.prevent="remarkOpen = true"
-                       style="color: #2563EB; text-decoration: none; font-weight: 500;"
-                       onmouseover="this.style.textDecoration='underline'"
-                       onmouseout="this.style.textDecoration='none'">
-                        View Remarks
-                    </a>
-                </p>
-
-                <!-- Remarks Modal -->
-                <div x-show="remarkOpen"
-                     x-transition
-                     @click.outside="remarkOpen = false"
-                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarkOpen = false">
-                        <div class="flex items-start justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">Repair Remarks</h3>
-                            <button type="button" @click="remarkOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="max-h-[60vh] overflow-y-auto">
-                            @if($record->remarks)
-                                @php
-                                    $remarks = is_string($record->remarks) ? json_decode($record->remarks, true) : $record->remarks;
-                                @endphp
-
-                                @if(is_array($remarks) && count($remarks) > 0)
-                                    <div class="space-y-4">
-                                        @foreach($remarks as $index => $remark)
-                                            <div class="p-4 border border-gray-200 rounded-lg {{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
-                                                <h4 class="mb-2 font-semibold text-gray-700 text-md">Remark {{ $index + 1 }}</h4>
-
-                                                <div class="p-3 mb-3 text-gray-800 bg-gray-100 rounded">
-                                                    <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
-                                                </div>
-
-                                                @if(!empty($remark['attachments']))
-                                                    @php
-                                                        $attachments = is_string($remark['attachments'])
-                                                            ? json_decode($remark['attachments'], true)
-                                                            : $remark['attachments'];
-                                                    @endphp
-
-                                                    @if(is_array($attachments) && count($attachments) > 0)
-                                                        <div class="mt-3">
-                                                            <h5 class="mb-2 font-medium">Attachments:</h5>
-                                                            <div class="flex flex-wrap gap-2">
-                                                                @foreach($attachments as $attIndex => $attachment)
-                                                                    <a
-                                                                        href="{{ asset('storage/' . $attachment) }}"
-                                                                        target="_blank"
-                                                                        class="inline-flex items-center px-3 py-2 text-sm text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                        Attachment {{ $attIndex + 1 }}
-                                                                    </a>
-                                                                @endforeach
-                                                            </div>
-                                                        </div>
-                                                    @endif
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <p class="text-center text-gray-500">No remarks available</p>
-                                @endif
-                            @else
-                                <p class="text-center text-gray-500">No remarks available</p>
-                            @endif
-                        </div>
-
-                        <div class="mt-4 text-center">
-                            <button @click="remarkOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div x-data="{ remarkOpen: false }">
                 <p class="mb-2">
                     <span class="font-semibold">Technician Remarks:</span>
@@ -271,40 +445,55 @@
                                 @if(is_array($remarks) && count($remarks) > 0)
                                     <div class="space-y-4">
                                         @foreach($remarks as $index => $remark)
-                                            <div class="p-4 border border-gray-200 rounded-lg {{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
+                                            <div class="p-4 border border-gray-200 rounded-lg">
                                                 <h4 class="mb-2 font-semibold text-gray-700 text-md">Remark {{ $index + 1 }}</h4>
 
-                                                <div class="p-3 mb-3 text-gray-800 bg-gray-100 rounded">
-                                                    <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
-                                                </div>
+                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <!-- Remark (Left Column) -->
+                                                    <div class="p-3 text-gray-800 bg-gray-100 rounded">
+                                                        <h5 class="mb-2 font-medium">Remark:</h5>
+                                                        <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
+                                                    </div>
 
-                                                @if(!empty($remark['attachments']))
-                                                    @php
-                                                        $attachments = is_string($remark['attachments'])
-                                                            ? json_decode($remark['attachments'], true)
-                                                            : $remark['attachments'];
-                                                    @endphp
+                                                    <!-- Attachments (Right Column) -->
+                                                    <div>
+                                                        @if(!empty($remark['attachments']))
+                                                            @php
+                                                                $attachments = is_string($remark['attachments'])
+                                                                    ? json_decode($remark['attachments'], true)
+                                                                    : $remark['attachments'];
+                                                            @endphp
 
-                                                    @if(is_array($attachments) && count($attachments) > 0)
-                                                        <div class="mt-3">
-                                                            <h5 class="mb-2 font-medium">Attachments:</h5>
-                                                            <div class="flex flex-wrap gap-2">
-                                                                @foreach($attachments as $attIndex => $attachment)
-                                                                    <a
-                                                                        href="{{ asset('storage/' . $attachment) }}"
-                                                                        target="_blank"
-                                                                        class="inline-flex items-center px-3 py-2 text-sm text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                        Attachment {{ $attIndex + 1 }}
-                                                                    </a>
-                                                                @endforeach
+                                                            @if(is_array($attachments) && count($attachments) > 0)
+                                                                <div class="h-full p-3 rounded bg-gray-50">
+                                                                    <h5 class="mb-3 font-medium">Attachments:</h5>
+                                                                    <div class="space-y-2">
+                                                                        @foreach($attachments as $attIndex => $attachment)
+                                                                            <a
+                                                                                href="{{ asset('storage/' . $attachment) }}"
+                                                                                target="_blank"
+                                                                                class="flex items-center px-3 py-2 text-sm text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100"
+                                                                            >
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                                                                </svg>
+                                                                                Attachment {{ $attIndex + 1 }}
+                                                                            </a>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            @else
+                                                                <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
+                                                                    <p class="italic text-gray-500">No attachments available</p>
+                                                                </div>
+                                                            @endif
+                                                        @else
+                                                            <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
+                                                                <p class="italic text-gray-500">No attachments available</p>
                                                             </div>
-                                                        </div>
-                                                    @endif
-                                                @endif
+                                                        @endif
+                                                    </div>
+                                                </div>
                                             </div>
                                         @endforeach
                                     </div>
@@ -324,44 +513,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Separator Line -->
-            <hr class="my-4 border-gray-300">
-
-            <!-- Video Files Section -->
-            @if($record->video_files)
-                @php
-                    $videos = is_string($record->video_files)
-                        ? json_decode($record->video_files, true)
-                        : $record->video_files;
-                @endphp
-
-                @if(is_array($videos) && count($videos) > 0)
-                    <div class="mb-6">
-                        <p class="mb-2">
-                            <span class="font-semibold">Video Files:</span>
-                        </p>
-                        <ul class="pl-6 list-none">
-                            @foreach($videos as $index => $video)
-                                <li class="mb-1">
-                                    <span class="mr-2">➤</span>
-                                    <a
-                                        href="{{ asset('storage/' . $video) }}"
-                                        target="_blank"
-                                        style="color: #2563EB; text-decoration: none; font-weight: 500;"
-                                        onmouseover="this.style.textDecoration='underline'"
-                                        onmouseout="this.style.textDecoration='none'"
-                                    >
-                                        Video {{ $index + 1 }}
-                                    </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-            @endif
-            <br>
-            <div class="mb-6">
+            {{-- <div class="mb-6">
                 <p class="mb-2">
                     <span class="font-semibold">Additional Attachments:</span>
                 </p>
@@ -382,7 +534,7 @@
                 @else
                     <span>No additional attachments uploaded</span>
                 @endif
-            </div>
+            </div> --}}
         </div>
     </div>
 </div>

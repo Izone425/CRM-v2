@@ -759,7 +759,8 @@ class HardwareHandoverRelationManager extends RelationManager
 
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
-                    $data['status'] = 'Draft';
+                    $data['status'] = 'New';
+                    $data['submitted_at'] = now();
 
                     if(isset($data['contact_detail']) && is_array($data['contact_detail'])){
                         $data['contact_detail'] = json_encode($data['contact_detail']);
@@ -856,11 +857,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     // Create the handover record
                     $handover = HardwareHandover::create($data);
 
-                    // Generate PDF for non-draft handovers
-                    if ($handover->status !== 'Draft') {
-                        // Use the controller for PDF generation
-                        app(GenerateHardwareHandoverPdfController::class)->generateInBackground($handover);
-                    }
+                    app(GenerateHardwareHandoverPdfController::class)->generateInBackground($handover);
 
                     Notification::make()
                         ->title($handover->status === 'Draft' ? 'Saved as Draft' : 'Hardware Handover Created Successfully')

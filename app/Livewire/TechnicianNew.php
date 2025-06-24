@@ -230,7 +230,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "View Repair Ticket " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
@@ -256,6 +256,9 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                             Textarea::make('repair_remark')
                                                 ->hiddenLabel()
                                                 ->required()
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                                 ->placeholder('Enter repair assessment notes')
                                                 ->rows(3),
 
@@ -293,84 +296,186 @@ class TechnicianNew extends Component implements HasForms, HasTable
                             Section::make('Device Details')
                                 ->schema([
                                     Select::make('model_id')
-                                        ->label('Device Model')
-                                        ->options([
-                                            'TC10' => 'TC10',
-                                            'TC20' => 'TC20',
-                                            'FACE ID 5' => 'FACE ID 5',
-                                            'FACE ID 6' => 'FACE ID 6',
-                                            'TIME BEACON' => 'TIME BEACON',
-                                            'NFC TAG' => 'NFC TAG',
-                                        ])
-                                        ->searchable()
-                                        ->required()
-                                        ->reactive() // This makes the field reactive
-                                        ->afterStateUpdated(function ($state, callable $set) {
-                                            // Clear spare parts selection when model changes
-                                            $set('spare_parts', []);
-                                        })
-                                        ->placeholder('Select device model'),
+                                    ->label('Device Model')
+                                    ->multiple()
+                                    ->options(function (AdminRepair $record) {
+                                        // Initialize an empty options array
+                                        $options = [];
+
+                                        // Check if we have devices in JSON format
+                                        if ($record->devices) {
+                                            // Parse the JSON devices data
+                                            $devices = is_string($record->devices)
+                                                ? json_decode($record->devices, true)
+                                                : $record->devices;
+
+                                            // If devices is an array, extract unique device models
+                                            if (is_array($devices)) {
+                                                foreach ($devices as $device) {
+                                                    if (!empty($device['device_model'])) {
+                                                        $modelName = $device['device_model'];
+                                                        $options[$modelName] = $modelName;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // Handle legacy data format where device_model is stored directly on the record
+                                        elseif ($record->device_model) {
+                                            $options[$record->device_model] = $record->device_model;
+                                        }
+
+                                        // If no options found, provide default options
+                                        if (empty($options)) {
+                                            $options = [
+                                                'TC10' => 'TC10',
+                                                'TC20' => 'TC20',
+                                                'FACE ID 5' => 'FACE ID 5',
+                                                'FACE ID 6' => 'FACE ID 6',
+                                                'TIME BEACON' => 'TIME BEACON',
+                                                'NFC TAG' => 'NFC TAG',
+                                            ];
+                                        }
+
+                                        return $options;
+                                    })
+                                    ->searchable()
+                                    ->required()
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        // Clear spare parts selection when model changes
+                                        $set('spare_parts', []);
+                                    })
+                                    ->placeholder('Select device model')
+                                    // Pre-select the device models from the record
+                                    ->default(function (AdminRepair $record) {
+                                        // Initialize an empty array for default selections
+                                        $defaultModels = [];
+
+                                        // Check if we have devices in JSON format
+                                        if ($record->devices) {
+                                            // Parse the JSON devices data
+                                            $devices = is_string($record->devices)
+                                                ? json_decode($record->devices, true)
+                                                : $record->devices;
+
+                                            // If devices is an array, extract unique device models
+                                            if (is_array($devices)) {
+                                                foreach ($devices as $device) {
+                                                    if (!empty($device['device_model'])) {
+                                                        $defaultModels[] = $device['device_model'];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // Handle legacy data format
+                                        elseif ($record->device_model) {
+                                            $defaultModels[] = $record->device_model;
+                                        }
+
+                                        return $defaultModels;
+                                    }),
 
                                     Select::make('spare_parts')
-                                        ->label('Spare Parts Required')
-                                        ->allowHtml()
-                                        ->searchable()
-                                        ->multiple()
-                                        ->preload()
-                                        ->optionsLimit(50)
-                                        ->placeholder('Select required spare parts')
-                                        ->helperText('Select all spare parts that may be needed for this repair')
-                                        ->loadingMessage('Loading spare parts...')
-                                        ->noSearchResultsMessage('No spare parts found')
-                                        ->options(function (callable $get) {
-                                            // Get the selected device model
-                                            $selectedModel = $get('model_id');
+                                    ->label('Spare Parts Required')
+                                    ->allowHtml()
+                                    ->searchable()
+                                    ->multiple()
+                                    ->preload()
+                                    ->optionsLimit(50)
+                                    ->placeholder('Select required spare parts')
+                                    ->helperText('Select all spare parts that may be needed for this repair')
+                                    ->loadingMessage('Loading spare parts...')
+                                    ->noSearchResultsMessage('No spare parts found')
+                                    ->options(function (callable $get) {
+                                        // Get the selected device model(s)
+                                        $selectedModels = $get('model_id');
 
-                                            // If no model is selected, return empty array
-                                            if (!$selectedModel) {
-                                                return [];
-                                            }
+                                        // If no model is selected, return empty array
+                                        if (empty($selectedModels)) {
+                                            return [];
+                                        }
 
-                                            // Get spare parts matching the selected model
-                                            $spareParts = \App\Models\SparePart::where('is_active', true)
-                                                ->where('device_model', $selectedModel)
-                                                ->limit(50)
-                                                ->get();
+                                        // Create a query for spare parts matching ANY of the selected models
+                                        $query = \App\Models\SparePart::where('is_active', true);
 
-                                            // Format the options
-                                            return $spareParts->mapWithKeys(function ($part) {
-                                                return [$part->id => static::getSparePartOptionHtml($part)];
-                                            })->toArray();
-                                        })
-                                        ->getSearchResultsUsing(function (string $search, callable $get) {
-                                            // Get the selected device model
-                                            $selectedModel = $get('model_id');
+                                        // If we have multiple models, we need to check each one
+                                        if (is_array($selectedModels)) {
+                                            $query->where(function ($subQuery) use ($selectedModels) {
+                                                foreach ($selectedModels as $index => $model) {
+                                                    if ($index === 0) {
+                                                        $subQuery->where('device_model', $model);
+                                                    } else {
+                                                        $subQuery->orWhere('device_model', $model);
+                                                    }
+                                                }
+                                            });
+                                        } else {
+                                            // Single model
+                                            $query->where('device_model', $selectedModels);
+                                        }
 
-                                            // If no model is selected, return empty array
-                                            if (!$selectedModel) {
-                                                return [];
-                                            }
+                                        // Get the spare parts
+                                        $spareParts = $query->orderBy('name')->limit(100)->get();
 
-                                            // Find spare parts that match the search and the selected model
-                                            $spareParts = \App\Models\SparePart::where('is_active', true)
-                                                ->where('device_model', $selectedModel)
-                                                ->where(function ($query) use ($search) {
-                                                    $query->where('name', 'like', "%{$search}%");
-                                                })
-                                                ->limit(50)
-                                                ->get();
+                                        // Format the options
+                                        return $spareParts->mapWithKeys(function ($part) {
+                                            return [$part->id => static::getSparePartOptionHtml($part)];
+                                        })->toArray();
+                                    })
+                                    ->getSearchResultsUsing(function (string $search, callable $get) {
+                                        // Get the selected device model(s)
+                                        $selectedModels = $get('model_id');
 
-                                            // Format the results
-                                            return $spareParts->mapWithKeys(function ($part) {
-                                                return [$part->id => static::getSparePartOptionHtml($part)];
-                                            })->toArray();
-                                        })
-                                        ->getOptionLabelUsing(function ($value) {
-                                            // Get clean label for selected value
-                                            $part = \App\Models\SparePart::find($value);
-                                            return $part ? $part->name : null;
-                                        })
-                                        ->disabled(fn (callable $get) => !$get('model_id'))
+                                        // If no model is selected, return empty array
+                                        if (empty($selectedModels)) {
+                                            return [];
+                                        }
+
+                                        // Create a query for spare parts matching ANY of the selected models
+                                        $query = \App\Models\SparePart::where('is_active', true);
+
+                                        // If we have multiple models, we need to check each one
+                                        if (is_array($selectedModels)) {
+                                            $query->where(function ($subQuery) use ($selectedModels) {
+                                                foreach ($selectedModels as $index => $model) {
+                                                    if ($index === 0) {
+                                                        $subQuery->where('device_model', $model);
+                                                    } else {
+                                                        $subQuery->orWhere('device_model', $model);
+                                                    }
+                                                }
+                                            });
+                                        } else {
+                                            // Single model
+                                            $query->where('device_model', $selectedModels);
+                                        }
+
+                                        // Add search filter
+                                        $query->where(function ($subQuery) use ($search) {
+                                            $subQuery->where('name', 'like', "%{$search}%")
+                                                ->orWhere('device_model', 'like', "%{$search}%")
+                                                ->orWhere('autocount_code', 'like', "%{$search}%");
+                                        });
+
+                                        // Get the spare parts
+                                        $spareParts = $query->orderBy('name')->limit(50)->get();
+
+                                        // Format the results
+                                        return $spareParts->mapWithKeys(function ($part) {
+                                            return [$part->id => static::getSparePartOptionHtml($part)];
+                                        })->toArray();
+                                    })
+                                    ->getOptionLabelUsing(function ($value) {
+                                        // Get clean label for selected value
+                                        $part = \App\Models\SparePart::find($value);
+                                        if (!$part) return null;
+
+                                        // Return name and device model
+                                        return "{$part->name} ({$part->device_model})";
+                                    })
+                                    ->disabled(fn (callable $get) => empty($get('model_id')))
+                                    // Group spare parts by device model when displaying
+                                    ->optionsLimit(100)
                                 ]),
                         ])
                         ->action(function (AdminRepair $record, array $data): void {

@@ -6,6 +6,7 @@ use App\Filament\Resources\SparePartResource\Pages;
 use App\Models\SparePart;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class SparePartResource extends Resource
 {
@@ -38,39 +40,49 @@ class SparePartResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Spare Part Details')
                     ->schema([
-                        Select::make('device_model')
-                            ->label('Device Model')
-                            ->options([
-                                'TC10' => 'TC10',
-                                'TC20' => 'TC20',
-                                'FACE ID 5' => 'FACE ID 5',
-                                'FACE ID 6' => 'FACE ID 6',
-                                'TIME BEACON' => 'TIME BEACON',
-                                'NFC TAG' => 'NFC TAG',
-                            ])
-                            ->searchable()
-                            ->required()
-                            ->createOptionForm([
-                                TextInput::make('value')
-                                    ->label('New Device Model Name')
-                                    ->required(),
-                            ]),
+                        Grid::make(3)
+                        ->schema([
+                            Select::make('device_model')
+                                ->label('Device Model')
+                                ->columnSpan(1)
+                                ->options([
+                                    'TC10' => 'TC10',
+                                    'TC20' => 'TC20',
+                                    'FACE ID 5' => 'FACE ID 5',
+                                    'FACE ID 6' => 'FACE ID 6',
+                                    'TIME BEACON' => 'TIME BEACON',
+                                    'NFC TAG' => 'NFC TAG',
+                                ])
+                                ->searchable()
+                                ->required(),
 
-                        TextInput::make('name')
-                            ->label('Spare Part Name')
-                            ->required()
-                            ->maxLength(255),
+                            TextInput::make('name')
+                                ->label('Spare Part Name')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->columnSpan(1)
+                                ->required()
+                                ->maxLength(255),
 
-                        FileUpload::make('picture_url')
-                            ->label('Part Image')
-                            ->image()
-                            ->maxSize(5120) // 5MB
-                            ->directory('spare-parts')
-                            ->visibility('public')
-                            ->imageResizeMode('contain')
-                            ->imageResizeTargetWidth('800')
-                            ->imageResizeTargetHeight('800')
-                            ->columnSpanFull(),
+                            TextInput::make('autocount_code')
+                                ->label('Autocount Code')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->columnSpan(1)
+                                ->maxLength(255),
+                        ]),
+                        // FileUpload::make('picture_url')
+                        //     ->label('Part Image')
+                        //     ->image()
+                        //     ->maxSize(5120) // 5MB
+                        //     ->directory('spare-parts')
+                        //     ->visibility('public')
+                        //     ->imageResizeMode('contain')
+                        //     ->imageResizeTargetWidth('800')
+                        //     ->imageResizeTargetHeight('800')
+                        //     ->columnSpanFull(),
 
                         Toggle::make('is_active')
                             ->label('Active')
@@ -95,13 +107,20 @@ class SparePartResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-                ImageColumn::make('picture_url')
-                    ->label('Image')
-                    ->circular(false)
-                    ->square()
-                    ->defaultImageUrl(url('/images/no-image.jpg'))
-                    ->width(100)
-                    ->height(100),
+                TextColumn::make('autocount_code')
+                    ->label('Autocount Code')
+                    ->sortable()
+                    ->searchable(),
+
+                // TextColumn::make('picture_url')
+                //     ->label('Image')
+                //     ->formatStateUsing(fn ($state) => $state ? 'Available' : 'Not Available')
+                //     ->badge()
+                //     ->color(fn ($state) => $state ? 'success' : 'danger')
+                //     ->url(fn ($record) => $record->picture_url && $record->picture_url !== url('images/no-image.jpg')
+                //         ? $record->picture_url
+                //         : null)
+                //     ->openUrlInNewTab(),
 
                 ToggleColumn::make('is_active')
                     ->label('Active')
@@ -140,7 +159,7 @@ class SparePartResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                // Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

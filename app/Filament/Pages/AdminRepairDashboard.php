@@ -450,70 +450,192 @@ class AdminRepairDashboard extends Page implements HasTable
     // Process and save form data (common function for create and update)
     protected function processAndSaveRepairData(?AdminRepair $record, array $data): AdminRepair
     {
-        try {
-            // Process remarks with attachments
-            if (isset($data['remarks']) && is_array($data['remarks'])) {
-                foreach ($data['remarks'] as $key => $remark) {
-                    // Encode attachments array for each remark if it exists
-                    if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                        $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                    } else {
-                        $data['remarks'][$key]['attachments'] = json_encode([]);
-                    }
+        // Process remarks with attachments
+        if (isset($data['remarks']) && is_array($data['remarks'])) {
+            foreach ($data['remarks'] as $key => $remark) {
+                // Encode attachments array for each remark if it exists
+                if (isset($remark['attachments']) && is_array($remark['attachments'])) {
+                    $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                } else {
+                    $data['remarks'][$key]['attachments'] = json_encode([]);
                 }
-                // Encode the entire remarks structure
-                $data['remarks'] = json_encode($data['remarks']);
-            } else {
-                $data['remarks'] = json_encode([]);
             }
-
-            // Encode devices array
-            if (isset($data['devices']) && is_array($data['devices'])) {
-                $data['devices'] = json_encode($data['devices']);
-
-                // Also set the first device to the legacy fields for compatibility
-                if (!empty($data['devices'])) {
-                    $decoded = json_decode($data['devices'], true);
-                    if (is_array($decoded) && !empty($decoded[0])) {
-                        $data['device_model'] = $decoded[0]['device_model'] ?? null;
-                        $data['device_serial'] = $decoded[0]['device_serial'] ?? null;
-                    }
-                }
-            } else {
-                $data['devices'] = json_encode([]);
-            }
-
-            // Encode video files array
-            if (isset($data['video_files']) && is_array($data['video_files'])) {
-                $data['video_files'] = json_encode($data['video_files']);
-            } else {
-                $data['video_files'] = json_encode([]);
-            }
-
-            // Set timestamps and user IDs
-            $data['updated_by'] = auth()->id();
-
-            if (!$record) {
-                $data['created_by'] = auth()->id();
-                $data['status'] = 'Draft'; // Default status for new records
-
-                // Create new record
-                $repair = AdminRepair::create($data);
-            } else {
-                // Update existing record
-                $record->update($data);
-                $repair = $record;
-            }
-
-            return $repair;
-        } catch (\Exception $e) {
-            // Log the error
-            \Illuminate\Support\Facades\Log::error("Error saving repair data: " . $e->getMessage());
-            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
-
-            // Rethrow as a user-friendly exception
-            throw new \Exception("There was a problem saving the repair data. Please try again or contact support.");
+            // Encode the entire remarks structure
+            $data['remarks'] = json_encode($data['remarks']);
+        } else {
+            $data['remarks'] = json_encode([]);
         }
+
+        // Encode devices array
+        if (isset($data['devices']) && is_array($data['devices'])) {
+            $data['devices'] = json_encode($data['devices']);
+
+            // Also set the first device to the legacy fields for compatibility
+            if (!empty($data['devices'])) {
+                $decoded = json_decode($data['devices'], true);
+                if (is_array($decoded) && !empty($decoded[0])) {
+                    $data['device_model'] = $decoded[0]['device_model'] ?? null;
+                    $data['device_serial'] = $decoded[0]['device_serial'] ?? null;
+                }
+            }
+        } else {
+            $data['devices'] = json_encode([]);
+        }
+
+        // Encode video files array
+        if (isset($data['video_files']) && is_array($data['video_files'])) {
+            $data['video_files'] = json_encode($data['video_files']);
+        } else {
+            $data['video_files'] = json_encode([]);
+        }
+
+        // Set timestamps and user IDs
+        $data['updated_by'] = auth()->id();
+
+        if (!$record) {
+            // Creating a new record
+            $data['created_by'] = auth()->id();
+            $data['status'] = 'New'; // Default status for new records
+
+            // Get lead_id from company_id with proper error handling
+            $companyDetail = CompanyDetail::find($data['company_id']);
+            if ($companyDetail && $companyDetail->lead_id) {
+                $data['lead_id'] = $companyDetail->lead_id;
+            } elseif ($companyDetail && $companyDetail->lead) {
+                $data['lead_id'] = $companyDetail->lead->id;
+            } else {
+                // Default to avoid database error
+                $data['lead_id'] = 0;
+            }
+
+            $data['submitted_at'] = now();
+
+            // Create new record
+            $repair = AdminRepair::create($data);
+
+            // Generate repair ID after we have a valid record with an ID
+            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+        } else {
+            // Update existing record
+            $record->update($data);
+            $repair = $record;
+
+            // Generate repair ID for existing record
+            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+        }
+
+        try {
+            // Get company name
+            $companyName = $repair->companyDetail->company_name ?? 'Unknown Company';
+
+            // Create email content structure
+            $emailContent = [
+                'repair_id' => $repairId,
+                'company' => [
+                    'name' => $companyName,
+                ],
+                'pic' => [
+                    'name' => $repair->pic_name ?? 'N/A',
+                    'phone' => $repair->pic_phone ?? 'N/A',
+                    'email' => $repair->pic_email ?? 'N/A',
+                ],
+                'devices' => [], // New array for devices
+                // Keep old structure for backward compatibility
+                'device' => [
+                    'model' => $repair->device_model ?? 'N/A',
+                    'serial' => $repair->device_serial ?? 'N/A',
+                ],
+                'submitted_at' => $repair->submitted_at ? $repair->submitted_at->format('d M Y, h:i A') : now()->format('d M Y, h:i A'),
+                'remarks' => []
+            ];
+
+            // Process devices data for email
+            if ($repair->devices) {
+                $devices = is_string($repair->devices)
+                    ? json_decode($repair->devices, true)
+                    : $repair->devices;
+
+                if (is_array($devices)) {
+                    foreach ($devices as $device) {
+                        $emailContent['devices'][] = [
+                            'device_model' => $device['device_model'] ?? 'N/A',
+                            'device_serial' => $device['device_serial'] ?? 'N/A'
+                        ];
+                    }
+                }
+            }
+
+            // Process remarks data for email
+            if ($repair->remarks) {
+                $remarks = is_string($repair->remarks)
+                    ? json_decode($repair->remarks, true)
+                    : $repair->remarks;
+
+                if (is_array($remarks)) {
+                    foreach ($remarks as $key => $remark) {
+                        $formattedRemark = [
+                            'text' => $remark['remark'] ?? '',
+                            'attachments' => []
+                        ];
+
+                        // Process attachments for this remark
+                        if (isset($remark['attachments'])) {
+                            $attachments = is_string($remark['attachments'])
+                                ? json_decode($remark['attachments'], true)
+                                : $remark['attachments'];
+
+                            if (is_array($attachments)) {
+                                foreach ($attachments as $attachment) {
+                                    $formattedRemark['attachments'][] = [
+                                        'url' => url('storage/' . $attachment),
+                                        'filename' => basename($attachment)
+                                    ];
+                                }
+                            }
+                        }
+
+                        $emailContent['remarks'][] = $formattedRemark;
+                    }
+                }
+            }
+
+            // Define recipients
+            $recipients = [
+                'admin.timetec.hr@timeteccloud.com',
+                'support@timeteccloud.com',
+                'izzuddin@timeteccloud.com'
+            ];
+
+            // Send email notification
+            $authUser = auth()->user();
+            \Illuminate\Support\Facades\Mail::send(
+                'emails.repair_ticket_notification',
+                ['emailContent' => $emailContent],
+                function ($message) use ($recipients, $authUser, $repairId, $companyName) {
+                    $message->from($authUser->email, $authUser->name)
+                        ->to($recipients)
+                        ->subject("NEW REPAIR TICKET {$repairId} | {$companyName}");
+                }
+            );
+
+            Notification::make()
+                ->title('Repair ticket submitted')
+                ->success()
+                ->body('Notification emails have been sent to the support team.')
+                ->send();
+
+        } catch (\Exception $e) {
+            // Log error but don't stop the process
+            \Illuminate\Support\Facades\Log::error("Email sending failed for repair ticket #{$repair->id}: {$e->getMessage()}");
+
+            Notification::make()
+                ->title('Repair ticket submitted')
+                ->success()
+                ->body('Ticket submitted but email notifications failed.')
+                ->send();
+        }
+
+        return $repair;
     }
 
     // Get data for stats display
@@ -837,7 +959,7 @@ class AdminRepairDashboard extends Page implements HasTable
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "View Repair Ticket " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

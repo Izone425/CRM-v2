@@ -15,6 +15,7 @@ class SparePart extends Model
     protected $fillable = [
         'device_model',
         'name',
+        'autocount_code',
         'picture_url',
         'is_active'
     ];
@@ -57,5 +58,50 @@ class SparePart extends Model
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Convert single path to array or vice versa for Filament compatibility
+     */
+    public function setPictureUrlAttribute($value)
+    {
+        if (is_array($value) && !empty($value)) {
+            $this->attributes['picture_url'] = $value[0];
+        } else {
+            $this->attributes['picture_url'] = $value;
+        }
+    }
+
+    /**
+     * Get raw picture URL for form handling
+     */
+    public function getFormPictureUrlAttribute()
+    {
+        $value = $this->attributes['picture_url'] ?? null;
+        return $value;
+    }
+
+    /**
+     * Set the name attribute to uppercase
+     */
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = strtoupper($value);
+    }
+
+    /**
+     * Set the device model to uppercase
+     */
+    public function setDeviceModelAttribute($value)
+    {
+        $this->attributes['device_model'] = strtoupper($value);
+    }
+
+    /**
+     * Set the autocount code to uppercase
+     */
+    public function setAutocountCodeAttribute($value)
+    {
+        $this->attributes['autocount_code'] = strtoupper($value);
     }
 }

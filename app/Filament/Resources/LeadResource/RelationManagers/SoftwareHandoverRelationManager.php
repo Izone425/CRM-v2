@@ -579,7 +579,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->action(function (array $data): void {
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
-                    $data['status'] = 'Draft';
+                    $data['status'] = 'New';
+                    $data['submitted_at'] = now();
 
                     // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {
@@ -611,11 +612,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $handover->fill($data);
                     $handover->save();
 
-                    // Generate PDF for non-draft handovers
-                    if ($handover->status !== 'Draft') {
-                        // Use the controller for PDF generation
-                        app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($handover);
-                    }
+                    app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($handover);
 
                     Notification::make()
                         ->title($handover->status === 'Draft' ? 'Saved as Draft' : 'Software Handover Created Successfully')

@@ -44,7 +44,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
-class AdminRepairAccepted extends Component implements HasForms, HasTable
+class AdminRepairPendingConfirmation extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -90,7 +90,7 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
     public function getTableQuery(): Builder
     {
         $query = AdminRepair::query()
-            ->where('status', 'Accepted')
+            ->where('status', 'Pending Confirmation')
             ->orderBy('created_at', 'desc');
 
         return $query;
@@ -242,201 +242,94 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                             return view('components.repair-detail')
                                 ->with('record', $record);
                         }),
-                    Action::make('pendingConfirmation')
-                        ->label('Pending Confirmation')
+                    Action::make('pendingOnsiteRepair')
+                        ->label('Pending Onsite Repair')
                         ->icon('heroicon-o-clock')
-                        ->color('warning')
+                        ->color('primary')
                         ->modalWidth('5xl')  // Increased for better display
-                        ->modalHeading('Change Status to Pending Confirmation')
+                        ->modalHeading('Change Status to Pending Onsite Repair')
                         ->form([
-                            Repeater::make('device_invoices')
-                                ->schema([
-                                    Hidden::make('device_model')
-                                        ->dehydrated(true),
+                            Grid::make(3)
+                            ->schema([
+                                FileUpload::make('payment_slip_file')
+                                    ->label('Upload Payment Slip')
+                                    ->disk('public')
+                                    ->live(debounce: 500)
+                                    ->directory('handovers/payment_slips')
+                                    ->visibility('public')
+                                    ->multiple()
+                                    ->maxFiles(1)
+                                    ->columnSpan(1)
+                                    ->openable()
+                                    ->required()
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->openable(),
 
-                                    Hidden::make('device_serial')
-                                        ->dehydrated(true),
+                                FileUpload::make('invoice_file')
+                                    ->label('Upload Invoice')
+                                    ->disk('public')
+                                    ->directory('handovers/invoices')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->columnSpan(1)
+                                    ->required()
+                                    ->openable(),
 
-                                    Hidden::make('warranty_period')
-                                        ->dehydrated(true),
-
-                                    // Then modify the DatePicker's afterStateUpdated to use callable $get
-                                    DatePicker::make('invoice_date')
-                                        ->label('Invoice Date')
-                                        ->required()
-                                        ->maxDate(now())
-                                        ->live(debounce: 550)
-                                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                            if (!$state) return;
-
-                                            try {
-                                                // Parse the selected date
-                                                $invoiceDate = Carbon::parse($state);
-                                                $today = Carbon::now();
-
-                                                // Calculate days difference for raw total
-                                                $totalDaysRaw = $today->diffInDays($invoiceDate);
-
-                                                // Calculate years, months, days format
-                                                $dateInterval = $today->diff($invoiceDate);
-                                                $years = $dateInterval->y;
-                                                $months = $dateInterval->m;
-                                                $days = $dateInterval->d;
-
-                                                // Format the total days as a readable string
-                                                $formattedAge = [];
-                                                if ($years > 0) {
-                                                    $formattedAge[] = $years . ' ' . ($years == 1 ? 'year' : 'years');
-                                                }
-                                                if ($months > 0) {
-                                                    $formattedAge[] = $months . ' ' . ($months == 1 ? 'month' : 'months');
-                                                }
-                                                if ($days > 0 || (count($formattedAge) == 0)) {
-                                                    $formattedAge[] = $days . ' ' . ($days == 1 ? 'day' : 'days');
-                                                }
-
-                                                // Set the total days
-                                                $set('total_days', implode(', ', $formattedAge));
-
-                                                // Get the warranty period from the hidden field set in the default function
-                                                $warrantyPeriod = $get('warranty_period');
-                                                if ($warrantyPeriod && preg_match('/(\d+)/', $warrantyPeriod, $matches)) {
-                                                    $warrantyYears = (int)$matches[1];
-                                                } else {
-                                                    $warrantyYears = 1; // Default to 1 year if we can't determine
-                                                }
-
-                                                // Calculate the warranty end date based on the actual warranty years
-                                                $warrantyEndDate = $invoiceDate->copy()->addYears($warrantyYears);
-                                                $isInWarranty = $warrantyEndDate->isFuture();
-                                                $status = $isInWarranty ? 'In Warranty' : 'Out of Warranty';
-
-                                                // Set the warranty status
-                                                $set('warranty_status', $status);
-
-                                            } catch (\Exception $e) {
-                                                Log::error('Error in DatePicker afterStateUpdated: ' . $e->getMessage());
-                                            }
-                                        })
-                                        ->native(false)
-                                        ->displayFormat('d M Y'),
-
-                                    TextInput::make('total_days')
-                                        ->label('Total Days')
-                                        ->disabled()
-                                        ->live()
-                                        ->dehydrated(true),
-
-                                    TextInput::make('warranty_status')
-                                        ->label('Status')
-                                        ->disabled()
-                                        ->dehydrated(true)
-                                        ->extraAttributes(function (callable $get) {
-                                            $status = $get('warranty_status');
-                                            return [
-                                                'class' => $status === 'In Warranty' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'
-                                            ];
-                                        }),
-                                ])
-                                ->columns(3)
-                                ->itemLabel(fn (array $state): ?string =>
-                                    $state['device_model'] ?? null
-                                        ? "{$state['device_model']} (SN: {$state['device_serial']})"
-                                        : null
-                                )
-                                ->columnSpanFull()
-                                ->addable(false)
-                                ->deletable(false)
-                                ->reorderable(false)
-                                ->default(function (AdminRepair $record) {
-                                    $items = [];
-
-                                    // Process devices
-                                    if ($record->devices) {
-                                        $devices = is_string($record->devices)
-                                            ? json_decode($record->devices, true)
-                                            : $record->devices;
-
-                                        if (is_array($devices)) {
-                                            foreach ($devices as $device) {
-                                                if (!empty($device['device_model'])) {
-                                                    $deviceModel = $device['device_model'];
-                                                    $deviceSerial = $device['device_serial'];
-                                                    $warrantyYears = $this->getDeviceWarrantyYears($deviceModel);
-
-                                                    $items[] = [
-                                                        'device_model' => $deviceModel,
-                                                        'device_serial' => $deviceSerial,
-                                                        'warranty_period' => $warrantyYears . ' ' . ($warrantyYears > 1 ? 'Years' : 'Year'),
-                                                    ];
-                                                }
-                                            }
-                                        }
-                                    } elseif ($record->device_model) {
-                                        $deviceModel = $record->device_model;
-                                        $deviceSerial = $record->device_serial;
-                                        $warrantyYears = $this->getDeviceWarrantyYears($deviceModel);
-
-                                        $items[] = [
-                                            'device_model' => $deviceModel,
-                                            'device_serial' => $deviceSerial,
-                                            'warranty_period' => $warrantyYears . ' ' . ($warrantyYears > 1 ? 'Years' : 'Year'),
-                                        ];
-                                    }
-
-                                    return $items;
-                                }),
+                                FileUpload::make('sales_order_file')
+                                    ->label('Upload Sales Order')
+                                    ->required()
+                                    ->disk('public')
+                                    ->directory('handovers/sales_orders')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    ->multiple()
+                                    ->maxFiles(10)
+                                    ->columnSpan(1)
+                                    ->openable(),
+                            ]),
                         ])
-                        ->action(function (array $data, AdminRepair $record): void {
-                            // Extract the device warranty data from the form
-                            $deviceInvoices = $data['device_invoices'] ?? [];
+                        ->action(function (AdminRepair $record, array $data): void {
+                            $data['status'] = 'Pending Onsite Repair';
 
-                            // Process for saving to database
-                            $deviceWarrantyData = [];
-                            $anyInWarranty = false;
+                            if (isset($data['payment_slip_file']) && is_array($data['payment_slip_file'])) {
+                                $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
+                            }
 
-                            foreach ($deviceInvoices as $device) {
-                                if (!empty($device['invoice_date'])) {
-                                    $invoiceDate = Carbon::parse($device['invoice_date']);
-                                    $deviceModel = $device['device_model'];
-                                    $deviceSerial = $device['device_serial'];
-                                    $warrantyYears = $this->getDeviceWarrantyYears($deviceModel);
-                                    $warrantyEndDate = $invoiceDate->copy()->addYears($warrantyYears);
-                                    $isInWarranty = $warrantyEndDate->isFuture();
-                                    $status = $isInWarranty ? 'In Warranty' : 'Out of Warranty';
 
-                                    if ($isInWarranty) {
-                                        $anyInWarranty = true;
+                            if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
+                                $data['invoice_file'] = json_encode($data['invoice_file']);
+                            }
+
+                            if (isset($data['sales_order_file']) && is_array($data['sales_order_file'])) {
+                                // Get existing sales order files
+                                $existingFiles = [];
+                                if ($record->sales_order_file) {
+                                    $existingFiles = is_string($record->sales_order_file)
+                                        ? json_decode($record->sales_order_file, true)
+                                        : $record->sales_order_file;
+
+                                    if (!is_array($existingFiles)) {
+                                        $existingFiles = [];
                                     }
-
-                                    $deviceWarrantyData[] = [
-                                        'device_model' => $deviceModel,
-                                        'device_serial' => $deviceSerial,
-                                        'warranty_status' => $status,
-                                        'invoice_date' => $invoiceDate->format('Y-m-d'),
-                                    ];
                                 }
+
+                                // Merge existing files with newly uploaded ones
+                                $allFiles = array_merge($existingFiles, $data['sales_order_file']);
+
+                                // Update data with combined files
+                                $data['sales_order_file'] = json_encode($allFiles);
                             }
 
-                            // Overall warranty status
-                            $overallStatus = $anyInWarranty ? 'In Warranty' : 'Out of Warranty';
-                            if (empty($deviceWarrantyData)) {
-                                $overallStatus = 'Unknown';
-                            }
-
-                            // Update the record
-                            $record->update([
-                                'status' => 'Pending Confirmation',
-                                'warranty_status' => $overallStatus,
-                                'devices_warranty' => json_encode($deviceWarrantyData),
-                            ]);
+                            $record->update($data);
 
                             Notification::make()
                                 ->title('Repair handover status updated')
                                 ->success()
                                 ->send();
                         })
-                ])->button()
+                    ])->button()
             ]);
     }
 

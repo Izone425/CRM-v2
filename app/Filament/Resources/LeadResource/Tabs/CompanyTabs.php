@@ -1,0 +1,629 @@
+<?php
+
+namespace App\Filament\Resources\LeadResource\Tabs;
+
+use App\Mail\BDReferralClosure;
+use App\Models\ActivityLog;
+use App\Models\Industry;
+use App\Models\InvalidLeadReason;
+use App\Models\Lead;
+use App\Models\LeadSource;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\View;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+
+class CompanyTabs
+{
+    public static function getSchema(): array
+    {
+        return [
+            Grid::make(4)
+            ->schema([
+                Grid::make(2)
+                    ->schema([
+                        Section::make('Company Details')
+                            ->icon('heroicon-o-briefcase')
+                            ->headerActions([
+                                Action::make('edit_company_detail')
+                                    ->label('Edit') // Button label
+                                    ->modalHeading('Edit Information') // Modal heading
+                                    ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                    ->form([ // Define the form fields to show in the modal
+                                        TextInput::make('company_name')
+                                            ->label('Company Name')
+                                            ->default(fn ($record) => strtoupper($record->companyDetail->company_name ?? '-'))
+                                            ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
+                                        TextInput::make('company_address1')
+                                            ->label('Company Address 1')
+                                            ->maxLength(40)
+                                            ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                        TextInput::make('company_address2')
+                                            ->label('Company Address 2')
+                                            ->maxLength(40)
+                                            ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                        Grid::make(3) // Create a 3-column grid
+                                            ->schema([
+                                                TextInput::make('postcode')
+                                                    ->label('Postcode')
+                                                    ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
+
+                                                Select::make('state')
+                                                    ->label('State')
+                                                    ->options(function () {
+                                                        $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                        if (file_exists($filePath)) {
+                                                            $countriesContent = file_get_contents($filePath);
+                                                            $countries = json_decode($countriesContent, true);
+
+                                                            // Map 3-letter country codes to full country names
+                                                            return collect($countries)->mapWithKeys(function ($country) {
+                                                                return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                            })->toArray();
+                                                        }
+
+                                                        return [];
+                                                    })
+                                                    ->dehydrateStateUsing(function ($state) {
+                                                        // Convert the selected code to the full country name
+                                                        $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                        if (file_exists($filePath)) {
+                                                            $countriesContent = file_get_contents($filePath);
+                                                            $countries = json_decode($countriesContent, true);
+
+                                                            foreach ($countries as $country) {
+                                                                if ($country['Code'] === $state) {
+                                                                    return ucfirst(strtolower($country['State']));
+                                                                }
+                                                            }
+                                                        }
+
+                                                        return $state; // Fallback to the original state if mapping fails
+                                                    })
+                                                    ->default(fn ($record) => $record->companyDetail->state ?? null)
+                                                    ->searchable()
+                                                    ->preload(),
+
+                                                Select::make('industry')
+                                                    ->label('Industry')
+                                                    ->placeholder('Select an industry')
+                                                    ->default(fn ($record) => $record->companyDetail->industry ?? 'None')
+                                                    ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
+                                                    ->searchable()
+                                                    ->required()
+
+                                            ]),
+                                        Grid::make(2) // Create a 3-column grid
+                                            ->schema([
+                                                TextInput::make('reg_no_new')
+                                                    ->label('New Registration No.')
+                                                    ->default(fn ($record) => $record->companyDetail->reg_no_new ?? '-'),
+                                                    // Remove Old Register Number
+                                                // TextInput::make('reg_no_old')
+                                                //     ->label('Old Registration No.')
+                                                //     ->default(fn ($record) => $record->companyDetail->reg_no_old ?? '-'),
+                                            ]),
+                                    ])
+                                    ->action(function (Lead $lead, array $data) {
+                                        $record = $lead->companyDetail;
+                                        if ($record) {
+                                            // Update the existing SystemQuestion record
+                                            $record->update($data);
+
+                                            Notification::make()
+                                                ->title('Updated Successfully')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            // Create a new SystemQuestion record via the relation
+                                            $lead->bankDetail()->create($data);
+
+                                            Notification::make()
+                                                ->title('Created Successfully')
+                                                ->success()
+                                                ->send();
+                                        }
+                                    }),
+                            ])
+                            ->schema([
+                                View::make('components.company-detail')
+                            ]),
+                    ])
+                    ->columnSpan(2),
+                    Grid::make(1) // Nested grid for left side (single column)
+                        ->schema([
+                            Section::make('Person In-Charge')
+                                ->icon('heroicon-o-user')
+                                ->headerActions([
+                                    Action::make('edit_person_in_charge')
+                                        ->label('Edit') // Button label
+                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        ->modalHeading('Edit on Person In-Charge') // Modal heading
+                                        ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                        ->form([ // Define the form fields to show in the modal
+                                            TextInput::make('name')
+                                                ->label('Name')
+                                                ->required()
+                                                ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+                                            TextInput::make('email')
+                                                ->label('Email')
+                                                ->required()
+                                                ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
+                                            TextInput::make('contact_no')
+                                                ->label('Contact No.')
+                                                ->required()
+                                                ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
+                                            TextInput::make('position')
+                                                ->label('Position')
+                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                ->required()
+                                                ->default(fn ($record) => $record->companyDetail->position ?? '-'),
+                                        ])
+                                        ->action(function (Lead $lead, array $data) {
+                                            $record = $lead->companyDetail;
+                                            if ($record) {
+                                                // Update the existing SystemQuestion record
+                                                $record->update($data);
+
+                                                Notification::make()
+                                                    ->title('Updated Successfully')
+                                                    ->success()
+                                                    ->send();
+                                            } else {
+                                                // Create a new SystemQuestion record via the relation
+                                                $lead->bankDetail()->create($data);
+
+                                                Notification::make()
+                                                    ->title('Created Successfully')
+                                                    ->success()
+                                                    ->send();
+                                            }
+                                        }),
+                                ])
+                                ->schema([
+                                    View::make('components.person-in-charge')
+                                ]),
+                            ])->columnSpan(1),
+                    Grid::make(1) // Nested grid for left side (single column)
+                        ->schema([
+                            Section::make('Status')
+                                ->icon('heroicon-o-information-circle')
+                                ->extraAttributes([
+                                    'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                ])
+                                ->schema([
+                                    Grid::make(1) // Single column in the right-side section
+                                        ->schema([
+                                            View::make('components.deal-information'),
+                                            Actions::make([
+                                                Action::make('archive')
+                                                    ->label(__('Edit'))
+                                                    ->visible(fn(Lead $record) => !empty($record->salesperson) || !empty($record->lead_owner))
+                                                    ->modalHeading('Mark Lead as Inactive')
+                                                    ->form([
+                                                        Placeholder::make('')
+                                                            ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
+
+                                                        Select::make('status')
+                                                            ->label('INACTIVE STATUS')
+                                                            ->options([
+                                                                'On Hold' => 'On Hold',
+                                                                'Junk' => 'Junk',
+                                                                'Lost' => 'Lost',
+                                                                'Closed' => 'Closed',
+                                                            ])
+                                                            ->default('On Hold')
+                                                            ->required()
+                                                            ->reactive(),
+
+                                                        // Reason Field - Visible only when status is NOT Closed
+                                                        Select::make('reason')
+                                                            ->label('Select a Reason')
+                                                            ->options(fn (callable $get) =>
+                                                                $get('status') !== 'Closed'
+                                                                    ? InvalidLeadReason::where('lead_stage', $get('status'))->pluck('reason', 'id')->toArray()
+                                                                    : [] // Hide options when Closed
+                                                            )
+                                                            ->hidden(fn (callable $get) => $get('status') === 'Closed')
+                                                            ->required(fn (callable $get) => $get('status') !== 'Closed')
+                                                            ->reactive()
+                                                            ->createOptionForm([
+                                                                Select::make('lead_stage')
+                                                                    ->options([
+                                                                        'On Hold' => 'On Hold',
+                                                                        'Junk' => 'Junk',
+                                                                        'Lost' => 'Lost',
+                                                                        'Closed' => 'Closed',
+                                                                    ])
+                                                                    ->default(fn (callable $get) => $get('status'))
+                                                                    ->required(),
+                                                                TextInput::make('reason')
+                                                                    ->label('New Reason')
+                                                                    ->required(),
+                                                            ])
+                                                            ->createOptionUsing(function (array $data) {
+                                                                $newReason = InvalidLeadReason::create([
+                                                                    'lead_stage' => $data['lead_stage'],
+                                                                    'reason' => $data['reason'],
+                                                                ]);
+                                                                return $newReason->id;
+                                                            }),
+
+                                                        // Deal Amount Field - Visible only when status is Closed
+                                                        // TextInput::make('deal_amount')
+                                                        //     ->label('Close Deal Amount')
+                                                        //     ->numeric()
+                                                        //     ->hidden(fn (callable $get) => $get('status') !== 'Closed')
+                                                        //     ->required(fn (callable $get) => $get('status') === 'Closed'),
+
+                                                        Textarea::make('remark')
+                                                            ->label('Remarks')
+                                                            ->rows(3)
+                                                            ->autosize()
+                                                            ->reactive()
+                                                            ->required()
+                                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                                    ])
+                                                    ->action(function (Lead $record, array $data) {
+                                                        $statusLabels = [
+                                                            'on_hold' => 'On Hold',
+                                                            'junk' => 'Junk',
+                                                            'lost' => 'Lost',
+                                                            'closed' => 'Closed',
+                                                        ];
+
+                                                        $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
+                                                        $lead = $record;
+
+                                                        $updateData = [
+                                                            'categories' => 'Inactive',
+                                                            'lead_status' => $statusLabel,
+                                                            'remark' => $data['remark'],
+                                                            'stage' => null,
+                                                            'follow_up_date' => null,
+                                                            'follow_up_needed' => false,
+                                                        ];
+
+                                                        // If lead is closed, update deal amount
+                                                        if ($data['status'] === 'Closed') {
+                                                            $updateData['deal_amount'] = $data['deal_amount'] ?? null;
+                                                            $updateData['closing_date'] = now();
+                                                        } else {
+                                                            // If not closed, update reason
+                                                            $updateData['reason'] = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
+                                                        }
+
+                                                        $lead->update($updateData);
+
+                                                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                                            ->orderByDesc('created_at')
+                                                            ->first();
+
+                                                        if ($latestActivityLog) {
+                                                            activity()
+                                                                ->causedBy(auth()->user())
+                                                                ->performedOn($lead)
+                                                                ->log('Lead marked as inactive.');
+
+                                                            sleep(1);
+
+                                                            $latestActivityLog->update([
+                                                                'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
+                                                            ]);
+                                                        }
+
+                                                        try {
+                                                            // Check if this is a BD Referral lead and it's being marked as Closed or Lost
+                                                            if ($lead->lead_code === 'BD Referral Program' && in_array($data['status'], ['Closed', 'Lost'])) {
+                                                                $viewName = 'emails.bd_referral_closure';
+
+                                                                // Set recipients for BD Referral notifications
+                                                                $recipients = collect([
+                                                                    (object)[
+                                                                        'email' => 'jonathan@timeteccloud.com',
+                                                                        'name' => 'Jonathan Tay'
+                                                                    ]
+                                                                ]);
+
+                                                                foreach ($recipients as $recipient) {
+                                                                    $emailContent = [
+                                                                        'recipient_name' => $recipient->name,
+                                                                        'lead' => [
+                                                                            'id' => $lead->id,
+                                                                            'company_name' => $lead->companyDetail->company_name ?? 'N/A',
+                                                                            'contact_person' => $lead->companyDetail->name ?? $lead->name,
+                                                                            'email' => $lead->companyDetail->email ?? $lead->email,
+                                                                            'phone' => $lead->companyDetail->contact_no ?? $lead->phone,
+                                                                            'status' => $data['status'], // Closed or Lost
+                                                                            'closed_date' => now()->format('d M Y, h:i A'),
+                                                                        ],
+                                                                        'remarks' => $data['remark'] ?? 'No remarks provided',
+                                                                        'closed_by' => auth()->user()->name
+                                                                    ];
+
+                                                                    Mail::to($recipient->email)
+                                                                        ->send(new BDReferralClosure($emailContent, $viewName));
+                                                                }
+
+                                                                Log::info("BD Referral closure notification sent", [
+                                                                    'lead_id' => $lead->id,
+                                                                    'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                                                    'status' => $data['status']
+                                                                ]);
+                                                            }
+                                                        } catch (\Exception $e) {
+                                                            Log::error("BD Referral Notification Error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+                                                        }
+
+                                                        Notification::make()
+                                                            ->title('Lead Archived')
+                                                            ->success()
+                                                            ->body('You have successfully marked the lead as inactive.')
+                                                            ->send();
+                                                    }),
+                                            ])
+                                        ]),
+                                ])
+                        ])->columnSpan(1),
+                    ]),
+                    // Section::make('E-Invoice Details')
+                    // ->icon('heroicon-o-document-text')
+                    // ->collapsible()
+                    // ->collapsed()
+                    // ->headerActions([
+                    //     Action::make('edit_einvoice_details')
+                    //         ->label('Edit')
+                    //         ->icon('heroicon-o-pencil')
+                    //         ->modalHeading('Edit E-Invoice Details')
+                    //         ->modalSubmitActionLabel('Save Changes')
+                    //         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                    //         ->form([
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     TextInput::make('pic_email')
+                    //                         ->label('1. PIC Email Address')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->pic_email ?? null)
+                    //                         ->helperText('(Note: we will contact via this email if we need further information)'),
+
+                    //                     TextInput::make('tin_no')
+                    //                         ->label('2. Tax Identification Number (TIN No.)')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null)
+                    //                         ->helperText('Note: TIN No. must consist of a combination of the TIN Code and set of number'),
+
+                    //                     TextInput::make('new_business_reg_no')
+                    //                         ->label('3. New Business Registration Number')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->new_business_reg_no ?? null)
+                    //                         ->helperText('(Note: New ROC No. eg 198701006539. If Foreign Country, please input N/A)'),
+                    //                 ]),
+
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     TextInput::make('old_business_reg_no')
+                    //                         ->label('4. Old Business Registration Number')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->old_business_reg_no ?? null)
+                    //                         ->helperText('(Note: Old ROC No. eg 123456T. If Foreign Country, please input NA)'),
+
+                    //                     TextInput::make('registration_name')
+                    //                         ->label('5. Registration Name')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->registration_name ?? null)
+                    //                         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                    //                         ->helperText('(Note: Type only in CAPITAL letter) (as per Business Registration/MyKad/Passport)'),
+
+                    //                     Select::make('identity_type')
+                    //                         ->label('6. Identity Type')
+                    //                         ->options([
+                    //                             'MyKAD' => 'MyKAD',
+                    //                             'MyPR' => 'MyPR',
+                    //                             'MyKAS' => 'MyKAS',
+                    //                             'MyTen' => 'MyTen',
+                    //                             'PassP' => 'PassP',
+                    //                         ])
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->identity_type ?? null)
+                    //                         ->helperText('(Note: For company, please choose MyKAD option)'),
+                    //                 ]),
+
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     Radio::make('tax_classification')
+                    //                         ->label('7. Tax Classification')
+                    //                         ->options([
+                    //                             '0' => 'Individual (0)',
+                    //                             '1' => 'Business (1)',
+                    //                             '2' => 'Government (2)',
+                    //                         ])
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->tax_classification ?? null)
+                    //                         ->helperText('(Note: 0 - Individual  1 - Business   2 - Government)'),
+
+                    //                     TextInput::make('sst_reg_no')
+                    //                         ->label('8. Sales and Service Tax (SST) Registration Number')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null)
+                    //                         ->helperText('(Note: No. eg J31-1808-22000109. If don\'t have, please input N/A)'),
+
+                    //                     TextInput::make('msic_code')
+                    //                         ->label('9. Business MSIC Code')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null)
+                    //                         ->helperText('(Note: The value must be in 5 characters) (as per Form C / Annual Return)'),
+                    //                 ]),
+
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     TextInput::make('msic_code_2')
+                    //                         ->label('10. Business MSIC Code 2')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_2 ?? null)
+                    //                         ->helperText('If more than 1 MSIC Code, If don\'t have, please input N/A (5 characters)'),
+
+                    //                     TextInput::make('msic_code_3')
+                    //                         ->label('11. Business MSIC Code 3')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_3 ?? null)
+                    //                         ->helperText('If more than 2 MSIC Code, If don\'t have, please input N/A (5 characters)'),
+
+                    //                     TextInput::make('business_address')
+                    //                         ->label('12. Business Address')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->business_address ?? null),
+                    //                 ]),
+
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     TextInput::make('postcode')
+                    //                         ->label('13. Postcode')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->postcode ?? null),
+
+                    //                     TextInput::make('contact_number')
+                    //                         ->label('14. Contact Number')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->contact_number ?? null)
+                    //                         ->helperText('(Finance/Account Department)'),
+
+                    //                     TextInput::make('email_address')
+                    //                         ->label('15. Email address')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null)
+                    //                         ->helperText('(Note: this email will be receiving e-invoice from IRBM)'),
+                    //                 ]),
+
+                    //             Grid::make(3)
+                    //                 ->schema([
+                    //                     TextInput::make('city')
+                    //                         ->label('16. City')
+                    //                         ->required()
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->city ?? null),
+
+                    //                     Select::make('country')
+                    //                         ->label('17. Country')
+                    //                         ->options([
+                    //                             'MYS' => 'Malaysia (MYS)',
+                    //                         ])
+                    //                         ->default('MYS')
+                    //                         ->required(),
+
+                    //                     Select::make('state')
+                    //                         ->label('18. State')
+                    //                         ->options(function () {
+                    //                             $filePath = storage_path('app/public/json/StateCodes.json');
+
+                    //                             if (file_exists($filePath)) {
+                    //                                 $countriesContent = file_get_contents($filePath);
+                    //                                 $countries = json_decode($countriesContent, true);
+
+                    //                                 return collect($countries)->mapWithKeys(function ($country) {
+                    //                                     return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                    //                                 })->toArray();
+                    //                             }
+
+                    //                             return [];
+                    //                         })
+                    //                         ->default(fn ($record) => $record->eInvoiceDetail->state ?? null)
+                    //                         ->searchable()
+                    //                         ->preload(),
+                    //                 ]),
+                    //         ])
+                    //         ->action(function (Lead $lead, array $data) {
+                    //             $record = $lead->eInvoiceDetail;
+                    //             if ($record) {
+                    //                 // Update the existing record
+                    //                 $record->update($data);
+
+                    //                 Notification::make()
+                    //                     ->title('E-Invoice Details Updated')
+                    //                     ->success()
+                    //                     ->send();
+                    //             } else {
+                    //                 // Create a new record
+                    //                 $lead->eInvoiceDetail()->create($data);
+
+                    //                 Notification::make()
+                    //                     ->title('E-Invoice Details Created')
+                    //                     ->success()
+                    //                     ->send();
+                    //             }
+                    //         }),
+                    //     ])
+                    // ->schema([
+                    //     View::make('components.e-invoice-details')
+                    //     ->extraAttributes(['poll' => true])
+                    // ]),
+                Section::make('Reseller Details')
+                    ->icon('heroicon-o-building-storefront')
+                    ->extraAttributes([
+                        'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                    ])
+                    ->schema([
+                        Grid::make(1)
+                            ->schema([
+                                View::make('components.reseller-details')
+                                    ->extraAttributes(fn ($record) => ['record' => $record]),
+                            ]),
+                    ])
+                    ->headerActions([
+                        Action::make('assign_reseller')
+                            ->label('Assign Reseller')
+                            ->icon('heroicon-o-link')
+                            ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                            ->modalHeading('Assign Reseller to Lead')
+                            ->modalSubmitActionLabel('Assign')
+                            ->form([
+                                Select::make('reseller_id')
+                                    ->label('Reseller')
+                                    ->options(function () {
+                                        return \App\Models\Reseller::pluck('company_name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                            ])
+                            ->action(function (Lead $lead, array $data) {
+                                // Update the lead with reseller information
+                                $lead->updateQuietly([
+                                    'reseller_id' => $data['reseller_id'],
+                                ]);
+
+                                $resellerName = \App\Models\Reseller::find($data['reseller_id'])->company_name ?? 'Unknown Reseller';
+
+                                // Log this action
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Assigned to reseller: ' . $resellerName);
+
+                                Notification::make()
+                                    ->title('Reseller Assigned')
+                                    ->success()
+                                    ->body('This lead has been assigned to ' . $resellerName)
+                                    ->send();
+                            }),
+                    ])
+        ];
+    }
+}
