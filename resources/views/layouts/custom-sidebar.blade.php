@@ -471,6 +471,48 @@
                             </div>
                         </div>
 
+                        <!-- Admin Repair Section -->
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-cpu"></i>
+                                <span>Repair Handover</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <!-- Level 3 dropdown content -->
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Dashboard</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Technician Calendar</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Analysis</span>
+                                </a>
+
+                                {{-- <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Attachment</span>
+                                </a> --}}
+
+                                {{-- <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Training Calendar</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Training Details</span>
+                                </a> --}}
+                            </div>
+                        </div>
+
                         <!-- HRDF Section -->
                         <div class="nested-dropdown">
                             <div class="sidebar-item nested-dropdown-trigger">

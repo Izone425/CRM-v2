@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>TIMETEC REPAIR APPOINTMENT | {{ $content['lead']['company'] }}</title>
+    <title>CANCELLED: TIMETEC REPAIR APPOINTMENT | {{ $content['lead']['company'] }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,18 +89,36 @@
             font-weight: bold;
             color: #e74c3c;
         }
+        .cancelled {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            padding: 10px;
+            background-color: #fcede9;
+            border: 1px dashed #e74c3c;
+            margin-bottom: 20px;
+        }
+        .cancelled-text {
+            text-decoration: line-through;
+            color: #777;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h2>TIMETEC REPAIR APPOINTMENT</h2>
+            <h2>CANCELLED REPAIR APPOINTMENT</h2>
         </div>
 
         <div class="content">
             <p class="greeting">Dear {{ $content['leadOwnerName'] }},</p>
 
-            <p>A repair appointment has been scheduled with the following details:</p>
+            <div class="cancelled">
+                IMPORTANT: The following repair appointment has been cancelled
+            </div>
+
+            <p>The repair appointment with the following details has been <strong>cancelled</strong>:</p>
 
             <table>
                 <tr>
@@ -120,43 +138,24 @@
                     <td>{{ $content['lead']['email'] }}</td>
                 </tr>
                 <tr>
-                    <th>Repair Type</th>
-                    <td><span class="highlight">{{ $content['lead']['repair_type'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Type</th>
-                    <td><span class="highlight">{{ $content['lead']['appointment_type'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Date</th>
-                    <td><span class="highlight">{{ $content['lead']['date'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Time</th>
-                    <td><span class="highlight">{{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</span></td>
+                    <th>Cancelled Appointment</th>
+                    <td>
+                        <span class="cancelled-text">
+                            {{ $content['lead']['repair_type'] }} |
+                            {{ $content['lead']['date'] }},
+                            {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}
+                        </span>
+                    </td>
                 </tr>
                 <tr>
                     <th>Technician</th>
-                    <td><span class="highlight">{{ $content['lead']['technicianName'] }}</span></td>
+                    <td>{{ $content['lead']['technicianName'] }}</td>
                 </tr>
-                @if(isset($content['lead']['leadOwnerMobileNumber']))
-                <tr>
-                    <th>Manager Contact</th>
-                    <td>{{ $content['lead']['leadOwnerMobileNumber'] }}</td>
-                </tr>
-                @endif
             </table>
 
-            @if(isset($content['lead']['remarks']) && !empty($content['lead']['remarks']))
-            <div class="row">
-                <h3>Remarks:</h3>
-                <div class="remark-box">
-                    {{ $content['lead']['remarks'] }}
-                </div>
-            </div>
-            @endif
+            <p>Please update your calendar accordingly. If you had made any arrangements for this appointment, please cancel them as well.</p>
 
-            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact your manager as soon as possible.</p>
+            <p>If you wish to reschedule this appointment, please contact your manager or create a new appointment in the TimeTec CRM system.</p>
 
             <p>Thank you,<br>TimeTec CRM</p>
 

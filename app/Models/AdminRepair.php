@@ -5,15 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AdminRepair extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'company_id',
         'lead_id',
+        'handover_pdf',
         'pic_name',
         'pic_phone',
         'pic_email',
@@ -25,6 +25,8 @@ class AdminRepair extends Model
         'spare_parts',
         'attachments',
         'invoice_date',
+        'quotation_product',
+        'quotation_hrdf',
         'new_attachment_file',
         'invoice_file',
         'sales_order_file',
@@ -35,8 +37,10 @@ class AdminRepair extends Model
         'status',
         'devices_warranty',
         'assigned_to',
+        'submitted_at',
         'created_by',
         'updated_by',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -94,5 +98,10 @@ class AdminRepair extends Model
     public function setPicNameAttribute($value)
     {
         $this->attributes['pic_name'] = strtoupper($value);
+    }
+
+    public function setAddressAttribute($value)
+    {
+        $this->attributes['address'] = $value ? strtoupper($value) : null;
     }
 }

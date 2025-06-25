@@ -180,38 +180,49 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
-
-                TextColumn::make('devices')
-                    ->label('Devices')
+                TextColumn::make('created_by')
+                    ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
-                        if ($record->devices) {
-                            $devices = is_string($record->devices)
-                                ? json_decode($record->devices, true)
-                                : $record->devices;
-
-                            if (is_array($devices)) {
-                                return collect($devices)
-                                    ->map(fn ($device) =>
-                                        "{$device['device_model']} (SN: {$device['device_serial']})")
-                                    ->join('<br>');
-                            }
+                        if (!$state) {
+                            return 'Unknown';
                         }
 
-                        if ($record->device_model) {
-                            return "{$record->device_model} (SN: {$record->device_serial})";
-                        }
-
-                        return '—';
-                    })
-                    ->html()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('device_model', 'like', "%{$search}%")
-                            ->orWhere('device_serial', 'like', "%{$search}%")
-                            ->orWhere('devices', 'like', "%{$search}%");
+                        $user = User::find($state);
+                        return $user ? $user->name : 'Unknown User';
                     }),
+
+                // TextColumn::make('pic_name')
+                //     ->label('PIC Name')
+                //     ->searchable(),
+
+                // TextColumn::make('devices')
+                //     ->label('Devices')
+                //     ->formatStateUsing(function ($state, AdminRepair $record) {
+                //         if ($record->devices) {
+                //             $devices = is_string($record->devices)
+                //                 ? json_decode($record->devices, true)
+                //                 : $record->devices;
+
+                //             if (is_array($devices)) {
+                //                 return collect($devices)
+                //                     ->map(fn ($device) =>
+                //                         "{$device['device_model']} (SN: {$device['device_serial']})")
+                //                     ->join('<br>');
+                //             }
+                //         }
+
+                //         if ($record->device_model) {
+                //             return "{$record->device_model} (SN: {$record->device_serial})";
+                //         }
+
+                //         return '—';
+                //     })
+                //     ->html()
+                //     ->searchable(query: function (Builder $query, string $search): Builder {
+                //         return $query->where('device_model', 'like', "%{$search}%")
+                //             ->orWhere('device_serial', 'like', "%{$search}%")
+                //             ->orWhere('devices', 'like', "%{$search}%");
+                //     }),
 
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket')
@@ -234,7 +245,7 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(' ')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
@@ -249,6 +260,55 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                         ->modalWidth('5xl')  // Increased for better display
                         ->modalHeading('Change Status to Pending Confirmation')
                         ->form([
+                            Section::make('Quotations')
+                            ->schema([
+                                Select::make('product_quotation')
+                                    ->required()
+                                    ->label('Product Quotation')
+                                    ->options(function (AdminRepair $record) {
+                                        $leadId = $record->lead_id;
+                                        return \App\Models\Quotation::where('lead_id', $leadId)
+                                            ->where('quotation_type', 'product')
+                                            ->pluck('quotation_reference_no', 'id')
+                                            ->toArray();
+                                    })
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(function (AdminRepair $record) {
+                                        if (!$record || !$record->product_quotation) {
+                                            return [];
+                                        }
+                                        if (is_string($record->product_quotation)) {
+                                            return json_decode($record->product_quotation, true) ?? [];
+                                        }
+                                        return is_array($record->product_quotation) ? $record->product_quotation : [];
+                                    }),
+
+                                Select::make('hrdf_quotation')
+                                    ->label('HRDF Quotation')
+                                    ->options(function (AdminRepair $record) {
+                                        $leadId = $record->lead_id;
+                                        return \App\Models\Quotation::where('lead_id', $leadId)
+                                            ->where('quotation_type', 'hrdf')
+                                            ->pluck('quotation_reference_no', 'id')
+                                            ->toArray();
+                                    })
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(function (AdminRepair $record) {
+                                        if (!$record || !$record->hrdf_quotation) {
+                                            return [];
+                                        }
+                                        if (is_string($record->hrdf_quotation)) {
+                                            return json_decode($record->hrdf_quotation, true) ?? [];
+                                        }
+                                        return is_array($record->hrdf_quotation) ? $record->hrdf_quotation : [];
+                                    }),
+                            ])
+                            ->columns(2),
+
                             Repeater::make('device_invoices')
                                 ->schema([
                                     Hidden::make('device_model')
@@ -429,6 +489,15 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                                 'status' => 'Pending Confirmation',
                                 'warranty_status' => $overallStatus,
                                 'devices_warranty' => json_encode($deviceWarrantyData),
+                                'quotation_product' => json_encode($data['product_quotation'] ?? []),
+                                'quotation_hrdf' => json_encode($data['hrdf_quotation'] ?? []),
+                            ]);
+
+                            $pdfPath = app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($record);
+
+                            // Store just the relative path instead of full URL
+                            $record->update([
+                                'handover_pdf' => $pdfPath ? $pdfPath : null,
                             ]);
 
                             Notification::make()

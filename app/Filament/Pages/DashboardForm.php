@@ -36,6 +36,7 @@ class DashboardForm extends Page
         $this->dispatch('refresh-softwarehandover-tables');
         $this->dispatch('refresh-hardwarehandover-tables');
         $this->dispatch('refresh-salesperson-tables');
+        $this->dispatch('refresh-adminrepair-tables');
         $this->dispatch('refresh-manager-tables');
 
         // Force Alpine components to reset

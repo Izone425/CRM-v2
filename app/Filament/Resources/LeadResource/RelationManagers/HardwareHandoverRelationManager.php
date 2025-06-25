@@ -155,9 +155,9 @@ class HardwareHandoverRelationManager extends RelationManager
                                 $lead =  $this->getOwnerRecord();
                                 return [
                                     [
-                                        'pic_name' => $lead->name,
-                                        'pic_phone' => $lead->phone,
-                                        'pic_email' => $lead->email,
+                                        'pic_name' => $lead->companyDetail->name ?? $lead->name,
+                                        'pic_phone' => $lead->companyDetail->contact_no ?? $lead->phone,
+                                        'pic_email' => $lead->companyDetail->email ?? $lead->email,
                                     ]
                                 ];
                             } elseif ($record && $record->contact_detail) {
