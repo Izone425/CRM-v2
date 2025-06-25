@@ -751,7 +751,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
                 })
                 ->slideOver()
-                ->modalSubmitActionLabel('Save')
+                ->modalSubmitActionLabel('Submit')
                 ->modalHeading('Add Hardware Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
                 ->form($this->defaultForm())

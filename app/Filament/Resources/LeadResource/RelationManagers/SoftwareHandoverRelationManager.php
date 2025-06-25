@@ -574,7 +574,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->slideOver()
                 ->modalHeading('Software Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
-                ->modalSubmitActionLabel('Save')
+                ->modalSubmitActionLabel('Submit')
                 ->form($this->defaultForm())
                 ->action(function (array $data): void {
                     $data['created_by'] = auth()->id();
