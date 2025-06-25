@@ -180,38 +180,49 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
-
-                TextColumn::make('devices')
-                    ->label('Devices')
+                TextColumn::make('created_by')
+                    ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
-                        if ($record->devices) {
-                            $devices = is_string($record->devices)
-                                ? json_decode($record->devices, true)
-                                : $record->devices;
-
-                            if (is_array($devices)) {
-                                return collect($devices)
-                                    ->map(fn ($device) =>
-                                        "{$device['device_model']} (SN: {$device['device_serial']})")
-                                    ->join('<br>');
-                            }
+                        if (!$state) {
+                            return 'Unknown';
                         }
 
-                        if ($record->device_model) {
-                            return "{$record->device_model} (SN: {$record->device_serial})";
-                        }
-
-                        return '—';
-                    })
-                    ->html()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('device_model', 'like', "%{$search}%")
-                            ->orWhere('device_serial', 'like', "%{$search}%")
-                            ->orWhere('devices', 'like', "%{$search}%");
+                        $user = User::find($state);
+                        return $user ? $user->name : 'Unknown User';
                     }),
+
+                // TextColumn::make('pic_name')
+                //     ->label('PIC Name')
+                //     ->searchable(),
+
+                // TextColumn::make('devices')
+                //     ->label('Devices')
+                //     ->formatStateUsing(function ($state, AdminRepair $record) {
+                //         if ($record->devices) {
+                //             $devices = is_string($record->devices)
+                //                 ? json_decode($record->devices, true)
+                //                 : $record->devices;
+
+                //             if (is_array($devices)) {
+                //                 return collect($devices)
+                //                     ->map(fn ($device) =>
+                //                         "{$device['device_model']} (SN: {$device['device_serial']})")
+                //                     ->join('<br>');
+                //             }
+                //         }
+
+                //         if ($record->device_model) {
+                //             return "{$record->device_model} (SN: {$record->device_serial})";
+                //         }
+
+                //         return '—';
+                //     })
+                //     ->html()
+                //     ->searchable(query: function (Builder $query, string $search): Builder {
+                //         return $query->where('device_model', 'like', "%{$search}%")
+                //             ->orWhere('device_serial', 'like', "%{$search}%")
+                //             ->orWhere('devices', 'like', "%{$search}%");
+                //     }),
 
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket')
@@ -234,7 +245,7 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(' ')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

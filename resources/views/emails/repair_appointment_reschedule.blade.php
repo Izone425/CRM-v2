@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>TIMETEC REPAIR APPOINTMENT | {{ $content['lead']['company'] }}</title>
+    <title>RESCHEDULED: TIMETEC REPAIR APPOINTMENT | {{ $content['lead']['company'] }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             padding: 15px;
             text-align: center;
             border-radius: 5px 5px 0 0;
-            border-bottom: 5px solid #e74c3c;
+            border-bottom: 5px solid #f39c12;
         }
         .content {
             padding: 20px;
@@ -52,23 +52,6 @@
             background-color: #f2f2f2;
             width: 40%;
         }
-        .button-container {
-            text-align: center;
-            margin-top: 25px;
-            margin-bottom: 10px;
-        }
-        .button {
-            background-color: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        .button:hover {
-            background-color: #c0392b;
-        }
         .greeting {
             font-size: 16px;
             margin-bottom: 20px;
@@ -82,25 +65,54 @@
         .remark-box {
             margin-bottom: 10px;
             padding: 10px;
-            border-left: 3px solid #e74c3c;
+            border-left: 3px solid #f39c12;
             background-color: #f9f9f9;
         }
         .highlight {
             font-weight: bold;
+            color: #f39c12;
+        }
+        .change-box {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 3px solid #f39c12;
+            background-color: #fef5e7;
+        }
+        .old-schedule {
+            text-decoration: line-through;
             color: #e74c3c;
+        }
+        .new-schedule {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .notice {
+            background-color: #f8d7da;
+            border-left: 3px solid #dc3545;
+            padding: 10px;
+            margin: 15px 0;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h2>TIMETEC REPAIR APPOINTMENT</h2>
+            <h2>APPOINTMENT RESCHEDULED</h2>
         </div>
 
         <div class="content">
             <p class="greeting">Dear {{ $content['leadOwnerName'] }},</p>
 
-            <p>A repair appointment has been scheduled with the following details:</p>
+            <div class="notice">
+                <strong>NOTICE:</strong> The repair appointment for {{ $content['lead']['company'] }} has been rescheduled.
+            </div>
+
+            <div class="change-box">
+                <h3>Schedule Change:</h3>
+                <p><strong>Previous Schedule:</strong> <span class="old-schedule">{{ $content['lead']['oldDate'] }}, {{ $content['lead']['oldStartTime'] }} - {{ $content['lead']['oldEndTime'] }}</span></p>
+                <p><strong>New Schedule:</strong> <span class="new-schedule">{{ $content['lead']['date'] }}, {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</span></p>
+            </div>
 
             <table>
                 <tr>
@@ -120,43 +132,21 @@
                     <td>{{ $content['lead']['email'] }}</td>
                 </tr>
                 <tr>
-                    <th>Repair Type</th>
-                    <td><span class="highlight">{{ $content['lead']['repair_type'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Type</th>
-                    <td><span class="highlight">{{ $content['lead']['appointment_type'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Date</th>
-                    <td><span class="highlight">{{ $content['lead']['date'] }}</span></td>
-                </tr>
-                <tr>
-                    <th>Appointment Time</th>
-                    <td><span class="highlight">{{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</span></td>
-                </tr>
-                <tr>
                     <th>Technician</th>
                     <td><span class="highlight">{{ $content['lead']['technicianName'] }}</span></td>
                 </tr>
-                @if(isset($content['lead']['leadOwnerMobileNumber']))
-                <tr>
-                    <th>Manager Contact</th>
-                    <td>{{ $content['lead']['leadOwnerMobileNumber'] }}</td>
-                </tr>
-                @endif
             </table>
 
-            @if(isset($content['lead']['remarks']) && !empty($content['lead']['remarks']))
+            @if(isset($content['lead']['rescheduleReason']) && !empty($content['lead']['rescheduleReason']))
             <div class="row">
-                <h3>Remarks:</h3>
+                <h3>Reason for Rescheduling:</h3>
                 <div class="remark-box">
-                    {{ $content['lead']['remarks'] }}
+                    {{ $content['lead']['rescheduleReason'] }}
                 </div>
             </div>
             @endif
 
-            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact your manager as soon as possible.</p>
+            <p>Please update your calendar accordingly. If you have any questions or concerns about this change, please contact your manager as soon as possible.</p>
 
             <p>Thank you,<br>TimeTec CRM</p>
 

@@ -528,6 +528,9 @@ class AdminRepairDashboard extends Page implements HasTable
             // Get company name
             $companyName = $repair->companyDetail->company_name ?? 'Unknown Company';
 
+            $pdfPath = $repair->handover_pdf ?? app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($repair);
+            $pdfUrl = $pdfPath ? url('storage/' . $pdfPath) : null;
+
             // Create email content structure
             $emailContent = [
                 'repair_id' => $repairId,
@@ -545,6 +548,9 @@ class AdminRepairDashboard extends Page implements HasTable
                     'model' => $repair->device_model ?? 'N/A',
                     'serial' => $repair->device_serial ?? 'N/A',
                 ],
+                'status' => $repair->status ?? 'New',
+                'pdf_url' => $pdfUrl,
+                'created_by' => User::find($repair->created_by)->name ?? 'Unknown',
                 'submitted_at' => $repair->submitted_at ? $repair->submitted_at->format('d M Y, h:i A') : now()->format('d M Y, h:i A'),
                 'remarks' => []
             ];
@@ -614,7 +620,7 @@ class AdminRepairDashboard extends Page implements HasTable
                 function ($message) use ($recipients, $authUser, $repairId, $companyName) {
                     $message->from($authUser->email, $authUser->name)
                         ->to($recipients)
-                        ->subject("NEW REPAIR TICKET {$repairId} | {$companyName}");
+                        ->subject("REPAIR HANDOVER ID {$repairId} | {$companyName}");
                 }
             );
 
@@ -685,15 +691,14 @@ class AdminRepairDashboard extends Page implements HasTable
 
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
-                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
+                    ->label('PIC Name'),
 
                 TextColumn::make('devices')
                     ->label('Devices')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->formatStateUsing(function ($state, AdminRepair $record) {
                         if ($record->devices) {
                             $devices = is_string($record->devices)
@@ -714,16 +719,10 @@ class AdminRepairDashboard extends Page implements HasTable
 
                         return '—';
                     })
-                    ->html()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('device_model', 'like', "%{$search}%")
-                            ->orWhere('device_serial', 'like', "%{$search}%")
-                            ->orWhere('devices', 'like', "%{$search}%");
-                    }),
+                    ->html(),
 
                 TextColumn::make('zoho_ticket')
-                    ->label('Zoho Ticket')
-                    ->searchable(),
+                    ->label('Zoho Ticket'),
 
                 TextColumn::make('creator.name')
                     ->label('Submitted By')
@@ -734,14 +733,6 @@ class AdminRepairDashboard extends Page implements HasTable
                             return $user ? $user->name : "User #{$record->created_by}";
                         }
                         return $state ?? "Unknown";
-                    })
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas('creator', fn ($q) =>
-                            $q->where('name', 'like', "%{$search}%")
-                        )
-                        ->orWhereHas('creator', fn ($q) =>
-                            $q->where('email', 'like', "%{$search}%")
-                        );
                     }),
 
                 TextColumn::make('status')
@@ -934,7 +925,7 @@ class AdminRepairDashboard extends Page implements HasTable
                                     function ($message) use ($recipients, $authUser, $repairId, $companyName) {
                                         $message->from($authUser->email, $authUser->name)
                                             ->to($recipients)
-                                            ->subject("NEW REPAIR TICKET {$repairId} | {$companyName}");
+                                            ->subject("REPAIR HANDOVER ID {$repairId} | {$companyName}");
                                     }
                                 );
 
@@ -959,7 +950,7 @@ class AdminRepairDashboard extends Page implements HasTable
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(' ')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

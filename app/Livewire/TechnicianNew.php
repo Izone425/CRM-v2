@@ -176,38 +176,49 @@ class TechnicianNew extends Component implements HasForms, HasTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
-
-                TextColumn::make('devices')
-                    ->label('Devices')
+                TextColumn::make('created_by')
+                    ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
-                        if ($record->devices) {
-                            $devices = is_string($record->devices)
-                                ? json_decode($record->devices, true)
-                                : $record->devices;
-
-                            if (is_array($devices)) {
-                                return collect($devices)
-                                    ->map(fn ($device) =>
-                                        "{$device['device_model']} (SN: {$device['device_serial']})")
-                                    ->join('<br>');
-                            }
+                        if (!$state) {
+                            return 'Unknown';
                         }
 
-                        if ($record->device_model) {
-                            return "{$record->device_model} (SN: {$record->device_serial})";
-                        }
-
-                        return '—';
-                    })
-                    ->html()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('device_model', 'like', "%{$search}%")
-                            ->orWhere('device_serial', 'like', "%{$search}%")
-                            ->orWhere('devices', 'like', "%{$search}%");
+                        $user = User::find($state);
+                        return $user ? $user->name : 'Unknown User';
                     }),
+
+                // TextColumn::make('pic_name')
+                //     ->label('PIC Name')
+                //     ->searchable(),
+
+                // TextColumn::make('devices')
+                //     ->label('Devices')
+                //     ->formatStateUsing(function ($state, AdminRepair $record) {
+                //         if ($record->devices) {
+                //             $devices = is_string($record->devices)
+                //                 ? json_decode($record->devices, true)
+                //                 : $record->devices;
+
+                //             if (is_array($devices)) {
+                //                 return collect($devices)
+                //                     ->map(fn ($device) =>
+                //                         "{$device['device_model']} (SN: {$device['device_serial']})")
+                //                     ->join('<br>');
+                //             }
+                //         }
+
+                //         if ($record->device_model) {
+                //             return "{$record->device_model} (SN: {$record->device_serial})";
+                //         }
+
+                //         return '—';
+                //     })
+                //     ->html()
+                //     ->searchable(query: function (Builder $query, string $search): Builder {
+                //         return $query->where('device_model', 'like', "%{$search}%")
+                //             ->orWhere('device_serial', 'like', "%{$search}%")
+                //             ->orWhere('devices', 'like', "%{$search}%");
+                //     }),
 
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket')
@@ -230,7 +241,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(fn (AdminRepair $record) => "Repair Handover Form " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(' ')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
@@ -241,279 +252,300 @@ class TechnicianNew extends Component implements HasForms, HasTable
 
                     Action::make('accept_repair')
                         ->label('Accept Repair')
-                        ->modalWidth('3xl')
+                        ->modalWidth('5xl')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn (AdminRepair $record): bool => $record->status === 'New' && auth()->user()->role_id !== 1)
                         ->form([
-                            Section::make('Repair Acceptance')
-                                ->schema([
-                                    Repeater::make('repair_remarks')
-                                    ->hiddenLabel()
+                            Section::make('Repair Assessment')
+                            ->schema([
+                                Repeater::make('device_repairs')
+                                    ->label('Device Repairs')
                                     ->schema([
                                         Grid::make(2)
-                                        ->schema([
-                                            Textarea::make('repair_remark')
-                                                ->hiddenLabel()
-                                                ->required()
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->placeholder('Enter repair assessment notes')
-                                                ->rows(3),
+                                            ->schema([
+                                                TextInput::make('device_model')
+                                                    ->label('Device Model')
+                                                    ->columnSpan(1)
+                                                    ->disabled() // Make the field read-only
+                                                    ->required(),
 
-                                            FileUpload::make('attachments')
-                                                ->hiddenLabel()
-                                                ->disk('public')
-                                                ->directory('repair-attachments/assessments')
-                                                ->visibility('public')
-                                                ->multiple()
-                                                ->maxFiles(5)
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                                ->openable()
-                                                ->downloadable()
-                                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, AdminRepair $record): string {
-                                                    $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                                                    $extension = $file->getClientOriginalExtension();
-                                                    $timestamp = now()->format('YmdHis');
-                                                    $random = rand(1000, 9999);
+                                                TextInput::make('device_serial')
+                                                    ->label('Serial Number')
+                                                    ->columnSpan(1)
+                                                    ->disabled() // Make the field read-only
+                                            ]),
 
-                                                    return "{$repairId}-assessment-{$timestamp}-{$random}.{$extension}";
-                                                }),
-                                        ]),
+                                        Select::make('spare_parts')
+                                            ->label('Spare Parts Required')
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->multiple()
+                                            ->preload()
+                                            ->optionsLimit(50)
+                                            ->loadingMessage('Loading spare parts...')
+                                            ->noSearchResultsMessage('No spare parts found')
+                                            ->options(function (callable $get) {
+                                                // Get the selected device model for this repeater item
+                                                $deviceModel = $get('device_model');
+
+                                                // If no model is selected, return empty array
+                                                if (empty($deviceModel)) {
+                                                    return [];
+                                                }
+
+                                                // Query spare parts for this specific model
+                                                $spareParts = \App\Models\SparePart::where('is_active', true)
+                                                    ->where('device_model', $deviceModel)
+                                                    ->orderBy('name')
+                                                    ->limit(100)
+                                                    ->get();
+
+                                                // Format the options
+                                                return $spareParts->mapWithKeys(function ($part) {
+                                                    return [$part->id => static::getSparePartOptionHtml($part)];
+                                                })->toArray();
+                                            })
+                                            ->getSearchResultsUsing(function (string $search, callable $get) {
+                                                // Get the selected device model for this item
+                                                $deviceModel = $get('device_model');
+
+                                                // If no model is selected, return empty array
+                                                if (empty($deviceModel)) {
+                                                    return [];
+                                                }
+
+                                                // Search for parts matching this model and search term
+                                                $spareParts = \App\Models\SparePart::where('is_active', true)
+                                                    ->where('device_model', $deviceModel)
+                                                    ->where(function ($query) use ($search) {
+                                                        $query->where('name', 'like', "%{$search}%")
+                                                            ->orWhere('autocount_code', 'like', "%{$search}%");
+                                                    })
+                                                    ->orderBy('name')
+                                                    ->limit(50)
+                                                    ->get();
+
+                                                // Format the results
+                                                return $spareParts->mapWithKeys(function ($part) {
+                                                    return [$part->id => static::getSparePartOptionHtml($part)];
+                                                })->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                // Get clean label for selected value
+                                                $part = \App\Models\SparePart::find($value);
+                                                if (!$part) return null;
+
+                                                // Return name and device model
+                                                return "{$part->name} ({$part->device_model})";
+                                            })
+                                            ->disabled(fn (callable $get) => empty($get('device_model')))
+                                            ->optionsLimit(100),
+
+                                        // Repeater for repair remarks - similar to your example
+                                        Repeater::make('repair_remarks')
+                                            ->label('Repair Remarks')
+                                            ->schema([
+                                                Grid::make(2)
+                                                    ->schema([
+                                                        Textarea::make('remark')
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                            ->hiddenLabel(true)
+                                                            ->label(function (?string $state, $livewire) {
+                                                                // Get the current array key from the state path
+                                                                $statePath = $livewire->getFormStatePath();
+                                                                $matches = [];
+                                                                if (preg_match('/repair_remarks\.(\d+)\./', $statePath, $matches)) {
+                                                                    $index = (int) $matches[1];
+                                                                    return 'Remark ' . ($index + 1);
+                                                                }
+
+                                                                return 'Repair Assessment';
+                                                            })
+                                                            ->placeholder('Enter repair assessment here')
+                                                            ->autosize()
+                                                            ->rows(3)
+                                                            ->required(),
+
+                                                        FileUpload::make('attachments')
+                                                            ->hiddenLabel(true)
+                                                            ->disk('public')
+                                                            ->directory('repair-attachments/assessments')
+                                                            ->visibility('public')
+                                                            ->multiple()
+                                                            ->maxFiles(3)
+                                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                                            ->openable()
+                                                            ->downloadable()
+                                                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, AdminRepair $record): string {
+                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                $extension = $file->getClientOriginalExtension();
+                                                                $timestamp = now()->format('YmdHis');
+                                                                $random = rand(1000, 9999);
+
+                                                                return "{$repairId}-assessment-{$timestamp}-{$random}.{$extension}";
+                                                            }),
+                                                    ])
+                                            ])
+                                            ->itemLabel(function (array $state, callable $get) {
+                                                static $counter = 1;
+                                                return 'Remark ' . $counter++;
+                                            })
+                                            // ->addActionLabel('Add Remark')
+                                            ->addable(false)
+                                            ->maxItems(5)
+                                            ->defaultItems(1)
+                                            ->default([['remark' => '', 'attachments' => []]]),
                                     ])
-                                    ->defaultItems(1)
-                                    ->minItems(1)
-                                    ->maxItems(5)
                                     ->itemLabel(function (array $state): ?string {
-                                        return $state['repair_remark'] ?? 'New Repair Remark';
+                                        $label = $state['device_model'] ?? 'Device';
+                                        if (!empty($state['device_serial'])) {
+                                            $label .= ' (SN: ' . $state['device_serial'] . ')';
+                                        }
+                                        return $label;
                                     })
-                                    ->addActionLabel('Add Another Remark')
-                                    ->reorderableWithDragAndDrop(false)
-                                    ->grid(1),
-                                ]),
+                                    ->default(function (AdminRepair $record) {
+                                        // Create a default item for each device in the repair record
+                                        $items = [];
 
-                            Section::make('Device Details')
-                                ->schema([
-                                    Select::make('model_id')
-                                    ->label('Device Model')
-                                    ->multiple()
-                                    ->options(function (AdminRepair $record) {
-                                        // Initialize an empty options array
-                                        $options = [];
-
-                                        // Check if we have devices in JSON format
                                         if ($record->devices) {
-                                            // Parse the JSON devices data
                                             $devices = is_string($record->devices)
                                                 ? json_decode($record->devices, true)
                                                 : $record->devices;
 
-                                            // If devices is an array, extract unique device models
                                             if (is_array($devices)) {
                                                 foreach ($devices as $device) {
                                                     if (!empty($device['device_model'])) {
-                                                        $modelName = $device['device_model'];
-                                                        $options[$modelName] = $modelName;
+                                                        $items[] = [
+                                                            'device_model' => $device['device_model'],
+                                                            'device_serial' => $device['device_serial'] ?? 'N/A', // Include serial number
+                                                            'repair_remarks' => [
+                                                                [
+                                                                    'remark' => '',
+                                                                    'attachments' => []
+                                                                ]
+                                                            ],
+                                                            'spare_parts' => []
+                                                        ];
                                                     }
                                                 }
                                             }
                                         }
-                                        // Handle legacy data format where device_model is stored directly on the record
+                                        // Handle legacy format
                                         elseif ($record->device_model) {
-                                            $options[$record->device_model] = $record->device_model;
-                                        }
-
-                                        // If no options found, provide default options
-                                        if (empty($options)) {
-                                            $options = [
-                                                'TC10' => 'TC10',
-                                                'TC20' => 'TC20',
-                                                'FACE ID 5' => 'FACE ID 5',
-                                                'FACE ID 6' => 'FACE ID 6',
-                                                'TIME BEACON' => 'TIME BEACON',
-                                                'NFC TAG' => 'NFC TAG',
+                                            $items[] = [
+                                                'device_model' => $record->device_model,
+                                                'device_serial' => $record->device_serial ?? 'N/A',
+                                                'repair_remarks' => [
+                                                    [
+                                                        'remark' => '',
+                                                        'attachments' => []
+                                                    ]
+                                                ],
+                                                'spare_parts' => []
                                             ];
                                         }
 
-                                        return $options;
+                                        // Return the items array or create a default empty structure if it's empty
+                                        return !empty($items) ? $items : [];
                                     })
-                                    ->searchable()
-                                    ->required()
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set) {
-                                        // Clear spare parts selection when model changes
-                                        $set('spare_parts', []);
-                                    })
-                                    ->placeholder('Select device model')
-                                    // Pre-select the device models from the record
-                                    ->default(function (AdminRepair $record) {
-                                        // Initialize an empty array for default selections
-                                        $defaultModels = [];
-
-                                        // Check if we have devices in JSON format
-                                        if ($record->devices) {
-                                            // Parse the JSON devices data
-                                            $devices = is_string($record->devices)
-                                                ? json_decode($record->devices, true)
-                                                : $record->devices;
-
-                                            // If devices is an array, extract unique device models
-                                            if (is_array($devices)) {
-                                                foreach ($devices as $device) {
-                                                    if (!empty($device['device_model'])) {
-                                                        $defaultModels[] = $device['device_model'];
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        // Handle legacy data format
-                                        elseif ($record->device_model) {
-                                            $defaultModels[] = $record->device_model;
-                                        }
-
-                                        return $defaultModels;
-                                    }),
-
-                                    Select::make('spare_parts')
-                                    ->label('Spare Parts Required')
-                                    ->allowHtml()
-                                    ->searchable()
-                                    ->multiple()
-                                    ->preload()
-                                    ->optionsLimit(50)
-                                    ->placeholder('Select required spare parts')
-                                    ->helperText('Select all spare parts that may be needed for this repair')
-                                    ->loadingMessage('Loading spare parts...')
-                                    ->noSearchResultsMessage('No spare parts found')
-                                    ->options(function (callable $get) {
-                                        // Get the selected device model(s)
-                                        $selectedModels = $get('model_id');
-
-                                        // If no model is selected, return empty array
-                                        if (empty($selectedModels)) {
-                                            return [];
-                                        }
-
-                                        // Create a query for spare parts matching ANY of the selected models
-                                        $query = \App\Models\SparePart::where('is_active', true);
-
-                                        // If we have multiple models, we need to check each one
-                                        if (is_array($selectedModels)) {
-                                            $query->where(function ($subQuery) use ($selectedModels) {
-                                                foreach ($selectedModels as $index => $model) {
-                                                    if ($index === 0) {
-                                                        $subQuery->where('device_model', $model);
-                                                    } else {
-                                                        $subQuery->orWhere('device_model', $model);
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            // Single model
-                                            $query->where('device_model', $selectedModels);
-                                        }
-
-                                        // Get the spare parts
-                                        $spareParts = $query->orderBy('name')->limit(100)->get();
-
-                                        // Format the options
-                                        return $spareParts->mapWithKeys(function ($part) {
-                                            return [$part->id => static::getSparePartOptionHtml($part)];
-                                        })->toArray();
-                                    })
-                                    ->getSearchResultsUsing(function (string $search, callable $get) {
-                                        // Get the selected device model(s)
-                                        $selectedModels = $get('model_id');
-
-                                        // If no model is selected, return empty array
-                                        if (empty($selectedModels)) {
-                                            return [];
-                                        }
-
-                                        // Create a query for spare parts matching ANY of the selected models
-                                        $query = \App\Models\SparePart::where('is_active', true);
-
-                                        // If we have multiple models, we need to check each one
-                                        if (is_array($selectedModels)) {
-                                            $query->where(function ($subQuery) use ($selectedModels) {
-                                                foreach ($selectedModels as $index => $model) {
-                                                    if ($index === 0) {
-                                                        $subQuery->where('device_model', $model);
-                                                    } else {
-                                                        $subQuery->orWhere('device_model', $model);
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            // Single model
-                                            $query->where('device_model', $selectedModels);
-                                        }
-
-                                        // Add search filter
-                                        $query->where(function ($subQuery) use ($search) {
-                                            $subQuery->where('name', 'like', "%{$search}%")
-                                                ->orWhere('device_model', 'like', "%{$search}%")
-                                                ->orWhere('autocount_code', 'like', "%{$search}%");
-                                        });
-
-                                        // Get the spare parts
-                                        $spareParts = $query->orderBy('name')->limit(50)->get();
-
-                                        // Format the results
-                                        return $spareParts->mapWithKeys(function ($part) {
-                                            return [$part->id => static::getSparePartOptionHtml($part)];
-                                        })->toArray();
-                                    })
-                                    ->getOptionLabelUsing(function ($value) {
-                                        // Get clean label for selected value
-                                        $part = \App\Models\SparePart::find($value);
-                                        if (!$part) return null;
-
-                                        // Return name and device model
-                                        return "{$part->name} ({$part->device_model})";
-                                    })
-                                    ->disabled(fn (callable $get) => empty($get('model_id')))
-                                    // Group spare parts by device model when displaying
-                                    ->optionsLimit(100)
-                                ]),
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->columns(1)
+                            ]),
                         ])
                         ->action(function (AdminRepair $record, array $data): void {
-                            // Update repair record with status and spare parts
+                            // Update repair record with status
                             $record->update([
                                 'status' => 'Accepted',
-                                'spare_parts' => !empty($data['spare_parts']) ? json_encode($data['spare_parts']) : null,
                                 'updated_by' => auth()->id(),
                             ]);
 
-                            // Process repair remarks from the repeater
-                            $currentRemarks = [];
+                            // Process the device repair assessments
+                            $updatedRemarks = [];
+                            $sparePartsNeeded = [];
 
-                            // If there are existing repair remarks, retrieve them
-                            if ($record->repair_remark) {
-                                $currentRemarks = is_string($record->repair_remark)
-                                    ? json_decode($record->repair_remark, true)
-                                    : $record->repair_remark;
-
-                                if (!is_array($currentRemarks)) {
-                                    $currentRemarks = [];
+                            // Get the original devices from the record for reference
+                            $originalDevices = [];
+                            if ($record->devices) {
+                                $devices = is_string($record->devices) ? json_decode($record->devices, true) : $record->devices;
+                                if (is_array($devices)) {
+                                    $originalDevices = $devices;
                                 }
+                            } elseif ($record->device_model) {
+                                $originalDevices[] = [
+                                    'device_model' => $record->device_model,
+                                    'device_serial' => $record->device_serial ?? 'N/A'
+                                ];
                             }
 
-                            // Process each remark from the repeater
-                            if (!empty($data['repair_remarks'])) {
-                                foreach ($data['repair_remarks'] as $remarkData) {
-                                    // Add new remark with acceptance details
-                                    $currentRemarks[] = [
-                                        'remark' => $remarkData['repair_remark'],
-                                        'attachments' => !empty($remarkData['attachments']) ? json_encode($remarkData['attachments']) : json_encode([]),
+                            // Process each device repair
+                            if (!empty($data['device_repairs']) && is_array($data['device_repairs'])) {
+                                foreach ($data['device_repairs'] as $index => $deviceRepair) {
+                                    // Get the corresponding original device (matched by index)
+                                    $originalDevice = $originalDevices[$index] ?? null;
+
+                                    // If we don't have a corresponding device, skip this repair
+                                    if (!$originalDevice || empty($originalDevice['device_model'])) {
+                                        continue;
+                                    }
+
+                                    $deviceModel = $originalDevice['device_model'];
+                                    $deviceSerial = $originalDevice['device_serial'] ?? 'Unknown';
+                                    $spareParts = [];
+                                    $deviceRemarks = [];
+
+                                    // Process spare parts for this device
+                                    if (!empty($deviceRepair['spare_parts']) && is_array($deviceRepair['spare_parts'])) {
+                                        foreach ($deviceRepair['spare_parts'] as $partId) {
+                                            $part = \App\Models\SparePart::find($partId);
+                                            if ($part) {
+                                                // Add part details to the spare parts array for this device
+                                                $spareParts[] = [
+                                                    'part_id' => $partId,
+                                                    'name' => $part->name,
+                                                    'code' => $part->autocount_code ?? '',
+                                                ];
+
+                                                // Also maintain the original structure for backwards compatibility
+                                                $sparePartsNeeded[] = [
+                                                    'part_id' => $partId,
+                                                    'device_model' => $deviceModel
+                                                ];
+                                            }
+                                        }
+                                    }
+
+                                    // Process all remarks for this device
+                                    if (!empty($deviceRepair['repair_remarks']) && is_array($deviceRepair['repair_remarks'])) {
+                                        foreach ($deviceRepair['repair_remarks'] as $remarkItem) {
+                                            if (isset($remarkItem['remark']) && !empty($remarkItem['remark'])) {
+                                                $deviceRemarks[] = [
+                                                    'remark' => Str::upper($remarkItem['remark']),
+                                                    'attachments' => isset($remarkItem['attachments']) && !empty($remarkItem['attachments'])
+                                                        ? $remarkItem['attachments']
+                                                        : [],
+                                                ];
+                                            }
+                                        }
+                                    }
+
+                                    // Add remark for this device with all remarks and spare parts
+                                    $updatedRemarks[] = [
+                                        'device_model' => $deviceModel,
+                                        'device_serial' => $deviceSerial,
+                                        'remarks' => $deviceRemarks,
+                                        'spare_parts' => $spareParts,
                                     ];
                                 }
                             }
 
-                            // Update the record with new repair remarks
+                            // Update the repair record with the structured remarks and spare parts
                             $record->update([
-                                'repair_remark' => json_encode($currentRemarks),
+                                'repair_remark' => json_encode($updatedRemarks),
+                                'spare_parts' => json_encode($sparePartsNeeded) // Keep this for backwards compatibility
                             ]);
 
                             // Send email notification
@@ -524,68 +556,89 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                 // Get company name
                                 $companyName = $record->companyDetail->company_name ?? 'Unknown Company';
 
+                                $repair = $record;
+
                                 // Get technician name
                                 $technicianName = auth()->user()->name ?? 'Unknown Technician';
 
-                                // Collect all remarks for the email
-                                $allRemarks = [];
-                                if (!empty($data['repair_remarks'])) {
-                                    foreach ($data['repair_remarks'] as $index => $remarkData) {
-                                        $remarkText = $remarkData['repair_remark'] ?? 'No details provided';
-                                        $remarkNumber = $index + 1;
-                                        $allRemarks[] = "Remark #{$remarkNumber}: {$remarkText}";
-                                    }
+                                $pdfPath = app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($repair);
+                                $pdfUrl = $pdfPath ? url('storage/' . $pdfPath) : null;
+
+                                // Get submitted by info (from the created_by field)
+                                $submittedBy = null;
+                                if ($record->created_by) {
+                                    $creator = \App\Models\User::find($record->created_by);
+                                    $submittedBy = $creator ? $creator->name : 'System User';
+                                } else {
+                                    $submittedBy = 'System User';
                                 }
 
-                                // Format remarks as a string for the email
-                                $formattedRemarks = !empty($allRemarks)
-                                    ? implode("\n\n", $allRemarks)
-                                    : 'Repair accepted';
-
-                                // Prepare email data
+                                // Email data structure
                                 $emailData = [
                                     'repair_id' => $repairId,
                                     'company_name' => $companyName,
                                     'technician' => $technicianName,
                                     'status' => 'Accepted',
-                                    'remarks' => $formattedRemarks,
-                                    'remarks_array' => $allRemarks,
-                                    'repair_remarks' => $currentRemarks, // Add the full structured remarks
                                     'accepted_at' => now()->format('d M Y, h:i A'),
-                                    'model_id' => $data['model_id'] ?? 'Not specified',
-                                    'spare_parts' => [], // Will populate below
+                                    'submitted_by' => $submittedBy,
+                                    'submitted_at' => $record->created_at ? $record->created_at->format('d M Y, h:i A') : now()->format('d M Y, h:i A'),
+                                    'device_repairs' => [],
+                                    'pdf_url' => $pdfUrl,
                                 ];
 
-                                // Add spare parts information if available
-                                if (!empty($data['spare_parts'])) {
-                                    $spareParts = [];
-                                    foreach ($data['spare_parts'] as $partId) {
-                                        $part = \App\Models\SparePart::find($partId);
-                                        if ($part) {
-                                            $imageUrl = null;
+                                // Process device repairs for email
+                                foreach ($updatedRemarks as $deviceRepair) {
+                                    $deviceModel = $deviceRepair['device_model'];
 
-                                            // Get image URL if available
-                                            if ($part->picture_url) {
-                                                $imageUrl = $part->picture_url;
-
-                                                // Make sure it's a full URL
-                                                if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
-                                                    if (str_starts_with($imageUrl, 'storage/')) {
-                                                        $imageUrl = url($imageUrl);
-                                                    } else {
-                                                        $imageUrl = url('storage/' . $imageUrl);
-                                                    }
-                                                }
-                                            }
-
-                                            $spareParts[] = [
-                                                'name' => $part->name,
-                                                'model' => $part->device_model,
-                                                'image_url' => $imageUrl,
-                                            ];
+                                    // Combine all remarks into one text for email
+                                    $remarkText = '';
+                                    if (!empty($deviceRepair['remarks'])) {
+                                        foreach ($deviceRepair['remarks'] as $index => $remark) {
+                                            $remarkText .= ($index + 1) . '. ' . $remark['remark'] . "\n\n";
                                         }
                                     }
-                                    $emailData['spare_parts'] = $spareParts;
+
+                                    if (empty($remarkText)) {
+                                        $remarkText = 'No assessment provided';
+                                    }
+
+                                    // Get spare parts details
+                                    $spareParts = [];
+                                    if (!empty($deviceRepair['spare_parts'])) {
+                                        foreach ($deviceRepair['spare_parts'] as $sparePartData) {
+                                            if (isset($sparePartData['part_id'])) {
+                                                $part = \App\Models\SparePart::find($sparePartData['part_id']);
+                                                if ($part) {
+                                                    // Format image URL if available
+                                                    $imageUrl = null;
+                                                    if ($part->picture_url) {
+                                                        $imageUrl = $part->picture_url;
+                                                        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                                                            if (str_starts_with($imageUrl, 'storage/')) {
+                                                                $imageUrl = url($imageUrl);
+                                                            } else {
+                                                                $imageUrl = url('storage/' . $imageUrl);
+                                                            }
+                                                        }
+                                                    }
+
+                                                    $spareParts[] = [
+                                                        'name' => $part->name,
+                                                        'model' => $part->device_model,
+                                                        'image_url' => $imageUrl,
+                                                    ];
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Add this device repair to the email data
+                                    $emailData['device_repairs'][] = [
+                                        'device_model' => $deviceModel,
+                                        'device_serial' => $deviceRepair['device_serial'] ?? 'N/A',
+                                        'assessment' => $remarkText,
+                                        'spare_parts' => $spareParts
+                                    ];
                                 }
 
                                 // Recipients
@@ -601,21 +654,21 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                     function ($message) use ($recipients, $repairId, $companyName) {
                                         $message->from(auth()->user()->email, auth()->user()->name);
                                         $message->to($recipients);
-                                        $message->subject("REPAIR TICKET {$repairId} ACCEPTED | {$companyName}");
+                                        $message->subject("REPAIR HANDOVER ID {$repairId} | {$companyName}");
                                     }
                                 );
                             } catch (\Exception $e) {
                                 // Log error but don't stop the process
-                                \Illuminate\Support\Facades\Log::error("Failed to send repair acceptance email: " . $e->getMessage());
+                                \Illuminate\Support\Facades\Log::error("Failed to send repair assessment email: " . $e->getMessage());
                             }
 
                             // Show success notification
                             Notification::make()
-                                ->title('Repair ticket accepted')
+                                ->title('Repair assessment completed')
                                 ->success()
                                 ->send();
                         })
-                        ->modalHeading('Accept Repair Ticket')
+                        ->modalHeading('Accept Repair Handover')
                         ->modalSubmitActionLabel('Accept Repair'),
                 ])->button()
             ]);
@@ -628,26 +681,36 @@ class TechnicianNew extends Component implements HasForms, HasTable
 
         return '
             <div class="flex items-center w-full gap-2">
-                <div class="flex-shrink-0 w-8 h-8">
-                    <img src="' . e($imageUrl) . '" class="object-cover w-full h-full rounded"
-                        onerror="this.onerror=null; this.src=\'' . e(url('images/no-image.jpg')) . '\'" />
-                </div>
                 <div class="flex-grow truncate">
                     <div class="font-medium truncate">' . e($part->name) . '</div>
                     <div class="text-xs text-gray-500 truncate">' . e($part->device_model) . '</div>
                 </div>
                 <div class="flex-shrink-0">
-                    <button type="button"
-                        onclick="event.stopPropagation(); window.open(\'' . e($fullImageUrl) . '\', \'_blank\'); return false;"
-                        class="px-1 py-1 text-xs rounded text-primary-600 hover:text-primary-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
                 </div>
             </div>
         ';
+        // return '
+        //     <div class="flex items-center w-full gap-2">
+        //         <div class="flex-shrink-0 w-8 h-8">
+        //             <img src="' . e($imageUrl) . '" class="object-cover w-full h-full rounded"
+        //                 onerror="this.onerror=null; this.src=\'' . e(url('images/no-image.jpg')) . '\'" />
+        //         </div>
+        //         <div class="flex-grow truncate">
+        //             <div class="font-medium truncate">' . e($part->name) . '</div>
+        //             <div class="text-xs text-gray-500 truncate">' . e($part->device_model) . '</div>
+        //         </div>
+        //         <div class="flex-shrink-0">
+        //             <button type="button"
+        //                 onclick="event.stopPropagation(); window.open(\'' . e($fullImageUrl) . '\', \'_blank\'); return false;"
+        //                 class="px-1 py-1 text-xs rounded text-primary-600 hover:text-primary-800">
+        //                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        //                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        //                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        //                 </svg>
+        //             </button>
+        //         </div>
+        //     </div>
+        // ';
     }
 
     public function render()

@@ -1,7 +1,7 @@
 <div class="p-6 bg-white rounded-lg">
     <!-- Title -->
     <div class="mb-4 text-center">
-        <h2 class="text-lg font-semibold text-gray-800">Repair Handover Form</h2>
+        <h2 class="text-lg font-semibold text-gray-800">Repair Handover Details</h2>
         <p class="text-blue-600">{{ $record->companyDetail->company_name ?? 'Repair Ticket' }}</p>
     </div>
 
@@ -82,6 +82,14 @@
                     <span class="font-semibold">Zoho Ticket Number:</span>
                     {{ $record->zoho_ticket ?? 'N/A' }}
                 </p>
+                <p class="mb-4">
+                    <span class="font-semibold">Repair Handover Form:</span>
+                    @if($record->handover_pdf)
+                        <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
+                    @else
+                        <span style="color: #6B7280;">Click Here</span>
+                    @endif
+                </p>
             </div>
 
             <!-- Separator Line -->
@@ -104,7 +112,7 @@
                     </span>
                 </p>
                 <p class="mb-2">
-                    <span class="font-semibold">Repair Handover Form:</span>
+                    <span class="font-semibold">Repair Handover ID:</span>
                     RP_250{{ str_pad($record->id, 3, '0', STR_PAD_LEFT) }}
                 </p>
                 <p class="mb-2">
@@ -223,109 +231,127 @@
 
             <!-- Video Files Section -->
             <div class="mb-6">
-                <p class="mb-2">
-                    <span class="font-semibold">Video Attachment:</span>
-                </p>
-
                 @php
                     $videos = $record->video_files
-                        ? (is_string($record->video_files)
-                            ? json_decode($record->video_files, true)
-                            : $record->video_files)
+                        ? (is_string($record->video_files) ? json_decode($record->video_files, true) : $record->video_files)
                         : [];
 
                     $hasVideos = is_array($videos) && count($videos) > 0;
                 @endphp
 
                 @if($hasVideos)
-                    <ul class="pl-6 list-none">
+                    <p class="mb-2">
+                        <span class="font-semibold">Video Attachment:</span>
                         @foreach($videos as $index => $video)
-                            <li class="mb-1">
-                                <span class="mr-2">➤</span>
-                                <a
-                                    href="{{ asset('storage/' . $video) }}"
-                                    target="_blank"
-                                    style="color: #2563EB; text-decoration: none; font-weight: 500;"
-                                    onmouseover="this.style.textDecoration='underline'"
-                                    onmouseout="this.style.textDecoration='none'"
-                                >
-                                    Video {{ $index + 1 }}
-                                </a>
-                            </li>
+                            <a
+                                href="{{ asset('storage/' . $video) }}"
+                                target="_blank"
+                                class="ml-2 font-medium text-blue-600"
+                                style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                                onmouseover="this.style.textDecoration='underline'"
+                                onmouseout="this.style.textDecoration='none'"
+                            >
+                                Video {{ $index + 1 }}
+                            </a>
                         @endforeach
-                    </ul>
+                    </p>
                 @else
-                    <p class="pl-6 italic text-gray-500">No videos available</p>
+                    <p class="mb-2">
+                        <span class="font-semibold">Video Attachment:</span>
+                        <span class="ml-1">Not Available</span>
+                    </p>
                 @endif
             </div>
 
-            <div class="mb-6">
-                <p class="mb-2">
+
+            {{-- Invoice Attachment --}}
+            <div class="mb-2">
+                @php
+                    $invoiceFiles = $record->invoice_file
+                        ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file)
+                        : [];
+                @endphp
+
+                <p>
                     <span class="font-semibold">Invoice Attachment:</span>
-                </p>
-
-                @php
-                    $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
-                @endphp
-
-                @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
-                    <ul class="pl-6 list-none">
+                    @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
                         @foreach($invoiceFiles as $index => $file)
-                            <li class="mb-1">
-                                <span class="mr-2">➤</span>
-                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Invoice {{ $index + 1 }}</a>
-                            </li>
+                            <a href="{{ url('storage/' . $file) }}"
+                            target="_blank"
+                            class="ml-2 font-medium text-blue-600"
+                            style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                            onmouseover="this.style.textDecoration='underline'"
+                            onmouseout="this.style.textDecoration='none'">
+                                Invoice {{ $index + 1 }}
+                            </a>
+                            @if(!$loop->last)
+                                <span class="text-gray-400">/</span>
+                            @endif
                         @endforeach
-                    </ul>
-                @else
-                    <span>No invoices uploaded</span>
-                @endif
+                    @else
+                        <span class="ml-2">Not Available</span>
+                    @endif
+                </p>
             </div>
 
-            <div class="mb-6">
-                <p class="mb-2">
+            {{-- Sales Order Attachment --}}
+            <div class="mb-2">
+                @php
+                    $salesOrderFiles = $record->sales_order_file
+                        ? (is_string($record->sales_order_file) ? json_decode($record->sales_order_file, true) : $record->sales_order_file)
+                        : [];
+                @endphp
+
+                <p>
                     <span class="font-semibold">Sales Order Attachment:</span>
-                </p>
-
-                @php
-                    $salesOrderFiles = $record->sales_order_file ? (is_string($record->sales_order_file) ? json_decode($record->sales_order_file, true) : $record->sales_order_file) : [];
-                @endphp
-
-                @if(is_array($salesOrderFiles) && count($salesOrderFiles) > 0)
-                    <ul class="pl-6 list-none">
+                    @if(is_array($salesOrderFiles) && count($salesOrderFiles) > 0)
                         @foreach($salesOrderFiles as $index => $file)
-                            <li class="mb-1">
-                                <span class="mr-2">➤</span>
-                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Sales Order {{ $index + 1 }}</a>
-                            </li>
+                            <a href="{{ url('storage/' . $file) }}"
+                               target="_blank"
+                               class="ml-2 font-medium text-blue-600"
+                               style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                               onmouseover="this.style.textDecoration='underline'"
+                               onmouseout="this.style.textDecoration='none'">
+                                Sales Order {{ $index + 1 }}
+                            </a>
+                            @if(!$loop->last)
+                                <span class="text-gray-400">/</span>
+                            @endif
                         @endforeach
-                    </ul>
-                @else
-                    <span>No sales order uploaded</span>
-                @endif
+                    @else
+                        <span class="ml-2">Not Available</span>
+                    @endif
+                </p>
             </div>
 
-            <div class="mb-6">
-                <p class="mb-2">
-                    <span class="font-semibold">Payment Slip Attachment:</span>
-                </p>
-
+            {{-- Payment Slip Attachment --}}
+            <div class="mb-2">
                 @php
-                    $paymentSlipFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
+                    $paymentSlipFiles = $record->payment_slip_file
+                        ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file)
+                        : [];
                 @endphp
 
-                @if(is_array($paymentSlipFiles) && count($salesOrderFiles) > 0)
-                    <ul class="pl-6 list-none">
+                <p>
+                    <span class="font-semibold">Payment Slip Attachment:</span>
+                    @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
                         @foreach($paymentSlipFiles as $index => $file)
-                            <li class="mb-1">
-                                <span class="mr-2">➤</span>
-                                <a href="{{ url('storage/' . $file) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Payment Slip {{ $index + 1 }}</a>
-                            </li>
+                            <a href="{{ url('storage/' . $file) }}"
+                            target="_blank"
+                            class="ml-2 font-medium text-blue-600"
+                            style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                            onmouseover="this.style.textDecoration='underline'"
+                            onmouseout="this.style.textDecoration='none'">
+                                Payment Slip {{ $index + 1 }}
+                            </a>
+                            @if(!$loop->last)
+                                <span class="text-gray-400">/</span>
+                            @endif
                         @endforeach
-                    </ul>
-                @else
-                    <span>No sales order uploaded</span>
-                @endif
+                    @else
+                        <span class="ml-2">Not Available</span>
+                    @endif
+                </p>
             </div>
 
             <!-- Separator Line -->
@@ -439,69 +465,100 @@
                         <div class="max-h-[60vh] overflow-y-auto">
                             @if($record->repair_remark)
                                 @php
-                                    $remarks = is_string($record->repair_remark) ? json_decode($record->repair_remark, true) : $record->repair_remark;
+                                    $deviceRepairs = is_string($record->repair_remark)
+                                        ? json_decode($record->repair_remark, true)
+                                        : $record->repair_remark;
                                 @endphp
 
-                                @if(is_array($remarks) && count($remarks) > 0)
-                                    <div class="space-y-4">
-                                        @foreach($remarks as $index => $remark)
-                                            <div class="p-4 border border-gray-200 rounded-lg">
-                                                <h4 class="mb-2 font-semibold text-gray-700 text-md">Remark {{ $index + 1 }}</h4>
+                                @if(is_array($deviceRepairs) && count($deviceRepairs) > 0)
+                                    @foreach($deviceRepairs as $deviceRepair)
+                                        <div class="mb-4">
+                                            <table class="w-full mb-4 border border-collapse border-gray-300">
+                                                <tr>
+                                                    <th colspan="2" class="px-4 py-2 text-left bg-gray-100 border border-gray-300">
+                                                        Device Model: {{ $deviceRepair['device_model'] ?? 'N/A' }}
+                                                        &nbsp;|&nbsp;
+                                                        Serial Number: {{ $deviceRepair['device_serial'] ?? 'N/A' }}
+                                                    </th>
+                                                </tr>
 
-                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                    <!-- Remark (Left Column) -->
-                                                    <div class="p-3 text-gray-800 bg-gray-100 rounded">
-                                                        <h5 class="mb-2 font-medium">Remark:</h5>
-                                                        <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
-                                                    </div>
-
-                                                    <!-- Attachments (Right Column) -->
-                                                    <div>
-                                                        @if(!empty($remark['attachments']))
-                                                            @php
-                                                                $attachments = is_string($remark['attachments'])
-                                                                    ? json_decode($remark['attachments'], true)
-                                                                    : $remark['attachments'];
-                                                            @endphp
-
-                                                            @if(is_array($attachments) && count($attachments) > 0)
-                                                                <div class="h-full p-3 rounded bg-gray-50">
-                                                                    <h5 class="mb-3 font-medium">Attachments:</h5>
-                                                                    <div class="space-y-2">
-                                                                        @foreach($attachments as $attIndex => $attachment)
-                                                                            <a
-                                                                                href="{{ asset('storage/' . $attachment) }}"
-                                                                                target="_blank"
-                                                                                class="flex items-center px-3 py-2 text-sm text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100"
-                                                                            >
-                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                                                                                </svg>
-                                                                                Attachment {{ $attIndex + 1 }}
-                                                                            </a>
+                                                @if(!empty($deviceRepair['remarks']) && is_array($deviceRepair['remarks']))
+                                                    @php
+                                                        // Just get the first remark for simplicity
+                                                        $remark = $deviceRepair['remarks'][0] ?? null;
+                                                    @endphp
+                                                    @if($remark)
+                                                        <tr>
+                                                            <td class="px-4 py-2 border border-gray-300" style ='width:70%'>
+                                                                <strong>Repair Remark:</strong><br>
+                                                                <div class="whitespace-pre-line">{{ $remark['remark'] ?? 'No remarks provided' }}</div>
+                                                            </td>
+                                                            <td class="px-4 py-2 border border-gray-300" style ='width:30%'>
+                                                                <strong>Attachment:</strong><br>
+                                                                @if(!empty($remark['attachments']) && is_array($remark['attachments']) && count($remark['attachments']) > 0)
+                                                                    <div>
+                                                                        @foreach($remark['attachments'] as $attIndex => $attachment)
+                                                                            <div class="mb-1">
+                                                                                <a href="{{ asset('storage/' . $attachment) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                                                                                    Attachment {{ $attIndex + 1 }}
+                                                                                </a>
+                                                                            </div>
                                                                         @endforeach
                                                                     </div>
-                                                                </div>
-                                                            @else
-                                                                <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
-                                                                    <p class="italic text-gray-500">No attachments available</p>
-                                                                </div>
-                                                            @endif
+                                                                @else
+                                                                    <div class="text-gray-500">No attachments</div>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @else
+                                                        <tr>
+                                                            <td class="px-4 py-2 border border-gray-300">
+                                                                <div class="text-gray-500">No remarks provided</div>
+                                                            </td>
+                                                            <td class="px-4 py-2 border border-gray-300">
+                                                                <div class="text-gray-500">No attachments</div>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+                                                @else
+                                                    <tr>
+                                                        <td class="px-4 py-2 border border-gray-300">
+                                                            <div class="text-gray-500">No remarks provided</div>
+                                                        </td>
+                                                        <td class="px-4 py-2 border border-gray-300">
+                                                            <div class="text-gray-500">No attachments</div>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
+                                                <tr>
+                                                    <td colspan="2" class="px-4 py-2 border border-gray-300">
+                                                        <strong>Spare Parts Required:</strong><br>
+                                                        @if(!empty($deviceRepair['spare_parts']) && is_array($deviceRepair['spare_parts']) && count($deviceRepair['spare_parts']) > 0)
+                                                            <ul class="pl-5 mt-1 list-disc">
+                                                                @foreach($deviceRepair['spare_parts'] as $part)
+                                                                    {{ $part['name'] ?? 'Unknown Part' }}
+                                                                    @if(!empty($part['code']))
+                                                                        ({{ $part['code'] }})
+                                                                    @endif
+                                                                    @if(!$loop->last)
+                                                                        <span class="text-gray-400">/</span>
+                                                                    @endif
+                                                                @endforeach
+                                                            </ul>
                                                         @else
-                                                            <div class="flex items-center justify-center h-full p-3 rounded bg-gray-50">
-                                                                <p class="italic text-gray-500">No attachments available</p>
-                                                            </div>
+                                                            <div class="text-gray-500">No spare parts required</div>
                                                         @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    @endforeach
                                 @else
-                                    <p class="text-center text-gray-500">No repair remarks available</p>
+                                    <p class="text-center text-gray-500">No technician repair assessments available</p>
                                 @endif
                             @else
-                                <p class="text-center text-gray-500">No repair remarks available</p>
+                                <p class="text-center text-gray-500">No technician repair assessments available</p>
                             @endif
                         </div>
 
