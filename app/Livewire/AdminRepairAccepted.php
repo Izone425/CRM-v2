@@ -491,6 +491,7 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                                 'devices_warranty' => json_encode($deviceWarrantyData),
                                 'quotation_product' => json_encode($data['product_quotation'] ?? []),
                                 'quotation_hrdf' => json_encode($data['hrdf_quotation'] ?? []),
+                                'pending_confirmation_date' => now(),
                             ]);
 
                             $pdfPath = app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($record);

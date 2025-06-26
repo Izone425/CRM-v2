@@ -28,6 +28,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('userleave:update')->everyThirtyMinutes(); // Runs every 30 Minutes
 
         $schedule->command('zoho:fetch-leads')->cron('*/4 * * * *'); // Runs every 4 minutes
+
+        $schedule->command('repair:check-pending-status')->dailyAt('00:01');
     }
 
     /**

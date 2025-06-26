@@ -399,6 +399,36 @@
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 @include('filament.pages.implementer')
             </div>
+        @elseif (auth()->user()->role_id == 9)
+            <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
+                <div class="flex items-center space-x-2">
+                    <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">Technician Dashboard</h1>
+                    <div x-data="{ lastRefresh: '{{ now()->format('Y-m-d H:i:s') }}' }" class="relative">
+                        <button
+                            wire:click="refreshTable"
+                            wire:loading.attr="disabled"
+                            class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 tooltip"
+                            title="Last refreshed: {{ $lastRefreshTime }}"
+                        >
+                            <span wire:loading.remove wire:target="refreshTable">
+                                <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </span>
+                            <span wire:loading wire:target="refreshTable">
+                                <svg class="w-4 h-4 mr-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                @include('filament.pages.technician')
+            </div>
         @elseif (auth()->user()->role_id == 3)
         <div class="space-y-4">
             <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
@@ -470,6 +500,14 @@
 
                             <optgroup label="Salesperson">
                                 @foreach ($users->where('role_id', 2) as $user)
+                                    <option value="{{ $user->id }}">
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+
+                            <optgroup label="Technician">
+                                @foreach ($users->where('role_id', 9) as $user)
                                     <option value="{{ $user->id }}">
                                         {{ $user->name }}
                                     </option>
@@ -1011,6 +1049,8 @@
                     @include('filament.pages.manager')
                 @elseif ($selectedUserRole == 4 || $selectedUserRole == 5)
                     @include('filament.pages.implementer')
+                @elseif ($selectedUserRole == 9)
+                    @include('filament.pages.technician')
                 @else
                     @if ($currentDashboard === 'LeadOwner')
                         @include('filament.pages.leadowner')

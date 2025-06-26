@@ -37,6 +37,7 @@ class AdminRepair extends Model
         'status',
         'devices_warranty',
         'assigned_to',
+        'pending_confirmation_date',
         'submitted_at',
         'created_by',
         'updated_by',

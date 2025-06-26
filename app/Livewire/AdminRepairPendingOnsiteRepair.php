@@ -393,6 +393,6 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
 
     public function render()
     {
-        return view('livewire.admin-repair-accepted');
+        return view('livewire.admin-repair-pending-onsite-repair');
     }
 }
