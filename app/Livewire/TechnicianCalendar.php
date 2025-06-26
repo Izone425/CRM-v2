@@ -262,12 +262,12 @@ class TechnicianCalendar extends Component
                     $technicianAvatar = isset($internalTechnicians[$internalTechId]['avatar_path']) &&
                                         $internalTechnicians[$internalTechId]['avatar_path'] ?
                                         $this->getAvatarUrl($internalTechnicians[$internalTechId]['avatar_path']) :
-                                        config('filament.default_avatar_url');
+                                        asset('storage/uploads/photos/reseller-avatar.png');
                 } else {
                     // Cannot find this technician, use default values
                     Log::warning("Technician not found in internal list: " . $technicianId);
                     $technicianName = $technicianId;
-                    $technicianAvatar = config('filament.default_avatar_url');
+                    $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
                 }
             } else {
                 // This is a reseller or an unknown technician
@@ -374,7 +374,7 @@ class TechnicianCalendar extends Component
                     $avatarUrl = Storage::url($technician->avatar_path);
                 }
             } else {
-                $avatarUrl = config('filament.default_avatar_url');
+                $avatarUrl = asset('storage/uploads/photos/reseller-avatar.png');
             }
 
             return [
@@ -489,8 +489,22 @@ class TechnicianCalendar extends Component
         // Only get leaves for internal technicians (not resellers)
         $internalTechnicians = array_filter($this->selectedTechnicians, 'is_numeric');
 
-        // Convert UserLeave model collection to array
-        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $internalTechnicians);
+        // Get leaves data
+        $leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $internalTechnicians);
+
+        // Process each leave record to add technician avatar and ensure it's a technician
+        $processedLeaves = [];
+        foreach ($leaves as $leave) {
+            // Only include users with role_id = 9 (technicians)
+            $user = User::where('id', $leave['user_id'])->where('role_id', 9)->first();
+            if ($user) {
+                $leave['technicianName'] = $user->name;
+                $leave['technicianAvatar'] = $this->getAvatarUrl($user->avatar_path);
+                $processedLeaves[] = $leave;
+            }
+        }
+
+        $this->leaves = $processedLeaves;
 
         $this->currentMonth = $this->date->startOfWeek()->format('F Y');
 
@@ -526,7 +540,7 @@ class TechnicianCalendar extends Component
     private function getAvatarUrl($path)
     {
         if (!$path) {
-            return config('filament.default_avatar_url');
+            return asset('storage/uploads/photos/reseller-avatar.png');
         }
 
         // If path already starts with http or https, use as-is
