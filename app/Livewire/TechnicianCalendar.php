@@ -4,10 +4,9 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Models\PublicHoliday;
+use App\Models\Reseller;
 use App\Models\User;
 use App\Models\UserLeave;
-use App\Models\Reseller;
-use App\Models\RepairAppointment;
 use Carbon\Carbon;
 use Illuminate\Database\Console\DumpCommand;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,6 +18,7 @@ use Illuminate\Support\Str;
 
 class TechnicianCalendar extends Component
 {
+
     public $rows;
     public Carbon $date;
     public $startDate;
@@ -30,7 +30,7 @@ class TechnicianCalendar extends Component
     public $monthList;
     public $currentMonth;
     public $weekDate;
-    public $newRepairCount = [];
+    public $newRepairCount;
 
     //Dropdown
     public $showDropdown = true;
@@ -39,7 +39,7 @@ class TechnicianCalendar extends Component
     public $totalRepairs;
 
     // Dropdown
-    public array $status = ["NEW", "DONE", "CANCELLED"];
+    public array $status = ["DONE", "NEW", "CANCELLED"];
     public array $selectedStatus = [];
     public bool $allStatusSelected = true;
 
@@ -59,7 +59,7 @@ class TechnicianCalendar extends Component
 
     public function mount()
     {
-        // Load all technicians model - convert to array to prevent collection serialization issues
+        // Load all technicians
         $this->technicians = $this->getAllTechnicians();
 
         // Set Date to today
@@ -68,15 +68,6 @@ class TechnicianCalendar extends Component
         // If current user is a technician then only can access their own calendar
         if (auth()->user()->role_id == 9) {
             $this->selectedTechnicians[] = auth()->user()->id;
-        }
-
-        // Initialize the newRepairCount array
-        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
-            $this->newRepairCount[$day] = [
-                "noRepair" => 0,
-                "oneRepair" => 0,
-                "multipleRepair" => 0
-            ];
         }
     }
 
@@ -87,6 +78,15 @@ class TechnicianCalendar extends Component
     }
 
     // For Filtering
+    public function updatedSelectedTechnicians()
+    {
+        if (!empty($this->selectedTechnicians)) {
+            $this->allTechniciansSelected = false;
+        } else {
+            $this->allTechniciansSelected = true;
+        }
+    }
+
     public function updatedAllTechniciansSelected()
     {
         if ($this->allTechniciansSelected == true)
@@ -97,8 +97,9 @@ class TechnicianCalendar extends Component
     {
         if (!empty($this->selectedStatus)) {
             $this->allStatusSelected = false;
-        } else
+        } else {
             $this->allStatusSelected = true;
+        }
     }
 
     public function updatedAllStatusSelected()
@@ -111,8 +112,9 @@ class TechnicianCalendar extends Component
     {
         if (!empty($this->selectedRepairType)) {
             $this->allRepairTypeSelected = false;
-        } else
+        } else {
             $this->allRepairTypeSelected = true;
+        }
     }
 
     public function updatedAllRepairTypeSelected()
@@ -125,8 +127,9 @@ class TechnicianCalendar extends Component
     {
         if (!empty($this->selectedAppointmentType)) {
             $this->allAppointmentTypeSelected = false;
-        } else
+        } else {
             $this->allAppointmentTypeSelected = true;
+        }
     }
 
     public function updatedAllAppointmentTypeSelected()
@@ -135,31 +138,44 @@ class TechnicianCalendar extends Component
             $this->selectedAppointmentType = [];
     }
 
-    // Get Total Number of Repair Appointments by type and status
+    // Get Total Number of Repairs for different types and statuses
     private function getNumberOfRepairs($selectedTechnicians = null)
     {
-        $query = DB::table('repair_appointments')->whereBetween('date', [$this->startDate, $this->endDate]);
+        // Base query
+        $query = DB::table('repair_appointments')
+            ->whereBetween('date', [$this->startDate, $this->endDate]);
 
+        // Apply technician filter if provided
         if (!empty($selectedTechnicians)) {
             $query->whereIn("technician", $selectedTechnicians);
-            $this->totalRepairs = ["ALL" => 0, 'NEW INSTALLATION' => 0, "REPAIR" => 0, "MAINTENANCE SERVICE" => 0];
-            $this->totalRepairs["ALL"] = $query->clone()->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where("type", "NEW INSTALLATION")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["REPAIR"] = $query->clone()->where("type", "REPAIR")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where("type", "MAINTENANCE SERVICE")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["NEW"] = $query->clone()->where("status", "New")->count();
-            $this->totalRepairs["DONE"] = $query->clone()->where("status", "DONE")->count();
-            $this->totalRepairs["CANCELLED"] = $query->clone()->where("status", "Cancelled")->count();
-        } else {
-            $this->totalRepairs = ["ALL" => 0, 'NEW INSTALLATION' => 0, "REPAIR" => 0, "MAINTENANCE SERVICE" => 0];
-            $this->totalRepairs["ALL"] = $query->clone()->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where("type", "NEW INSTALLATION")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["REPAIR"] = $query->clone()->where("type", "REPAIR")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where("type", "MAINTENANCE SERVICE")->whereNot('status', 'Cancelled')->count();
-            $this->totalRepairs["NEW"] = $query->clone()->where("status", "New")->count();
-            $this->totalRepairs["DONE"] = $query->clone()->where("status", "Done")->count();
-            $this->totalRepairs["CANCELLED"] = $query->clone()->where("status", "Cancelled")->count();
         }
+
+        // Initialize counters
+        $this->totalRepairs = [
+            "ALL" => 0,
+            "NEW INSTALLATION" => 0,
+            "REPAIR" => 0,
+            "MAINTENANCE SERVICE" => 0,
+            "NEW" => 0,
+            "DONE" => 0,
+            "CANCELLED" => 0
+        ];
+
+        // Count active appointments (not cancelled)
+        $this->totalRepairs["ALL"] = $query->clone()->where('status', '!=', 'Cancelled')->count();
+
+        // Count by repair type
+        $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where('type', 'NEW INSTALLATION')
+            ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["REPAIR"] = $query->clone()->where('type', 'REPAIR')
+            ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where('type', 'MAINTENANCE SERVICE')
+            ->where('status', '!=', 'Cancelled')->count();
+
+        // Count by status
+        $this->totalRepairs["NEW"] = $query->clone()->where('status', 'New')->count();
+        $this->totalRepairs["DONE"] = $query->clone()->where('status', 'Done')->count();
+        $this->totalRepairs["CANCELLED"] = $query->clone()->where('status', 'Cancelled')->count();
     }
 
     private function getWeekDateDays($date = null)
@@ -173,113 +189,113 @@ class TechnicianCalendar extends Component
         $weekDays = [];
         for ($i = 0; $i < 7; $i++) {
             $day = $startOfWeek->copy()->addDays($i);
-            $weekDays[$i]["day"] = $startOfWeek->copy()->addDays($i)->format('D');  // Format as Fri,Sat,Mon
-            $weekDays[$i]["date"] = $startOfWeek->copy()->addDays($i)->format('j');  // Format as Date
-            $weekDays[$i]['carbonDate'] = $startOfWeek->copy()->addDays($i)->format('Y-m-d');  // Store as string instead of Carbon object
-            if ($day->isToday()) {
-                $weekDays[$i]["today"] = true; // Set to true if today's date is found
-            } else
-                $weekDays[$i]["today"] = false;
+            $weekDays[$i]["day"] = $day->format('D');  // Format as Fri,Sat,Mon
+            $weekDays[$i]["date"] = $day->format('j');  // Format as Date
+            $weekDays[$i]['carbonDate'] = $day->format('Y-m-d');  // Store as string instead of Carbon object
+            $weekDays[$i]["today"] = $day->isToday();
         }
         return $weekDays;
     }
 
-    private function getInternalTechnicianIdByName($name) {
-        // Look up the ID for an internal technician by their name
-        $user = User::where('name', $name)
-            ->where('role_id', 9)
-            ->first();
-
-        return $user ? $user->id : null;
-    }
-
     private function getWeeklyAppointments($date = null)
     {
-        // Have to make sure weekly is weekly date. Monday to Friday
+        // Set weekly date range (Monday to Friday)
         $date = $date ? Carbon::parse($date) : Carbon::now();
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
         $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
 
-        // Get internal technicians
+        // Get internal technicians data
         $internalTechnicians = User::where('role_id', 9)
-            ->select('id', 'name', 'avatar_path') // Added avatar_path here
+            ->select('id', 'name', 'avatar_path')
             ->get()
             ->keyBy('id')
             ->toArray();
 
-        // Get reseller technicians as a keyed array for faster lookup
+        // Get reseller companies
         $resellerCompanies = Reseller::select('company_name')
             ->get()
             ->pluck('company_name')
-            ->flip() // Make company_name the key for quick lookups
+            ->flip() // Make company_name the key for lookups
             ->toArray();
 
-        // Retrieve all repair appointments between start and end date
+        // Retrieve repair appointments for the selected week
         $appointments = DB::table('repair_appointments')
             ->join('leads', 'leads.id', '=', 'repair_appointments.lead_id')
             ->join('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
             ->select('company_details.company_name', 'repair_appointments.*')
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
+            ->when($this->selectedTechnicians, function ($query) {
+                return $query->whereIn('technician', $this->selectedTechnicians);
+            })
             ->get();
 
-        // Group appointments by technician (either user ID or reseller company name)
+        // Group appointments by technician
         $technicianAppointments = [];
-
         foreach ($appointments as $appointment) {
             $technicianAppointments[$appointment->technician][] = $appointment;
         }
 
-        // Get all technicians who have appointments or are selected
-        $allTechnicians = array_unique(array_merge(
-            array_keys($technicianAppointments),
-            $this->selectedTechnicians
-        ));
+        $allTechnicians = $this->selectedTechnicians;
 
-        // Prepare the result
+        // If none selected (all by default), fallback to internal + reseller names
+        if (empty($allTechnicians)) {
+            $allTechnicians = array_merge(
+                User::where('role_id', 9)->pluck('name')->toArray(),
+                Reseller::pluck('company_name')->toArray()
+            );
+            $this->allTechniciansSelected = true;
+        } else {
+            $this->allTechniciansSelected = false;
+        }
+        // Apply technician filter
+        if (!empty($this->selectedTechnicians)) {
+            $allTechnicians = array_intersect($allTechnicians, $this->selectedTechnicians);
+            $this->allTechniciansSelected = false;
+        } else {
+            $this->allTechniciansSelected = true;
+        }
+
         $result = [];
 
+        // Process each technician
         foreach ($allTechnicians as $technicianId) {
-            // Skip if filtering and not in selected technicians
-            if (!empty($this->selectedTechnicians) && !in_array($technicianId, $this->selectedTechnicians)) {
-                continue;
-            }
+            $name = trim($technicianId);
 
-            // NEW LOGIC: Determine if this is an internal technician or reseller
-            // Check if the ID exists as a company_name in the reseller table
-            $isReseller = isset($resellerCompanies[$technicianId]);
-            $isInternal = !$isReseller && isset($internalTechnicians[$technicianId]);
+            $user = \App\Models\User::where('name', $name)->first();
 
-            // Get name based on type
-            if (!$isReseller) {
-                info("Internal Technician111");
+            $reseller = \App\Models\Reseller::where('company_name', $name)->first();
 
-                $internalTechId = $this->getInternalTechnicianIdByName($technicianId);
+            if ($user) {
+                $technicianName = $user->name;
+                $avatarPath = $user->avatar_path ?? null;
 
-                if ($internalTechId && isset($internalTechnicians[$internalTechId])) {
-                    // Found the technician by name
-                    $technicianName = $internalTechnicians[$internalTechId]['name'];
-                    $technicianAvatar = isset($internalTechnicians[$internalTechId]['avatar_path']) &&
-                                        $internalTechnicians[$internalTechId]['avatar_path'] ?
-                                        $this->getAvatarUrl($internalTechnicians[$internalTechId]['avatar_path']) :
-                                        asset('storage/uploads/photos/reseller-avatar.png');
+                if ($avatarPath) {
+                    if (str_starts_with($avatarPath, 'storage/')) {
+                        $technicianAvatar = asset($avatarPath);
+                    } elseif (str_starts_with($avatarPath, 'uploads/')) {
+                        $technicianAvatar = asset('storage/' . $avatarPath);
+                    } else {
+                        $technicianAvatar = Storage::url($avatarPath);
+                    }
                 } else {
-                    // Cannot find this technician, use default values
-                    Log::warning("Technician not found in internal list: " . $technicianId);
-                    $technicianName = $technicianId;
-                    $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
+                    $technicianAvatar = config('filament.default_avatar_url', asset('storage/uploads/photos/default-avatar.png'));
                 }
+            } elseif ($reseller) {
+                $technicianName = $reseller->company_name;
+                $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
             } else {
-                // This is a reseller or an unknown technician
                 $technicianName = $technicianId;
                 $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
+
+                Log::warning("Unknown technician name", ['technicianName' => $technicianId]);
             }
-            // Initialize technician data structure
+
+            // Initialize data structure for this technician
             $data = [
-                'technicianID' => $technicianId,
+                'technicianID' => $user->id ?? $reseller->id ?? null,
                 'technicianName' => $technicianName,
                 'technicianAvatar' => $technicianAvatar,
-                'isReseller' => $isReseller,
                 'mondayAppointments' => [],
                 'tuesdayAppointments' => [],
                 'wednesdayAppointments' => [],
@@ -292,53 +308,44 @@ class TechnicianCalendar extends Component
                     'thursday' => 0,
                     'friday' => 0,
                 ],
-                'leave' => $isInternal ? UserLeave::getUserLeavesByDateRange($technicianId, $this->startDate, $this->endDate) : [],
+                'leave' => !$reseller && $user ? UserLeave::getUserLeavesByDateRange($user->id, $this->startDate, $this->endDate) : [],
             ];
-
-            // Get this technician's appointments
+            // Process appointments for this technician
             $technicianAppts = $appointments->where('technician', $technicianId);
 
-            // Group appointments by the day of the week
             foreach ($technicianAppts as $appointment) {
                 $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
                 $dayField = "{$dayOfWeek}Appointments";
 
-                // For repair summary which shows repairs per day
+                // Count active repairs for summary
                 if ($appointment->status !== "Cancelled") {
                     $data['newRepair'][$dayOfWeek]++;
                 }
 
-                // Convert start_time and end_time to formatted time strings
+                // Format appointment times
                 $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
                 $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
                 $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
 
-                // Filtering Repair Type and Appointment Type
-                if (
-                    $this->allAppointmentTypeSelected && $this->allRepairTypeSelected
-                    || in_array($appointment->type, $this->selectedRepairType) && $this->allAppointmentTypeSelected
-                    || $this->allRepairTypeSelected && in_array($appointment->appointment_type, $this->selectedAppointmentType)
-                    || in_array($appointment->type, $this->selectedRepairType) && in_array($appointment->appointment_type, $this->selectedAppointmentType)
-                ) {
-                    if ($this->allStatusSelected || in_array(Str::upper($appointment->status), $this->selectedStatus)) {
-                        $data[$dayField][] = $appointment;
-                    }
+                // Apply filters
+                $includeRepairType = $this->allRepairTypeSelected ||
+                                     in_array($appointment->type, $this->selectedRepairType);
+
+                $includeAppointmentType = $this->allAppointmentTypeSelected ||
+                                         in_array($appointment->appointment_type, $this->selectedAppointmentType);
+
+                $includeStatus = $this->allStatusSelected ||
+                                 in_array(strtoupper($appointment->status), $this->selectedStatus);
+
+                if ($includeRepairType && $includeAppointmentType && $includeStatus) {
+                    $data[$dayField][] = $appointment;
                 }
             }
 
+            // Count repairs for statistics
             $this->countRepairs($data['newRepair']);
             $result[] = $data;
         }
-
-        // Sort result by technician name
-        usort($result, function($a, $b) {
-            // Sort by type first (internal technicians before resellers)
-            if ($a['isReseller'] !== $b['isReseller']) {
-                return $a['isReseller'] ? 1 : -1; // Internal technicians (false) come before resellers (true)
-            }
-            // If same type, sort by name
-            return strcmp($a['technicianName'], $b['technicianName']);
-        });
 
         return $result;
     }
@@ -355,101 +362,65 @@ class TechnicianCalendar extends Component
 
     public function getAllTechnicians()
     {
-        // Get all internal technicians (role_id 9)
+        // Get internal technicians (role_id 9)
         $internalTechnicians = User::where('role_id', 9)
-        ->select('id', 'name', 'avatar_path')
-        ->orderBy('name')
-        ->get()
-        ->map(function ($technician) {
-            // Process avatar path
-            $avatarUrl = null;
-            if ($technician->avatar_path) {
-                if (str_starts_with($technician->avatar_path, 'http://') ||
-                    str_starts_with($technician->avatar_path, 'https://')) {
-                    $avatarUrl = $technician->avatar_path;
-                } else if (str_starts_with($technician->avatar_path, 'storage/') ||
-                          str_starts_with($technician->avatar_path, 'uploads/')) {
-                    $avatarUrl = asset($technician->avatar_path);
+            ->select('id', 'name', 'avatar_path')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($technician) {
+                // Process avatar URL
+                $avatarUrl = null;
+                if ($technician->avatar_path) {
+                    if (str_starts_with($technician->avatar_path, 'storage/')) {
+                        $avatarUrl = asset($technician->avatar_path);
+                    } elseif (str_starts_with($technician->avatar_path, 'uploads/')) {
+                        $avatarUrl = asset('storage/' . $technician->avatar_path);
+                    } else {
+                        $avatarUrl = Storage::url($technician->avatar_path);
+                    }
                 } else {
-                    $avatarUrl = Storage::url($technician->avatar_path);
+                    $avatarUrl = config('filament.default_avatar_url', asset('storage/uploads/photos/default-avatar.png'));
                 }
-            } else {
-                $avatarUrl = asset('storage/uploads/photos/reseller-avatar.png');
-            }
 
-            return [
-                'id' => $technician->id,
-                'name' => $technician->name,
-                'avatar_path' => $technician->avatar_path, // Keep original path
-                'avatar_url' => $avatarUrl, // Add processed URL
-                'type' => 'user',
-                'isReseller' => false
-            ];
-        })
-        ->toArray();
+                return [
+                    'id' => $technician->id,
+                    'name' => $technician->name,
+                    'avatar_path' => $technician->avatar_path,
+                    'avatar_url' => $avatarUrl,
+                    'type' => 'internal',
+                    'isReseller' => false
+                ];
+            })
+            ->toArray();
 
-        // Get all resellers as "technicians"
+        // Get resellers as "technicians"
         $resellers = Reseller::select('company_name as name')
             ->orderBy('company_name')
             ->get()
             ->map(function ($reseller) {
                 return [
-                    'id' => $reseller->name, // Use company name as ID for resellers
+                    'id' => $reseller->name, // Use company name as ID
                     'name' => $reseller->name,
-                    'type' => 'reseller',
                     'avatar_path' => null,
+                    'avatar_url' => asset('storage/uploads/photos/reseller-avatar.png'),
+                    'type' => 'reseller',
                     'isReseller' => true
                 ];
             })
             ->toArray();
 
-        // Combine both arrays and sort
-        $combined = array_merge($internalTechnicians, $resellers);
+        // Combine both sets
+        $allTechnicians = array_merge($internalTechnicians, $resellers);
 
-        // Sort by isReseller first (internals first), then by name
-        usort($combined, function($a, $b) {
+        // Sort: internal first, then alphabetically
+        usort($allTechnicians, function($a, $b) {
             if ($a['isReseller'] !== $b['isReseller']) {
                 return $a['isReseller'] ? 1 : -1; // Internal first
             }
             return strcmp($a['name'], $b['name']);
         });
 
-        return $combined;
-    }
-
-    public function getSelectedTechnicians(array $ids)
-    {
-        // This method returns an array instead of a Collection to avoid serialization issues
-        $result = [];
-
-        foreach ($ids as $id) {
-            // Check if this is a numeric ID (internal technician) or a string (reseller)
-            if (is_numeric($id)) {
-                $user = User::where('id', $id)->where('role_id', 9)->first();
-                if ($user) {
-                    $result[] = [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'avatar_path' => $user->avatar_path,
-                        'type' => 'user'
-                    ];
-                }
-            } else {
-                // This is a reseller company name
-                $result[] = [
-                    'id' => $id,
-                    'name' => $id,
-                    'type' => 'reseller'
-                ];
-            }
-        }
-
-        // Sort by name
-        usort($result, function($a, $b) {
-            return strcmp($a['name'], $b['name']);
-        });
-
-        return $result;
+        return $allTechnicians;
     }
 
     private function countRepairs($data)
@@ -467,44 +438,47 @@ class TechnicianCalendar extends Component
 
     public function render()
     {
-        // Initialize
+        // Initialize repair counts
         foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
             $this->newRepairCount[$day]["noRepair"] = 0;
             $this->newRepairCount[$day]["oneRepair"] = 0;
             $this->newRepairCount[$day]["multipleRepair"] = 0;
         }
 
-        // Load Weekly Appointments
+        // Load weekly appointments
         $this->rows = $this->getWeeklyAppointments($this->date);
 
-        // Load Date Display
+        // Load date display
         $this->weekDays = $this->getWeekDateDays($this->date);
 
-        // Count Repairs
+        // Get statistics
         $this->getNumberOfRepairs($this->selectedTechnicians);
+        $this->calculateRepairBreakdown();
 
-        // Get holidays and leaves - convert PublicHoliday model collection to array
+        // Get holidays and leaves
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
+        $selectedNames = $this->selectedTechnicians;
 
-        // Only get leaves for internal technicians (not resellers)
-        $internalTechnicians = array_filter($this->selectedTechnicians, 'is_numeric');
+        // Get users matching selected names
+        $matchedUsers = \App\Models\User::whereIn('name', $selectedNames)->get();
 
-        // Get leaves data
-        $leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $internalTechnicians);
+        $selectedNames = $this->selectedTechnicians;
 
-        // Process each leave record to add technician avatar and ensure it's a technician
-        $processedLeaves = [];
-        foreach ($leaves as $leave) {
-            // Only include users with role_id = 9 (technicians)
-            $user = User::where('id', $leave['user_id'])->where('role_id', 9)->first();
-            if ($user) {
-                $leave['technicianName'] = $user->name;
-                $leave['technicianAvatar'] = $this->getAvatarUrl($user->avatar_path);
-                $processedLeaves[] = $leave;
-            }
+        // Get internal users (only those that exist in the users table)
+        $internalUsers = \App\Models\User::whereIn('name', $selectedNames)->get();
+
+        $technicianIds = $internalUsers->pluck('id')->toArray();
+
+        // Now fetch leaves only if any internal users were selected
+        $this->leaves = [];
+
+        if ($this->allTechniciansSelected || count($technicianIds) > 0) {
+            $this->leaves = UserLeave::getTechnicianWeeklyLeavesByDateRange(
+                $this->startDate,
+                $this->endDate,
+                $this->allTechniciansSelected ? null : $technicianIds
+            );
         }
-
-        $this->leaves = $processedLeaves;
 
         $this->currentMonth = $this->date->startOfWeek()->format('F Y');
 
@@ -535,30 +509,5 @@ class TechnicianCalendar extends Component
         }
 
         $this->repairBreakdown = $result;
-    }
-
-    private function getAvatarUrl($path)
-    {
-        if (!$path) {
-            return asset('storage/uploads/photos/reseller-avatar.png');
-        }
-
-        // If path already starts with http or https, use as-is
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        // If path starts with "storage/" treat as a public asset
-        if (str_starts_with($path, 'storage/')) {
-            return asset($path);
-        }
-
-        // If path starts with "uploads/", add storage/ in front
-        if (str_starts_with($path, 'uploads/')) {
-            return asset('storage/' . $path);
-        }
-
-        // Otherwise use Storage::url for paths like "app/public/..."
-        return Storage::url($path);
     }
 }

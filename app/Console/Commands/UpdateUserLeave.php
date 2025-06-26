@@ -38,7 +38,7 @@ class UpdateUserLeave extends Command
             $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
             $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
             $params = ["CompanyID" => 351, "UserID" => $salesPerson->api_user_id, "CheckTimeFrom" => $dateFrom, "CheckTimeTo" => $dateTo, "RecordStartFrom" => "0", "LimitRecordShow" => "100"];
-    
+
             $leave = json_decode($LeaveAPIService->getClient()->getUserLeave($params)->GetUserLeaveResult,true);
 
             if(!empty($leave['Result']['UserLeaveObj'])){
@@ -51,7 +51,7 @@ class UpdateUserLeave extends Command
                     ]); ;
                 }
 
-            }  
+            }
         }
     }*/ //OLD
 
@@ -65,7 +65,7 @@ class UpdateUserLeave extends Command
         $salesPeople = $this->getAllSalesPeople()->toArray();
 
         //$i is the number of months forward to keep in DB
-        for ($i=0; $i < 12; $i++) { 
+        for ($i=0; $i < 12; $i++) {
 
             $dateFrom = $currentDate->copy()->startOfMonth();
             $dateTo = $currentDate->copy()->endOfMonth();
@@ -73,7 +73,7 @@ class UpdateUserLeave extends Command
             $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
             $params = ["CompanyID" => 351, "DateFrom" => $dateFrom, "DateTo" => $dateTo];
             $leave = json_decode($LeaveAPIService->getClient()->GetApprovedPendingLeaves($params)->GetApprovedPendingLeavesResult,true)['Result']['UserLeaveObj'];
-            
+
             array_map(function ($row) use($salesPeople) {
                     foreach($salesPeople as $salesPerson){
                         if($salesPerson['api_user_id'] == $row['User_ID']) {
@@ -100,7 +100,7 @@ class UpdateUserLeave extends Command
                                 'start_time'=> $row['StartTime'] ?? null,
                                 'end_time'=> $row['EndTime'] ?? null,
                             ]);
-                        }       
+                        }
                     }
             }, $leave);
 
@@ -111,7 +111,7 @@ class UpdateUserLeave extends Command
 
     private function getAllSalesPeople()
     {
-        return User::where('role_id', '2')
+        return User::whereIn('role_id', ['2', '9'])
             ->select('id', 'name','api_user_id')
             ->get();
     }

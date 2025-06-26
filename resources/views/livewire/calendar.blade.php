@@ -417,13 +417,13 @@
                             selected: @entangle('selectedStatus'),
                             allSelected: @entangle('allStatusSelected'),
                             get label() {
-                        
+
                                 if (this.allSelected)
                                     return 'All Status'
-                        
+
                                 else if (this.selected.length <= 0)
                                     return 'All Status'
-                        
+
                                 else {
                                     console.log(this.selected);
                                     return this.selected.join(',');
@@ -490,13 +490,13 @@
                             selected: @entangle('selectedDemoType'),
                             allSelected: @entangle('allDemoTypeSelected'),
                             get label() {
-                        
+
                                 if (this.allSelected)
                                     return 'All Demo Type'
-                        
+
                                 else if (this.selected.length <= 0)
                                     return 'All Demo Type'
-                        
+
                                 else {
                                     console.log(this.selected);
                                     return this.selected.join(',');
@@ -622,13 +622,13 @@
                             selected: @entangle('selectedAppointmentType'),
                             allSelected: @entangle('allAppointmentTypeSelected'),
                             get label() {
-                        
+
                                 if (this.allSelected)
                                     return 'All Appointment Type'
-                        
+
                                 else if (this.selected.length <= 0)
                                     return 'All Appointment Type'
-                        
+
                                 else {
                                     console.log(this.selected);
                                     return this.selected.join(',');
