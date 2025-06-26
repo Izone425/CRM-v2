@@ -48,7 +48,9 @@ use Filament\Forms\Components\View as ViewComponent;
 use Filament\Notifications\Livewire\Notifications;
 use Filament\Support\Enums\Alignment;
 use Filament\Tables\Columns\Summarizers\Sum;
+use Filament\Tables\Grouping\Group;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 class QuotationRelationManager extends RelationManager
@@ -101,7 +103,25 @@ class QuotationRelationManager extends RelationManager
                         $this->js("window.open('{$url}', '_blank')");
                     }),
             ])
-            ->recordUrl(null)
+            ->groups([
+                Group::make('sales_person_id')
+                    ->label('')
+                    ->orderQueryUsing(fn (Builder $query, string $direction) => $query->orderBy('sales_person_id', $direction))
+                    ->getTitleFromRecordUsing(function ($record) {
+                        $sales = $record->sales_person;
+
+                        if ($sales?->role_id === 2) {
+                            return 'Presales Quotation';
+                        }else if ($sales?->role_id === 1 && $sales?->additional_role == 1) {
+                            return 'Postsales Quotation';
+                        } else{
+                            return 'Others';
+                        }
+                    })
+                    ->collapsible() // Optional: makes the groups collapsible
+            ])
+            ->defaultGroup('sales_person_id')
+            ->groupingSettingsHidden()
             ->emptyState(fn () => view('components.empty-state-question'))
             ->columns([
                 TextColumn::make('quotation_reference_no')
