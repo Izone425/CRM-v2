@@ -26,6 +26,7 @@ use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
+use App\Filament\Pages\TechnicianCalendar;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
 use App\Filament\Pages\WeeklyCalendarV2;
@@ -169,6 +170,7 @@ class AdminPanelProvider extends PanelProvider
                 Calendar::class,
                 WeeklyCalendarV2::class,
                 MonthlyCalendar::class,
+                TechnicianCalendar::class,
                 DemoRanking::class,
                 DashboardForm::class,
                 ProformaInvoices::class,

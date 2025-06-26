@@ -297,7 +297,7 @@ $pendingTaskCount = $newCount + $repairAccepted;
             </div>
 
             <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'pending_confirmation'}"
+                    :class="{'selected': selectedStat === 'pending_onsite_repair'}"
                     @click="setSelectedStat('pending_onsite_repair')"
                     style="cursor: pointer;">
                 <div class="stat-count">{{ $repairPendingOnsiteRepair }}</div>

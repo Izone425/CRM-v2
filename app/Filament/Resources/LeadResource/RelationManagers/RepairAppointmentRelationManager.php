@@ -527,6 +527,17 @@ class RepairAppointmentRelationManager extends RelationManager
                                 ],
                             ];
 
+                            $repairHandoverId = $lead->repairHandover()->latest()->first()?->id ?? null;
+
+                            if ($repairHandoverId) {
+                                $adminRepair = \App\Models\AdminRepair::find($repairHandoverId);
+                                if ($adminRepair) {
+                                    $adminRepair->update([
+                                        'status' => 'Pending Onsite Repair',
+                                    ]);
+                                }
+                            }
+
                             $viewName = 'emails.repair_appointment_cancel';
 
                             $authUser = auth()->user();
