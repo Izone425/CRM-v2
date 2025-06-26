@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -42,19 +43,45 @@ class UserLeave extends Model
         return $newArray;
     }
 
-    public static function getWeeklyLeavesByDateRange($startDate,$endDate, array $selectedSalesPeople = null){
-        $temp = UserLeave::with('user')
-        ->whereBetween('date', [$startDate, $endDate])
-        ->when(!empty($selectedSalesPeople), function ($query) use ($selectedSalesPeople) {
-            return $query->whereIn('user_ID', $selectedSalesPeople);
-        })
-        ->get();
+    public static function getWeeklyLeavesByDateRange($startDate, $endDate, $userIds = [])
+    {
+        $query = self::whereBetween('date', [$startDate, $endDate]);
 
-        foreach($temp as &$row){
-            $row->salespersonAvatar = $row->user->getFilamentAvatarUrl();
-            $row->salespersonName = $row->user->name;
+        if (!empty($userIds)) {
+            $query->whereIn('user_id', $userIds);
         }
-        return $temp->toArray();
-    }
 
+        // Join with users table to only get technicians
+        $query->join('users', 'users_leave.user_id', '=', 'users.id')
+              ->where('users.role_id', 9);
+
+        $leaves = $query->select('users_leave.*')->get();
+
+        $result = [];
+        foreach ($leaves as $leave) {
+            // Get user information including avatar
+            $user = User::find($leave->user_id);
+            if ($user && $user->role_id == 9) {
+                // Format the date to get the day of the week (1 = Monday, 5 = Friday)
+                $date = Carbon::parse($leave->date);
+                $dayOfWeek = $date->dayOfWeekIso;
+
+                if ($dayOfWeek <= 5) { // Only include weekdays (1-5)
+                    $result[] = [
+                        'id' => $leave->id,
+                        'user_id' => $leave->user_id,
+                        'technicianName' => $user->name,
+                        'technicianAvatar' => app()->make('App\Livewire\TechnicianCalendar')->getAvatarUrl($user->avatar_path),
+                        'date' => $leave->date,
+                        'day_of_week' => $dayOfWeek,
+                        'leave_type' => $leave->leave_type,
+                        'session' => $leave->session,
+                        'status' => $leave->status
+                    ];
+                }
+            }
+        }
+
+        return $result;
+    }
 }
