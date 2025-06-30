@@ -248,7 +248,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 20, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"

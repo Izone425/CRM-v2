@@ -109,7 +109,7 @@ class DemoTmrTable extends Component implements HasForms, HasTable
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"

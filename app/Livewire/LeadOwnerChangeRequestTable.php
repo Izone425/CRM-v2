@@ -44,7 +44,7 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
                     ->sortable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 10, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id); // fixed: use lead_id not record id
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"

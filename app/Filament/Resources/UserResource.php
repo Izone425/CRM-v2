@@ -96,20 +96,21 @@ class UserResource extends Resource
                             ->preload()
                             ->live()
                             ->options([
-                                2 => 'Salesperson',
                                 1 => 'Lead Owner',
-                                4 => 'Implementer',
-                                6 => 'Trainer',
+                                2 => 'Salesperson',
                                 3 => 'Manager',
-                                5 => 'Admin Handover',
+                                4 => 'Implementer',
+                                5 => 'Team Lead Implementer',
+                                6 => 'Trainer',
+                                7 => 'Team Lead Trainer',
                                 8 => 'Support',
                                 9 => 'Technician',
+                                // 10 => 'Admin Handover',
                             ])
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if (!$state) return;
 
-                                // Auto-set additional_role to 1 if role_id is 5 (Admin Handover)
-                                if ((int)$state === 5) {
+                                if ((int)$state === 10) {
                                     $set('role_id', 1);
                                     $set('additional_role', 1);
                                 } else {
@@ -723,7 +724,12 @@ class UserResource extends Resource
                             2 => 'Salesperson',
                             3 => 'Manager',
                             4 => 'Implementer',
+                            5 => 'Team Lead Implementer',
                             6 => 'Trainer',
+                            7 => 'Team Lead Trainer',
+                            // 10 => 'Admin Handover',
+                            8 => 'Support',
+                            9 => 'Technician',
                             default => 'Unknown',
                         };
                     }),
@@ -786,4 +792,16 @@ class UserResource extends Resource
 
         return $data;
     }
+
+
+
+    // public static function mutateFormDataBeforeSave(array $data): array
+    // {
+    //     if ($data['role_id'] === 10) {
+    //         $data['role_id'] = 1;
+    //         $data['additional_role'] = 1;
+    //     }
+
+    //     return $data;
+    // }
 }
