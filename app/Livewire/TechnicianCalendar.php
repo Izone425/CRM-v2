@@ -279,7 +279,7 @@ class TechnicianCalendar extends Component
                         $technicianAvatar = Storage::url($avatarPath);
                     }
                 } else {
-                    $technicianAvatar = config('filament.default_avatar_url', asset('storage/uploads/photos/default-avatar.png'));
+                    $technicianAvatar = $user->getFilamentAvatarUrl() ?? asset('storage/uploads/photos/default-avatar.png');
                 }
             } elseif ($reseller) {
                 $technicianName = $reseller->company_name;

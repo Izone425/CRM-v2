@@ -450,7 +450,7 @@ class DemoAppointmentRelationManager extends RelationManager
             Tables\Actions\Action::make('Add Appointment')
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Appointment')
-                ->hidden(auth()->user()->role_id != 2 && is_null($this->getOwnerRecord()->lead_owner))
+                ->hidden(is_null($this->getOwnerRecord()->salesperson)&& is_null($this->getOwnerRecord()->lead_owner))
                 ->form([
                     // Schedule
                     ToggleButtons::make('mode')

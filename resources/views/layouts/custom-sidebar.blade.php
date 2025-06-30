@@ -638,7 +638,7 @@
                                 <span>Dashboard</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Technician Calendar</span>
                             </a>
@@ -1195,7 +1195,7 @@
                                 <span>Dashboard</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Technician Calendar</span>
                             </a>

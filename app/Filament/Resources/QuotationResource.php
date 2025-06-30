@@ -288,8 +288,7 @@ class QuotationResource extends Resource
                                 //info("Default: {$defaultValue}");
                                 return $defaultValue;
                             })
-                            ->afterStateHydrated(fn(Forms\Set $set) => $set('sst_rate', Setting::where('name','sst_rate')->first()->value))
-                            ->readOnly(),
+                            ->afterStateHydrated(fn(Forms\Set $set) => $set('sst_rate', Setting::where('name','sst_rate')->first()->value)),
                         TextInput::make('tax_amount')
                             ->label('Tax Amount')
                             ->readOnly()
