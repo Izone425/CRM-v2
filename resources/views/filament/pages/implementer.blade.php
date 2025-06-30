@@ -213,71 +213,25 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 @php
-// Calculate counts directly in the blade template
-use App\Models\SoftwareHandover;
-use App\Models\User;
+    $pendingMigrationCount = app(\App\Livewire\ImplementerMigration::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
 
-// Get the selected user from session or default to current user
-$selectedUser = session('selectedUser') ?? auth()->user()->id;
+    $pendingLicenseCount = app(\App\Livewire\ImplementerLicense::class)
+        ->getOverdueSoftwareHandovers()
+        ->count();
 
-// Build base queries with user filtering
-$baseQuery = SoftwareHandover::query();
+    $completedMigrationCount = app(\App\Livewire\ImplementerMigrationCompleted::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
 
-// Apply user filtering based on selected user
-if ($selectedUser === 'all-implementer') {
-    // Show handovers for all implementers - no additional filtering
-} elseif (is_numeric($selectedUser)) {
-    $user = User::find($selectedUser);
+    $completedLicenseCount = app(\App\Livewire\ImplementerLicenseCompleted::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
 
-    if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
-        $baseQuery->where('implementer', $user->name);
-    }
-} else {
-    $currentUser = auth()->user();
-
-    if ($currentUser->role_id === 4 || $currentUser->role_id === 5) {
-        $baseQuery->where('implementer', $currentUser->name);
-    }
-}
-
-// Define queries for Pending Kick Off
-$pendingMigrationQuery = clone $baseQuery;
-$pendingMigrationCount = $pendingMigrationQuery
-    ->whereIn('status', ['Completed'])
-    ->where('data_migrated', false)
-    ->where(function ($q) {
-        $q->where('id', '>=', 561);
-    })->count();
-
-// Define queries for Pending License
-$pendingLicenseQuery = clone $baseQuery;
-$pendingLicenseCount = $pendingLicenseQuery
-    ->whereIn('status', ['Completed'])
-    ->whereNull('license_certification_id')
-    ->where(function ($q) {
-        $q->where('id', '>=', 561);
-    })->count();
-
-// Define queries for Completed and Draft/Rejected
-$completedMigrationQuery = clone $baseQuery;
-$completedMigrationCount = $completedMigrationQuery
-    ->whereIn('status', ['Completed'])
-    ->where('data_migrated', true)
-    ->where(function ($q) {
-        $q->where('id', '>=', 561);
-    })->count();
-
-$completedLicenseQuery = clone $baseQuery;
-$completedLicenseCount = $completedLicenseQuery
-    ->whereIn('status', ['Completed'])
-    ->whereNotNull('license_certification_id')
-    ->where(function ($q) {
-        $q->where('id', '>=', 561);
-    })->count();
-
-// Calculate combined pending count
-$pendingTaskCount = $pendingMigrationCount + $pendingLicenseCount;
-$all = $pendingMigrationCount + $pendingLicenseCount + $completedMigrationCount + $completedLicenseCount;
+    // Calculate combined pending count
+    $pendingTaskCount = $pendingMigrationCount + $pendingLicenseCount;
+    $all = $pendingMigrationCount + $pendingLicenseCount + $completedMigrationCount + $completedLicenseCount;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"

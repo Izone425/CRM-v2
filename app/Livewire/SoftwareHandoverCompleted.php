@@ -73,6 +73,8 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function getNewSoftwareHandovers()
     {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
+
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
 

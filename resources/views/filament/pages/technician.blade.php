@@ -213,25 +213,30 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 @php
-// Calculate counts directly in the blade template
-use App\Models\AdminRepair;
+    // Calculate counts directly in the blade template
+    use App\Models\AdminRepair;
 
-// Define queries for New
-$newCount = AdminRepair::whereIn('status', ['New'])->count();
+    // Define queries for New
+    $newCount = app(\App\Livewire\TechnicianNew::class)
+        ->getTableQuery()
+        ->count();
 
-// Define queries for Pending Kick Off
-$repairAccepted = AdminRepair::query()
-    ->whereIn('status', ['Accepted'])
-    ->count();
+    // Define queries for Pending Kick Off
+    $repairAccepted = app(\App\Livewire\TechnicianAccepted::class)
+        ->getTableQuery()
+        ->count();
 
-// Define queries for Completed and Draft/Rejected
-$completedCount = AdminRepair::where('status', 'Completed')
-    ->count();
+    // Define queries for Completed and Draft/Rejected
+    $completedCount = app(\App\Livewire\AdminRepairNew::class)
+        ->getTableQuery()
+        ->count();
 
-$draftRejectedCount = AdminRepair::whereIn('status', ['Draft', 'Rejected'])->count();
+    $draftRejectedCount = app(\App\Livewire\AdminRepairNew::class)
+        ->getTableQuery()
+        ->count();
 
-// Calculate combined pending count
-$pendingTaskCount = $newCount + $repairAccepted;
+    // Calculate combined pending count
+    $pendingTaskCount = $newCount + $repairAccepted;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"

@@ -196,18 +196,32 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 @php
-// Calculate counts directly in the blade template
-use App\Models\HardwareHandover;
+    // Calculate counts directly in the blade template
+    use App\Models\HardwareHandover;
 
-// Define queries for different statuses
-$newCount = HardwareHandover::where('status', 'New')->count();
-$pendingStockCount = HardwareHandover::where('status', 'Pending Stock')->count();
-$pendingMigrationCount = HardwareHandover::where('status', 'Pending Migration')->count();
-$completedCount = HardwareHandover::where('status', 'Completed')->count();
-$draftRejectedCount = HardwareHandover::whereIn('status', ['Draft', 'Rejected'])->count();
+    // Define queries for different statuses
+    $newCount = app(\App\Livewire\HardwareHandoverNew::class)
+        ->getNewHardwareHandovers()
+        ->count();
 
-// Calculate combined pending count
-$pendingTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount;
+    $pendingStockCount = app(\App\Livewire\HardwareHandoverPendingStock::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $pendingMigrationCount = app(\App\Livewire\HardwareHandoverPendingMigration::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $completedCount = app(\App\Livewire\HardwareHandoverCompleted::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $draftRejectedCount = app(\App\Livewire\HardwareHandoverAddon::class)
+        ->getNewHardwareHandovers()
+        ->count();
+
+    // Calculate combined pending count
+    $pendingTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount;
 @endphp
 
 <div id="hardware-handover-container" class="hardware-handover-container"

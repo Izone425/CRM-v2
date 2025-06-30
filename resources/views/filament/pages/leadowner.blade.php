@@ -353,214 +353,69 @@
     // New Leads count
     $user = Auth::user();
 
-    $newLeadsQuery = App\Models\Lead::query()
-            ->where('categories', 'New')
-            ->whereNull('salesperson')
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+    $newLeadsCount = app(\App\Livewire\NewLeadTable::class)
+        ->getPendingLeadsQuery()
+        ->count();
 
-    $newLeadsCount = $newLeadsQuery->count();
+    $pendingLeadsCount = app(\App\Livewire\PendingLeadTable::class)
+        ->getNewLeadsQuery()
+        ->count();
 
-    // Pending Leads count
-    $pendingLeadsQuery = App\Models\Lead::query()
-        ->where('stage', 'Transfer')
-        ->whereNull('salesperson')
-        ->where('follow_up_date', null)
-        ->whereIn('lead_status', ['New', 'Demo Cancelled'])
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+    $reminderTodayCount = app(\App\Livewire\ProspectReminderTodayTable::class)
+        ->getProspectTodayQuery()
+        ->count();
 
-    $user = auth()->user();
-    $selectedUser = request()->has('user') ? request()->get('user') : null;
-    $selectedUser = $selectedUser ?? session('selectedUser') ?? auth()->user()->id;
+    $reminderOverdueCount = app(\App\Livewire\ProspectReminderOverdueTable::class)
+        ->getProspectOverdueQuery()
+        ->count();
 
-    if ($selectedUser === 'all-lead-owners') {
-        $leadOwnerNames = App\Models\User::where('role_id', 1)->pluck('name');
-        $pendingLeadsQuery->whereIn('lead_owner', $leadOwnerNames);
-    } elseif (is_numeric($selectedUser)) {
-        $user = App\Models\User::find($selectedUser);
-        if ($user) {
-            $pendingLeadsQuery->where('lead_owner', $user->name);
-        }
-    } else {
-        $pendingLeadsQuery->where('lead_owner', auth()->user()->name);
-    }
+    $activeSmallCompCount = app(\App\Livewire\ActiveSmallCompTable::class)
+        ->getActiveSmallCompanyLeads()
+        ->count();
 
-    $pendingLeadsCount = $pendingLeadsQuery->count();
+    $activeBigCompCount = app(\App\Livewire\ActiveBigCompTable::class)
+        ->getActiveBigCompanyLeads()
+        ->count();
 
-    // Reminder Today count
-    $reminderTodayQuery = App\Models\Lead::query()
-        ->whereDate('follow_up_date', today())
-        ->where('categories', '!=', 'Inactive')
-        ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
-        ->where('follow_up_counter', true)
-        ->whereNull('salesperson');
+    $callAttemptSmallCount = app(\App\Livewire\CallAttemptSmallCompTable::class)
+        ->getFollowUpSmallCompanyLeads()
+        ->count();
 
-    // Apply the same user filtering logic
-    if ($selectedUser === 'all-lead-owners') {
-        $leadOwnerNames = App\Models\User::where('role_id', 1)->pluck('name');
-        $reminderTodayQuery->whereIn('lead_owner', $leadOwnerNames);
-    } elseif (is_numeric($selectedUser)) {
-        $user = App\Models\User::find($selectedUser);
-        if ($user) {
-            $reminderTodayQuery->where('lead_owner', $user->name);
-        }
-    } else {
-        // fallback for current user
-        $reminderTodayQuery->where('lead_owner', auth()->user()->name);
-    }
+    $callAttemptBigCount = app(\App\Livewire\CallAttemptBigCompTable::class)
+        ->getFollowUpBigCompanyLeads()
+        ->count();
 
-    $reminderTodayCount = $reminderTodayQuery->count();
+    $salespersonSmallCount = app(\App\Livewire\SalespersonSmallCompTable::class)
+        ->getActiveSmallCompanyLeadsWithSalesperson()
+        ->count();
 
-    // Reminder Overdue count
-    $reminderOverdueQuery = App\Models\Lead::query()
-        ->whereDate('follow_up_date', '<', today()) // Overdue dates
-        ->where('categories', '!=', 'Inactive')
-        ->whereNull('salesperson')
-        ->where('follow_up_counter', true)
-        ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
+    $salespersonBigCount = app(\App\Livewire\SalespersonBigCompTable::class)
+        ->getActiveBigCompanyLeadsWithSalesperson()
+        ->count();
 
-    // Apply the same user filtering logic
-    if ($selectedUser === 'all-lead-owners') {
-        $leadOwnerNames = App\Models\User::where('role_id', 1)->pluck('name');
-        $reminderOverdueQuery->whereIn('lead_owner', $leadOwnerNames);
-    } elseif (is_numeric($selectedUser)) {
-        $user = App\Models\User::find($selectedUser);
-        if ($user) {
-            $reminderOverdueQuery->where('lead_owner', $user->name);
-        }
-    } else {
-        $reminderOverdueQuery->where('lead_owner', auth()->user()->name);
-    }
+    $inactiveSmall1Count = app(\App\Livewire\InactiveSmallCompTable1::class)
+        ->getInactiveSmallCompanyLeads()
+        ->count();
 
-    $reminderOverdueCount = $reminderOverdueQuery->count();
+    $inactiveBig1Count = app(\App\Livewire\InactiveBigCompTable1::class)
+        ->getInactiveBigCompanyLeads()
+        ->count();
 
-    // Active Small Companies count
-    $activeSmallQuery = App\Models\Lead::query()
-        ->where('company_size', '=', '1-24') // Only small companies
-        ->whereNull('salesperson')
-        ->whereNotNull('lead_owner')
-        ->where('categories', '!=', 'Inactive')
-        ->where(function ($query) {
-            $query->whereNull('done_call') // Include NULL values
-                ->orWhere('done_call', 0); // Include 0 values
-        })
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+    $inactiveSmall2Count = app(\App\Livewire\InactiveSmallCompTable2::class)
+        ->getInactiveSmallCompanyLeads()
+        ->count();
 
-    $activeSmallCompCount = $activeSmallQuery->count();
+    $inactiveBig2Count = app(\App\Livewire\InactiveBigCompTable2::class)
+        ->getInactiveSmallCompanyLeads()
+        ->count();
 
-    // Active Big Companies count
-    $activeBigQuery = App\Models\Lead::query()
-        ->where('company_size', '!=', '1-24') // Exclude small companies
-        ->whereNull('salesperson')
-        ->whereNotNull('lead_owner')
-        ->where('categories', '!=', 'Inactive')
-        ->where(function ($query) {
-            $query->whereNull('done_call') // Include NULL values
-                ->orWhere('done_call', 0); // Include 0 values
-        })
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
+    $inactiveSmallCount = app(\App\Livewire\InactiveSmallCompTable::class)
+        ->getInactiveSmallCompanyLeads()
+        ->count();
 
-    $activeBigCompCount = $activeBigQuery->count();
-
-    // Call Attempt Small Companies count
-    $callAttemptSmallQuery = App\Models\Lead::query()
-        ->where('done_call', '=', '1')
-        ->whereNull('salesperson')
-        ->where('company_size', '=', '1-24') // Only small companies
-        ->where('categories', '!=', 'Inactive')
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
-
-    $callAttemptSmallCount = $callAttemptSmallQuery->count();
-
-    // Call Attempt Big Companies count
-    $callAttemptBigQuery = App\Models\Lead::query()
-        ->where('done_call', '=', '1')
-        ->whereNull('salesperson')
-        ->whereBetween('call_attempt', [1, 10])
-        ->where('categories', '!=', 'Inactive')
-        ->where('company_size', '!=', '1-24') // Exclude small companies
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
-
-    $callAttemptBigCount = $callAttemptBigQuery->count();
-
-    // Salesperson Small Companies count
-    $salespersonSmallQuery = App\Models\Lead::query()
-        ->whereNotNull('salesperson') // Ensure salesperson is NOT NULL
-        ->where('company_size', '=', '1-24') // Only small companies (1-24)
-        ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
-
-    $salespersonSmallCount = $salespersonSmallQuery->count();
-
-    // Salesperson Big Companies count
-    $salespersonBigQuery = App\Models\Lead::query()
-        ->whereNotNull('salesperson') // Ensure salesperson is NOT NULL
-        ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
-        ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-        ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
-
-    $salespersonBigCount = $salespersonBigQuery->count();
-
-    // Inactive Small Companies 1 (done_call = 0)
-    $inactiveSmall1Query = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('lead_status', '!=', 'Closed')
-        ->where('done_call', '0')  // Not called yet
-        ->whereNull('salesperson')
-        ->where('company_size', '=', '1-24') // Only small companies
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveSmall1Count = $inactiveSmall1Query->count();
-
-    // Inactive Big Companies 1 (done_call = 0)
-    $inactiveBig1Query = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('lead_status', '!=', 'Closed')
-        ->where('done_call', '0')  // Not called yet
-        ->whereNull('salesperson')
-        ->where('company_size', '!=', '1-24') // Exclude small companies
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveBig1Count = $inactiveBig1Query->count();
-
-    // Inactive Small Companies 2 (done_call = 1)
-    $inactiveSmall2Query = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('done_call', '1')  // Called already
-        ->whereNull('salesperson')
-        ->where('company_size', '=', '1-24') // Only small companies
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveSmall2Count = $inactiveSmall2Query->count();
-
-    // Inactive Big Companies 2 (done_call = 1)
-    $inactiveBig2Query = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('done_call', '1')  // Called already
-        ->whereNull('salesperson')
-        ->where('company_size', '!=', '1-24') // Exclude small companies
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveBig2Count = $inactiveBig2Query->count();
-
-    // Inactive Small Companies with Salesperson
-    $inactiveSmallQuery = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('company_size', '=', '1-24') // Only small companies (1-24)
-        ->whereNotNull('salesperson')
-        ->where('lead_status', '!=', 'Closed')
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveSmallCount = $inactiveSmallQuery->count();
-
-    // Inactive Big Companies with Salesperson
-    $inactiveBigQuery = App\Models\Lead::query()
-        ->where('categories', 'Inactive') // Only Inactive leads
-        ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
-        ->whereNotNull('salesperson')
-        ->where('lead_status', '!=', 'Closed')
-        ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
-
-    $inactiveBigCount = $inactiveBigQuery->count();
+    $inactiveBigCount = app(\App\Livewire\InactiveBigCompTable::class)
+        ->getInactiveBigCompanyLeads()
+        ->count();
     @endphp
 
     <div id="lead-owner-container" class="lead-owner-container"
