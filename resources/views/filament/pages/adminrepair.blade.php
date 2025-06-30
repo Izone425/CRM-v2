@@ -82,7 +82,7 @@
         text-align: center;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-top: 4px solid transparent; /* Changed to top border */
-        min-height: 50px; /* Set minimum height */
+        max-height: 67px; /* Set minimum height */
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -131,13 +131,20 @@
     .draft-rejected { border-left: 4px solid #ef4444; }
     .draft-rejected .stat-count { color: #ef4444; }
 
+    .pending-onsite { border-left: 4px solid #ec4899; }
+    .pending-onsite .stat-count { color: #ec4899; }
+
+    .inactive { border-left: 4px solid #ef4444; }
+    .inactive .stat-count { color: #ef4444; }
+
     /* Add more visual distinction for selected state */
     .stat-box.selected.new { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.pending-stock { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
     .stat-box.selected.pending-migration { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
     .stat-box.selected.completed { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
+    .stat-box.selected.pending-onsite { background-color: rgba(185, 16, 114, 0.05); border-left-width: 6px; }
     .stat-box.selected.all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
-    .stat-box.selected.draft-rejected { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
+    .stat-box.selected.inactive { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
 
     /* Responsive adjustments */
     @media (max-width: 1200px) {
@@ -171,14 +178,16 @@
         .pending-migration { border-top: 4px solid #8b5cf6; border-left: none; }
         .completed { border-top: 4px solid #10b981; border-left: none; }
         .all { border-top: 4px solid #6b7280; border-left: none; }
-        .draft-rejected { border-top: 4px solid #ef4444; border-left: none; }
+        .inactive { border-top: 4px solid #ef4444; border-left: none; }
+        .pending_onsite_repair { border-top: 4px solid #ec4899; border-left: none; }
 
         .stat-box.selected.new { border-top-width: 6px; border-left: none; }
         .stat-box.selected.pending-stock { border-top-width: 6px; border-left: none; }
         .stat-box.selected.pending-migration { border-top-width: 6px; border-left: none; }
         .stat-box.selected.completed { border-top-width: 6px; border-left: none; }
         .stat-box.selected.all { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.draft-rejected { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.pending_onsite_repair { border-top-width: 6px; border-left: none; }
+        .stat-box.selected.inactive { border-top-width: 6px; border-left: none; }
     }
 
     @media (max-width: 640px) {
@@ -213,33 +222,38 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 @php
-// Calculate counts directly in the blade template
-use App\Models\AdminRepair;
+    // Calculate counts directly in the blade template
+    use App\Models\AdminRepair;
 
-// Define queries for New
-$newCount = AdminRepair::whereIn('status', ['New'])->count();
+    // Define queries for New
+    $newCount = app(\App\Livewire\AdminRepairNew::class)
+        ->getTableQuery()
+        ->count();
 
-// Define queries for Pending Kick Off
-$repairAccepted = AdminRepair::query()
-    ->whereIn('status', ['Accepted'])
-    ->count();
+    // Define queries for Pending Kick Off
+    $repairAccepted = app(\App\Livewire\AdminRepairAccepted::class)
+        ->getTableQuery()
+        ->count();
 
-$repairPendingConfirmation = AdminRepair::query()
-    ->whereIn('status', ['Pending Confirmation'])
-    ->count();
+    $repairPendingConfirmation = app(\App\Livewire\AdminRepairPendingConfirmation::class)
+        ->getTableQuery()
+        ->count();
 
-$repairPendingOnsiteRepair = AdminRepair::query()
-    ->whereIn('status', ['Pending Onsite Repair'])
-    ->count();
+    $repairPendingOnsiteRepair = app(\App\Livewire\AdminRepairPendingOnsiteRepair::class)
+        ->getTableQuery()
+        ->count();
 
-// Define queries for Completed and Draft/Rejected
-$completedCount = AdminRepair::where('status', 'Completed')
-    ->count();
+    // Define queries for Completed and Draft/Rejected
+    $completedCount = app(\App\Livewire\AdminRepairCompleted::class)
+        ->getTableQuery()
+        ->count();
 
-$draftRejectedCount = AdminRepair::whereIn('status', ['Draft', 'Rejected'])->count();
+    $inactiveCount = app(\App\Livewire\AdminRepairInactive::class)
+        ->getTableQuery()
+        ->count();
 
-// Calculate combined pending count
-$pendingTaskCount = $newCount + $repairAccepted;
+    // Calculate combined pending count
+    $pendingTaskCount = $newCount + $repairAccepted;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"
@@ -267,41 +281,57 @@ $pendingTaskCount = $newCount + $repairAccepted;
         <!-- Left sidebar with stats -->
         <div class="stats-sidebar">
             <div class="stat-box all"
-                    :class="{'selected': selectedStat === 'pending-task'}">
+                :class="{'selected': selectedStat === 'pending-task'}">
                 <div class="stat-count">{{ $pendingTaskCount }}</div>
                 <div class="stat-label">Pending Task</div>
             </div>
 
             <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'new'}"
-                    @click="setSelectedStat('new')"
-                    style="cursor: pointer;">
+                :class="{'selected': selectedStat === 'new'}"
+                @click="setSelectedStat('new')"
+                style="cursor: pointer;">
                 <div class="stat-count">{{ $newCount }}</div>
                 <div class="stat-label">New Task</div>
             </div>
 
-            <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'accepted'}"
-                    @click="setSelectedStat('accepted')"
-                    style="cursor: pointer;">
+            <div class="stat-box pending-stock"
+                :class="{'selected': selectedStat === 'accepted'}"
+                @click="setSelectedStat('accepted')"
+                style="cursor: pointer;">
                 <div class="stat-count">{{ $repairAccepted }}</div>
                 <div class="stat-label">Accepted Task</div>
             </div>
 
-            <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'pending_confirmation'}"
-                    @click="setSelectedStat('pending_confirmation')"
-                    style="cursor: pointer;">
+            <div class="stat-box pending-migration"
+                :class="{'selected': selectedStat === 'pending_confirmation'}"
+                @click="setSelectedStat('pending_confirmation')"
+                style="cursor: pointer;">
                 <div class="stat-count">{{ $repairPendingConfirmation }}</div>
                 <div class="stat-label">Pending Confirmation</div>
             </div>
 
-            <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'pending_onsite_repair'}"
-                    @click="setSelectedStat('pending_onsite_repair')"
-                    style="cursor: pointer;">
+            <div class="stat-box pending-onsite"
+                :class="{'selected': selectedStat === 'pending_onsite_repair'}"
+                @click="setSelectedStat('pending_onsite_repair')"
+                style="cursor: pointer;">
                 <div class="stat-count">{{ $repairPendingOnsiteRepair }}</div>
                 <div class="stat-label">Pending Onsite Repair</div>
+            </div>
+
+            <div class="stat-box completed"
+                :class="{'selected': selectedStat === 'completed'}"
+                @click="setSelectedStat('completed')"
+                style="cursor: pointer;">
+                <div class="stat-count">{{ $completedCount }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+
+            <div class="stat-box inactive"
+                :class="{'selected': selectedStat === 'inactive'}"
+                @click="setSelectedStat('inactive')"
+                style="cursor: pointer;">
+                <div class="stat-count">{{ $inactiveCount }}</div>
+                <div class="stat-label">Inactive</div>
             </div>
         </div>
 
@@ -326,6 +356,14 @@ $pendingTaskCount = $newCount + $repairAccepted;
 
             <div x-show="selectedStat === 'pending_onsite_repair'" x-transition :key="selectedStat + '-new'">
                 @livewire('admin-repair-pending-onsite-repair')
+            </div>
+
+            <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-new'">
+                @livewire('admin-repair-completed')
+            </div>
+
+            <div x-show="selectedStat === 'inactive'" x-transition :key="selectedStat + '-new'">
+                @livewire('admin-repair-inactive')
             </div>
         </div>
     </div>

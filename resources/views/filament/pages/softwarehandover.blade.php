@@ -213,40 +213,36 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 @php
-// Calculate counts directly in the blade template
-use App\Models\SoftwareHandover;
+    // Calculate counts directly in the blade template
+    use App\Models\SoftwareHandover;
 
-// Define queries for New
-$newCount = SoftwareHandover::whereIn('status', ['New'])->count();
+    // Define queries for New
+    $newCount = app(\App\Livewire\SoftwareHandoverNew::class)
+        ->getNewSoftwareHandovers()
+        ->count();
 
-// Define queries for Pending Kick Off
-$pendingKickOffCount = SoftwareHandover::query()
-    ->whereIn('status', ['Completed'])
-    ->whereNull('kick_off_meeting')
-    ->where(function ($q) {
-        $q->whereIn('id', [420, 520, 531, 539])
-            ->orWhere('id', '>=', 540);
-    })->count();
 
-// Define queries for Pending License
-$pendingLicenseCount = SoftwareHandover::query()
-    ->whereIn('status', ['Completed'])
-    ->where(function($query) {
-        $query->whereNull('license_activated')
-              ->orWhere('license_activated', 0);
-    })
-    ->where(function ($q) {
-        $q->where('id', '>=', 556);
-    })->count();
+    // Define queries for Pending Kick Off
+    $pendingKickOffCount = app(\App\Livewire\SoftwareHandoverKickOffReminder::class)
+        ->getNewSoftwareHandovers()
+        ->count();
 
-// Define queries for Completed and Draft/Rejected
-$completedCount = SoftwareHandover::where('status', 'Completed')
-    ->count();
+    // Define queries for Pending License
+    $pendingLicenseCount = app(\App\Livewire\SoftwareHandoverPendingLicense::class)
+        ->getNewSoftwareHandovers()
+        ->count();
 
-$draftRejectedCount = SoftwareHandover::whereIn('status', ['Draft', 'Rejected'])->count();
+    // Define queries for Completed and Draft/Rejected
+    $completedCount = app(\App\Livewire\SoftwareHandoverCompleted::class)
+        ->getNewSoftwareHandovers()
+        ->count();
 
-// Calculate combined pending count
-$pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
+    $draftRejectedCount = app(\App\Livewire\SoftwareHandoverAddon::class)
+        ->getNewSoftwareHandovers()
+        ->count();
+
+    // Calculate combined pending count
+    $pendingTaskCount = $newCount + $pendingKickOffCount + $pendingLicenseCount;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"
