@@ -27,4 +27,9 @@ class ActivityLog extends Model
     {
         return $this->belongsTo(Lead::class, 'subject_id');
     }
+
+    public function causer()
+    {
+        return $this->belongsTo(User::class, 'causer_id');
+    }
 }

@@ -11,6 +11,7 @@ class TrainingBooking extends Model
     protected $fillable = [
         'training_date',
         'pax_count',
+        'company_id',
         'status',
         'additional_notes',
         'created_by'

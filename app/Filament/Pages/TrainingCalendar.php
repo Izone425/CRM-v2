@@ -43,6 +43,8 @@ class TrainingCalendar extends Page
     public $attendeeEmail;
     public $attendeePhone;
     public $additionalNotes;
+    public $selectedCompany;
+    public $companies = [];
 
     // Calendar management properties
     public $managementDate;
@@ -62,6 +64,18 @@ class TrainingCalendar extends Page
         $today = Carbon::today();
         $this->currentMonth = $today->month;
         $this->currentYear = $today->year;
+
+        $query = \App\Models\CompanyDetail::query()
+            ->whereHas('lead', function ($q) {
+                $q->where('lead_status', 'Closed');
+
+                if (auth()->user()->role_id == 1) {
+                    $q->where('salesperson', auth()->id());
+                }
+            })
+            ->orderBy('company_name');
+
+        $this->companies = $query->pluck('company_name', 'id')->toArray();
 
         // Generate months and years for dropdowns
         $this->months = collect([
@@ -272,10 +286,11 @@ class TrainingCalendar extends Page
     public function submitBooking()
     {
         $this->validate([
+            'selectedCompany' => 'required|exists:company_details,id',
             'paxCount' => 'required|integer|min:1|max:20',
             'attendeeName' => 'required|string|max:255',
             'attendeeEmail' => 'required|email|max:255',
-            'attendeePhone' => 'nullable|string|max:50',
+            'attendeePhone' => 'required|string|max:50',
         ]);
 
         // Check if date is still available
@@ -307,12 +322,14 @@ class TrainingCalendar extends Page
         $booking = TrainingBooking::create([
             'training_date' => $this->bookingDate,
             'pax_count' => $this->paxCount,
+            'company_id' => $this->selectedCompany,
             'additional_notes' => $this->additionalNotes,
             'created_by' => auth()->id(),
         ]);
 
         // Add main attendee
         $booking->attendees()->create([
+            'company_id' => $this->selectedCompany,
             'name' => $this->attendeeName,
             'email' => $this->attendeeEmail,
             'phone' => $this->attendeePhone,

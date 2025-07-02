@@ -384,7 +384,7 @@
 
                 <select wire:model="currentYear" wire:change="changeYear($event.target.value)">
                     @foreach($years as $year)
-                        <option value="{{ $year }}">{{ $year }}</option>
+                        <option value="{{ $year }}">{{ $year }}&nbsp;&nbsp;&nbsp;</option>
                     @endforeach
                 </select>
             </div>
@@ -423,7 +423,7 @@
         <!-- Calendar Grid -->
         <div class="calendar-grid">
             <!-- Calendar header (days of week) -->
-            @foreach(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $dayName)
+            @foreach(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
                 <div class="calendar-header">{{ $dayName }}</div>
             @endforeach
 
@@ -508,6 +508,19 @@
 
                     <div class="modal-form">
                         <div class="form-group">
+                            <label for="selectedCompany" class="form-label">Select Company</label>
+                            <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
+                                <option value="">-- Choose a Company --</option>
+                                @foreach($companies as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedCompany')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
                             <label for="paxCount" class="form-label">Number of Participants</label>
                             <select wire:model="paxCount" id="paxCount" class="form-select">
                                 @for($i = 1; $i <= min(20, $calendarDays[array_search($bookingDate, array_column($calendarDays, 'date'))]['availableSlots']); $i++)
@@ -530,14 +543,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="attendeePhone" class="form-label">Phone (optional)</label>
+                            <label for="attendeePhone" class="form-label">Phone</label>
                             <input wire:model="attendeePhone" type="text" id="attendeePhone" class="form-input">
                             @error('attendeePhone') <span class="form-error">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="form-group">
-                            <label for="additionalNotes" class="form-label">Additional Notes (optional)</label>
-                            <textarea wire:model="additionalNotes" id="additionalNotes" rows="3" class="form-textarea"></textarea>
                         </div>
                     </div>
                 </div>

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class UserLeave extends Model
 {
@@ -78,5 +80,76 @@ class UserLeave extends Model
         }
 
         return $temp->toArray();
+    }
+
+    public static function getImplementerWeeklyLeavesByDateRange($startDate, $endDate, array $selectedImplementers = null)
+    {
+        $temp = UserLeave::with('user')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->whereHas('user', function ($query) {
+                $query->whereIn('role_id', [4, 5]); // Filter only implementer roles (4 and 5)
+            })
+            ->when(!empty($selectedImplementers), function ($query) use ($selectedImplementers) {
+                return $query->whereIn('user_ID', $selectedImplementers);
+            })
+            ->get();
+
+        // Format results to match expected structure
+        $implementerLeaves = [];
+        foreach ($temp as $leave) {
+            if (!$leave->user) continue; // Skip if user relationship is null
+
+            // Process avatar path consistently with other methods
+            $avatarPath = $leave->user->avatar_path;
+            $avatarUrl = null;
+
+            if ($avatarPath) {
+                if (str_starts_with($avatarPath, 'storage/')) {
+                    $avatarUrl = asset($avatarPath);
+                } elseif (str_starts_with($avatarPath, 'uploads/')) {
+                    $avatarUrl = asset('storage/' . $avatarPath);
+                } else {
+                    $avatarUrl = Storage::url($avatarPath);
+                }
+            } else {
+                $avatarUrl = $leave->user->getFilamentAvatarUrl() ?? asset('storage/uploads/photos/default-avatar.png');
+            }
+
+            // Create the day-indexed array structure
+            $dayOfWeek = Carbon::parse($leave->date)->dayOfWeek;
+            if ($dayOfWeek == 0) $dayOfWeek = 7; // Convert Sunday (0) to 7 if needed
+
+            // Skip weekends if calendar only shows weekdays
+            if ($dayOfWeek > 5) {
+                continue;
+            }
+
+            // Structure data like other methods but with implementer-specific fields
+            $implementerLeaves[] = [
+                'implementerId' => $leave->user_ID,
+                'implementerName' => $leave->user->name,
+                'implementerAvatar' => $avatarUrl,
+                'leave_type' => $leave->leave_type,
+                'status' => $leave->status,
+                'date' => $leave->date,
+                'day_of_week' => $dayOfWeek,
+                'session' => $leave->session ?? 'full', // Default to full day if not specified
+            ];
+        }
+
+        // Restructure to match the day_of_week indexed format used in other methods
+        $newArray = [];
+        foreach ($implementerLeaves as $leave) {
+            // Combine implementer ID with day to create unique keys for each implementer's leave on each day
+            $key = $leave['implementerId'] . '_' . $leave['day_of_week'];
+            $newArray[$key] = $leave;
+
+            // Also index by just day_of_week for compatibility with existing code
+            if (!isset($newArray[$leave['day_of_week']])) {
+                $newArray[$leave['day_of_week']] = $leave;
+            }
+        }
+
+        return $newArray;
     }
 }

@@ -9,6 +9,7 @@ class TrainingAttendee extends Model
 {
     protected $fillable = [
         'booking_id',
+        'company_id',
         'name',
         'email',
         'phone',

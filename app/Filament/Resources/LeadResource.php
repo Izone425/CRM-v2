@@ -22,13 +22,16 @@ use Filament\Support\Enums\FontWeight;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\ImplementerAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
+use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
 use App\Filament\Resources\LeadResource\Tabs\HardwareHandoverTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTab;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
@@ -38,6 +41,7 @@ use App\Filament\Resources\LeadResource\Tabs\ReferEarnTabs;
 use App\Filament\Resources\LeadResource\Tabs\RepairAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
+use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
 use App\Mail\BDReferralClosure;
 use App\Models\ActivityLog;
 use App\Models\Industry;
@@ -120,6 +124,8 @@ class LeadResource extends Resource
                 $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
+            } elseif ($user->role_id === 4) { // Implementer
+                $activeTabs = ['lead', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
                     'lead', 'company', 'system', 'refer_earn', 'appointment',
@@ -156,6 +162,11 @@ class LeadResource extends Resource
         if (in_array('appointment', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Appointment')
                 ->schema(AppointmentTabs::getSchema());
+        }
+
+        if (in_array('implementer_appointment', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Implementer Appointment')
+                ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
@@ -196,6 +207,16 @@ class LeadResource extends Resource
         if (in_array('repair_appointment', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Repair Appointment')
                 ->schema(RepairAppointmentTabs::getSchema());
+        }
+
+        if (in_array('data_file', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Data Files')
+                ->schema(DataFileTabs::getSchema());
+        }
+
+        if (in_array('ticketing', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Ticketing')
+                ->schema(TicketingTabs::getSchema());
         }
 
         return $form
@@ -777,6 +798,7 @@ class LeadResource extends Resource
             SoftwareHandoverRelationManager::class,
             HardwareHandoverRelationManager::class,
             RepairAppointmentRelationManager::class,
+            ImplementerAppointmentRelationManager::class,
         ];
     }
 

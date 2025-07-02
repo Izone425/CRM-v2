@@ -33,7 +33,7 @@ class TechnicianCalendar extends Component
     public $newRepairCount;
 
     //Dropdown
-    public $showDropdown = true;
+    public $showDropdown = false;
 
     // Badge
     public $totalRepairs;
@@ -260,6 +260,9 @@ class TechnicianCalendar extends Component
 
         // Process each technician
         foreach ($allTechnicians as $technicianId) {
+            if (isset($resellerCompanies[$technicianId])) {
+                continue;
+            }
             $name = trim($technicianId);
 
             $user = \App\Models\User::where('name', $name)->first();
@@ -436,6 +439,74 @@ class TechnicianCalendar extends Component
         }
     }
 
+    public $resellerAppointments = [
+        'monday' => [],
+        'tuesday' => [],
+        'wednesday' => [],
+        'thursday' => [],
+        'friday' => [],
+    ];
+
+    private function getResellerAppointments()
+    {
+        // Get all resellers from your system
+        $resellerCompanyNames = \App\Models\Reseller::pluck('company_name')->toArray();
+
+        // Initialize arrays for each day
+        $appointments = [
+            'monday' => [],
+            'tuesday' => [],
+            'wednesday' => [],
+            'thursday' => [],
+            'friday' => [],
+        ];
+
+        // Query appointments for these resellers
+        $resellerAppointments = DB::table('repair_appointments')
+            ->join('leads', 'leads.id', '=', 'repair_appointments.lead_id')
+            ->join('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->select('company_details.company_name', 'repair_appointments.*')
+            ->whereIn('technician', $resellerCompanyNames)
+            ->whereBetween('date', [$this->startDate, $this->endDate])
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        // Apply filters if selected
+        if (!$this->allRepairTypeSelected && !empty($this->selectedRepairType)) {
+            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
+                return in_array($appointment->type, $this->selectedRepairType);
+            });
+        }
+
+        if (!$this->allAppointmentTypeSelected && !empty($this->selectedAppointmentType)) {
+            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
+                return in_array($appointment->appointment_type, $this->selectedAppointmentType);
+            });
+        }
+
+        if (!$this->allStatusSelected && !empty($this->selectedStatus)) {
+            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
+                return in_array(strtoupper($appointment->status), $this->selectedStatus);
+            });
+        }
+
+        // Process and group by day
+        foreach ($resellerAppointments as $appointment) {
+            // Format appointment times
+            $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
+            $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
+            $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+
+            // Get the day of the week for this appointment
+            $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
+
+            // Add to appropriate day array
+            $appointments[$dayOfWeek][] = $appointment;
+        }
+
+        $this->resellerAppointments = $appointments;
+    }
+
     public function render()
     {
         // Initialize repair counts
@@ -447,6 +518,8 @@ class TechnicianCalendar extends Component
 
         // Load weekly appointments
         $this->rows = $this->getWeeklyAppointments($this->date);
+
+        $this->getResellerAppointments();
 
         // Load date display
         $this->weekDays = $this->getWeekDateDays($this->date);

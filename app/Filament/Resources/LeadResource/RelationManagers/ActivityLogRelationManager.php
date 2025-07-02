@@ -47,6 +47,8 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\Layout\View;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Grouping\Group;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -123,11 +125,67 @@ class ActivityLogRelationManager extends RelationManager
             ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->recordTitleAttribute('subject_id')
-            ->columns([
-                // Define columns here
+            ->groups([
+                Group::make('causer_id')
+                    ->label('')
+                    ->orderQueryUsing(fn (Builder $query, string $direction) => $query->orderBy('causer_id', $direction))
+                    ->getTitleFromRecordUsing(function ($record) {
+                        // Get the causer (user who created the activity)
+                        $causer = \App\Models\User::find($record->causer_id);
+
+                        if (!$causer) {
+                            return 'System Generated';
+                        }
+
+                        // Determine group title based on user role
+                        if ($causer->role_id === 2) {
+                            return 'Salesperson Activities';
+                        } else if ($causer->role_id === 1 && $causer->additional_role == 1) {
+                            return 'Postsales Activities';
+                        } else if ($causer->role_id === 1) {
+                            return 'Lead Owner Activities';
+                        } else if ($causer->role_id === 3) {
+                            return 'Manager Activities';
+                        } else {
+                            return "Activities by {$causer->name}";
+                        }
+                    })
+                    ->collapsible()
             ])
+            ->defaultGroup('causer_id')
+            ->groupingSettingsHidden()
             ->modifyQueryUsing(function ($query) {
-                return $query->orderBy('updated_at', 'desc'); // Sort by created_at in descending order
+                $user = auth()->user();
+
+                // Managers (role_id 3) can see all activity logs without restrictions
+                if ($user->role_id === 3) {
+                    return $query->orderBy('updated_at', 'desc');
+                }
+
+                // Presales/Salespersons (role_id 2) can see their own activities,
+                // lead owner activities (role_id 1), and system activities
+                if ($user->role_id === 2 || $user->role_id === 1) {
+                    return $query->where(function($q) use ($user) {
+                        $q->where('causer_id', $user->id)
+                          ->orWhereNull('causer_id')
+                          ->orWhereIn('causer_id', function($subQuery) {
+                              $subQuery->select('id')
+                                      ->from('users')
+                                      ->whereIn('role_id', [1, 2]);
+                          });
+                    })->orderBy('updated_at', 'desc');
+                }
+
+                // // Lead Owners (role_id 1) can only see their own activities and system activities
+                // if ($user->role_id === 1) {
+                //     return $query->where(function($q) use ($user) {
+                //         $q->where('causer_id', $user->id)
+                //           ->orWhereNull('causer_id');
+                //     })->orderBy('updated_at', 'desc');
+                // }
+
+                // Default sorting for any other roles
+                return $query->orderBy('updated_at', 'desc');
             })
             ->columns([
                 TextColumn::make('index')
