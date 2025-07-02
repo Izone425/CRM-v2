@@ -507,7 +507,8 @@ class SoftwareHandoverResource extends Resource
 
                 TextColumn::make('status_handover')
                     ->label('Status')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->formatStateUsing(fn($state) => strtoupper($state ?? '')),
 
                 TextColumn::make('ta')
                     ->label('TA')
@@ -726,6 +727,7 @@ class SoftwareHandoverResource extends Resource
                 // Status handover filter
                 Tables\Filters\SelectFilter::make('status_handover')
                     ->label('Status')
+                    ->multiple()
                     ->options([
                         'Open' => 'Open',
                         'Delay' => 'Delay',
@@ -771,6 +773,49 @@ class SoftwareHandoverResource extends Resource
             ])
             ->filtersFormColumns(1)
             ->bulkActions([
+                Tables\Actions\BulkAction::make('updateStatusHandover')
+                    ->label('Batch Update Status Handover')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary')
+                    ->visible(function () {
+                        $user = auth()->user();
+
+                        // Managers
+                        if ($user->role_id === 3) {
+                            return true;
+                        }
+
+                        // Or lead owner with admin privilege
+                        if ($user->role_id === 1 && $user->additional_role === 1) {
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    ->form([
+                        \Filament\Forms\Components\Select::make('status_handover')
+                            ->label('New Status Handover')
+                            ->options([
+                                'Open' => 'Open',
+                                'Delay' => 'Delay',
+                                'Inactive' => 'Inactive',
+                                'Closed' => 'Closed',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (array $data, \Illuminate\Support\Collection $records) {
+                        foreach ($records as $record) {
+                            $record->update([
+                                'status_handover' => $data['status_handover'],
+                            ]);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Status Handover Updated')
+                            ->body('All selected records have been updated successfully.')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\BulkAction::make('updateImplementer')
                     ->label('Batch Update Implementer')
                     ->icon('heroicon-o-user-group')

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TrainingBookingResource\Pages;
 use App\Models\TrainingBooking;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,6 +13,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Carbon\Carbon;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Collection;
 
 class TrainingBookingResource extends Resource
@@ -27,70 +33,108 @@ class TrainingBookingResource extends Resource
             ->schema([
                 Forms\Components\Card::make()
                     ->schema([
-                        Forms\Components\DatePicker::make('training_date')
-                            ->required()
-                            ->label('Training Date'),
+                        Grid::make(4)
+                            ->schema([
+                                Select::make('company_id')
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->options(function () {
+                                        // Get company details directly instead of going through leads
+                                        $query = \App\Models\CompanyDetail::query()
+                                            ->when(auth()->user()->role_id == 2, function ($q) {
+                                                // Join with leads to filter by salesperson
+                                                $q->whereHas('lead', function ($leadQuery) {
+                                                    $leadQuery->where('salesperson', auth()->id());
+                                                });
+                                            })
+                                            ->get();
 
-                        Forms\Components\Select::make('status')
-                            ->options([
-                                'confirmed' => 'Confirmed',
-                                'cancelled' => 'Cancelled',
-                                'completed' => 'Completed',
-                            ])
-                            ->default('confirmed')
-                            ->required(),
+                                        return $query
+                                            ->filter(fn($company) => $company->company_name) // Filter out companies with no name
+                                            ->mapWithKeys(function ($company) {
+                                                return [$company->id => $company->company_name];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->disabled()
+                                    ->default(function ($livewire) {
+                                        // When creating from request query parameter
+                                        if (request()->has('company_id')) {
+                                            $companyId = request()->query('company_id');
+                                            $company = \App\Models\CompanyDetail::find($companyId);
 
-                        Forms\Components\TextInput::make('pax_count')
-                            ->numeric()
-                            ->required()
-                            ->minValue(1)
-                            ->label('Number of Attendees'),
+                                            // Return the company ID if we found a valid company with a name
+                                            if ($company && $company->company_name) {
+                                                return $company->id;
+                                            }
+                                            return null;
+                                        }
 
-                        Forms\Components\Textarea::make('additional_notes')
-                            ->label('Additional Notes')
-                            ->maxLength(1000)
-                            ->columnSpan('full'),
-                    ])
-                    ->columnSpan(['lg' => 1]),
+                                        // When editing an existing record
+                                        if ($livewire instanceof \Filament\Resources\Pages\EditRecord && $livewire->record) {
+                                            return $livewire->record->company_id; // Simply return the stored company_id
+                                        }
 
-                Forms\Components\Card::make()
-                    ->schema([
-                        Forms\Components\Placeholder::make('created_at')
-                            ->label('Created at')
-                            ->content(fn (TrainingBooking $record): ?string => $record->created_at ? $record->created_at->diffForHumans() : null),
+                                        return null;
+                                    })
+                                    ->label('Company'),
 
-                        Forms\Components\Placeholder::make('updated_at')
-                            ->label('Updated at')
-                            ->content(fn (TrainingBooking $record): ?string => $record->updated_at ? $record->updated_at->diffForHumans() : null),
-                    ])
-                    ->columnSpan(['lg' => 1]),
+                                Forms\Components\DatePicker::make('training_date')
+                                    ->required()
+                                    ->label('Training Date'),
+
+                                Forms\Components\Select::make('status')
+                                    ->options([
+                                        'confirmed' => 'Confirmed',
+                                        'cancelled' => 'Cancelled',
+                                        'completed' => 'Completed',
+                                    ])
+                                    ->default('confirmed')
+                                    ->required(),
+
+                                Forms\Components\TextInput::make('pax_count')
+                                    ->numeric()
+                                    ->required()
+                                    ->minValue(1)
+                                    ->label('Number of Attendees'),
+
+                                Forms\Components\Textarea::make('additional_notes')
+                                    ->label('Additional Notes')
+                                    ->maxLength(1000)
+                                    ->columnSpan('full'),
+                            ]),
+                    ]),
 
                 Forms\Components\Section::make('Attendees')
                     ->schema([
                         Forms\Components\Repeater::make('attendees')
                             ->relationship()
                             ->schema([
-                                Forms\Components\TextInput::make('name')
-                                    ->required()
-                                    ->maxLength(255),
+                                Grid::make(4)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('name')
+                                            ->required()
+                                            ->maxLength(255),
 
-                                Forms\Components\TextInput::make('email')
-                                    ->email()
-                                    ->required()
-                                    ->maxLength(255),
+                                        Forms\Components\TextInput::make('email')
+                                            ->email()
+                                            ->required()
+                                            ->maxLength(255),
 
-                                Forms\Components\TextInput::make('phone')
-                                    ->tel()
-                                    ->maxLength(50),
+                                        Forms\Components\TextInput::make('phone')
+                                            ->tel()
+                                            ->maxLength(50),
 
-                                Forms\Components\Select::make('status')
-                                    ->options([
-                                        'confirmed' => 'Confirmed',
-                                        'checked_in' => 'Checked In',
-                                        'no_show' => 'No Show',
-                                    ])
-                                    ->default('confirmed')
-                                    ->required(),
+                                        Forms\Components\Select::make('status')
+                                            ->options([
+                                                'confirmed' => 'Confirmed',
+                                                'checked_in' => 'Checked In',
+                                                'no_show' => 'No Show',
+                                            ])
+                                            ->default('confirmed')
+                                            ->required(),
+                                    ]),
                             ])
                             ->columns(2)
                             ->defaultItems(1)
@@ -105,23 +149,50 @@ class TrainingBookingResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('training_date')
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->rowIndex(),
+
+                TextColumn::make('company_id')
+                    ->label('Company')
+                    ->formatStateUsing(function ($state) {
+                        if ($state) {
+                            $companyDetail = \App\Models\CompanyDetail::find($state);
+                            return $companyDetail?->company_name ?? 'Unknown Company';
+                        }
+                        return 'No Company';
+                    })
+                    ->searchable(query: function (Builder $query, string $search) {
+                        return $query->whereHas('company', function (Builder $q) use ($search) {
+                            $q->where('company_name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(),
+
+                TextColumn::make('training_date')
                     ->date()
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('pax_count')
+                TextColumn::make('pax_count')
                     ->label('Attendees')
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('status')
+                BadgeColumn::make('status')
                     ->colors([
                         'warning' => 'confirmed',
                         'danger' => 'cancelled',
                         'success' => 'completed',
                     ]),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_by')
+                    ->label('Created By')
+                    ->sortable()
+                    ->formatStateUsing(function ($state) {
+                        return User::find($state)?->name ?? '-';
+                    }),
+
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -153,6 +224,76 @@ class TrainingBookingResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('copyAttendees')
+                ->label('Copy Attendees')
+                ->icon('heroicon-o-users')
+                ->modalHeading('Copy Attendees From Another Booking')
+                ->modalDescription('Select a training booking to copy attendees from')
+                ->modalSubmitActionLabel('Copy Attendees')
+                ->form([
+                    Forms\Components\Select::make('source_booking_id')
+                        ->label('Source Booking')
+                        ->options(function (TrainingBooking $record) {
+                            return TrainingBooking::where('id', '!=', $record->id)
+                                ->when(auth()->user()->role_id == 2, function ($q) {
+                                    // If salesperson, only show their bookings
+                                    $q->whereHas('companyDetail.lead', function ($leadQuery) {
+                                        $leadQuery->where('salesperson', auth()->id());
+                                    });
+                                })
+                                ->get()
+                                ->mapWithKeys(function ($booking) {
+                                    // Get company name from the CompanyDetail model using the company_id
+                                    $companyName = 'Unknown Company';
+
+                                    if ($booking->company_id) {
+                                        // Try to find the company details
+                                        $companyDetail = \App\Models\CompanyDetail::find($booking->company_id);
+                                        if ($companyDetail && $companyDetail->company_name) {
+                                            $companyName = $companyDetail->company_name;
+                                        }
+                                    }
+
+                                    // Fix the date formatting issue by handling both string and Carbon instances
+                                    $date = 'No date';
+                                    if ($booking->training_date) {
+                                        $date = $booking->training_date instanceof \Carbon\Carbon
+                                            ? $booking->training_date->format('j M Y')
+                                            : Carbon::parse($booking->training_date)->format('j M Y');
+                                    }
+
+                                    return [$booking->id => "{$companyName} - {$date} ({$booking->pax_count} attendees)"];
+                                });
+                        })
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (TrainingBooking $record, array $data): void {
+                    $sourceBooking = TrainingBooking::findOrFail($data['source_booking_id']);
+
+                    // Copy attendees
+                    foreach ($sourceBooking->attendees as $attendee) {
+                        $record->attendees()->create([
+                            'name' => $attendee->name,
+                            'email' => $attendee->email,
+                            'phone' => $attendee->phone,
+                            'status' => 'confirmed', // Default to confirmed for new copies
+                        ]);
+                    }
+
+                    // Update the pax count if necessary
+                    if ($record->pax_count < $record->attendees()->count()) {
+                        $record->update([
+                            'pax_count' => $record->attendees()->count()
+                        ]);
+                    }
+
+                    // Show success notification
+                    Notification::make()
+                        ->title('Attendees Copied Successfully')
+                        ->success()
+                        ->send();
+                }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -178,6 +319,11 @@ class TrainingBookingResource extends Resource
             ]);
     }
 
+    public static function canCreate(): bool
+    {
+       return false;
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -189,7 +335,7 @@ class TrainingBookingResource extends Resource
     {
         return [
             'index' => Pages\ListTrainingBookings::route('/'),
-            'create' => Pages\CreateTrainingBooking::route('/create'),
+            // 'create' => Pages\CreateTrainingBooking::route('/create'),
             'edit' => Pages\EditTrainingBooking::route('/{record}/edit'),
         ];
     }

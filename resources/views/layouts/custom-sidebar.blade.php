@@ -534,6 +534,15 @@
                                 </a>
                             </div>
                         </div>
+                        <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
+                            <i class="bi bi-dot"></i>
+                            <span>Training Calendar</span>
+                        </a>
+
+                        <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
+                            <i class="bi bi-dot"></i>
+                            <span>Training Details</span>
+                        </a>
                     @endif
                 </div>
             </div>
@@ -826,14 +835,24 @@
                             <span>Online Webinar Training</span>
                         </a>
 
-                        <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                        {{-- <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>Online HRDF Training</span>
-                        </a>
+                        </a> --}}
 
                         <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>Onsite Training</span>
+                        </a>
+
+                        <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
+                            <i class="bi bi-dot"></i>
+                            <span>HRDF Training Calendar</span>
+                        </a>
+
+                        <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
+                            <i class="bi bi-dot"></i>
+                            <span>HRDF Training Details</span>
                         </a>
                     </div>
                 </div>
@@ -1031,6 +1050,11 @@
                         </div>
                     </div>
                     @endif
+
+                    <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
+                        <i class="bi bi-dot"></i>
+                        <span>Implementer Calendar</span>
+                    </a>
                 </div>
             </div>
             @endif
@@ -1208,16 +1232,6 @@
                             {{-- <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
-                            </a> --}}
-
-                            {{-- <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Training Calendar</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Training Details</span>
                             </a> --}}
                         </div>
                     </div>
