@@ -902,7 +902,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                     Select::make('implementer_id')
                                         ->label('Implementer')
                                         ->options(function () {
-                                            return \App\Models\User::where('role_id', 4)
+                                            return \App\Models\User::whereIn('role_id', [4,5])
                                                 ->orderBy('name')
                                                 ->pluck('name', 'id')
                                                 ->toArray();

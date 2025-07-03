@@ -155,6 +155,7 @@ class ViewLeadRecord extends ViewRecord
                             'lead_owner' => 'Lead Owner View',
                             'admin_repair' => 'Admin Repair View',
                             'salesperson' => 'Salesperson View',
+                            'implementer' => 'Implementer View',
                             'manager' => 'Manager View (All Tabs)',
                         ];
                     }
@@ -181,6 +182,8 @@ class ViewLeadRecord extends ViewRecord
                                     return 'salesperson';
                                 } elseif ($user->role_id === 3) {
                                     return 'manager';
+                                } elseif ($user->role_id === 4) {
+                                    return 'implementer';
                                 }
                             })
                             ->required()
@@ -195,6 +198,9 @@ class ViewLeadRecord extends ViewRecord
                     switch ($roleView) {
                         case 'lead_owner':
                             $tabs = ['lead', 'company'];
+                            break;
+                        case 'implementer':
+                            $tabs = ['lead', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
                             break;
                         case 'admin_repair':
                             $tabs = ['lead', 'company', 'appointment', 'quotation', 'repair_appointment'];

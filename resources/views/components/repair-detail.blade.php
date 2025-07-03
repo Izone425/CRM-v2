@@ -19,8 +19,67 @@
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">PIC Email Address:</span>
-                    {{ $record->pic_email }}
+                    <a href="#"
+                    x-data
+                    @click.prevent="$dispatch('open-email-modal')"
+                    style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                    onmouseover="this.style.textDecoration='underline'"
+                    onmouseout="this.style.textDecoration='none'">
+                        View Email
+                    </a>
                 </p>
+
+                <!-- Email Modal -->
+                <div
+                    x-data="{ emailModalOpen: false }"
+                    @open-email-modal.window="emailModalOpen = true"
+                    x-show="emailModalOpen"
+                    x-transition
+                    @click.outside="emailModalOpen = false"
+                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50"
+                    style="display: none;">
+                    <div class="relative w-full max-w-md p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="emailModalOpen = false">
+                        <div class="flex items-start justify-between mb-4">
+                            <button type="button" @click="emailModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-4 mb-4 bg-gray-100 rounded-lg">
+                            @if($record->pic_email)
+                                <div class="flex items-center mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    <span class="font-medium">Email Address</span>
+                                </div>
+                                <p class="break-words">
+                                    <a href="mailto:{{ $record->pic_email }}" class="text-blue-600 hover:underline">
+                                        {{ $record->pic_email }}
+                                    </a>
+                                </p>
+                            @else
+                                <p class="italic text-gray-500">No email address available</p>
+                            @endif
+                        </div>
+
+                        <div class="flex justify-center">
+                            @if($record->pic_email)
+                                <a href="mailto:{{ $record->pic_email }}" class="inline-flex items-center px-4 py-2 mr-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    Send Email
+                                </a>
+                            @endif
+                            <button @click="emailModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <p class="mb-2">
                     <span class="font-semibold">Company Address:</span>
                     <a href="#"

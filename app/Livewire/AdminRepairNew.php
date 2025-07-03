@@ -174,7 +174,33 @@ class AdminRepairNew extends Component implements HasForms, HasTable
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
-                    ->sortable(),
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+
+                            if ($company) {
+                                $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                                $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                                return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                        target="_blank"
+                                        title="' . e($company->company_name) . '"
+                                        class="inline-block"
+                                        style="color:#338cf0;">
+                                        ' . $company->company_name . '
+                                    </a>');
+                            }
+                        }
+
+                        // If we have a state but no company was found by lead_id
+                        if ($state) {
+                            $shortened = strtoupper(Str::limit($state, 20, '...'));
+                            return "<span title='" . e($state) . "'>{$state}</span>";
+                        }
+
+                        return 'N/A';
+                    })
+                    ->html(),
 
                 TextColumn::make('created_by')
                     ->label('Submitted By')

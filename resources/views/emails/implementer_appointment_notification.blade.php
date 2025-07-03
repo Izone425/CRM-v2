@@ -100,7 +100,7 @@
         <div class="content">
             <p class="greeting">Dear {{ $content['leadOwnerName'] }},</p>
 
-            <p>A implemnetation appointment has been scheduled with the following details:</p>
+            <p>An implementation appointment has been scheduled with the following details:</p>
 
             <table>
                 <tr>
@@ -139,7 +139,6 @@
                     <th>Implementer</th>
                     <td><span class="highlight">{{ $content['lead']['implementerName'] }}</span></td>
                 </tr>
-                @endif
             </table>
 
             @if(isset($content['lead']['remarks']) && !empty($content['lead']['remarks']))
