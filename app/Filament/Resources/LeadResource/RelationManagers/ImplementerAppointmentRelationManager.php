@@ -247,7 +247,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         switch ($existingAppointmentsCount) {
                             case 0:
                                 return [
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
@@ -257,7 +257,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             case 1:
                                 return [
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
                                     'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
@@ -266,7 +266,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             case 2:
                                 return [
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
                                     'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
@@ -275,7 +275,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             case 3:
                                 return [
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
                                     'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
@@ -284,7 +284,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             case 4:
                                 return [
                                     'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
@@ -293,7 +293,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             default:
                                 return [
                                     'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                    'KICK OFF MEETING SESSION (NEW)' => 'KICK OFF MEETING SESSION (NEW)',
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
                                     'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
                                     'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
                                     'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
@@ -313,7 +313,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // Set default type based on number of existing appointments
                         switch ($existingAppointmentsCount) {
                             case 0:
-                                return 'KICK OFF MEETING SESSION (NEW)';
+                                return 'KICK OFF MEETING SESSION';
                             case 1:
                                 return 'IMPLEMENTATION SESSION 1';
                             case 2:

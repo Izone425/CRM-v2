@@ -508,7 +508,8 @@
                         :class="{'selected': selectedGroup === 'others'}"
                         @click="setSelectedGroup('others')">
                     <div class="group-title">Others</div>
-                    <div class="group-count">{{ $hrdfFollowUpToday + $hrdfFollowUpOverdue }}</div>
+                    {{-- <div class="group-count">{{ $hrdfFollowUpToday + $hrdfFollowUpOverdue }}</div> --}}
+                    <div class="group-count">0</div>
                 </div>
             </div>
         </div>
@@ -642,7 +643,8 @@
                         <div class="stat-label">Debtor Follow Up (Today)</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $debtorFollowUpToday }}</div>
+                        {{-- <div class="stat-count">{{ $debtorFollowUpToday }}</div> --}}
+                        <div class="stat-count">0</div>
                     </div>
                 </div>
                 <div class="stat-box debtor-follow-up-overdue"
@@ -652,7 +654,8 @@
                         <div class="stat-label">Debtor Follow Up (Overdue)</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $debtorFollowUpOverdue }}</div>
+                        {{-- <div class="stat-count">{{ $debtorFollowUpOverdue }}</div> --}}
+                        <div class="stat-count">0</div>
                     </div>
                 </div>
                 <div class="stat-box hrdf-follow-up-today"
@@ -662,7 +665,8 @@
                         <div class="stat-label">HRDF Follow Up (Today)</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $hrdfFollowUpToday }}</div>
+                        {{-- <div class="stat-count">{{ $hrdfFollowUpToday }}</div> --}}
+                        <div class="stat-count">0</div>
                     </div>
                 </div>
                 <div class="stat-box hrdf-follow-up-overdue"
@@ -672,7 +676,8 @@
                         <div class="stat-label">HRDF Follow Up (Overdue)</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $hrdfFollowUpOverdue }}</div>
+                        {{-- <div class="stat-count">{{ $hrdfFollowUpOverdue }}</div> --}}
+                        <div class="stat-count">0</div>
                     </div>
                 </div>
             </div>

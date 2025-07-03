@@ -82,7 +82,7 @@
         text-align: center;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-top: 4px solid transparent; /* Changed to top border */
-        max-height: 67px; /* Set minimum height */
+        max-height: 75px; /* Set minimum height */
         display: flex;
         flex-direction: column;
         justify-content: center;

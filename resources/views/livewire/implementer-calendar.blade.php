@@ -400,6 +400,220 @@
             background: #ccc;
             width: 0.5px;
         }
+
+        /* SESSION SLOTS */
+        .available-session-card {
+            margin-block: 0.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            text-align: left;
+            background-color: #F3F4F6;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .available-session-card:hover {
+            background-color: #E5E7EB;
+        }
+
+        .available-session-bar {
+            background-color: #9CA3AF;
+            width: 12px;
+        }
+
+        .available-session-info {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            padding-block: 0.25rem;
+            padding-inline: 0.5rem;
+        }
+
+        .available-session-name {
+            font-weight: bold;
+        }
+
+        .available-session-time {
+            font-size: 0.9rem;
+            color: #4B5563;
+        }
+.modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            overflow-y: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .modal-overlay {
+                padding: 0;
+                align-items: center;
+            }
+        }
+
+        .modal-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            text-align: left;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 32rem;
+            transform: translateY(0);
+            transition: all 0.3s ease-out;
+        }
+
+        .modal-body {
+            padding: 1.25rem 1rem 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .modal-body {
+                padding: 1.5rem;
+            }
+        }
+
+        .modal-title {
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #111827;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-display-text {
+            font-size: 0.95rem;
+            color: #1f2937;
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+            outline: none;
+        }
+
+        .form-error {
+            font-size: 0.75rem;
+            color: #ef4444;
+            margin-top: 0.25rem;
+        }
+
+        .modal-footer {
+            background-color: #f9fafb;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 640px) {
+            .modal-footer {
+                flex-direction: row-reverse;
+                justify-content: flex-start;
+                padding: 0.75rem 1.5rem;
+            }
+        }
+
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #3b82f6;
+        }
+
+        .btn-primary:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: #374151;
+            border-color: #d1d5db;
+            margin-top: 0.75rem;
+        }
+
+        @media (min-width: 640px) {
+            .btn-secondary {
+                margin-top: 0;
+                margin-left: 0.75rem;
+            }
+        }
+
+        .btn-secondary:hover {
+            background-color: #f9fafb;
+        }
+
+        .btn-secondary:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+        }
+        .search-container {
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 1.25rem;
+            width: 1.25rem;
+            color: #9ca3af;
+            pointer-events: none;
+        }
     </style>
 
 
@@ -672,7 +886,7 @@
                 <h3 class="text-lg font-semibold">Appointment Type</h3>
                 <p class="text-gray-600">Total Appointments: {{ $totalAppointments['ALL'] }}</p>
 
-                @foreach (['KICK OFF MEETING SESSION (NEW)' => '#71eb71', 'IMPLEMENTATION SESSION 1' => '#ffff5cbf', 'IMPLEMENTATION SESSION 2' => '#f86f6f', 'IMPLEMENTATION SESSION 3' => '#aed6f1', 'IMPLEMENTATION SESSION 4' => '#d2b4de', 'IMPLEMENTATION SESSION 5' => '#f9e79f'] as $type => $color)
+                @foreach (['KICK OFF MEETING SESSION' => '#71eb71', 'IMPLEMENTATION SESSION 1' => '#ffff5cbf', 'IMPLEMENTATION SESSION 2' => '#f86f6f', 'IMPLEMENTATION SESSION 3' => '#aed6f1', 'IMPLEMENTATION SESSION 4' => '#d2b4de', 'IMPLEMENTATION SESSION 5' => '#f9e79f'] as $type => $color)
                     @php
                         $count = $appointmentBreakdown[$type] ?? 0;
                         $percentage = $totalAppointments['ALL'] > 0 ? round(($count / $totalAppointments['ALL']) * 100, 2) : 0;
@@ -1019,35 +1233,96 @@
                             </div>
                         </div>
                     </div>
+                @else
+                    <!-- Display Session Slots -->
+                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                    @if(isset($row[$daySessionSlots]))
+                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                            @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
+                                <!-- Display Booked Session -->
+                                <div class="appointment-card"
+                                    @if ($sessionDetails['appointment']->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                    @elseif ($sessionDetails['appointment']->status == 'New')
+                                        style="background-color: var(--bg-demo-yellow)"
+                                    @else
+                                        style="background-color: var(--bg-demo-red)" @endif>
+                                    <div class="appointment-card-bar"></div>
+                                    <div class="appointment-card-info">
+                                        <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
+                                        <div class="appointment-appointment-type">
+                                            {{ $sessionDetails['appointment']->appointment_type }} |
+                                            <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                                        </div>
+                                        <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
+                                            <a target="_blank" rel="noopener noreferrer" href={{ $sessionDetails['appointment']->url }}>
+                                                {{ $sessionDetails['appointment']->company_name }}
+                                            </a>
+                                        </div>
+                                        <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
+                                            {{ $sessionDetails['appointment']->end_time }}</div>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- Display Available Session Slot -->
+                               <div class="available-session-card"
+                                    wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')">
+                                    <div class="available-session-bar"></div>
+                                    <div class="available-session-info">
+                                        <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
+                                        <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    @endif
                 @endif
 
                 <div x-data="{ expanded: false }">
-                    @if (count($row[$day . 'Appointments']) <= 4)
+                    @if (count($row[$day . 'Appointments']) <= 0)
+                        <!-- No extra appointments to display beyond the session slots -->
+                    @elseif (count($row[$day . 'Appointments']) <= 4)
+                        <!-- Existing appointments that might not be tied to standard session slots -->
                         @foreach ($row[$day . 'Appointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->status == 'New')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
-                                <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }} |
-                                        <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                            @php
+                                // Skip appointments that are already displayed as session slots
+                                $isSessionAppointment = false;
+                                $appointmentStartTime = \Carbon\Carbon::parse($appointment->start_time)->format('g:i A');
+                                foreach($row[$daySessionSlots] as $sessionDetails) {
+                                    if(isset($sessionDetails['appointment']) &&
+                                       $appointmentStartTime == \Carbon\Carbon::parse($sessionDetails['appointment']->start_time)->format('g:i A')) {
+                                        $isSessionAppointment = true;
+                                        break;
+                                    }
+                                }
+                            @endphp
+
+                            @if(!$isSessionAppointment)
+                                <div class="appointment-card"
+                                    @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                    @elseif ($appointment->status == 'New')
+                                        style="background-color: var(--bg-demo-yellow)"
+                                    @else
+                                        style="background-color: var(--bg-demo-red)" @endif>
+                                    <div class="appointment-card-bar"></div>
+                                    <div class="appointment-card-info">
+                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                        <div class="appointment-appointment-type">
+                                            {{ $appointment->appointment_type }} |
+                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                        </div>
+                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                {{ $appointment->company_name }}
+                                            </a>
+                                        </div>
+                                        <div class="appointment-time">{{ $appointment->start_time }} -
+                                            {{ $appointment->end_time }}</div>
                                     </div>
-                                    <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                        <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                            {{ $appointment->company_name }}
-                                        </a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
                                 </div>
-                            </div>
+                            @endif
                         @endforeach
                     @else
+                        <!-- Keep existing expand/collapse logic for many appointments -->
                         <template x-if="!expanded">
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
@@ -1110,9 +1385,10 @@
                                         </div>
                                     </div>
                                 @endforeach
+
                                 <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
                                     @click="expanded = false">
-                                    Hide
+                                    Show less
                                 </div>
                             </div>
                         </template>
@@ -1128,6 +1404,111 @@
     class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
     <span x-text="tooltip"></span>
 </div>
+
+@if($showBookingModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-body">
+                <h3 class="modal-title">
+                    Book {{ $bookingSession }} for {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
+                </h3>
+
+                <div class="modal-form">
+                    <!-- Time display -->
+                    <div class="form-group">
+                        <label class="form-label">Session Time</label>
+                        <p class="form-display-text">
+                            {{ \Carbon\Carbon::parse($bookingStartTime)->format('g:i A') }} -
+                            {{ \Carbon\Carbon::parse($bookingEndTime)->format('g:i A') }}
+                        </p>
+                    </div>
+
+                    <!-- Company selection -->
+                    <div class="form-group">
+                        <label for="selectedCompany" class="form-label">Company Name <span class="text-red-600">*</span></label>
+
+                        <!-- Search box -->
+                        <div class="search-container">
+                            <input
+                                type="text"
+                                wire:model.live="companySearch"
+                                placeholder="Search companies..."
+                                class="mb-2 form-input"
+                            >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+
+                        <!-- Company dropdown -->
+                        <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
+                            <option value="">-- Select a company --</option>
+                            @foreach($filteredCompanies as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                        @error('selectedCompany')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Appointment Type -->
+                    <div class="form-group">
+                        <label for="appointmentType" class="form-label">Appointment Type <span class="text-red-600">*</span></label>
+                        <select wire:model="appointmentType" id="appointmentType" class="form-select">
+                            <option value="ONLINE">ONLINE</option>
+                            <option value="ONSITE">ONSITE</option>
+                            <option value="INHOUSE">INHOUSE</option>
+                        </select>
+                        @error('appointmentType')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Required Attendees -->
+                    <div class="form-group">
+                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
+                        <input
+                            type="text"
+                            wire:model="requiredAttendees"
+                            id="requiredAttendees"
+                            class="form-input"
+                            placeholder="email1@example.com;email2@example.com"
+                        >
+                        <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
+                        @error('requiredAttendees')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="form-group">
+                        <label for="remarks" class="form-label">Remarks</label>
+                        <textarea
+                            wire:model="remarks"
+                            id="remarks"
+                            class="form-textarea"
+                            rows="3"
+                            placeholder="Add any additional information here..."
+                        ></textarea>
+                        @error('remarks')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button wire:click="submitBooking" type="button" class="btn btn-primary">
+                    Book Session
+                </button>
+                <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
 
 <script>
     function tooltipHandler() {
