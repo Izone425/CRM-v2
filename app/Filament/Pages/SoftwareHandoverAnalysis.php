@@ -50,13 +50,6 @@ class SoftwareHandoverAnalysis extends Page
     private function getBaseQuery()
     {
         $query = SoftwareHandover::query();
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereYear('created_at', $date->year)
-                  ->whereMonth('created_at', $date->month);
-        }
-
         return $query;
     }
 
@@ -188,14 +181,27 @@ class SoftwareHandoverAnalysis extends Page
 
     public function getStatusCounts()
     {
-        $query = $this->getBaseQuery();
+        // Create fresh queries for each count to avoid chain issues
+        $total = $this->getBaseQuery()->count();
 
-        $total = $query->count();
-        $closed = $query->where('status_handover', 'CLOSED')->count();
-        $ongoing = $total - $closed;
-        $open = $query->where('status_handover', 'OPEN')->count();
-        $delay = $query->where('status_handover', 'DELAY')->count();
-        $inactive = $query->where('status_handover', 'INACTIVE')->count();
+        // Use DB::raw for case-insensitive comparison
+        $closed = $this->getBaseQuery()
+            ->whereRaw("TRIM(LOWER(status_handover)) = ?", ['closed'])
+            ->count();
+
+        $open = $this->getBaseQuery()
+            ->whereRaw("TRIM(LOWER(status_handover)) = ?", ['open'])
+            ->count();
+
+        $delay = $this->getBaseQuery()
+            ->whereRaw("TRIM(LOWER(status_handover)) = ?", ['delay'])
+            ->count();
+
+        $inactive = $this->getBaseQuery()
+            ->whereRaw("TRIM(LOWER(status_handover)) = ?", ['inactive'])
+            ->count();
+
+        $ongoing = $open + $delay + $inactive;
 
         return [
             'total' => $total,

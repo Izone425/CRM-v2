@@ -185,14 +185,17 @@
         }
     </style>
 
+    @php
+        $stats = $this->getStatusCounts();
+    @endphp
     <!-- Module Stats Cards -->
     <div class="stats-container">
         <!-- TA Stats -->
         <div class="stat-card module-chart-1">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TA</div>
-                <div class="stat-value">{{ $this->getModuleCount('ta') }}</div>
+                <div class="stat-title">Total</div>
+                <div class="stat-value">{{ $stats['total'] }}</div>
             </div>
         </div>
 
@@ -200,8 +203,8 @@
         <div class="stat-card module-chart-2">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TL</div>
-                <div class="stat-value">{{ $this->getModuleCount('tl') }}</div>
+                <div class="stat-title">Closed</div>
+                <div class="stat-value">{{ $stats['closed'] }}</div>
             </div>
         </div>
 
@@ -209,8 +212,8 @@
         <div class="stat-card module-chart-3">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TC</div>
-                <div class="stat-value">{{ $this->getModuleCount('tc') }}</div>
+                <div class="stat-title">Ongoing</div>
+                <div class="stat-value">{{ $stats['ongoing'] }}</div>
             </div>
         </div>
 
@@ -218,8 +221,8 @@
         <div class="stat-card module-chart-4">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TP</div>
-                <div class="stat-value">{{ $this->getModuleCount('tp') }}</div>
+                <div class="stat-title">Open</div>
+                <div class="stat-value">{{ $stats['open'] }}</div>
             </div>
         </div>
 
@@ -227,8 +230,8 @@
         <div class="stat-card module-chart-5">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TAPP</div>
-                <div class="stat-value">{{ $this->getModuleCount('tapp') }}</div>
+                <div class="stat-title">Delay</div>
+                <div class="stat-value">{{ $stats['delay'] }}</div>
             </div>
         </div>
 
@@ -236,26 +239,8 @@
         <div class="stat-card module-chart-6">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">THIRE</div>
-                <div class="stat-value">{{ $this->getModuleCount('thire') }}</div>
-            </div>
-        </div>
-
-        <!-- TACC Stats -->
-        <div class="stat-card module-chart-7">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">TACC</div>
-                <div class="stat-value">{{ $this->getModuleCount('tacc') }}</div>
-            </div>
-        </div>
-
-        <!-- TPBI Stats -->
-        <div class="stat-card module-chart-8">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">TPBI</div>
-                <div class="stat-value">{{ $this->getModuleCount('tpbi') }}</div>
+                <div class="stat-title">Inactive</div>
+                <div class="stat-value">{{ $stats['inactive'] }}</div>
             </div>
         </div>
     </div>
@@ -363,9 +348,6 @@
                 @endforeach
 
                 <!-- Total Row -->
-                @php
-                    $stats = $this->getStatusCounts();
-                @endphp
                 <tr class="total-row">
                     <td>TOTAL</td>
                     <td>{{ $stats['total'] }}</td>
@@ -378,56 +360,5 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Slide-over Modal -->
-    <x-filament::modal wire:model.live="showSlideOver" width="xl">
-        <x-slot name="heading">
-            {{ $slideOverTitle }}
-        </x-slot>
-
-        <div class="overflow-y-auto max-h-96">
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr>
-                        <th class="p-2 font-medium text-left bg-gray-100 border border-gray-200">Company Name</th>
-                        <th class="p-2 font-medium text-left bg-gray-100 border border-gray-200">Modules</th>
-                        <th class="p-2 font-medium text-left bg-gray-100 border border-gray-200">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($handoverList as $handover)
-                        <tr class="hover:bg-gray-50">
-                            <td class="p-2 border border-gray-200">
-                                {{ $handover->company_name ?? $handover->lead?->companyDetail?->company_name ?? 'N/A' }}
-                            </td>
-                            <td class="p-2 border border-gray-200">
-                                @php
-                                    $modules = [];
-                                    if($handover->ta) $modules[] = 'TA';
-                                    if($handover->tl) $modules[] = 'TL';
-                                    if($handover->tc) $modules[] = 'TC';
-                                    if($handover->tp) $modules[] = 'TP';
-                                    if($handover->tapp) $modules[] = 'TAPP';
-                                    if($handover->thire) $modules[] = 'THIRE';
-                                    if($handover->tacc) $modules[] = 'TACC';
-                                    if($handover->tpbi) $modules[] = 'TPBI';
-                                @endphp
-                                {{ implode(', ', $modules) }}
-                            </td>
-                            <td class="p-2 border border-gray-200">
-                                {{ $handover->status_handover ?? 'N/A' }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="p-2 text-center text-gray-500 border border-gray-200">
-                                No records found
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </x-filament::modal>
 
 </x-filament-panels::page>
