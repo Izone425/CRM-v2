@@ -361,7 +361,12 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
                             // Calculate license dates
-                            $kickOffDate = $record->kick_off_meeting ?? now();
+                            $kickOffDate = $data['confirmed_kickoff_date'] ?? now();
+
+                            // Ensure kickOffDate is a Carbon object before cloning
+                            if (!$kickOffDate instanceof Carbon) {
+                                $kickOffDate = Carbon::parse($kickOffDate);
+                            }
 
                             // Handle buffer license duration based on selection type
                             $bufferMonths = (int) $data['buffer_months'];
