@@ -241,7 +241,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->tc10_quantity ?? 0;
                                         }),
@@ -250,7 +249,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->face_id5_quantity ?? 0;
                                         }),
@@ -259,7 +257,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->time_beacon_quantity ?? 0;
                                         }),
@@ -268,7 +265,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->tc20_quantity ?? 0;
                                         }),
@@ -277,7 +273,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->face_id6_quantity ?? 0;
                                         }),
@@ -286,7 +281,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->nfc_tag_quantity ?? 0;
                                         }),
@@ -445,6 +439,13 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 'implementer' => $implementerName ?? null,
                                 'pending_migration_at' => now(),
                                 'status' => 'Pending Migration',
+                                // Add hardware quantities from form data
+                                'tc10_quantity' => $data['tc10_quantity'] ?? 0,
+                                'tc20_quantity' => $data['tc20_quantity'] ?? 0,
+                                'face_id5_quantity' => $data['face_id5_quantity'] ?? 0,
+                                'face_id6_quantity' => $data['face_id6_quantity'] ?? 0,
+                                'time_beacon_quantity' => $data['time_beacon_quantity'] ?? 0,
+                                'nfc_tag_quantity' => $data['nfc_tag_quantity'] ?? 0,
                             ];
 
                             if (isset($data['invoice_file'])) {
