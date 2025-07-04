@@ -369,7 +369,7 @@ class AdminRepairDashboard extends Page implements HasTable
                 ->schema([
                     FileUpload::make('video_files')
                         ->hiddenLabel()
-                        ->helperText('Upload videos of the issue for better diagnostics')
+                        ->helperText('Upload videos of the issue for better diagnostics. Maximum 10MB')
                         ->disk('public')
                         ->directory('repair-videos')
                         ->visibility('public')

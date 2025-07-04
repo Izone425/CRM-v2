@@ -583,7 +583,7 @@
                                 <span>Dashboard</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.software-handover-analysis') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
                             </a>
