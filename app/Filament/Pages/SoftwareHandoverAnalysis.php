@@ -4,10 +4,7 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\SoftwareHandover;
-use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 
 class SoftwareHandoverAnalysis extends Page
@@ -16,26 +13,14 @@ class SoftwareHandoverAnalysis extends Page
     protected static ?string $navigationGroup = 'Analysis';
     protected static string $view = 'filament.pages.software-handover-analysis';
     protected static ?string $navigationLabel = 'Software Handover Analysis';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
     protected static ?string $title = 'Software Handover Analysis';
 
-    public $selectedMonth;
-    public $totalHandovers = 0;
-    public Carbon $currentDate;
-
-    // Category counts
-    public $categoryCounts = [];
-    public $modulesCounts = [];
-    public $salesCounts = [];
-    public $implementerCounts = [];
-    public $statusCounts = [];
-    public $statusOngoingCounts = [];
-    public $paymentCounts = [];
-    public $adminTaskCounts = [];
-
+    public $selectedMonth = null;
+    public $availableMonths = [];
     public $showSlideOver = false;
+    public $slideOverTitle = '';
     public $handoverList = [];
-    public $slideOverTitle = 'Software Handovers';
 
     public static function canAccess(): bool
     {
@@ -50,34 +35,16 @@ class SoftwareHandoverAnalysis extends Page
 
     public function mount()
     {
-        $this->currentDate = Carbon::now();
-        $this->selectedMonth = session('selectedMonth', $this->currentDate->format('Y-m'));
-
-        $this->fetchAllData();
+        $this->availableMonths = SoftwareHandover::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
+            ->distinct()
+            ->orderBy('month', 'desc')
+            ->pluck('month')
+            ->toArray();
     }
 
-    public function updatedSelectedMonth($month)
+    public function updatedSelectedMonth()
     {
-        $this->selectedMonth = $month;
-        session(['selectedMonth' => $month]);
-
-        $this->fetchAllData();
-    }
-
-    private function fetchAllData()
-    {
-        // Get total handovers count
-        $this->totalHandovers = $this->getBaseQuery()->count();
-
-        // Fetch all data for the dashboard
-        $this->fetchCategoryCounts();
-        // $this->fetchModulesCounts();
-        // $this->fetchSalesCounts();
-        // $this->fetchImplementerCounts();
-        // $this->fetchStatusCounts();
-        // $this->fetchStatusOngoingCounts();
-        // $this->fetchPaymentCounts();
-        // $this->fetchAdminTaskCounts();
+        $this->dispatch('refresh');
     }
 
     private function getBaseQuery()
@@ -86,249 +53,177 @@ class SoftwareHandoverAnalysis extends Page
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
-            $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+            $query->whereYear('created_at', $date->year)
+                  ->whereMonth('created_at', $date->month);
         }
 
         return $query;
     }
 
-    private function fetchCategoryCounts()
+    // Module counting methods
+    public function getModuleCount($module)
+    {
+        return $this->getBaseQuery()->where($module, 1)->count();
+    }
+
+    // Implementer data methods
+    public function getImplementerTotal($implementer)
+    {
+        return $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->count();
+    }
+
+    public function getImplementerClosedCount($implementer)
+    {
+        return $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->where('status_handover', 'CLOSED')
+            ->count();
+    }
+
+    public function getImplementerOngoingCount($implementer)
+    {
+        return $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE'])
+            ->count();
+    }
+
+    public function getImplementerStatusCount($implementer, $status)
+    {
+        return $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->where('status_handover', $status)
+            ->count();
+    }
+
+    public function getImplementerModuleCount($implementer, $module)
+    {
+        return $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->where($module, 1)
+            ->count();
+    }
+
+    public function openImplementerSlideOver($implementer)
+    {
+        $this->slideOverTitle = "$implementer's Handovers";
+        $this->handoverList = $this->getBaseQuery()
+            ->where('implementer', $implementer)
+            ->with(['lead.companyDetail'])
+            ->get();
+        $this->showSlideOver = true;
+    }
+
+    public function getAllImplementers()
+    {
+        return SoftwareHandover::select('implementer')
+            ->distinct()
+            ->pluck('implementer')
+            ->toArray();
+    }
+
+    public function getActiveImplementers()
+    {
+        // Define your list of active implementers - this could be stored in config or determined dynamically
+        $activeImplementers = ['SHAQINUR', 'SYAMIM', 'SYAZWAN', 'AIMAN', 'ZULHILMIE', 'AMIRUL', 'JOHN', 'FAZULIANA'];
+
+        $implementers = [];
+
+        foreach ($activeImplementers as $implementer) {
+            $total = $this->getImplementerTotal($implementer);
+            $closed = $this->getImplementerClosedCount($implementer);
+            $ongoing = $this->getImplementerOngoingCount($implementer);
+            $open = $this->getImplementerStatusCount($implementer, 'OPEN');
+            $delay = $this->getImplementerStatusCount($implementer, 'DELAY');
+            $inactive = $this->getImplementerStatusCount($implementer, 'INACTIVE');
+
+            $implementers[] = [
+                'name' => $implementer,
+                'isActive' => true,
+                'total' => $total,
+                'closed' => $closed,
+                'ongoing' => $ongoing,
+                'open' => $open,
+                'delay' => $delay,
+                'inactive' => $inactive,
+                'completionRate' => $total > 0 ? round(($closed / $total) * 100, 1) : 0
+            ];
+        }
+
+        return $implementers;
+    }
+
+    public function getInactiveImplementers()
+    {
+        // Define your list of inactive implementers
+        $inactiveImplementers = ['BARI', 'ADZZIM', 'AZRUL', 'NAJWA', 'SYAZANA', 'HANIF'];
+
+        $implementers = [];
+
+        foreach ($inactiveImplementers as $implementer) {
+            $total = $this->getImplementerTotal($implementer);
+            $closed = $this->getImplementerClosedCount($implementer);
+            $ongoing = $this->getImplementerOngoingCount($implementer);
+            $open = $this->getImplementerStatusCount($implementer, 'OPEN');
+            $delay = $this->getImplementerStatusCount($implementer, 'DELAY');
+            $inactive = $this->getImplementerStatusCount($implementer, 'INACTIVE');
+
+            $implementers[] = [
+                'name' => $implementer,
+                'isActive' => false,
+                'total' => $total,
+                'closed' => $closed,
+                'ongoing' => $ongoing,
+                'open' => $open,
+                'delay' => $delay,
+                'inactive' => $inactive,
+                'completionRate' => $total > 0 ? round(($closed / $total) * 100, 1) : 0
+            ];
+        }
+
+        return $implementers;
+    }
+
+    public function getStatusCounts()
     {
         $query = $this->getBaseQuery();
 
-        // Initialize counts for each category
-        $small = 0;
-        $medium = 0;
-        $large = 0;
-        $enterprise = 0;
+        $total = $query->count();
+        $closed = $query->where('status_handover', 'CLOSED')->count();
+        $ongoing = $total - $closed;
+        $open = $query->where('status_handover', 'OPEN')->count();
+        $delay = $query->where('status_handover', 'DELAY')->count();
+        $inactive = $query->where('status_handover', 'INACTIVE')->count();
 
-        // Get all handovers with their related leads
-        $handovers = $query->with('lead')->get();
-
-        // Categorize each handover based on the company size in the related lead
-        foreach ($handovers as $handover) {
-            if (!$handover->lead || !isset($handover->lead->company_size)) {
-                // Skip if there's no lead or company size
-                continue;
-            }
-
-            $companySize = $handover->lead->company_size;
-
-            // Categorize based on company size ranges
-            if ($companySize >= 1 && $companySize <= 24) {
-                $small++;
-            } elseif ($companySize >= 25 && $companySize <= 99) {
-                $medium++;
-            } elseif ($companySize >= 100 && $companySize <= 500) {
-                $large++;
-            } elseif ($companySize > 500) {
-                $enterprise++;
-            }
-        }
-
-        // Define the counts by category
-        $this->categoryCounts = [
-            'small' => $small,
-            'medium' => $medium,
-            'large' => $large,
-            'enterprise' => $enterprise,
+        return [
+            'total' => $total,
+            'closed' => $closed,
+            'ongoing' => $ongoing,
+            'open' => $open,
+            'delay' => $delay,
+            'inactive' => $inactive
         ];
-
-        // Add total
-        $this->categoryCounts['total'] = array_sum($this->categoryCounts);
     }
 
-    // private function fetchModulesCounts()
-    // {
-    //     $query = $this->getBaseQuery();
+    public function getTier1Implementers()
+    {
+        return ['SHAQINUR', 'SYAMIM', 'SYAZWAN'];
+    }
 
-    //     // Count modules
-    //     $this->modulesCounts = [
-    //         'ta_count' => $query->clone()->where('modules', 'like', '%ta%')->count(),
-    //         'tl_count' => $query->clone()->where('modules', 'like', '%tl%')->count(),
-    //         'tc_count' => $query->clone()->where('modules', 'like', '%tc%')->count(),
-    //         'tp_count' => $query->clone()->where('modules', 'like', '%tp%')->count(),
-    //     ];
+    public function getTier2Implementers()
+    {
+        return ['AIMAN', 'ZULHILMIE'];
+    }
 
-    //     $this->modulesCounts['total'] = $query->count();
-    // }
+    public function getTier3Implementers()
+    {
+        return ['AMIRUL', 'JOHN', 'FAZULIANA'];
+    }
 
-    // private function fetchSalesCounts()
-    // {
-    //     $query = $this->getBaseQuery();
-
-    //     // Get counts grouped by salesperson
-    //     $salesData = $query->clone()
-    //         ->select('salesperson_id', DB::raw('COUNT(*) as total'))
-    //         ->groupBy('salesperson_id')
-    //         ->get();
-
-    //     $this->salesCounts = [];
-
-    //     foreach ($salesData as $item) {
-    //         $user = User::find($item->salesperson_id);
-    //         $name = $user ? strtolower($user->name) : 'unknown';
-    //         $this->salesCounts[$name] = $item->total;
-    //     }
-
-    //     // Add specific salespeople from your image
-    //     $requiredSales = ['muim', 'jia_jun', 'yasmin', 'edward', 'sulaiman', 'natt',
-    //                      'tamy', 'faza', 'tina', 'jonathan', 'wirson', 'fatimah',
-    //                      'farhanah', 'joshua', 'aziz', 'bari', 'vince'];
-
-    //     foreach ($requiredSales as $name) {
-    //         if (!isset($this->salesCounts[$name])) {
-    //             $this->salesCounts[$name] = 0;
-    //         }
-    //     }
-
-    //     $this->salesCounts['total'] = $this->totalHandovers;
-    // }
-
-    // private function fetchImplementerCounts()
-    // {
-    //     $query = $this->getBaseQuery();
-
-    //     // Get counts grouped by implementer
-    //     $implementerData = $query->clone()
-    //         ->select('implementer', DB::raw('COUNT(*) as total'))
-    //         ->groupBy('implementer')
-    //         ->get();
-
-    //     $this->implementerCounts = [];
-
-    //     foreach ($implementerData as $item) {
-    //         $name = $item->implementer ? strtolower($item->implementer) : 'unknown';
-    //         $this->implementerCounts[$name] = $item->total;
-    //     }
-
-    //     // Add specific implementers from your image
-    //     $requiredImplementers = ['amirul', 'bari', 'zulhilmie', 'adzzim', 'azrul',
-    //                            'najwa', 'syazana', 'hanif', 'aiman', 'hanis', 'john',
-    //                            'alif_faisal', 'shaoinur', 'syamim', 'siew_ling'];
-
-    //     foreach ($requiredImplementers as $name) {
-    //         if (!isset($this->implementerCounts[$name])) {
-    //             $this->implementerCounts[$name] = 0;
-    //         }
-    //     }
-
-    //     $this->implementerCounts['total'] = $this->totalHandovers;
-    // }
-
-    // private function fetchStatusCounts()
-    // {
-    //     $query = $this->getBaseQuery();
-
-    //     // Get counts grouped by status
-    //     $this->statusCounts = [
-    //         'open' => $query->clone()->where('status', 'open')->count(),
-    //         'closed' => $query->clone()->where('status', 'closed')->count(),
-    //         'delay' => $query->clone()->where('status', 'delay')->count(),
-    //         'inactive' => $query->clone()->where('status', 'inactive')->count(),
-    //     ];
-
-    //     $this->statusCounts['total'] = array_sum($this->statusCounts);
-    // }
-
-    // private function fetchStatusOngoingCounts()
-    // {
-    //     $this->statusOngoingCounts = [
-    //         'closed' => $this->statusCounts['closed'],
-    //         'ongoing' => $this->statusCounts['open'] + $this->statusCounts['delay'] + $this->statusCounts['inactive'],
-    //     ];
-    // }
-
-    // private function fetchPaymentCounts()
-    // {
-    //     $query = $this->getBaseQuery();
-
-    //     // Get counts grouped by payment status
-    //     $this->paymentCounts = [
-    //         'full_payment' => $query->clone()->where('payment_status', 'full_payment')->count(),
-    //         'partial_payment' => $query->clone()->where('payment_status', 'partial_payment')->count(),
-    //         'unpaid' => $query->clone()->where('payment_status', 'unpaid')->count(),
-    //         'hrdf_payment' => $query->clone()->where('payment_status', 'hrdf_payment')->count(),
-    //         'bad_debtor' => $query->clone()->where('payment_status', 'bad_debtor')->count(),
-    //     ];
-
-    //     $this->paymentCounts['total'] = array_sum($this->paymentCounts);
-    // }
-
-    // private function fetchAdminTaskCounts()
-    // {
-    //     $query = $this->getBaseQuery();
-
-    //     // Count admin tasks
-    //     $this->adminTaskCounts = [
-    //         'kick_off_meeting' => $query->clone()->where('admin_task', 'kick_off_meeting')->count(),
-    //     ];
-
-    //     $this->adminTaskCounts['total'] = array_sum($this->adminTaskCounts);
-    // }
-
-    // public function openCategorySlideOver($category)
-    // {
-    //     $query = $this->getBaseQuery()->where('size', $category);
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = ucfirst($category) . ' Category Handovers';
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openModuleSlideOver($module)
-    // {
-    //     $query = $this->getBaseQuery()->where('modules', 'like', "%$module%");
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = strtoupper($module) . ' Module Handovers';
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openSalesSlideOver($salesperson)
-    // {
-    //     // Find user ID for the salesperson name
-    //     $user = User::where(DB::raw('LOWER(name)'), 'like', "%$salesperson%")->first();
-
-    //     if ($user) {
-    //         $query = $this->getBaseQuery()->where('salesperson_id', $user->id);
-    //     } else {
-    //         $query = $this->getBaseQuery()->where('salesperson_id', -1); // No matches
-    //     }
-
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = ucfirst($salesperson) . "'s Handovers";
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openImplementerSlideOver($implementer)
-    // {
-    //     $query = $this->getBaseQuery()->where(DB::raw('LOWER(implementer)'), 'like', "%$implementer%");
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = ucfirst($implementer) . "'s Implementations";
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openStatusSlideOver($status)
-    // {
-    //     $query = $this->getBaseQuery()->where('status', $status);
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = ucfirst($status) . ' Status Handovers';
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openPaymentSlideOver($paymentStatus)
-    // {
-    //     $query = $this->getBaseQuery()->where('payment_status', $paymentStatus);
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = str_replace('_', ' ', ucfirst($paymentStatus)) . ' Payment Status';
-    //     $this->showSlideOver = true;
-    // }
-
-    // public function openAdminTaskSlideOver($task)
-    // {
-    //     $query = $this->getBaseQuery()->where('admin_task', $task);
-    //     $this->handoverList = $query->with(['lead', 'lead.companyDetail'])->get();
-    //     $this->slideOverTitle = str_replace('_', ' ', ucfirst($task));
-    //     $this->showSlideOver = true;
-    // }
+    public function getInactiveImplementersList()
+    {
+        return ['BARI', 'ADZZIM', 'AZRUL', 'NAJWA', 'SYAZANA', 'HANIF'];
+    }
 }

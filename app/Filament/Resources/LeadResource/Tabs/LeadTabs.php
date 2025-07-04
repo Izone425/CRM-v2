@@ -100,15 +100,15 @@ class LeadTabs
                                         ->icon('heroicon-o-envelope')
                                         ->color('primary')
                                         ->button()
-                                        // ->visible(function ($record) {
-                                        //     return false;
+                                        ->visible(function ($record) {
+                                            return false;
 
-                                        //     // Only show for leads with company details and email
-                                        //     return $record &&
-                                        //             $record->companyDetail &&
-                                        //             $record->email &&
-                                        //             !empty($record->companyDetail->company_name);
-                                        // })
+                                            // Only show for leads with company details and email
+                                            return $record &&
+                                                    $record->companyDetail &&
+                                                    $record->email &&
+                                                    !empty($record->companyDetail->company_name);
+                                        })
                                         ->modalHeading('Send Customer Portal Activation Email')
                                         ->modalDescription('This will send an activation email to the customer to set up their portal account.')
                                         ->modalSubmitActionLabel('Send Activation Email')

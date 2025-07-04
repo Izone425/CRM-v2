@@ -175,11 +175,6 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
-                TextColumn::make('companyDetail.company_name')
-                    ->label('Company Name')
-                    ->searchable()
-                    ->sortable(),
-
                 TextColumn::make('created_by')
                     ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
@@ -191,9 +186,14 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                         return $user ? $user->name : 'Unknown User';
                     }),
 
-                // TextColumn::make('pic_name')
-                //     ->label('PIC Name')
-                //     ->searchable(),
+                TextColumn::make('companyDetail.company_name')
+                    ->label('Company Name')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('pic_name')
+                    ->label('PIC Name')
+                    ->searchable(),
 
                 // TextColumn::make('devices')
                 //     ->label('Devices')

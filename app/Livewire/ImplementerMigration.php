@@ -79,7 +79,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->where('data_migrated', false)
-            // ->where('id', '>=', 561)
+            ->where('id', '>=', 561)
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
 
@@ -135,6 +135,16 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                             ->toArray();
                     })
                     ->placeholder('All Salesperson')
+                    ->multiple(),
+
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::whereIn('role_id', [4,5])
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementers')
                     ->multiple(),
 
                 SortFilter::make("sort_by"),

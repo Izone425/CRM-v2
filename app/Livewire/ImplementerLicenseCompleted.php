@@ -138,6 +138,16 @@ class ImplementerLicenseCompleted extends Component implements HasForms, HasTabl
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::whereIn('role_id', [4,5])
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementers')
+                    ->multiple(),
+
                 SortFilter::make("sort_by"),
             ])
             ->columns([
