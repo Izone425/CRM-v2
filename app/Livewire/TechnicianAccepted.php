@@ -171,6 +171,17 @@ class TechnicianAccepted extends Component implements HasForms, HasTable
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
+                TextColumn::make('created_by')
+                    ->label('Submitted By')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        if (!$state) {
+                            return 'Unknown';
+                        }
+
+                        $user = User::find($state);
+                        return $user ? $user->name : 'Unknown User';
+                    }),
+
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -179,35 +190,6 @@ class TechnicianAccepted extends Component implements HasForms, HasTable
                 TextColumn::make('pic_name')
                     ->label('PIC Name')
                     ->searchable(),
-
-                TextColumn::make('devices')
-                    ->label('Devices')
-                    ->formatStateUsing(function ($state, AdminRepair $record) {
-                        if ($record->devices) {
-                            $devices = is_string($record->devices)
-                                ? json_decode($record->devices, true)
-                                : $record->devices;
-
-                            if (is_array($devices)) {
-                                return collect($devices)
-                                    ->map(fn ($device) =>
-                                        "{$device['device_model']} (SN: {$device['device_serial']})")
-                                    ->join('<br>');
-                            }
-                        }
-
-                        if ($record->device_model) {
-                            return "{$record->device_model} (SN: {$record->device_serial})";
-                        }
-
-                        return '—';
-                    })
-                    ->html()
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->where('device_model', 'like', "%{$search}%")
-                            ->orWhere('device_serial', 'like', "%{$search}%")
-                            ->orWhere('devices', 'like', "%{$search}%");
-                    }),
 
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket')

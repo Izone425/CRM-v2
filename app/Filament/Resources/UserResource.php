@@ -718,6 +718,9 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('role_id')
                     ->label('Role')
                     ->searchable()
+                    ->sortable(query: function(Builder $query, string $direction): Builder {
+                        return $query->orderBy('role_id', $direction);
+                    })
                     ->formatStateUsing(function ($state) {
                         return match ((int) $state) {
                             1 => 'Lead Owner',

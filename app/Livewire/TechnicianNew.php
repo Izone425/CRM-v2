@@ -171,11 +171,6 @@ class TechnicianNew extends Component implements HasForms, HasTable
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
-                TextColumn::make('companyDetail.company_name')
-                    ->label('Company Name')
-                    ->searchable()
-                    ->sortable(),
-
                 TextColumn::make('created_by')
                     ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
@@ -186,6 +181,11 @@ class TechnicianNew extends Component implements HasForms, HasTable
                         $user = User::find($state);
                         return $user ? $user->name : 'Unknown User';
                     }),
+
+                TextColumn::make('companyDetail.company_name')
+                    ->label('Company Name')
+                    ->searchable()
+                    ->sortable(),
 
                 // TextColumn::make('pic_name')
                 //     ->label('PIC Name')

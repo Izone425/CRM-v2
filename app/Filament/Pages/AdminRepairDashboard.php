@@ -689,6 +689,17 @@ class AdminRepairDashboard extends Page implements HasTable
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
+                TextColumn::make('creator.name')
+                    ->label('Submitted By')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        // If relationship or name is null, try to get the user manually
+                        if (!$state && $record->created_by) {
+                            $user = \App\Models\User::find($record->created_by);
+                            return $user ? $user->name : "User #{$record->created_by}";
+                        }
+                        return $state ?? "Unknown";
+                    }),
+
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable(),
@@ -723,17 +734,6 @@ class AdminRepairDashboard extends Page implements HasTable
 
                 TextColumn::make('zoho_ticket')
                     ->label('Zoho Ticket'),
-
-                TextColumn::make('creator.name')
-                    ->label('Submitted By')
-                    ->formatStateUsing(function ($state, AdminRepair $record) {
-                        // If relationship or name is null, try to get the user manually
-                        if (!$state && $record->created_by) {
-                            $user = \App\Models\User::find($record->created_by);
-                            return $user ? $user->name : "User #{$record->created_by}";
-                        }
-                        return $state ?? "Unknown";
-                    }),
 
                 TextColumn::make('status')
                     ->label('Status')

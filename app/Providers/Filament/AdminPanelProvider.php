@@ -194,7 +194,7 @@ class AdminPanelProvider extends PanelProvider
                 TrainingCalendarBulkManagement::class,
                 ImplementerCalendar::class,
                 ImplementerDataFile::class,
-                // SoftwareHandoverAnalysis::class,
+                SoftwareHandoverAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
