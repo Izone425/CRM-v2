@@ -274,9 +274,7 @@
                 @foreach($this->getTier1Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
-                            <button class="hover:underline" wire:click="openImplementerSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
-                            </button>
+                            {{ $implementer }}
                         </td>
                         <td>{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
@@ -294,9 +292,7 @@
                 @foreach($this->getTier2Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
-                            <button class="hover:underline" wire:click="openImplementerSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
-                            </button>
+                            {{ $implementer }}
                         </td>
                         <td>{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
@@ -314,9 +310,7 @@
                 @foreach($this->getTier3Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
-                            <button class="hover:underline" wire:click="openImplementerSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
-                            </button>
+                            {{ $implementer }}
                         </td>
                         <td>{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
@@ -331,19 +325,19 @@
                 <tr>
                     <td colspan="8" class="tier-header">Inactive Implementers</td>
                 </tr>
-                @foreach($this->getInactiveImplementersList() as $implementer)
+                @foreach($this->getInactiveImplementers() as $implementer)
                     <tr>
                         <td class="name-column">
-                            <button class="hover:underline" wire:click="openImplementerSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
+                            <button>
+                                {{ $implementer['name'] }}
                             </button>
                         </td>
-                        <td>{{ $this->getImplementerTotal($implementer) }}</td>
-                        <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
-                        <td>{{ $this->getImplementerOngoingCount($implementer) }}</td>
-                        <td>{{ $this->getImplementerStatusCount($implementer, 'OPEN') }}</td>
-                        <td>{{ $this->getImplementerStatusCount($implementer, 'DELAY') }}</td>
-                        <td>{{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}</td>
+                        <td>{{ $implementer['total'] }}</td>
+                        <td>{{ $implementer['closed'] }}</td>
+                        <td>{{ $implementer['ongoing'] }}</td>
+                        <td>{{ $implementer['open'] }}</td>
+                        <td>{{ $implementer['delay'] }}</td>
+                        <td>{{ $implementer['inactive'] }}</td>
                     </tr>
                 @endforeach
 
