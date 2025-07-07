@@ -42,6 +42,15 @@ class AdminRepair extends Model
         'created_by',
         'updated_by',
         'completed_at',
+        'completed_date',
+        'completed_by',
+        'spare_parts_used',
+        'spare_parts_unused',
+        'onsite_repair_remark',
+        'repair_completion_remarks',
+        'delivery_order_files',
+        'repair_form_files',
+        'repair_image_files',
     ];
 
     protected $casts = [
@@ -55,6 +64,13 @@ class AdminRepair extends Model
         'invoice_file' => 'array',
         'sales_order_file' => 'array',
         'payment_slip_file' => 'array',
+        'spare_parts_used' => 'array',
+        'spare_parts_unused' => 'array',
+        'repair_completion_remarks' => 'array',
+        'delivery_order_files' => 'array',
+        'repair_form_files' => 'array',
+        'repair_image_files' => 'array',
+        'completed_date' => 'datetime',
     ];
 
     // Default status for new repair tickets
@@ -94,6 +110,12 @@ class AdminRepair extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // Add relationship to User (completer)
+    public function completer()
+    {
+        return $this->belongsTo(User::class, 'completed_by');
     }
 
     public function setPicNameAttribute($value)

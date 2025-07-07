@@ -8,6 +8,7 @@ use App\Http\Controllers\GenerateRepairPdfController;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Models\AdminRepair;
+use App\Models\SparePart;
 use App\Models\User;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
@@ -285,6 +286,42 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                             ->optionsLimit(50)
                                             ->loadingMessage('Loading spare parts...')
                                             ->noSearchResultsMessage('No spare parts found')
+                                            ->hintAction(function (Select $component) {
+                                                // Import the correct Action class at the top of your file
+                                                return \Filament\Forms\Components\Actions\Action::make('select_all')
+                                                    ->label('Select All Parts for this Model')
+                                                    ->icon('heroicon-o-check-circle')
+                                                    ->action(function (callable $get) use ($component) {
+                                                        // Fix: Access the device model directly from the state path
+                                                        $statePath = $component->getContainer()->getParentComponent()->getStatePath();
+                                                        $deviceModelPath = $statePath . '.device_model';
+
+                                                        // Use Livewire's get() method instead of evaluate()
+                                                        $deviceModel = $get('device_model');
+
+                                                        if (empty($deviceModel)) {
+                                                            Notification::make()
+                                                                ->title('No device model selected')
+                                                                ->warning()
+                                                                ->send();
+                                                            return;
+                                                        }
+
+                                                        // Get all spare part IDs for this specific device model only
+                                                        $spareParts = SparePart::where('is_active', true)
+                                                            ->where('device_model', $deviceModel)
+                                                            ->pluck('id')
+                                                            ->toArray();
+
+                                                        // Set the state to include only parts for this device model
+                                                        $component->state($spareParts);
+
+                                                        Notification::make()
+                                                            ->title("Selected all parts for {$deviceModel}")
+                                                            ->success()
+                                                            ->send();
+                                                    });
+                                            })
                                             ->options(function (callable $get) {
                                                 // Get the selected device model for this repeater item
                                                 $deviceModel = $get('device_model');

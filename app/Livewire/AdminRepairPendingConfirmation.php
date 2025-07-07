@@ -21,6 +21,8 @@ use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
@@ -286,6 +288,131 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                         ->modalWidth('5xl')  // Increased for better display
                         ->modalHeading('Change Status to Pending Onsite Repair')
                         ->form([
+                            ToggleButtons::make('mode')
+                                ->label('')
+                                ->options([
+                                    'auto' => 'Auto',
+                                    'custom' => 'Custom',
+                                ])
+                                ->reactive()
+                                ->inline()
+                                ->grouped()
+                                ->default('auto')
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === 'custom') {
+                                        $set('date', null);
+                                        $set('start_time', null);
+                                        $set('end_time', null);
+                                    } else {
+                                        $set('date', Carbon::today()->toDateString());
+                                        $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                        $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                                    }
+                                }),
+
+                            Grid::make(3)
+                                ->schema([
+                                    DatePicker::make('date')
+                                        ->required()
+                                        ->label('DATE')
+                                        ->default(Carbon::today()->toDateString())
+                                        ->reactive(),
+
+                                    TimePicker::make('start_time')
+                                        ->label('START TIME')
+                                        ->required()
+                                        ->seconds(false)
+                                        ->reactive()
+                                        ->default(function () {
+                                            // Round up to the next 30-minute interval
+                                            $now = Carbon::now();
+                                            return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                                        })
+                                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                            if ($get('mode') === 'auto' && $state) {
+                                                $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                            }
+                                        }),
+
+                                    TimePicker::make('end_time')
+                                        ->label('END TIME')
+                                        ->required()
+                                        ->seconds(false)
+                                        ->reactive()
+                                        ->default(function (callable $get) {
+                                            $startTime = $get('start_time');
+                                            if ($startTime) {
+                                                return Carbon::parse($startTime)->addHour()->format('H:i');
+                                            }
+                                            return Carbon::now()->addMinutes(90 - (Carbon::now()->minute % 30))->format('H:i');
+                                        }),
+                                ]),
+
+                            Grid::make(3)
+                                ->schema([
+                                    Select::make('type')
+                                        ->options([
+                                            'NEW INSTALLATION' => 'NEW INSTALLATION',
+                                            'REPAIR' => 'REPAIR',
+                                            'MAINTENANCE SERVICE' => 'MAINTENANCE SERVICE',
+                                        ])
+                                        ->default('REPAIR')
+                                        ->required()
+                                        ->label('REPAIR TYPE')
+                                        ->reactive(),
+
+                                    Select::make('appointment_type')
+                                        ->options([
+                                            'ONSITE' => 'ONSITE',
+                                        ])
+                                        ->required()
+                                        ->default('ONSITE')
+                                        ->label('APPOINTMENT TYPE'),
+
+                                    Select::make('technician')
+                                        ->label('TECHNICIAN')
+                                        ->options(function () {
+                                            // Get technicians (role_id 9) with their names as both keys and values
+                                            $technicians = \App\Models\User::where('role_id', 9)
+                                                ->orderBy('name')
+                                                ->get()
+                                                ->mapWithKeys(function ($tech) {
+                                                    return [$tech->name => $tech->name];
+                                                })
+                                                ->toArray();
+
+                                            // Get resellers from reseller table with their names as both keys and values
+                                            $resellers = \App\Models\Reseller::orderBy('company_name')
+                                                ->get()
+                                                ->mapWithKeys(function ($reseller) {
+                                                    return [$reseller->company_name => $reseller->company_name];
+                                                })
+                                                ->toArray();
+
+                                            // Return as option groups
+                                            return [
+                                                'Internal Technicians' => $technicians,
+                                                'Reseller Partners' => $resellers,
+                                            ];
+                                        })
+                                        ->default(function ($record = null) {
+                                            return $record ? $record->technician : null;
+                                        })
+                                        ->searchable()
+                                        ->required()
+                                        ->placeholder('Select a technician')
+                                ]),
+
+                            Textarea::make('remarks')
+                                ->label('REMARKS')
+                                ->rows(3)
+                                ->autosize()
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                            TextInput::make('required_attendees')
+                                ->label('Required Attendees')
+                                ->helperText('Separate each email with a semicolon (e.g., email1@example.com;email2@example.com)'),
+
                             Grid::make(3)
                             ->schema([
                                 FileUpload::make('payment_slip_file')
@@ -361,8 +488,125 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
 
                             $record->update($data);
 
+                            $appointmentData = [
+                                'repair_handover_id' => $record->id,
+                                'lead_id' => $record->lead_id,
+                                'type' => $data['type'] ?? 'REPAIR',
+                                'appointment_type' => $data['appointment_type'] ?? 'ONSITE',
+                                'date' => $data['date'],
+                                'start_time' => $data['start_time'],
+                                'end_time' => $data['end_time'],
+                                'technician' => $data['technician'],
+                                'causer_id' => auth()->user()->id,
+                                'technician_assigned_date' => now(),
+                                'remarks' => $data['remarks'] ?? null,
+                                'status' => 'New',
+                            ];
+
+                            // Process required attendees if provided
+                            if (!empty($data['required_attendees'])) {
+                                $attendeeEmails = array_filter(array_map('trim', explode(';', $data['required_attendees'])));
+                                if (!empty($attendeeEmails)) {
+                                    $appointmentData['required_attendees'] = json_encode($attendeeEmails);
+                                }
+                            }
+
+                            // Get lead information for the title
+                            $lead = \App\Models\Lead::find($record->lead_id);
+                            if ($lead && !empty($lead->companyDetail->company_name)) {
+                                $appointmentData['title'] = $data['type'] . ' | ' . $data['appointment_type'] . ' | TIMETEC REPAIR | ' . $lead->companyDetail->company_name;
+                            } else {
+                                $appointmentData['title'] = $data['type'] . ' | ' . $data['appointment_type'] . ' | TIMETEC REPAIR';
+                            }
+
+                            // Create the appointment
+                            $appointment = \App\Models\RepairAppointment::create($appointmentData);
+
+                            // Send email notification about the appointment
+                            if ($appointment && $lead) {
+                                // Set up email recipients
+                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+
+                                // Process required attendees
+                                $attendeeEmails = [];
+                                if (!empty($data['required_attendees'])) {
+                                    $attendeeEmails = array_filter(array_map('trim', explode(';', $data['required_attendees'])));
+
+                                    // Add valid emails to recipients
+                                    foreach ($attendeeEmails as $email) {
+                                        if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
+                                            $recipients[] = $email;
+                                        }
+                                    }
+                                }
+
+                                // Prepare email content
+                                $viewName = 'emails.repair_appointment_notification';
+                                $leadOwner = \App\Models\User::where('name', $lead->lead_owner)->first();
+
+                                $emailContent = [
+                                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                                    'lead' => [
+                                        'lastName' => $lead->companyDetail->name ?? $lead->name,
+                                        'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                        'technicianName' => $data['technician'] ?? 'N/A',
+                                        'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
+                                        'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
+                                        'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
+                                        'date' => Carbon::parse($data['date'])->format('d/m/Y') ?? 'N/A',
+                                        'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
+                                        'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
+                                        'leadOwnerMobileNumber' => $leadOwner->mobile_number ?? 'N/A',
+                                        'repair_type' => $data['type'],
+                                        'appointment_type' => $data['appointment_type'],
+                                        'remarks' => $data['remarks'] ?? 'N/A',
+                                    ],
+                                ];
+
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
+
+                                try {
+                                    // Send email with template and custom subject format
+                                    if (count($recipients) > 0) {
+                                        \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
+                                            $message->from($senderEmail, $senderName)
+                                                ->to($recipients)
+                                                ->subject("TIMETEC REPAIR APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
+                                        });
+
+                                        Notification::make()
+                                            ->title('Repair appointment notification sent')
+                                            ->success()
+                                            ->body('Email notification sent to administrator and required attendees')
+                                            ->send();
+                                    }
+                                } catch (\Exception $e) {
+                                    // Handle email sending failure
+                                    Log::error("Email sending failed for repair appointment: Error: {$e->getMessage()}");
+
+                                    Notification::make()
+                                        ->title('Email Notification Failed')
+                                        ->danger()
+                                        ->body('Could not send email notification: ' . $e->getMessage())
+                                        ->send();
+                                }
+                            }
+
+                            // Log the activity
+                            \App\Models\ActivityLog::create([
+                                'user_id' => auth()->id(),
+                                'action' => 'Created Repair Appointment',
+                                'description' => "Created a repair appointment for repair ID: {$record->id}",
+                                'subject_type' => \App\Models\RepairAppointment::class,
+                                'subject_id' => $appointment->id ?? null,
+                            ]);
+
                             Notification::make()
-                                ->title('Repair handover status updated')
+                                ->title('Repair status updated and appointment scheduled')
                                 ->success()
                                 ->send();
                         })

@@ -49,7 +49,8 @@ class SoftwareHandoverAnalysis extends Page
 
     private function getBaseQuery()
     {
-        $query = SoftwareHandover::query();
+        $query = SoftwareHandover::query()
+            ->where('implementer', '!=', null);
         return $query;
     }
 
@@ -99,16 +100,6 @@ class SoftwareHandoverAnalysis extends Page
             ->count();
     }
 
-    public function openImplementerSlideOver($implementer)
-    {
-        $this->slideOverTitle = "$implementer's Handovers";
-        $this->handoverList = $this->getBaseQuery()
-            ->where('implementer', $implementer)
-            ->with(['lead.companyDetail'])
-            ->get();
-        $this->showSlideOver = true;
-    }
-
     public function getAllImplementers()
     {
         return SoftwareHandover::select('implementer')
@@ -148,10 +139,23 @@ class SoftwareHandoverAnalysis extends Page
         return $implementers;
     }
 
+    public function getImplementerDisplayNames()
+    {
+        return [
+            'BARI' => 'Muhammad Khoirul Bariah',
+            'ADZZIM' => 'Adzzim Bin Kassim',
+            'AZRUL' => 'Azrul Nizam',
+            'HANIF' => 'Muhammad Hanif',
+            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+            'Noor Syazana' => 'Noor Syazana',
+        ];
+    }
+
     public function getInactiveImplementers()
     {
         // Define your list of inactive implementers
-        $inactiveImplementers = ['BARI', 'ADZZIM', 'AZRUL', 'NAJWA', 'SYAZANA', 'HANIF'];
+        $inactiveImplementers = ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
+        $displayNames = $this->getImplementerDisplayNames();
 
         $implementers = [];
 
@@ -163,8 +167,12 @@ class SoftwareHandoverAnalysis extends Page
             $delay = $this->getImplementerStatusCount($implementer, 'DELAY');
             $inactive = $this->getImplementerStatusCount($implementer, 'INACTIVE');
 
+            // Get display name if available, otherwise use original name
+            $displayName = isset($displayNames[$implementer]) ? $displayNames[$implementer] : $implementer;
+
             $implementers[] = [
-                'name' => $implementer,
+                'name' => $displayName, // Use display name in the UI
+                'dbName' => $implementer, // Keep the original name for database queries
                 'isActive' => false,
                 'total' => $total,
                 'closed' => $closed,
@@ -215,21 +223,21 @@ class SoftwareHandoverAnalysis extends Page
 
     public function getTier1Implementers()
     {
-        return ['SHAQINUR', 'SYAMIM', 'SYAZWAN'];
+        return ['Nurul Shaqinur Ain', 'Ahmad Syamim', 'Ahmad Syazwan'];
     }
 
     public function getTier2Implementers()
     {
-        return ['AIMAN', 'ZULHILMIE'];
+        return ['Muhamad Izzul Aiman', 'Zulhilmie'];
     }
 
     public function getTier3Implementers()
     {
-        return ['AMIRUL', 'JOHN', 'FAZULIANA'];
+        return ['Mohd Amirul Ashraf', 'John Low', 'Nur Fazuliana'];
     }
 
     public function getInactiveImplementersList()
     {
-        return ['BARI', 'ADZZIM', 'AZRUL', 'NAJWA', 'SYAZANA', 'HANIF'];
+        return ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
     }
 }

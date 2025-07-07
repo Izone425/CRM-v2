@@ -92,7 +92,7 @@
                     <span class="font-semibold">Product PI:</span>
                     @if($productQuotations->count() > 0)
                         @foreach($productQuotations as $index => $quotation)
-                            <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                            <a href="{{ url('proforma-invoice-v2/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
                             @if(!$loop->last) / @endif
                         @endforeach
                     @else
@@ -103,7 +103,7 @@
                     <span class="font-semibold">HRDF PI:</span>
                     @if($hrdfQuotations->count() > 0)
                         @foreach($hrdfQuotations as $index => $quotation)
-                            <a href="{{ url('proforma-invoice/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
+                            <a href="{{ url('proforma-invoice-v2/' . $quotation->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">{{ $quotation->pi_reference_no }}</a>
                             @if(!$loop->last) / @endif
                         @endforeach
                     @else

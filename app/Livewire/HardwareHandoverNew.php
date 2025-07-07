@@ -835,7 +835,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             Select::make('implementer')
                                 ->label('Assign Implementer')
                                 ->options(function () {
-                                    return User::where('role_id', 4) // Assuming 4 is the implementer role
+                                    return User::whereIn('role_id', [4,5]) // Assuming 4 is the implementer role
                                         ->orWhere(function ($query) {
                                             $query->where('additional_role', 4);
                                         })
@@ -1216,7 +1216,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             Select::make('implementer')
                                 ->label('Assign Implementer')
                                 ->options(function () {
-                                    return User::where('role_id', 4)
+                                    return User::whereIn('role_id', [4, 5])
                                         ->orWhere(function ($query) {
                                             $query->where('additional_role', 4);
                                         })

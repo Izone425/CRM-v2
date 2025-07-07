@@ -566,8 +566,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             $lead = $this->ownerRecord;
 
                             // Set up email recipients
-                            // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Admin email
-                            $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
+                            $recipients = ['admin.timetec.hr@timeteccloud.com']; // Admin email
+                            // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
 
                             // Process required attendees from saved data
                             $requiredAttendees = null;
@@ -699,8 +699,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             // Send email notification about the rescheduled appointment
                             $lead = $this->ownerRecord;
 
-                            // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                            $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
+                            $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                            // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
 
                             // Add the lead owner's email if available
                             // $leadOwner = User::where('name', $lead->lead_owner)->first();
@@ -832,8 +832,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     $appointment->save();
 
                     // Set up email recipients for notification
-                    // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                    $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                    // $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
 
                     // Add required attendees if they have valid emails
                     foreach ($attendeeEmails as $email) {
