@@ -44,10 +44,8 @@ class AdminRepair extends Model
         'completed_at',
         'completed_date',
         'completed_by',
-        'spare_parts_used',
         'spare_parts_unused',
         'onsite_repair_remark',
-        'repair_completion_remarks',
         'delivery_order_files',
         'repair_form_files',
         'repair_image_files',
@@ -77,6 +75,11 @@ class AdminRepair extends Model
     protected $attributes = [
         'status' => 'Draft',
     ];
+
+    public function setOnsiteRepairRemarkAttribute($value)
+    {
+        $this->attributes['onsite_repair_remark'] = $value ? strtoupper($value) : null;
+    }
 
     public function lead()
     {
