@@ -629,6 +629,370 @@
                     </div>
                 </div>
             </div>
+
+            <div x-data="{ doneRepairModalOpen: false }">
+                <p class="mb-2">
+                    <span class="font-semibold">Completed Repair Details:</span>
+                    <a href="#"
+                    @click.prevent="doneRepairModalOpen = true"
+                    style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                    onmouseover="this.style.textDecoration='underline'"
+                    onmouseout="this.style.textDecoration='none'">
+                        View Details
+                    </a>
+                </p>
+
+                <!-- Done Repair Modal -->
+                <div x-show="doneRepairModalOpen"
+                    x-transition
+                    @click.outside="doneRepairModalOpen = false"
+                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                    <div class="relative w-full max-w-4xl p-6 mx-auto mt-10 bg-white rounded-lg shadow-xl" @click.away="doneRepairModalOpen = false">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Completed Repair Details</h3>
+                            <button type="button" @click="doneRepairModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="max-h-[70vh] overflow-y-auto">
+                            <!-- Onsite Repair Remark -->
+                            <div class="mb-6">
+                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Repair Remarks</h4>
+                                <div class="p-4 rounded-lg bg-gray-50">
+                                    @if(!empty($record->onsite_repair_remark))
+                                        <div class="text-gray-800 whitespace-pre-line">{{ $record->onsite_repair_remark }}</div>
+                                    @else
+                                        <p class="italic text-gray-500">No onsite repair remarks provided</p>
+                                    @endif
+                                </div>
+                            </div>
+                            <br>
+
+                            <!-- Spare Parts Used -->
+                            <div class="mb-6">
+                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Spare Parts Used</h4>
+                                @php
+                                    // Get all spare parts from repair_remark
+                                    $allParts = [];
+                                    $deviceInfo = [];
+
+                                    // First collect all parts and device info from repair_remark
+                                    if(!empty($record->repair_remark)) {
+                                        $deviceRepairs = is_string($record->repair_remark)
+                                            ? json_decode($record->repair_remark, true)
+                                            : $record->repair_remark;
+
+                                        if(is_array($deviceRepairs)) {
+                                            foreach($deviceRepairs as $repair) {
+                                                if(!empty($repair['device_model']) && !empty($repair['spare_parts'])) {
+                                                    foreach($repair['spare_parts'] as $part) {
+                                                        if(!empty($part['part_id'])) {
+                                                            $partId = $part['part_id'];
+                                                            $partName = $part['name'] ?? 'Unknown Part';
+
+                                                            // Store part in allParts
+                                                            $allParts[$partId] = [
+                                                                'part_id' => $partId,
+                                                                'part_name' => $partName,
+                                                                'device_model' => $repair['device_model'],
+                                                                'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                            ];
+
+                                                            // Also store in deviceInfo for lookup
+                                                            $deviceInfo[$partId] = [
+                                                                'device_model' => $repair['device_model'],
+                                                                'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Get unused parts
+                                    $unusedParts = !empty($record->spare_parts_unused)
+                                        ? (is_string($record->spare_parts_unused)
+                                            ? json_decode($record->spare_parts_unused, true)
+                                            : $record->spare_parts_unused)
+                                        : [];
+
+                                    // Build a lookup for unused parts by part_id
+                                    $unusedPartIds = [];
+                                    if(is_array($unusedParts)) {
+                                        foreach($unusedParts as $part) {
+                                            if(isset($part['part_id'])) {
+                                                $unusedPartIds[$part['part_id']] = true;
+                                            }
+                                        }
+                                    }
+
+                                    // Calculate actually used parts (all parts minus unused parts)
+                                    $spareParts = [];
+                                    foreach($allParts as $partId => $part) {
+                                        // Only include if not in unused parts
+                                        if(!isset($unusedPartIds[$partId])) {
+                                            $spareParts[] = $part;
+                                        }
+                                    }
+
+                                    // If we have specific spare_parts_used data, override with that
+                                    $explicitUsedParts = !empty($record->spare_parts_used)
+                                        ? (is_string($record->spare_parts_used)
+                                            ? json_decode($record->spare_parts_used, true)
+                                            : $record->spare_parts_used)
+                                        : [];
+
+                                    if(!empty($explicitUsedParts) && is_array($explicitUsedParts)) {
+                                        $spareParts = $explicitUsedParts;
+                                    }
+                                @endphp
+
+                                @if(!empty($spareParts) && is_array($spareParts) && count($spareParts) > 0)
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full border border-collapse border-gray-300">
+                                            <thead class="bg-gray-100">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Part Name</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Serial</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($spareParts as $index => $part)
+                                                    <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['part_name'] ?? 'N/A' }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['device_model'] ?? 'N/A' }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['device_serial'] ?? 'N/A' }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">
+                                                            <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                                                Used
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <p class="italic text-gray-500">No spare parts were used</p>
+                                @endif
+                            </div>
+                            <br>
+                            <!-- Spare Parts Not Used -->
+                            <div class="mb-6">
+                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Spare Parts Not Used</h4>
+                                @php
+                                    $unusedParts = !empty($record->spare_parts_unused)
+                                        ? (is_string($record->spare_parts_unused)
+                                            ? json_decode($record->spare_parts_unused, true)
+                                            : $record->spare_parts_unused)
+                                        : [];
+
+                                    // Prepare a collection of device information for lookup
+                                    $deviceInfo = [];
+
+                                    // First try to get device info from repair_remark
+                                    if(!empty($record->repair_remark)) {
+                                        $deviceRepairs = is_string($record->repair_remark)
+                                            ? json_decode($record->repair_remark, true)
+                                            : $record->repair_remark;
+
+                                        if(is_array($deviceRepairs)) {
+                                            foreach($deviceRepairs as $repair) {
+                                                if(!empty($repair['device_model']) && !empty($repair['spare_parts'])) {
+                                                    foreach($repair['spare_parts'] as $part) {
+                                                        if(!empty($part['part_id'])) {
+                                                            $deviceInfo[$part['part_id']] = [
+                                                                'device_model' => $repair['device_model'],
+                                                                'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Then try to get from devices array as backup
+                                    if(!empty($record->devices)) {
+                                        $devices = is_string($record->devices)
+                                            ? json_decode($record->devices, true)
+                                            : $record->devices;
+
+                                        if(is_array($devices)) {
+                                            foreach($devices as $device) {
+                                                if(!empty($device['device_model'])) {
+                                                    // If we have spare parts in the device structure
+                                                    if(!empty($device['spare_parts'])) {
+                                                        foreach($device['spare_parts'] as $part) {
+                                                            if(!empty($part['id'])) {
+                                                                $deviceInfo[$part['id']] = [
+                                                                    'device_model' => $device['device_model'],
+                                                                    'device_serial' => $device['device_serial'] ?? 'N/A'
+                                                                ];
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                @if(!empty($unusedParts) && is_array($unusedParts) && count($unusedParts) > 0)
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full border border-collapse border-gray-300">
+                                            <thead class="bg-gray-100">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Part Name</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Serial</th>
+                                                    <th class="px-4 py-2 text-left border border-gray-300">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($unusedParts as $index => $part)
+                                                    @php
+                                                        $partId = $part['part_id'] ?? ($part['id'] ?? null);
+                                                        $deviceData = !empty($partId) && isset($deviceInfo[$partId])
+                                                            ? $deviceInfo[$partId]
+                                                            : null;
+
+                                                        // Fall back to data directly in the part if lookup fails
+                                                        $deviceModel = $deviceData['device_model'] ?? ($part['device_model'] ?? 'N/A');
+                                                        $deviceSerial = $deviceData['device_serial'] ?? ($part['device_serial'] ?? 'N/A');
+                                                    @endphp
+                                                    <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['part_name'] ?? 'N/A' }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $deviceModel }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">{{ $deviceSerial }}</td>
+                                                        <td class="px-4 py-2 border border-gray-300">
+                                                            <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full">
+                                                                Not Used
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <p class="italic text-gray-500">No unused spare parts reported</p>
+                                @endif
+                            </div>
+                            <br>
+                            <!-- Repair Documents -->
+                            <div class="grid grid-cols-1 gap-4 mb-6">
+                                <!-- Delivery Order Files -->
+                                <div>
+                                    <p>
+                                        <span class="font-semibold">Delivery Order Files:</span>
+                                        @php
+                                            $deliveryOrderFiles = !empty($record->delivery_order_files)
+                                                ? (is_string($record->delivery_order_files)
+                                                    ? json_decode($record->delivery_order_files, true)
+                                                    : $record->delivery_order_files)
+                                                : [];
+                                        @endphp
+
+                                        @if(is_array($deliveryOrderFiles) && count($deliveryOrderFiles) > 0)
+                                            @foreach($deliveryOrderFiles as $index => $file)
+                                                <a href="{{ asset('storage/' . $file) }}"
+                                                target="_blank"
+                                                class="ml-2 font-medium text-blue-600"
+                                                style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                                                onmouseover="this.style.textDecoration='underline'"
+                                                onmouseout="this.style.textDecoration='none'">
+                                                    File {{ $index + 1 }}
+                                                </a>
+                                                @if(!$loop->last)
+                                                    <span class="text-gray-400">/</span>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <span class="ml-2">Not Available</span>
+                                        @endif
+                                    </p>
+                                </div>
+
+                                <!-- Repair Form Files -->
+                                <div>
+                                    <p>
+                                        <span class="font-semibold">Repair Form Files:</span>
+                                        @php
+                                            $repairFormFiles = !empty($record->repair_form_files)
+                                                ? (is_string($record->repair_form_files)
+                                                    ? json_decode($record->repair_form_files, true)
+                                                    : $record->repair_form_files)
+                                                : [];
+                                        @endphp
+
+                                        @if(is_array($repairFormFiles) && count($repairFormFiles) > 0)
+                                            @foreach($repairFormFiles as $index => $file)
+                                                <a href="{{ asset('storage/' . $file) }}"
+                                                target="_blank"
+                                                class="ml-2 font-medium text-blue-600"
+                                                style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                                                onmouseover="this.style.textDecoration='underline'"
+                                                onmouseout="this.style.textDecoration='none'">
+                                                    File {{ $index + 1 }}
+                                                </a>
+                                                @if(!$loop->last)
+                                                    <span class="text-gray-400">/</span>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <span class="ml-2">Not Available</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                <!-- Repair Image Files -->
+                                <div class="mb-4">
+                                    <p>
+                                        <span class="font-semibold">Repair Images:</span>
+                                        @php
+                                            $repairImages = !empty($record->repair_image_files)
+                                                ? (is_string($record->repair_image_files)
+                                                    ? json_decode($record->repair_image_files, true)
+                                                    : $record->repair_image_files)
+                                                : [];
+                                        @endphp
+
+                                        @if(is_array($repairImages) && count($repairImages) > 0)
+                                            @foreach($repairImages as $index => $image)
+                                                <a href="{{ asset('storage/' . $image) }}"
+                                                target="_blank"
+                                                class="ml-2 font-medium text-blue-600"
+                                                style="color: #2563EB; text-decoration: none; font-weight: 500;"
+                                                onmouseover="this.style.textDecoration='underline'"
+                                                onmouseout="this.style.textDecoration='none'">
+                                                    Image {{ $index + 1 }}
+                                                </a>
+                                                @if(!$loop->last)
+                                                    <span class="text-gray-400">/</span>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <span class="ml-2">Not Available</span>
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 text-center">
+                            <button @click="doneRepairModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {{-- <div class="mb-6">
                 <p class="mb-2">
                     <span class="font-semibold">Additional Attachments:</span>

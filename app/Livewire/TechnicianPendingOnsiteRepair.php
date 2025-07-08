@@ -310,15 +310,8 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                         ->label('Device Model')
                                         ->columnSpan(1)
                                         ->disabled()
-                                        ->default('Generic Device') // Add default value
                                         ->required()
-                                        ->rules(['required', 'string', 'min:2'])
-                                        ->afterStateHydrated(function (TextInput $component, $state) {
-                                            // Ensure we never have an empty device_model
-                                            if (empty($state)) {
-                                                $component->state('Generic Device');
-                                            }
-                                        }),
+                                        ->rules(['required', 'string', 'min:2']),
 
                                     TextInput::make('device_serial')
                                         ->label('Serial Number')
@@ -486,6 +479,9 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                         Textarea::make('onsite_repair_remark')
                             ->label('Onsite Repair Remark')
                             ->placeholder('Enter any additional notes about the repair completion')
+                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                            ->afterStateUpdated(fn($state) => Str::upper($state))
                             ->rows(3),
 
                         FileUpload::make('repair_attachments')
@@ -761,8 +757,6 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                 'part_name' => $part->name ?? 'Unknown Part',
                                 'device_model' => $deviceModel,
                                 'device_serial' => $deviceSerial,
-                                'status' => 'used',
-                                'used_date' => now()->toDateTimeString()
                             ];
 
                             Log::info("Added part to finalSpareParts", [
@@ -789,8 +783,6 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                 'part_name' => $part->name ?? 'Unknown Part',
                                 'device_model' => $deviceModel,
                                 'device_serial' => $deviceSerial,
-                                'status' => 'unused',
-                                'date' => now()->toDateTimeString()
                             ];
 
                             Log::info("Added part to unusedSpareParts", [
@@ -811,18 +803,10 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
 
         // Now update the repair record
         $updateData = [
+            'onsite_repair_remark' => $data['onsite_repair_remark'] ?? null,
             'status' => 'Completed',
             'completed_date' => now(),
         ];
-
-        // Only add spare parts data if we have some
-        if (!empty($finalSpareParts)) {
-            $updateData['spare_parts_used'] = json_encode($finalSpareParts);
-            Log::info("Adding spare_parts_used to updateData", ['count' => count($finalSpareParts)]);
-        } else {
-            Log::warning("No finalSpareParts to save");
-            $updateData['spare_parts_used'] = json_encode([]);
-        }
 
         if (!empty($unusedSpareParts)) {
             $updateData['spare_parts_unused'] = json_encode($unusedSpareParts);
