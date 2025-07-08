@@ -121,6 +121,35 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
+                TextColumn::make('lead.company_size_label')  // Changed from lead.company_size to use the accessor
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN leads.company_size = '1-24' THEN 1
+                                WHEN leads.company_size = '25-99' THEN 2
+                                WHEN leads.company_size = '100-500' THEN 3
+                                WHEN leads.company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return $state ?? 'N/A';
+                    }),
+                TextColumn::make('appointment_type')
+                    ->label('Appointment Type')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size = '25-99' THEN 2
+                                WHEN company_size = '100-500' THEN 3
+                                WHEN company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    }),
                 TextColumn::make('type')
                     ->label('Demo Type')
                     ->sortable(query: function ($query, $direction) {
