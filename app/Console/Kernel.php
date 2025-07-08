@@ -30,6 +30,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('zoho:fetch-leads')->cron('*/4 * * * *'); // Runs every 4 minutes
 
         $schedule->command('repair:check-pending-status')->dailyAt('00:01');
+
+        $schedule->command('handovers:check-delays')->dailyAt('00:01');
     }
 
     /**

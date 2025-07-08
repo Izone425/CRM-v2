@@ -110,27 +110,6 @@ class SoftwareHandover extends Model
         'remarks' => 'array',
     ];
 
-    protected static function booted()
-    {
-        parent::booted();
-
-        // This runs when a model is retrieved from the database
-        static::retrieved(function ($softwareHandover) {
-            // Only check if status is not already Closed and completed_at exists
-            if ($softwareHandover->status_handover !== 'Closed' && $softwareHandover->completed_at) {
-                $completedDate = Carbon::parse($softwareHandover->completed_at);
-                $today = Carbon::now();
-                $daysDifference = $completedDate->diffInDays($today);
-
-                // If more than 60 days and not already marked as Delay or Closed, update to Delay
-                if ($daysDifference > 60 && $softwareHandover->status_handover === 'Open') {
-                    $softwareHandover->status_handover = 'Delay';
-                    $softwareHandover->saveQuietly(); // Save without triggering events
-                }
-            }
-        });
-    }
-
     /**
      * Get the total days since completion.
      *
