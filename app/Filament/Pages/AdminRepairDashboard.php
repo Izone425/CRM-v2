@@ -69,23 +69,38 @@ class AdminRepairDashboard extends Page implements HasTable
                                 ->label('Company Name')
                                 ->columnSpan(2)
                                 ->options(function () {
-                                // Get companies that have software handovers only
-                                return CompanyDetail::whereHas('lead', function ($query) {
-                                        $query->where('lead_status', 'Closed');
+                                        // Get companies that have software handovers only
+                                        return CompanyDetail::whereHas('lead', function ($query) {
+                                                $query->where('lead_status', 'Closed');
+                                            })
+                                            ->whereHas('lead.softwareHandover', function ($query) {
+                                                // Filter by companies that have at least one software handover
+                                                $query->whereNotNull('id');
+                                            })
+                                            ->whereNotNull('company_name')
+                                            ->where('company_name', '!=', '')
+                                            ->with(['lead.softwareHandover' => function($query) {
+                                                $query->orderBy('id', 'desc');
+                                            }])
+                                            ->get()
+                                            ->map(function ($company) {
+                                                // Get the latest software handover ID for this company
+                                                $handover = $company->lead->softwareHandover->first();
+                                                $handoverId = $handover ? 'SW_' . str_pad($handover->id, 6, '0', STR_PAD_LEFT) : 'N/A';
+
+                                                // Format as "SW_250604 | KTA (SARAWAK) SDN BHD"
+                                                return [
+                                                    'id' => $company->id,
+                                                    'label' => $handoverId . ' | ' . $company->company_name,
+                                                ];
+                                            })
+                                            ->sortByDesc(function ($company) {
+                                                // Sort by handover ID (descending)
+                                                return substr($company['label'], 3, 6); // Extract the numeric part of the SW_XXXXXX
+                                            })
+                                            ->pluck('label', 'id')
+                                            ->toArray();
                                     })
-                                    ->whereHas('lead.softwareHandover', function ($query) {
-                                        // Filter by companies that have at least one software handover
-                                        $query->whereNotNull('id');
-                                    })
-                                    ->whereNotNull('company_name')
-                                    ->where('company_name', '!=', '')
-                                    ->pluck('company_name', 'id')
-                                    ->map(function ($companyName, $id) {
-                                        // Ensure we have a string value
-                                        return (string)($companyName ?? "Company #$id");
-                                    })
-                                    ->toArray();
-                                })
                                 ->searchable()
                                 ->required()
                                 ->default(fn (?AdminRepair $record = null) =>
