@@ -74,6 +74,7 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
             ->where('lead_status', '!=', 'Demo-Assigned')
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
+            ->whereNotIn('salesperson', [18, 21, 25])
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         // Salesperson filter logic
@@ -136,6 +137,22 @@ class PrTodaySalespersonTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
+                TextColumn::make('company_size_label')  // Changed from lead.company_size to use the accessor
+                    ->label('Company Size')
+                    ->sortable(query: function ($query, $direction) {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN leads.company_size = '1-24' THEN 1
+                                WHEN leads.company_size = '25-99' THEN 2
+                                WHEN leads.company_size = '100-500' THEN 3
+                                WHEN leads.company_size = '501 and Above' THEN 4
+                                ELSE 5
+                            END $direction
+                        ");
+                    })
+                    ->formatStateUsing(function ($state) {
+                        return $state ?? 'N/A';
+                    }),
                 TextColumn::make('lead_status')
                     ->label('Status')
                     ->sortable(),

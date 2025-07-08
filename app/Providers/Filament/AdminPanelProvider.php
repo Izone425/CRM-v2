@@ -8,6 +8,7 @@ use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DemoAnalysis;
+use App\Filament\Pages\DemoAnalysisTableForm;
 use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
@@ -195,6 +196,7 @@ class AdminPanelProvider extends PanelProvider
                 ImplementerCalendar::class,
                 ImplementerDataFile::class,
                 SoftwareHandoverAnalysis::class,
+                DemoAnalysisTableForm::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

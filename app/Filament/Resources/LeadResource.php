@@ -125,7 +125,7 @@ class LeadResource extends Resource
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
             } elseif ($user->role_id === 4) { // Implementer
-                $activeTabs = ['lead', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+                $activeTabs = ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
                     'lead', 'company', 'system', 'refer_earn', 'appointment',

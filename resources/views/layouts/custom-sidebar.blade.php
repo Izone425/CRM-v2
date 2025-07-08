@@ -1258,6 +1258,10 @@
                                 <i class="bi bi-dot"></i>
                                 <span>Marketing Analysis</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.demo-analysis-table-form') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Demo Analysis</span>
+                            </a>
                         </div>
                     </div>
                 </div>
