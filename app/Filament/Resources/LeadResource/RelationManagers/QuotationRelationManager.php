@@ -74,8 +74,16 @@ class QuotationRelationManager extends RelationManager
         return $table
             ->poll('300s')
             ->modifyQueryUsing(function ($query) {
-                $query
-                    ->orderBy('created_at', 'desc');
+                // Get current authenticated user
+                $user = auth()->user();
+
+                // If user is not a manager (role_id 3), only show their own quotations
+                if ($user->role_id !== 3) {
+                    $query->where('sales_person_id', $user->id);
+                }
+
+                // Always apply the default sort order
+                $query->orderBy('created_at', 'desc');
             })
             ->headerActions([
                 Action::make('createQuotation')
