@@ -200,7 +200,7 @@
     use App\Models\HardwareHandover;
 
     // Define queries for different statuses
-    $newCount = app(\App\Livewire\HardwareHandoverNew::class)
+    $newCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
         ->getNewHardwareHandovers()
         ->count();
 
@@ -212,7 +212,7 @@
         ->getOverdueHardwareHandovers()
         ->count();
 
-    $completedCount = app(\App\Livewire\HardwareHandoverCompleted::class)
+    $completedCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverCompleted::class)
         ->getOverdueHardwareHandovers()
         ->count();
 
@@ -303,7 +303,7 @@
             </div>
 
             <div x-show="selectedStat === 'new' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-new'">
-                @livewire('hardware-handover-new')
+                <livewire:salesperson-dashboard.hardware-handover-new />
             </div>
 
             <div x-show="selectedStat === 'pending-stock' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-stock'">
@@ -315,7 +315,7 @@
             </div>
 
             <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-completed'">
-                @livewire('hardware-handover-completed')
+                <livewire:salesperson-dashboard.hardware-handover-completed />
             </div>
 
             <div x-show="selectedStat === 'draft-rejected'" x-transition :key="selectedStat + '-rejected'">

@@ -41,6 +41,7 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Filters\Filter;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
@@ -109,12 +110,12 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
                         'New' => 'New',
-                        'In Progress' => 'In Progress',
-                        'Awaiting Parts' => 'Awaiting Parts',
-                        'Resolved' => 'Resolved',
-                        'Closed' => 'Closed',
+                        'Accepted' => 'Accepted',
+                        'Pending Confirmation' => 'Pending Confirmation',
+                        'Pending Onsite Repair' => 'Pending Onsite Repair',
+                        'Completed' => 'Completed',
+                        'Inactive' => 'Inactive',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
@@ -186,7 +187,7 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                         return $user ? $user->name : 'Unknown User';
                     }),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
@@ -293,10 +294,20 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                                     ->label('Product Quotation')
                                     ->options(function (AdminRepair $record) {
                                         $leadId = $record->lead_id;
-                                        return \App\Models\Quotation::where('lead_id', $leadId)
-                                            ->where('quotation_type', 'product')
-                                            ->pluck('quotation_reference_no', 'id')
-                                            ->toArray();
+
+                                        // Query quotations with the lead_id and product quotation type
+                                        $query = \App\Models\Quotation::where('lead_id', $leadId)
+                                            ->where('quotation_type', 'product');
+
+                                        // Add subquery to exclude quotations where the sales person has role_id = 2
+                                        $query->whereNotExists(function ($subquery) {
+                                            $subquery->select(DB::raw(1))
+                                                ->from('users')
+                                                ->whereColumn('users.id', 'quotations.sales_person_id')
+                                                ->where('users.role_id', 2);
+                                        });
+
+                                        return $query->pluck('quotation_reference_no', 'id')->toArray();
                                     })
                                     ->multiple()
                                     ->searchable()
@@ -483,24 +494,44 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
 
                             foreach ($deviceInvoices as $device) {
                                 if (!empty($device['invoice_date'])) {
-                                    $invoiceDate = Carbon::parse($device['invoice_date']);
-                                    $deviceModel = $device['device_model'];
-                                    $deviceSerial = $device['device_serial'];
-                                    $warrantyYears = $this->getDeviceWarrantyYears($deviceModel);
-                                    $warrantyEndDate = $invoiceDate->copy()->addYears($warrantyYears);
-                                    $isInWarranty = $warrantyEndDate->isFuture();
-                                    $status = $isInWarranty ? 'In Warranty' : 'Out of Warranty';
+                                    try {
+                                        // Safely parse the date - handle both Carbon instances and strings
+                                        $invoiceDate = $device['invoice_date'] instanceof \Carbon\Carbon
+                                            ? $device['invoice_date']
+                                            : \Carbon\Carbon::parse($device['invoice_date']);
 
-                                    if ($isInWarranty) {
-                                        $anyInWarranty = true;
+                                        $deviceModel = $device['device_model'];
+                                        $deviceSerial = $device['device_serial'];
+                                        $warrantyYears = $this->getDeviceWarrantyYears($deviceModel);
+                                        $warrantyEndDate = $invoiceDate->copy()->addYears($warrantyYears);
+                                        $isInWarranty = $warrantyEndDate->isFuture();
+                                        $status = $isInWarranty ? 'In Warranty' : 'Out of Warranty';
+
+                                        if ($isInWarranty) {
+                                            $anyInWarranty = true;
+                                        }
+
+                                        // Store as string in consistent Y-m-d format
+                                        $deviceWarrantyData[] = [
+                                            'device_model' => $deviceModel,
+                                            'device_serial' => $deviceSerial,
+                                            'warranty_status' => $status,
+                                            'invoice_date' => $invoiceDate->format('Y-m-d'),
+                                        ];
+                                    } catch (\Exception $e) {
+                                        // Log error but continue with what we have
+                                        \Illuminate\Support\Facades\Log::error("Error processing invoice date: " . $e->getMessage());
+
+                                        // Add with unknown warranty status
+                                        $deviceWarrantyData[] = [
+                                            'device_model' => $device['device_model'],
+                                            'device_serial' => $device['device_serial'],
+                                            'warranty_status' => 'Unknown',
+                                            'invoice_date' => is_string($device['invoice_date'])
+                                                ? $device['invoice_date']
+                                                : now()->format('Y-m-d'),
+                                        ];
                                     }
-
-                                    $deviceWarrantyData[] = [
-                                        'device_model' => $deviceModel,
-                                        'device_serial' => $deviceSerial,
-                                        'warranty_status' => $status,
-                                        'invoice_date' => $invoiceDate->format('Y-m-d'),
-                                    ];
                                 }
                             }
 
@@ -520,12 +551,74 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
                                 'pending_confirmation_date' => now(),
                             ]);
 
-                            $pdfPath = app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($record);
+                            try {
+                                // Generate PDF with proper error handling
+                                $record->refresh(); // Ensure we have the latest data
 
-                            // Store just the relative path instead of full URL
-                            $record->update([
-                                'handover_pdf' => $pdfPath ? $pdfPath : null,
-                            ]);
+                                // Pre-process critical date fields to ensure they are Carbon objects
+                                if ($record->submitted_at && !($record->submitted_at instanceof \Carbon\Carbon)) {
+                                    try {
+                                        $record->submitted_at = \Carbon\Carbon::parse($record->submitted_at);
+                                    } catch (\Exception $e) {
+                                        // If parsing fails, set to current time as fallback
+                                        $record->submitted_at = now();
+                                    }
+                                }
+
+                                // Process the devices warranty data to ensure all dates are formatted correctly
+                                if ($record->devices_warranty) {
+                                    $devicesWarranty = is_string($record->devices_warranty)
+                                        ? json_decode($record->devices_warranty, true)
+                                        : $record->devices_warranty;
+
+                                    if (is_array($devicesWarranty)) {
+                                        foreach ($devicesWarranty as &$device) {
+                                            if (!empty($device['invoice_date']) && !($device['invoice_date'] instanceof \Carbon\Carbon)) {
+                                                try {
+                                                    // Just ensure it's in a valid format, don't convert to Carbon
+                                                    if (is_string($device['invoice_date']) && strtotime($device['invoice_date']) !== false) {
+                                                        // Store as string in Y-m-d format for consistency
+                                                        $device['invoice_date'] = date('Y-m-d', strtotime($device['invoice_date']));
+                                                    }
+                                                } catch (\Exception $e) {
+                                                    // If date is invalid, set to current date as fallback
+                                                    $device['invoice_date'] = date('Y-m-d');
+                                                }
+                                            }
+                                        }
+
+                                        // Update the record with sanitized data
+                                        $record->update([
+                                            'devices_warranty' => json_encode($devicesWarranty)
+                                        ]);
+
+                                        // Refresh again to get the updated data
+                                        $record->refresh();
+                                    }
+                                }
+
+                                $pdfPath = app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($record);
+
+                                // Store just the relative path instead of full URL
+                                if ($pdfPath) {
+                                    $record->update([
+                                        'handover_pdf' => $pdfPath,
+                                    ]);
+                                }
+                            } catch (\Exception $e) {
+                                // Log detailed error information
+                                \Illuminate\Support\Facades\Log::error("PDF generation error: " . $e->getMessage());
+                                \Illuminate\Support\Facades\Log::error("Error line: " . $e->getLine() . " in " . $e->getFile());
+                                \Illuminate\Support\Facades\Log::error("Stack trace: " . $e->getTraceAsString());
+
+                                // Still notify the user about the status change even if PDF failed
+                                Notification::make()
+                                    ->title('Status updated but PDF generation failed')
+                                    ->warning()
+                                    ->body('Please check the logs for details.')
+                                    ->send();
+                                return;
+                            }
 
                             Notification::make()
                                 ->title('Repair handover status updated')

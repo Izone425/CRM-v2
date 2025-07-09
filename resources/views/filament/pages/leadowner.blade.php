@@ -353,67 +353,67 @@
     // New Leads count
     $user = Auth::user();
 
-    $newLeadsCount = app(\App\Livewire\NewLeadTable::class)
+    $newLeadsCount = app(\App\Livewire\LeadownerDashboard\NewLeadTable::class)
         ->getPendingLeadsQuery()
         ->count();
 
-    $pendingLeadsCount = app(\App\Livewire\PendingLeadTable::class)
+    $pendingLeadsCount = app(\App\Livewire\LeadownerDashboard\PendingLeadTable::class)
         ->getNewLeadsQuery()
         ->count();
 
-    $reminderTodayCount = app(\App\Livewire\ProspectReminderTodayTable::class)
+    $reminderTodayCount = app(\App\Livewire\LeadownerDashboard\ProspectReminderTodayTable::class)
         ->getProspectTodayQuery()
         ->count();
 
-    $reminderOverdueCount = app(\App\Livewire\ProspectReminderOverdueTable::class)
+    $reminderOverdueCount = app(\App\Livewire\LeadownerDashboard\ProspectReminderOverdueTable::class)
         ->getProspectOverdueQuery()
         ->count();
 
-    $activeSmallCompCount = app(\App\Livewire\ActiveSmallCompTable::class)
+    $activeSmallCompCount = app(\App\Livewire\LeadownerDashboard\ActiveSmallCompTable::class)
         ->getActiveSmallCompanyLeads()
         ->count();
 
-    $activeBigCompCount = app(\App\Livewire\ActiveBigCompTable::class)
+    $activeBigCompCount = app(\App\Livewire\LeadownerDashboard\ActiveBigCompTable::class)
         ->getActiveBigCompanyLeads()
         ->count();
 
-    $callAttemptSmallCount = app(\App\Livewire\CallAttemptSmallCompTable::class)
+    $callAttemptSmallCount = app(\App\Livewire\LeadownerDashboard\CallAttemptSmallCompTable::class)
         ->getFollowUpSmallCompanyLeads()
         ->count();
 
-    $callAttemptBigCount = app(\App\Livewire\CallAttemptBigCompTable::class)
+    $callAttemptBigCount = app(\App\Livewire\LeadownerDashboard\CallAttemptBigCompTable::class)
         ->getFollowUpBigCompanyLeads()
         ->count();
 
-    $salespersonSmallCount = app(\App\Livewire\SalespersonSmallCompTable::class)
+    $salespersonSmallCount = app(\App\Livewire\LeadownerDashboard\SalespersonSmallCompTable::class)
         ->getActiveSmallCompanyLeadsWithSalesperson()
         ->count();
 
-    $salespersonBigCount = app(\App\Livewire\SalespersonBigCompTable::class)
+    $salespersonBigCount = app(\App\Livewire\LeadownerDashboard\SalespersonBigCompTable::class)
         ->getActiveBigCompanyLeadsWithSalesperson()
         ->count();
 
-    $inactiveSmall1Count = app(\App\Livewire\InactiveSmallCompTable1::class)
+    $inactiveSmall1Count = app(\App\Livewire\LeadownerDashboard\InactiveSmallCompTable1::class)
         ->getInactiveSmallCompanyLeads()
         ->count();
 
-    $inactiveBig1Count = app(\App\Livewire\InactiveBigCompTable1::class)
+    $inactiveBig1Count = app(\App\Livewire\LeadownerDashboard\InactiveBigCompTable1::class)
         ->getInactiveBigCompanyLeads()
         ->count();
 
-    $inactiveSmall2Count = app(\App\Livewire\InactiveSmallCompTable2::class)
+    $inactiveSmall2Count = app(\App\Livewire\LeadownerDashboard\InactiveSmallCompTable2::class)
         ->getInactiveSmallCompanyLeads()
         ->count();
 
-    $inactiveBig2Count = app(\App\Livewire\InactiveBigCompTable2::class)
+    $inactiveBig2Count = app(\App\Livewire\LeadownerDashboard\InactiveBigCompTable2::class)
         ->getInactiveSmallCompanyLeads()
         ->count();
 
-    $inactiveSmallCount = app(\App\Livewire\InactiveSmallCompTable::class)
+    $inactiveSmallCount = app(\App\Livewire\LeadownerDashboard\InactiveSmallCompTable::class)
         ->getInactiveSmallCompanyLeads()
         ->count();
 
-    $inactiveBigCount = app(\App\Livewire\InactiveBigCompTable::class)
+    $inactiveBigCount = app(\App\Livewire\LeadownerDashboard\InactiveBigCompTable::class)
         ->getInactiveBigCompanyLeads()
         ->count();
     @endphp
@@ -669,68 +669,68 @@
 
                     <!-- Content panels for each table (keep the same as your original) -->
                     <div x-show="selectedStat === 'new-leads'" x-transition :key="selectedStat + '-new-leads'">
-                        <livewire:new-lead-table />
+                        <livewire:leadowner-dashboard.new-lead-table />
                     </div>
 
                     <div x-show="selectedStat === 'pending-leads'" x-transition :key="selectedStat + '-pending-leads'">
-                        <livewire:pending-lead-table />
+                        <livewire:leadowner-dashboard.pending-lead-table />
                     </div>
 
                     <!-- Include all your other table panels here... -->
                     <div x-show="selectedStat === 'reminder-today'" x-transition :key="selectedStat + '-reminder-today'">
-                        <livewire:prospect-reminder-today-table />
+                        <livewire:leadowner-dashboard.prospect-reminder-today-table />
                     </div>
 
                     <div x-show="selectedStat === 'reminder-overdue'" x-transition :key="selectedStat + '-reminder-overdue'">
-                        <livewire:prospect-reminder-overdue-table />
+                        <livewire:leadowner-dashboard.prospect-reminder-overdue-table />
                     </div>
 
                     <div x-show="selectedStat === 'active-small'" x-transition :key="selectedStat + '-active-small'">
-                        <livewire:active-small-comp-table />
+                        <livewire:leadowner-dashboard.active-small-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'active-big'" x-transition :key="selectedStat + '-active-big'">
-                        <livewire:active-big-comp-table />
+                        <livewire:leadowner-dashboard.active-big-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'call-attempt-small'" x-transition :key="selectedStat + '-call-attempt-small'">
-                        <livewire:call-attempt-small-comp-table />
+                        <livewire:leadowner-dashboard.call-attempt-small-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'call-attempt-big'" x-transition :key="selectedStat + '-call-attempt-big'">
-                        <livewire:call-attempt-big-comp-table />
+                        <livewire:leadowner-dashboard.call-attempt-big-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'salesperson-small'" x-transition :key="selectedStat + '-salesperson-small'">
-                        <livewire:salesperson-small-comp-table />
+                        <livewire:leadowner-dashboard.salesperson-small-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'salesperson-big'" x-transition :key="selectedStat + '-salesperson-big'">
-                        <livewire:salesperson-big-comp-table />
+                        <livewire:leadowner-dashboard.salesperson-big-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-small1'" x-transition :key="selectedStat + '-inactive-small1'">
-                        <livewire:inactive-small-comp-table1 />
+                        <livewire:leadowner-dashboard.inactive-small-comp-table1 />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-big1'" x-transition :key="selectedStat + '-inactive-big1'">
-                        <livewire:inactive-big-comp-table1 />
+                        <livewire:leadowner-dashboard.inactive-big-comp-table1 />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-small2'" x-transition :key="selectedStat + '-inactive-small2'">
-                        <livewire:inactive-small-comp-table2 />
+                        <livewire:leadowner-dashboard.inactive-small-comp-table2 />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-big2'" x-transition :key="selectedStat + '-inactive-big2'">
-                        <livewire:inactive-big-comp-table2 />
+                        <livewire:leadowner-dashboard.inactive-big-comp-table2 />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-small'" x-transition :key="selectedStat + '-inactive-small'">
-                        <livewire:inactive-small-comp-table />
+                        <livewire:leadowner-dashboard.inactive-small-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'inactive-big'" x-transition :key="selectedStat + '-inactive-big'">
-                        <livewire:inactive-big-comp-table />
+                        <livewire:leadowner-dashboard.inactive-big-comp-table />
                     </div>
                 </div>
             </div>

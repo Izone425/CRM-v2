@@ -65,101 +65,243 @@ class AdminRepairDashboard extends Page implements HasTable
                 ->schema([
                     Grid::make(3)
                         ->schema([
-                            Select::make('company_id')
+                            Select::make('company_name')
                                 ->label('Company Name')
                                 ->columnSpan(2)
                                 ->options(function () {
-                                        // Get companies that have software handovers only
-                                        return CompanyDetail::whereHas('lead', function ($query) {
-                                                $query->where('lead_status', 'Closed');
-                                            })
-                                            ->whereHas('lead.softwareHandover', function ($query) {
-                                                // Filter by companies that have at least one software handover
-                                                $query->whereNotNull('id');
-                                            })
-                                            ->whereNotNull('company_name')
-                                            ->where('company_name', '!=', '')
-                                            ->with(['lead.softwareHandover' => function($query) {
-                                                $query->orderBy('id', 'desc');
-                                            }])
-                                            ->get()
-                                            ->map(function ($company) {
-                                                // Get the latest software handover ID for this company
-                                                $handover = $company->lead->softwareHandover->first();
-                                                $handoverId = $handover ? 'SW_' . str_pad($handover->id, 6, '0', STR_PAD_LEFT) : 'N/A';
+                                    $options = collect();
 
-                                                // Format as "SW_250604 | KTA (SARAWAK) SDN BHD"
-                                                return [
-                                                    'id' => $company->id,
-                                                    'label' => $handoverId . ' | ' . $company->company_name,
-                                                ];
-                                            })
-                                            ->sortByDesc(function ($company) {
-                                                // Sort by handover ID (descending)
-                                                return substr($company['label'], 3, 6); // Extract the numeric part of the SW_XXXXXX
-                                            })
-                                            ->pluck('label', 'id')
-                                            ->toArray();
-                                    })
+                                    // 1. Get leads marked as visible in repairs that have company details
+                                    $visibleLeads = \App\Models\Lead::where('visible_in_repairs', true)
+                                        ->with('companyDetail')
+                                        ->orderBy('id', 'desc')
+                                        ->get();
+
+                                    foreach ($visibleLeads as $lead) {
+                                        if ($lead->companyDetail && $lead->companyDetail->company_name) {
+                                            // For leads without handovers, use a special prefix
+                                            $leadId = 'LD_' . str_pad($lead->id, 6, '0', STR_PAD_LEFT);
+                                            $companyName = $lead->companyDetail->company_name;
+
+                                            $options->push([
+                                                // Store value with prefix to identify as lead
+                                                'id' => 'lead_' . $lead->id,
+                                                'label' => $leadId . ' | ' . $companyName,
+                                                'sort_key' => $lead->id
+                                            ]);
+                                        }
+                                    }
+
+                                    // 2. Get handovers with direct company_name values
+                                    $directCompanyHandovers = \App\Models\SoftwareHandover::whereNotNull('company_name')
+                                        ->where('company_name', '!=', '')
+                                        ->orderBy('id', 'desc')
+                                        ->get();
+
+                                    foreach ($directCompanyHandovers as $handover) {
+                                        $handoverId = 'SW_' . str_pad($handover->id, 6, '0', STR_PAD_LEFT);
+                                        $companyName = $handover->company_name;
+
+                                        $options->push([
+                                            // Store value with prefix to identify as handover
+                                            'id' => 'handover_' . $handover->id,
+                                            'label' => $handoverId . ' | ' . $companyName,
+                                            'sort_key' => $handover->id
+                                        ]);
+                                    }
+
+                                    // Sort by ID (descending) and remove duplicates
+                                    return $options
+                                        ->sortByDesc('sort_key')
+                                        ->pluck('label', 'id')
+                                        ->toArray();
+                                })
                                 ->searchable()
                                 ->required()
                                 ->default(fn (?AdminRepair $record = null) =>
-                                    $record?->company_id ?? null)
-                                ->live()  // Make it a live field that reacts to changes
+                                    $record?->software_handover_id ?? null)
+                                ->live()
                                 ->afterStateUpdated(function ($state, callable $set) {
                                     if ($state) {
-                                        // Get the selected company details
-                                        $company = CompanyDetail::find($state);
+                                        // Check if we're dealing with a lead ID
+                                        if (is_string($state) && strpos($state, 'lead_') === 0) {
+                                            // Extract the lead ID
+                                            $leadId = (int)str_replace('lead_', '', $state);
+                                            $lead = \App\Models\Lead::with('companyDetail')->find($leadId);
 
-                                        if ($company) {
-                                            // First try to get details from company_details
-                                            if (!empty($company->name)) {
-                                                $set('pic_name', $company->name);
-                                            }
+                                            if ($lead) {
+                                                // Set software_handover_id to null since this is from a lead
+                                                $set('software_handover_id', null);
+                                                $set('lead_id', $lead->id);
 
-                                            if (!empty($company->contact_no)) {
-                                                $set('pic_phone', $company->contact_no);
-                                            }
+                                                if ($lead->companyDetail) {
+                                                    // Set company_id for compatibility with existing code
+                                                    $set('company_id', $lead->companyDetail->id);
 
-                                            if (!empty($company->email)) {
-                                                $set('pic_email', $company->email);
-                                            }
-
-                                            // Build and set address
-                                            $address = $company->company_address1 ?? '';
-
-                                            // Add address2 if it exists
-                                            if (!empty($company->company_address2)) {
-                                                $address .= ", " . $company->company_address2;
-                                            }
-
-                                            // Add postcode and state
-                                            if (!empty($company->postcode) || !empty($company->state)) {
-                                                $address .= ", " .
-                                                    ($company->postcode ?? '') . " " .
-                                                    ($company->state ?? '');
-                                            }
-
-                                            // Set the address field with uppercase text
-                                            $set('address', Str::upper($address));
-
-                                            // If any fields are still empty, try to get from the related lead
-                                            if (empty($company->contact_person) || empty($company->contact_phone) || empty($company->contact_email)) {
-                                                $lead = $company->lead;
-
-                                                if ($lead) {
-                                                    if (empty($company->contact_person) && !empty($lead->pic_name)) {
-                                                        $set('pic_name', $lead->pic_name);
+                                                    // Set other fields from company details
+                                                    if (!empty($lead->companyDetail->name)) {
+                                                        $set('pic_name', $lead->companyDetail->name ?? $lead->name);
                                                     }
 
-                                                    if (empty($company->contact_phone) && !empty($lead->pic_phone)) {
-                                                        $set('pic_phone', $lead->pic_phone);
+                                                    if (!empty($lead->companyDetail->contact_no)) {
+                                                        $set('pic_phone', $lead->companyDetail->contact_no);
                                                     }
 
-                                                    if (empty($company->contact_email) && !empty($lead->pic_email)) {
-                                                        $set('pic_email', $lead->pic_email);
+                                                    if (!empty($lead->companyDetail->email)) {
+                                                        $set('pic_email', $lead->companyDetail->email);
+                                                    }
+
+                                                    // Build and set address
+                                                    $address = $lead->companyDetail->company_address1 ?? '';
+
+                                                    // Add address2 if it exists
+                                                    if (!empty($lead->companyDetail->company_address2)) {
+                                                        $address .= ", " . $lead->companyDetail->company_address2;
+                                                    }
+
+                                                    // Add postcode and state
+                                                    if (!empty($lead->companyDetail->postcode) || !empty($lead->companyDetail->state)) {
+                                                        $address .= ", " .
+                                                            ($lead->companyDetail->postcode ?? '') . " " .
+                                                            ($lead->companyDetail->state ?? '');
+                                                    }
+
+                                                    // Set the address field with uppercase text
+                                                    $set('address', Str::upper($address));
+                                                } else {
+                                                    // Fallback to using lead ID if no companyDetail exists
+                                                    $set('company_id', $lead->id);
+
+                                                    // Set fields directly from lead
+                                                    $set('pic_name', $lead->pic_name ?? '');
+                                                    $set('pic_phone', $lead->pic_phone ?? '');
+                                                    $set('pic_email', $lead->pic_email ?? '');
+
+                                                    // If we have any address fields on the lead directly, use those
+                                                    if (!empty($lead->address)) {
+                                                        $set('address', Str::upper($lead->address));
+                                                    } else {
+                                                        // If no address on lead, we can leave it empty or set a placeholder
+                                                        $set('address', '');
                                                     }
                                                 }
+
+                                                // Set fields from lead if they're empty from companyDetail
+                                                if (empty($lead->companyDetail) || empty($lead->companyDetail->name)) {
+                                                    $set('pic_name', $lead->name ?? '');
+                                                }
+
+                                                if (empty($lead->companyDetail) || empty($lead->companyDetail->contact_no)) {
+                                                    $set('pic_phone', $lead->phone ?? '');
+                                                }
+
+                                                if (empty($lead->companyDetail) || empty($lead->companyDetail->email)) {
+                                                    $set('pic_email', $lead->email ?? '');
+                                                }
+                                            }
+                                        }
+                                        // Check if we're dealing with a handover ID
+                                        elseif (is_string($state) && strpos($state, 'handover_') === 0) {
+                                            // Extract the handover ID
+                                            $handoverId = (int)str_replace('handover_', '', $state);
+                                            $handover = \App\Models\SoftwareHandover::find($handoverId);
+
+                                            if ($handover) {
+                                                // Set software_handover_id for later use
+                                                $set('software_handover_id', $handover->id);
+
+                                                // Find the related company via handover -> lead -> companyDetail
+                                                $company = null;
+
+                                                // First try direct company relation if it exists
+                                                if ($handover->company_id) {
+                                                    $company = CompanyDetail::find($handover->company_id);
+                                                }
+                                                // Then try through lead relationship
+                                                elseif ($handover->lead && $handover->lead->companyDetail) {
+                                                    $company = $handover->lead->companyDetail;
+                                                }
+
+                                                // If we found a company, set all the fields
+                                                if ($company) {
+                                                    // Set company_id for compatibility with existing code
+                                                    $set('company_id', $company->id);
+
+                                                    // Set lead_id if available
+                                                    if ($handover->lead_id) {
+                                                        $set('lead_id', $handover->lead_id);
+                                                    }
+
+                                                    // First try to get details from company_details
+                                                    if (!empty($company->name)) {
+                                                        $set('pic_name', $company->name);
+                                                    }
+
+                                                    if (!empty($company->contact_no)) {
+                                                        $set('pic_phone', $company->contact_no);
+                                                    }
+
+                                                    if (!empty($company->email)) {
+                                                        $set('pic_email', $company->email);
+                                                    }
+
+                                                    // Build and set address
+                                                    $address = $company->company_address1 ?? '';
+
+                                                    // Add address2 if it exists
+                                                    if (!empty($company->company_address2)) {
+                                                        $address .= ", " . $company->company_address2;
+                                                    }
+
+                                                    // Add postcode and state
+                                                    if (!empty($company->postcode) || !empty($company->state)) {
+                                                        $address .= ", " .
+                                                            ($company->postcode ?? '') . " " .
+                                                            ($company->state ?? '');
+                                                    }
+
+                                                    // Set the address field with uppercase text
+                                                    $set('address', Str::upper($address));
+
+                                                    // If any fields are still empty, try to get from the related lead
+                                                    if (empty($company->contact_person) || empty($company->contact_phone) || empty($company->contact_email)) {
+                                                        $lead = $company->lead ?? $handover->lead;
+
+                                                        if ($lead) {
+                                                            if (empty($company->contact_person) && !empty($lead->pic_name)) {
+                                                                $set('pic_name', $lead->pic_name);
+                                                            }
+
+                                                            if (empty($company->contact_phone) && !empty($lead->pic_phone)) {
+                                                                $set('pic_phone', $lead->pic_phone);
+                                                            }
+
+                                                            if (empty($company->contact_email) && !empty($lead->pic_email)) {
+                                                                $set('pic_email', $lead->pic_email);
+                                                            }
+                                                        }
+                                                    }
+                                                } else {
+                                                    // If no company was found but we have a handover, try to get details directly from handover
+                                                    if (!empty($handover->company_name)) {
+                                                        $set('pic_name', $handover->pic_name ?? '');
+                                                        $set('pic_phone', $handover->pic_phone ?? '');
+                                                        $set('pic_email', $handover->pic_email ?? '');
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // Legacy support for non-prefixed IDs
+                                        else if (is_numeric($state)) {
+                                            // Try as software handover ID
+                                            $handover = \App\Models\SoftwareHandover::find($state);
+
+                                            if ($handover) {
+                                                // Handle as regular handover (same as the handover_ case above)
+                                                // (Copy the code from the handover_ case)
+                                                $set('software_handover_id', $handover->id);
+
+                                                // Rest of your handover handling code...
                                             }
                                         }
                                     }
@@ -509,41 +651,86 @@ class AdminRepairDashboard extends Page implements HasTable
         // Set timestamps and user IDs
         $data['updated_by'] = auth()->id();
 
-        if (!$record) {
-            // Creating a new record
-            $data['created_by'] = auth()->id();
-            $data['status'] = 'New'; // Default status for new records
+        // Creating a new record
+        $data['created_by'] = auth()->id();
+        $data['status'] = 'New'; // Default status for new records
 
-            // Get lead_id from company_id with proper error handling
-            $companyDetail = CompanyDetail::find($data['company_id']);
-            if ($companyDetail && $companyDetail->lead_id) {
-                $data['lead_id'] = $companyDetail->lead_id;
-            } elseif ($companyDetail && $companyDetail->lead) {
-                $data['lead_id'] = $companyDetail->lead->id;
-            } else {
-                // Default to avoid database error
-                $data['lead_id'] = 0;
+        if (isset($data['company_name'])) {
+            // Check if this is a lead ID (starts with 'lead_')
+            if (is_string($data['company_name']) && strpos($data['company_name'], 'lead_') === 0) {
+                // Extract lead ID from the string
+                $leadId = (int)str_replace('lead_', '', $data['company_name']);
+                $data['lead_id'] = $leadId;
+
+                // Store software_handover_id as null since this is from a lead
+                $data['software_handover_id'] = null;
+
+                // Get the actual company name from the lead's companyDetail
+                $lead = \App\Models\Lead::with('companyDetail')->find($leadId);
+                if ($lead && $lead->companyDetail && $lead->companyDetail->company_name) {
+                    // Update the company_name field with the actual company name
+                    $data['company_name'] = $lead->companyDetail->company_name;
+                }
             }
+            // Check if this is a handover ID (starts with 'handover_')
+            elseif (is_string($data['company_name']) && strpos($data['company_name'], 'handover_') === 0) {
+                // Extract handover ID from the string
+                $handoverId = (int)str_replace('handover_', '', $data['company_name']);
+                $data['software_handover_id'] = $handoverId;
 
-            $data['submitted_at'] = now();
+                // Try to get lead_id from software handover
+                $softwareHandover = \App\Models\SoftwareHandover::find($handoverId);
+                if ($softwareHandover) {
+                    // Set lead_id if available
+                    if ($softwareHandover->lead_id) {
+                        $data['lead_id'] = $softwareHandover->lead_id;
+                    } elseif ($softwareHandover->lead) {
+                        $data['lead_id'] = $softwareHandover->lead->id;
+                    } else {
+                        $data['lead_id'] = 0;
+                    }
 
-            // Create new record
-            $repair = AdminRepair::create($data);
+                    // IMPORTANT: Set the actual company name
+                    $data['company_name'] = $softwareHandover->company_name;
+                } else {
+                    // Default to avoid database error
+                    $data['lead_id'] = 0;
+                }
+            }
+            // If it's a direct company name string
+            else {
+                // Extract company name from the format "ID | Company Name" if applicable
+                $companyNameParts = explode(' | ', $data['company_name']);
+                if (count($companyNameParts) > 1) {
+                    $data['company_name'] = $companyNameParts[1];
+                }
 
-            // Generate repair ID after we have a valid record with an ID
-            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+                // Try to find related IDs but keep the company name as is
+                $companyDetail = \App\Models\CompanyDetail::where('company_name', $data['company_name'])->first();
+                if ($companyDetail && $companyDetail->lead) {
+                    $data['lead_id'] = $companyDetail->lead->id;
+                } else {
+                    $data['lead_id'] = 0;
+                }
+
+                $data['software_handover_id'] = null;
+            }
         } else {
-            // Update existing record
-            $record->update($data);
-            $repair = $record;
-
-            // Generate repair ID for existing record
-            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+            // Default to avoid database error
+            $data['lead_id'] = 0;
         }
+
+        $data['submitted_at'] = now();
+
+        // Create new record
+        $repair = AdminRepair::create($data);
+
+        // Generate repair ID after we have a valid record with an ID
+        $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
         try {
             // Get company name
-            $companyName = $repair->companyDetail->company_name ?? 'Unknown Company';
+            $companyName = $repair->company_name ?? 'Unknown Company';
 
             $pdfPath = $repair->handover_pdf ?? app(\App\Http\Controllers\GenerateRepairHandoverPdfController::class)->generateInBackground($repair);
             $pdfUrl = $pdfPath ? url('storage/' . $pdfPath) : null;
@@ -717,9 +904,26 @@ class AdminRepairDashboard extends Page implements HasTable
                         return $state ?? "Unknown";
                     }),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable()
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        // First try to get company name directly from softwareHandover relation
+                        if ($state) {
+                            return $state;
+                        }
+
+                        // If that's null, try to get it from softwareHandover's relationship
+                        if ($record->softwareHandover) {
+                            if ($record->softwareHandover->lead && $record->softwareHandover->lead->companyDetail) {
+                                return $record->softwareHandover->lead->companyDetail->company_name;
+                            }
+                        }
+
+                        // Fallback to the old method as a last resort
+                        return $record->companyDetail->company_name ?? 'Unknown Company';
+                    }),
 
                 TextColumn::make('pic_name')
                     ->label('PIC Name'),
@@ -750,6 +954,7 @@ class AdminRepairDashboard extends Page implements HasTable
                     ->html(),
 
                 TextColumn::make('zoho_ticket')
+                    ->searchable()
                     ->label('Zoho Ticket'),
 
                 TextColumn::make('status')
@@ -771,12 +976,12 @@ class AdminRepairDashboard extends Page implements HasTable
                     ->form([
                         \Filament\Forms\Components\Select::make('status')
                             ->options([
-                                'Draft' => 'Draft',
                                 'New' => 'New',
-                                'In Progress' => 'In Progress',
-                                'Awaiting Parts' => 'Awaiting Parts',
-                                'Resolved' => 'Resolved',
-                                'Closed' => 'Closed',
+                                'Accepted' => 'Accepted',
+                                'Pending Confirmation' => 'Pending Confirmation',
+                                'Pending Onsite Repair' => 'Pending Onsite Repair',
+                                'Completed' => 'Completed',
+                                'Inactive' => 'Inactive',
                             ])
                             ->placeholder('All Statuses')
                             ->label('Status'),

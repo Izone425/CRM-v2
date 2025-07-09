@@ -13,6 +13,8 @@ class AdminRepair extends Model
     protected $fillable = [
         'company_id',
         'lead_id',
+        'software_handover_id',
+        'company_name',
         'handover_pdf',
         'pic_name',
         'pic_phone',
@@ -84,6 +86,11 @@ class AdminRepair extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'id');
+    }
+
+    public function softwareHandover()
+    {
+        return $this->belongsTo(SoftwareHandover::class);
     }
 
     // Relationship to Company Details

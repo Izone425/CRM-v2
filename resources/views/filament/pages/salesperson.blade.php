@@ -362,59 +362,59 @@
     // New Leads count
     $user = Auth::user();
 
-    $demoTodayCount = app(\App\Livewire\DemoTodayTable::class)
+    $demoTodayCount = app(\App\Livewire\SalespersonDashboard\DemoTodayTable::class)
         ->getTodayDemos()
         ->count();
 
-    $demoTomorrowCount = app(\App\Livewire\DemoTmrTable::class)
+    $demoTomorrowCount = app(\App\Livewire\SalespersonDashboard\DemoTmrTable::class)
         ->getTomorrowDemos()
         ->count();
 
-    $prospectTodayCount = app(\App\Livewire\PrTodaySalespersonTable::class)
+    $prospectTodayCount = app(\App\Livewire\SalespersonDashboard\PrTodaySalespersonTable::class)
         ->getTodayProspects()
         ->count();
 
-    $prospectOverdueCount = app(\App\Livewire\PrOverdueSalespersonTable::class)
+    $prospectOverdueCount = app(\App\Livewire\SalespersonDashboard\PrOverdueSalespersonTable::class)
         ->getOverdueProspects()
         ->count();
 
-    $softwareHandoverNew = app(\App\Livewire\SoftwareHandoverNew::class)
+    $softwareHandoverNew = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
         ->getNewSoftwareHandovers()
         ->count();
 
-    $softwareHandoverCompleted = app(\App\Livewire\SoftwareHandoverCompleted::class)
+    $softwareHandoverCompleted = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverCompleted::class)
         ->getNewSoftwareHandovers()
         ->count();
 
-    $hardwareHandoverNew = app(\App\Livewire\HardwareHandoverNew::class)
+    $hardwareHandoverNew = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
         ->getNewHardwareHandovers()
         ->count();
 
-    $hardwareHandoverCompleted = app(\App\Livewire\HardwareHandoverCompleted::class)
+    $hardwareHandoverCompleted = app(\App\Livewire\SalespersonDashboard\HardwareHandoverCompleted::class)
         ->getOverdueHardwareHandovers()
         ->count();
 
-    $followUpLead = app(\App\Livewire\FollowUpLead::class)
+    $followUpLead = app(\App\Livewire\SalespersonDashboard\FollowUpLead::class)
         ->getFollowUpLead()
         ->count();
 
-    $transferLead = app(\App\Livewire\TransferLead::class)
+    $transferLead = app(\App\Livewire\SalespersonDashboard\TransferLead::class)
         ->getTransferLead()
         ->count();
 
-    $debtorFollowUpToday = app(\App\Livewire\DebtorFollowUpTodayTable::class)
+    $debtorFollowUpToday = app(\App\Livewire\SalespersonDashboard\DebtorFollowUpTodayTable::class)
         ->getTodayProspects()
         ->count();
 
-    $debtorFollowUpOverdue = app(\App\Livewire\DebtorFollowUpOverdueTable::class)
+    $debtorFollowUpOverdue = app(\App\Livewire\SalespersonDashboard\DebtorFollowUpOverdueTable::class)
         ->getOverdueProspects()
         ->count();
 
-    $hrdfFollowUpToday = app(\App\Livewire\HrdfFollowUpTodayTable::class)
+    $hrdfFollowUpToday = app(\App\Livewire\SalespersonDashboard\HrdfFollowUpTodayTable::class)
         ->getTodayProspects()
         ->count();
 
-    $hrdfFollowUpOverdue = app(\App\Livewire\HrdfFollowUpOverdueTable::class)
+    $hrdfFollowUpOverdue = app(\App\Livewire\SalespersonDashboard\HrdfFollowUpOverdueTable::class)
         ->getTodayProspects()
         ->count();
 @endphp
@@ -692,56 +692,56 @@
 
                 <!-- Content panels for each table (keep the same as your original) -->
                 <div x-show="selectedStat === 'demo-today'" x-transition>
-                    <livewire:demo-today-table />
+                    <livewire:salesperson-dashboard.demo-today-table />
                 </div>
                 <div x-show="selectedStat === 'demo-tmr'" x-transition>
-                    <livewire:demo-tmr-table />
+                    <livewire:salesperson-dashboard.demo-tmr-table />
                 </div>
 
                 <!-- Prospect Reminder -->
                 <div x-show="selectedStat === 'pr-today'" x-transition>
-                    <livewire:pr-today-salesperson-table />
+                    <livewire:salesperson-dashboard.pr-today-salesperson-table />
                 </div>
                 <div x-show="selectedStat === 'pr-overdue'" x-transition>
-                    <livewire:pr-overdue-salesperson-table />
+                    <livewire:salesperson-dashboard.pr-overdue-salesperson-table />
                 </div>
 
                 <!-- Software Handover -->
                 <div x-show="selectedStat === 'software-handover-pending'" x-transition>
-                    <livewire:software-handover-new />
+                    <livewire:salesperson-dashboard.software-handover-new />
                 </div>
                 <div x-show="selectedStat === 'software-handover-completed'" x-transition>
-                    <livewire:software-handover-completed />
+                    <livewire:salesperson-dashboard.software-handover-completed />
                 </div>
 
                 <!-- Hardware Handover -->
                 <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
-                    <livewire:hardware-handover-new />
+                    <livewire:salesperson-dashboard.hardware-handover-new />
                 </div>
                 <div x-show="selectedStat === 'hardware-handover-completed'" x-transition>
-                    <livewire:hardware-handover-completed />
+                    <livewire:salesperson-dashboard.hardware-handover-completed />
                 </div>
 
                 <!-- No Respond Leads -->
                 <div x-show="selectedStat === 'transfer-lead'" x-transition>
-                    <livewire:transfer-lead />
+                    <livewire:salesperson-dashboard.transfer-lead />
                 </div>
                 <div x-show="selectedStat === 'follow-up-lead'" x-transition>
-                    <livewire:follow-up-lead />
+                    <livewire:salesperson-dashboard.follow-up-lead />
                 </div>
 
                 <!-- Others -->
                 <div x-show="selectedStat === 'debtor-follow-up-today'" x-transition>
-                    <livewire:debtor-follow-up-today-table />
+                    <livewire:salesperson-dashboard.debtor-follow-up-today-table />
                 </div>
                 <div x-show="selectedStat === 'debtor-follow-up-overdue'" x-transition>
-                    <livewire:debtor-follow-up-overdue-table />
+                    <livewire:salesperson-dashboard.debtor-follow-up-overdue-table />
                 </div>
                 <div x-show="selectedStat === 'hrdf-follow-up-today'" x-transition>
-                    <livewire:hrdf-follow-up-today-table />
+                    <livewire:salesperson-dashboard.hrdf-follow-up-today-table />
                 </div>
                 <div x-show="selectedStat === 'hrdf-follow-up-overdue'" x-transition>
-                    <livewire:hrdf-follow-up-overdue-table />
+                    <livewire:salesperson-dashboard.hrdf-follow-up-overdue-table />
                 </div>
             </div>
         </div>

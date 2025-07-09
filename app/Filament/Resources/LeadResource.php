@@ -23,6 +23,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationMana
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerAppointmentRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\ImplementerFollowUpRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelationManager;
@@ -32,6 +33,7 @@ use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
 use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
 use App\Filament\Resources\LeadResource\Tabs\HardwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerAppointmentTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTab;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
@@ -162,6 +164,11 @@ class LeadResource extends Resource
         if (in_array('appointment', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Appointment')
                 ->schema(AppointmentTabs::getSchema());
+        }
+
+        if (in_array('implementer_follow_up', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Implementer Follow Up')
+                ->schema(ImplementerFollowUpTabs::getSchema());
         }
 
         if (in_array('implementer_appointment', $activeTabs)) {
@@ -799,6 +806,7 @@ class LeadResource extends Resource
             HardwareHandoverRelationManager::class,
             RepairAppointmentRelationManager::class,
             ImplementerAppointmentRelationManager::class,
+            ImplementerFollowUpRelationManager::class,
         ];
     }
 
