@@ -115,7 +115,7 @@ class LeadResource extends Resource
             } elseif ($user->role_id === 1) { // Lead Owner
                 if ($user->additional_role === 1) {
                     $activeTabs = [
-                        'lead', 'company', 'appointment', 'quotation', 'repair_appointment'
+                        'company', 'quotation', 'repair_appointment'
                     ];
                 } else {
                     $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',

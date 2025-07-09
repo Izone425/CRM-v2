@@ -591,7 +591,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                 $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
                                 // Get company name
-                                $companyName = $record->companyDetail->company_name ?? 'Unknown Company';
+                                $companyName = $record->company_name ?? 'Unknown Company';
 
                                 $repair = $record;
 

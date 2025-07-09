@@ -57,10 +57,16 @@ class ViewLeadRecord extends ViewRecord
     private function getDefaultVisibleTabs(): array
     {
         $roleId = auth()->user()->role_id;
+        $additionalRole = auth()->user()->additional_role;
 
         if ($roleId === 1) { // Lead Owner
             return ['lead', 'company'];
         } elseif ($roleId === 2) { // Salesperson
+            // If Salesperson with additional_role 1, show repair-related tabs
+            if ($additionalRole === 1) {
+                return ['company', 'quotation', 'repair_appointment'];
+            }
+            // Regular Salesperson view
             return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
         } else { // Manager (role_id = 3) or others
             return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice', 'debtor_follow_up', 'software_handover', 'hardware_handover'];
@@ -203,7 +209,7 @@ class ViewLeadRecord extends ViewRecord
                             $tabs = ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
                             break;
                         case 'admin_repair':
-                            $tabs = ['lead', 'company', 'appointment', 'quotation', 'repair_appointment'];
+                            $tabs = ['company', 'quotation', 'repair_appointment'];
                             break;
                         case 'salesperson':
                             $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
