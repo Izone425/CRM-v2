@@ -186,7 +186,7 @@ class AdminRepairInactive extends Component implements HasForms, HasTable
                         return $user ? $user->name : 'Unknown User';
                     }),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->sortable(),

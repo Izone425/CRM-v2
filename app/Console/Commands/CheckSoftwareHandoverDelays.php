@@ -21,7 +21,7 @@ class CheckSoftwareHandoverDelays extends Command
      *
      * @var string
      */
-    protected $description = 'Check for software handovers that are delayed (more than 60 days since completion)';
+    protected $description = 'Check for software handovers that are delayed (more than 60 weekdays since completion)';
 
     /**
      * Execute the console command.
@@ -42,20 +42,46 @@ class CheckSoftwareHandoverDelays extends Command
         foreach ($handovers as $handover) {
             $completedDate = Carbon::parse($handover->completed_at);
             $today = Carbon::now();
-            $daysDifference = $completedDate->diffInDays($today);
 
-            // If more than 60 days, mark as Delay
-            if ($daysDifference > 60) {
+            // Count only weekdays (exclude weekends)
+            $weekdaysDifference = $this->countWeekdaysBetween($completedDate, $today);
+
+            // If more than 60 weekdays, mark as Delay
+            if ($weekdaysDifference > 60) {
                 $handover->status_handover = 'DELAY';
                 $handover->saveQuietly(); // Save without triggering events
                 $count++;
 
-                $this->info("Handover #{$handover->id} for {$handover->company_name} marked as Delay ({$daysDifference} days since completion)");
-                Log::info("Software handover #{$handover->id} automatically marked as Delay after {$daysDifference} days");
+                $this->info("Handover #{$handover->id} for {$handover->company_name} marked as Delay ({$weekdaysDifference} weekdays since completion)");
+                Log::info("Software handover #{$handover->id} automatically marked as Delay after {$weekdaysDifference} weekdays");
             }
         }
 
         $this->info("Completed. {$count} handovers marked as Delay.");
         return 0;
+    }
+
+    /**
+     * Count only weekdays between two dates
+     *
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return int
+     */
+    private function countWeekdaysBetween(Carbon $startDate, Carbon $endDate): int
+    {
+        $weekdayCount = 0;
+        $currentDate = $startDate->copy();
+
+        // Iterate through each day and count only weekdays
+        while ($currentDate->lte($endDate)) {
+            // Check if the current day is not Saturday (6) and not Sunday (0)
+            if ($currentDate->dayOfWeek !== Carbon::SATURDAY && $currentDate->dayOfWeek !== Carbon::SUNDAY) {
+                $weekdayCount++;
+            }
+            $currentDate->addDay();
+        }
+
+        return $weekdayCount;
     }
 }

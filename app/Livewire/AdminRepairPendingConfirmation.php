@@ -188,7 +188,7 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                         return $user ? $user->name : 'Unknown User';
                     }),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
@@ -525,8 +525,8 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                             // Send email notification about the appointment
                             if ($appointment && $lead) {
                                 // Set up email recipients
-                                // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                                $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                // $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
 
                                 // Process required attendees
                                 $attendeeEmails = [];

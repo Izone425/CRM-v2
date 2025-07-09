@@ -2,7 +2,7 @@
     <!-- Title -->
     <div class="mb-4 text-center">
         <h2 class="text-lg font-semibold text-gray-800">Repair Handover Details</h2>
-        <p class="text-blue-600">{{ $record->companyDetail->company_name ?? 'Repair Ticket' }}</p>
+        <p class="text-blue-600">{{ $record->company_name ?? 'Repair Ticket' }}</p>
     </div>
 
     <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2">

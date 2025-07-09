@@ -217,7 +217,7 @@
     use App\Models\SoftwareHandover;
 
     // Define queries for New
-    $newCount = app(\App\Livewire\SoftwareHandoverNew::class)
+    $newCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
         ->getNewSoftwareHandovers()
         ->count();
 
@@ -233,7 +233,7 @@
         ->count();
 
     // Define queries for Completed and Draft/Rejected
-    $completedCount = app(\App\Livewire\SoftwareHandoverCompleted::class)
+    $completedCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverCompleted::class)
         ->getNewSoftwareHandovers()
         ->count();
 
@@ -324,7 +324,7 @@
             </div>
 
             <div x-show="selectedStat === 'new' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-new'">
-                @livewire('software-handover-new')
+                <livewire:salesperson-dashboard.software-handover-new />
             </div>
 
             <div x-show="selectedStat === 'pending-kick-off' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-kick-off'">
@@ -336,7 +336,7 @@
             </div>
 
             <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-completed'">
-                @livewire('software-handover-completed')
+                <livewire:salesperson-dashboard.software-handover-completed />
             </div>
 
             <div x-show="selectedStat === 'draft-rejected'" x-transition :key="selectedStat + '-rejected'">

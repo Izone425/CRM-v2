@@ -83,10 +83,12 @@ class DemoAnalysisTableForm extends Page
                 $weekStart->addDays(2); // Move to Monday
             }
 
+            // Store both the display week number and MySQL week number
             $weeks[$weekNumber] = [
                 'start' => clone $weekStart,
                 'end' => clone $weekEnd,
                 'date_range' => $weekStart->format('j M Y') . ' - ' . $weekEnd->format('j M Y'),
+                'mysql_week' => (int)$weekStart->format('W'), // Store MySQL week number for matching
             ];
 
             $currentDate->addWeek();
@@ -94,7 +96,8 @@ class DemoAnalysisTableForm extends Page
         }
 
         // Get appointment data
-        $query = Appointment::whereBetween('date', [$startOfYear, $endOfYear]);
+        $query = Appointment::whereBetween('date', [$startOfYear, $endOfYear])
+            ->where('status', '!=', 'Cancelled');
 
         // Filter by salesperson if needed
         if ($this->selectedSalesperson !== 'all') {
@@ -102,10 +105,10 @@ class DemoAnalysisTableForm extends Page
         }
 
         $appointments = $query->select(
-            'type', // Now stores 'NEW DEMO' or other types
-            'appointment_type', // Now stores 'ONLINE', 'WEBINAR', etc.
-            'status', // Now could be 'Done', 'New', etc.
-            DB::raw('WEEK(date) as week_number'),
+            'type',
+            'appointment_type',
+            'status',
+            DB::raw('WEEK(date, 1) as week_number'), // Add mode parameter 1 for consistency
             DB::raw('YEAR(date) as year'),
             DB::raw('COUNT(*) as count')
         )
@@ -116,20 +119,19 @@ class DemoAnalysisTableForm extends Page
         $weeklyStats = [];
 
         foreach ($weeks as $weekNumber => $weekData) {
-            $weekStart = $weekData['start'];
-            $weekEnd = $weekData['end'];
-
-            // Calculate the correct week number for Carbon/MySQL compatibility
-            $mysqlWeekNumber = $weekStart->format('W');
+            // Use the MySQL week number for matching
+            $mysqlWeekNumber = $weekData['mysql_week'];
 
             // Initialize stats for this week
             $newDemoCount = 0;
             $webinarDemoCount = 0;
-            $totalTarget = 70; // Weekly target (adjust as needed)
 
-            // Find appointments for this week
+            // Set target based on salesperson selection
+            $totalTarget = $this->selectedSalesperson === 'all' ? 70 : 10;
+
+            // Find appointments for this week using MySQL week number
             foreach ($appointments as $appointment) {
-                if ((int)$appointment->week_number === (int)$mysqlWeekNumber && (int)$appointment->year === $this->selectedYear) {
+                if ((int)$appointment->week_number === $mysqlWeekNumber && (int)$appointment->year === $this->selectedYear) {
                     // Count NEW DEMO type appointments
                     if (strtoupper($appointment->type) === 'NEW DEMO') {
                         $newDemoCount += $appointment->count;
@@ -146,6 +148,12 @@ class DemoAnalysisTableForm extends Page
             $newDemoPercentage = $totalTarget > 0 ? round(($newDemoCount / $totalTarget) * 100) : 0;
             $webinarDemoPercentage = $totalTarget > 0 ? round(($webinarDemoCount / $totalTarget) * 100) : 0;
 
+            // Add styling indicators for values below 50%
+            $newDemoCountClass = $newDemoPercentage < 50 ? 'text-red-600 font-bold' : '';
+            $newDemoPercentageClass = $newDemoPercentage < 50 ? 'text-red-600 font-bold' : '';
+            $webinarDemoCountClass = $webinarDemoPercentage < 50 ? 'text-red-600 font-bold' : '';
+            $webinarDemoPercentageClass = $webinarDemoPercentage < 50 ? 'text-red-600 font-bold' : '';
+
             $weeklyStats[$weekNumber] = [
                 'week_number' => $weekNumber,
                 'date_range' => $weekData['date_range'],
@@ -155,6 +163,11 @@ class DemoAnalysisTableForm extends Page
                 'webinar_demo_count' => $webinarDemoCount,
                 'webinar_demo_target' => $totalTarget,
                 'webinar_demo_percentage' => $webinarDemoPercentage,
+                // Add styling classes
+                'new_demo_count_class' => $newDemoCountClass,
+                'new_demo_percentage_class' => $newDemoPercentageClass,
+                'webinar_demo_count_class' => $webinarDemoCountClass,
+                'webinar_demo_percentage_class' => $webinarDemoPercentageClass,
             ];
         }
 

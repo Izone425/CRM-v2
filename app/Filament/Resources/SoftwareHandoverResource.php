@@ -169,7 +169,6 @@ class SoftwareHandoverResource extends Resource
                                     ->schema([
                                         DatePicker::make('webinar_training')
                                             ->label('Online Webinar Training')
-                                            ->disabled()
                                             ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
                                             ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
 
@@ -704,10 +703,11 @@ class SoftwareHandoverResource extends Resource
 
                     // Add specific implementers who might not be in roles 4 or 5
                     $specificImplementers = [
-                        'addzim' => 'Addzim',
-                        'azrul' => 'Azrul',
-                        'Hanis Nadiah' => 'Hanis Nadiah',
+                        'ADZZIM' => 'Adzzim Bin Kassim',
+                        'AZRUL' => 'Azrul Nizam',
+                        'HANIF' => 'Muhammad Hanif',
                         'Muhammad Alif Faisal' => 'Muhammad Alif Faisal',
+                        'BARI' => 'Bari',
                     ];
 
                     // Merge arrays, ensuring there are no duplicates

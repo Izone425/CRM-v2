@@ -200,7 +200,7 @@ class ViewLeadRecord extends ViewRecord
                             $tabs = ['lead', 'company'];
                             break;
                         case 'implementer':
-                            $tabs = ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+                            $tabs = ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
                             break;
                         case 'admin_repair':
                             $tabs = ['lead', 'company', 'appointment', 'quotation', 'repair_appointment'];

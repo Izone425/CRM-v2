@@ -51,6 +51,7 @@ class Lead extends Model
         'deal_amount',
         'contact_id',
         'reseller_id',
+        'visible_in_repairs',
         'created_at',
         'updated_at'
     ];
@@ -178,6 +179,11 @@ class Lead extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class, 'subject_id');
+    }
+
+    public function implementerLogs(): HasMany
+    {
+        return $this->hasMany(ImplementerLogs::class, 'lead_id', 'id');
     }
 
     public function demoAppointment(): HasMany

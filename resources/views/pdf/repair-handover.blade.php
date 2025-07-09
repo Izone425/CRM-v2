@@ -179,7 +179,7 @@
     <div class="header">
         <img src="{{ $path_img ?? asset('img/logo-ttc.png') }}" alt="TIMETEC Logo" class="logo">
         <h1>REPAIR HANDOVER FORM</h1>
-        <div class="company-name">{{ $repair->companyDetail->company_name ?? 'Unknown Company' }}</div>
+        <div class="company-name">{{ $repair->company_name ?? 'Unknown Company' }}</div>
     </div>
 
     <div class="section">
@@ -207,7 +207,18 @@
             </tr>
             <tr>
                 <td class="label">Submission Date</td>
-                <td>{{ $repair->submitted_at ? $repair->submitted_at->format('d M Y, h:i A') : 'Not submitted yet' }}</td>
+                <td>
+                    @php
+                        try {
+                            $submittedAt = $repair->submitted_at instanceof \Carbon\Carbon
+                                ? $repair->submitted_at->format('d M Y, h:i A')
+                                : ($repair->submitted_at ? \Carbon\Carbon::parse($repair->submitted_at)->format('d M Y, h:i A') : 'Not submitted yet');
+                        } catch (\Exception $e) {
+                            $submittedAt = is_string($repair->submitted_at) ? $repair->submitted_at : 'Not submitted yet';
+                        }
+                    @endphp
+                    {{ $submittedAt }}
+                </td>
             </tr>
         </table>
     </div>
@@ -218,7 +229,7 @@
             <tr>
                 <td class="label" width="30%">Company Name</td>
                 <td width="70%">
-                    <strong>{{ $repair->companyDetail->company_name ?? 'Unknown Company' }}</strong>
+                    <strong>{{ $repair->company_name ?? 'Unknown Company' }}</strong>
                 </td>
             </tr>
             <tr>
@@ -516,7 +527,25 @@
                             <td>{{ $device['device_serial'] ?? 'N/A' }}</td>
                             <td>
                                 @if(!empty($device['invoice_date']))
-                                    {{ \Carbon\Carbon::parse($device['invoice_date'])->format('d M Y') }}
+                                    @php
+                                        try {
+                                            // First check if it's already a Carbon instance
+                                            if ($device['invoice_date'] instanceof \Carbon\Carbon) {
+                                                $formattedDate = $device['invoice_date']->format('d M Y');
+                                            }
+                                            // Check if it's a valid date string format
+                                            elseif (is_string($device['invoice_date']) && strtotime($device['invoice_date']) !== false) {
+                                                $formattedDate = \Carbon\Carbon::parse($device['invoice_date'])->format('d M Y');
+                                            }
+                                            // If all else fails, just display as is
+                                            else {
+                                                $formattedDate = $device['invoice_date'];
+                                            }
+                                        } catch (\Exception $e) {
+                                            $formattedDate = $device['invoice_date'];
+                                        }
+                                    @endphp
+                                    {{ $formattedDate }}
                                 @else
                                     Not provided
                                 @endif

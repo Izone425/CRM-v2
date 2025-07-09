@@ -178,7 +178,7 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->sortable(),
@@ -266,6 +266,8 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                 // Log activity
                                 $this->logRepairActivity($record);
 
+                                $this->sendCompletionNotificationEmail($record);
+
                                 DB::commit();
 
                                 // Show success notification
@@ -319,77 +321,6 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                         ->disabled()
                                 ]),
 
-                            Select::make('used_spare_parts')
-                                ->label('Spare Parts Used')
-                                ->multiple()
-                                ->searchable()
-                                ->preload()
-                                ->disableOptionWhen(fn ($value, $label, $state) => true) // Make all options non-deletable
-                                ->disabled() // Make the entire select field non-editable
-                                ->columnSpanFull() // Ensure full width for better visibility
-                                ->reactive() // Make it reactive to changes in unused_spare_parts
-                                ->options(function (Get $get) {
-                                    $deviceModel = $get('device_model');
-
-                                    if (!$deviceModel) {
-                                        return [];
-                                    }
-
-                                    // Get spare parts for this device model
-                                    $usedParts = $get('used_spare_parts') ?? [];
-                                    $unusedParts = $get('unused_spare_parts') ?? [];
-
-                                    // Get actually used parts (excluding those marked as unused)
-                                    $actuallyUsedParts = array_diff($usedParts, $unusedParts);
-
-                                    if (empty($actuallyUsedParts)) {
-                                        return [];
-                                    }
-
-                                    try {
-                                        $parts = SparePart::whereIn('id', $actuallyUsedParts)
-                                            ->get()
-                                            ->mapWithKeys(function ($part) {
-                                                $displayName = $part->name . ' (' . ($part->autocount_code ?? $part->device_model ?? 'N/A') . ')';
-                                                return [$part->id => $displayName];
-                                            })
-                                            ->toArray();
-
-                                        return $parts;
-                                    } catch (\Exception $e) {
-                                        return [];
-                                    }
-                                })
-                                ->afterStateHydrated(function (Get $get, Set $set, $state) {
-                                    // Keep this in sync with the hidden field for compatibility
-                                    if ($get('used_spare_parts_original') && !$state) {
-                                        $originalParts = $get('used_spare_parts_original');
-                                        $unusedParts = $get('unused_spare_parts') ?? [];
-
-                                        // Only show actually used parts
-                                        $actuallyUsedParts = array_diff($originalParts, $unusedParts);
-                                        $set('used_spare_parts', $actuallyUsedParts);
-                                    }
-                                }),
-
-                            // Keep the original Hidden component for data storage and compatibility
-                            Hidden::make('used_spare_parts_original')
-                                ->default(function (Get $get) {
-                                    $deviceModel = $get('device_model');
-
-                                    // If no device model, return empty array
-                                    if (!$deviceModel) {
-                                        return [];
-                                    }
-
-                                    // Get spare parts for this device model
-                                    return SparePart::where('is_active', true)
-                                        ->where('device_model', $deviceModel)
-                                        ->pluck('id')
-                                        ->toArray();
-                                }),
-
-                            // Improved Spare Parts Not Used section
                             Select::make('unused_spare_parts')
                                 ->label('Spare Parts Not Used (Select to remove)')
                                 ->allowHtml()
@@ -399,16 +330,16 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                 ->columnSpanFull() // Ensure full width for better visibility
                                 ->helperText('Select spare parts that were NOT actually used during the repair')
                                 ->reactive()
-                                ->options(function (Get $get) {
-                                    // Get all available parts for this device model from the original source
-                                    $allParts = $get('used_spare_parts_original') ?? [];
+                                ->options(function (Get $get, AdminRepair $record) {
+                                    // Get the original parts from the repair record
+                                    $originalParts = $get('used_spare_parts_original') ?? [];
 
-                                    if (empty($allParts)) {
+                                    if (empty($originalParts)) {
                                         return [];
                                     }
 
-                                    // Get details of all parts
-                                    $spareParts = SparePart::whereIn('id', $allParts)->get();
+                                    // Get spare part details from the database
+                                    $spareParts = SparePart::whereIn('id', $originalParts)->get();
 
                                     return $spareParts->mapWithKeys(function ($part) {
                                         return [$part->id => $this->getSparePartOptionHtml($part)];
@@ -422,13 +353,86 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                                     // Calculate which parts should be shown as "used" (original minus unused)
                                     $newUsedParts = array_values(array_diff($originalParts, $currentUnusedParts));
 
-                                    // Force update the used_spare_parts field with different approach
-                                    $set('used_spare_parts', []);  // Clear first
-                                    $set('used_spare_parts', $newUsedParts); // Set new value
-
-                                    // Notify the change so the UI can update
-                                    $this->dispatch('spare-parts-updated');
+                                    // Update used_spare_parts with new value
+                                    $set('used_spare_parts', $newUsedParts);
                                 }),
+
+                            // Then update the used_spare_parts select to properly show only actually used parts
+                            Select::make('used_spare_parts')
+                                ->label('Spare Parts Used')
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->disableOptionWhen(fn ($value, $label, $state) => true) // Make all options non-deletable
+                                ->disabled() // Make the entire select field non-editable
+                                ->columnSpanFull() // Ensure full width for better visibility
+                                ->options(function (Get $get) {
+                                    // Get only the parts that are currently marked as used
+                                    $usedParts = $get('used_spare_parts') ?? [];
+                                    $unusedParts = $get('unused_spare_parts') ?? [];
+
+                                    // Make sure we're only showing actually used parts (not in unused list)
+                                    $actuallyUsedParts = array_diff($usedParts, $unusedParts);
+
+                                    if (empty($actuallyUsedParts)) {
+                                        return [];
+                                    }
+
+                                    try {
+                                        // Get part details for display
+                                        $parts = SparePart::whereIn('id', $actuallyUsedParts)
+                                            ->get()
+                                            ->mapWithKeys(function ($part) {
+                                                $displayName = $part->name . ' (' . ($part->autocount_code ?? $part->device_model ?? 'N/A') . ')';
+                                                return [$part->id => $displayName];
+                                            })
+                                            ->toArray();
+
+                                        return $parts;
+                                    } catch (\Exception $e) {
+                                        Log::error("Error fetching spare parts: " . $e->getMessage());
+                                        return [];
+                                    }
+                                })
+                                ->reactive() // Make it reactive to changes
+                                ->dehydrated(true),
+
+                            // Make sure we keep the original parts list in the hidden field
+                            Hidden::make('used_spare_parts_original')
+                                ->default(function (Get $get, AdminRepair $record) {
+                                    $deviceModel = $get('device_model');
+
+                                    // If no device model, return empty array
+                                    if (!$deviceModel) {
+                                        return [];
+                                    }
+
+                                    // Get spare parts from the repair record's spare_parts column
+                                    try {
+                                        if ($record->spare_parts) {
+                                            $spareParts = is_string($record->spare_parts)
+                                                ? json_decode($record->spare_parts, true)
+                                                : $record->spare_parts;
+
+                                            // Filter parts for this specific device model
+                                            $deviceParts = array_filter($spareParts, function($part) use ($deviceModel) {
+                                                return isset($part['device_model']) &&
+                                                    strtoupper(trim($part['device_model'])) === strtoupper(trim($deviceModel));
+                                            });
+
+                                            // Extract just the part_id values
+                                            return array_map(function($part) {
+                                                return (int)$part['part_id'];
+                                            }, $deviceParts);
+                                        }
+
+                                        return [];
+                                    } catch (\Exception $e) {
+                                        Log::error("Failed to get spare parts from record: " . $e->getMessage());
+                                        return [];
+                                    }
+                                })
+                                ->dehydrated(true),
                         ])
                         ->itemLabel(function (array $state): ?string {
                             $label = $state['device_model'] ?? 'Device';
@@ -613,6 +617,38 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                 Log::warning("Error parsing devices: " . $e->getMessage(), [
                     'trace' => $e->getTraceAsString()
                 ]);
+            }
+        }
+
+        if (!empty($record->spare_parts)) {
+            try {
+                $spareParts = is_string($record->spare_parts)
+                    ? json_decode($record->spare_parts, true)
+                    : $record->spare_parts;
+
+                if (is_array($spareParts)) {
+                    // Filter parts for this specific device model
+                    $deviceParts = array_filter($spareParts, function($part) use ($deviceModel) {
+                        return isset($part['device_model']) &&
+                            strtoupper(trim($part['device_model'])) === strtoupper(trim($deviceModel));
+                    });
+
+                    // Extract just the part_id values
+                    $devicePartIds = array_map(function($part) {
+                        return (int)$part['part_id'];
+                    }, $deviceParts);
+
+                    if (!empty($devicePartIds)) {
+                        // Use these part IDs instead of querying the database
+                        $spareParts = $devicePartIds;
+                        Log::info("Using spare parts from repair record", [
+                            'count' => count($spareParts),
+                            'model' => $deviceModel
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Error parsing spare_parts: " . $e->getMessage());
             }
         }
 
@@ -884,6 +920,55 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                 </div>
             </div>
         ';
+    }
+
+    protected function sendCompletionNotificationEmail(AdminRepair $record): void
+    {
+        try {
+            // Format the repair ID properly
+            $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+            // Get company name
+            $companyName = $record->company_name ?? 'Unknown Company';
+
+            // Create email content structure
+            $emailContent = [
+                'repair_id' => $repairId,
+                'company' => [
+                    'name' => $companyName,
+                ],
+                'status' => 'Completed',
+                'completed_by' => auth()->user()->name ?? 'Unknown',
+                'completed_date' => now()->format('d M Y, h:i A'),
+                'pdf_url' => $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null,
+                'is_completion_notification' => true, // Flag to indicate this is a completion notification
+            ];
+
+            // Define recipients
+            $recipients = [
+                'admin.timetec.hr@timeteccloud.com',
+                'izzuddin@timeteccloud.com'
+            ];
+
+            // Send email notification
+            $authUser = auth()->user();
+            \Illuminate\Support\Facades\Mail::send(
+                'emails.repair_completion_notification', // Create this view (see below)
+                ['emailContent' => $emailContent],
+                function ($message) use ($recipients, $authUser, $repairId, $companyName) {
+                    $message->from($authUser->email, $authUser->name)
+                        ->to($recipients)
+                        ->subject("REPAIR HANDOVER ID {$repairId} : COMPLETED");
+                }
+            );
+
+            // Log success
+            \Illuminate\Support\Facades\Log::info("Completion notification sent for repair ticket #{$record->id}");
+
+        } catch (\Exception $e) {
+            // Log error but don't stop the process
+            \Illuminate\Support\Facades\Log::error("Failed to send completion email for repair #{$record->id}: {$e->getMessage()}");
+        }
     }
 
     protected function getDeviceWarrantyYears(string $deviceModel): int

@@ -14,6 +14,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\View;
 use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -234,6 +235,20 @@ class CompanyTabs
                                                             ->required()
                                                             ->reactive(),
 
+                                                        Checkbox::make('visible_in_repairs')
+                                                            ->label('Visible in Repair Dashboard')
+                                                            ->helperText('When checked, this lead will appear in the Admin Repair Dashboard')
+                                                            ->default(fn (Lead $record) => $record->visible_in_repairs ?? false)
+                                                            ->hidden(function (callable $get) {
+                                                                // Hide if user is a salesperson (role_id 2)
+                                                                if (auth()->user()->role_id == 2) {
+                                                                    return true;
+                                                                }
+
+                                                                // Also hide if status is not 'Closed'
+                                                                return $get('status') !== 'Closed';
+                                                            }),
+
                                                         // Reason Field - Visible only when status is NOT Closed
                                                         Select::make('reason')
                                                             ->label('Select a Reason')
@@ -300,6 +315,7 @@ class CompanyTabs
                                                             'stage' => null,
                                                             'follow_up_date' => null,
                                                             'follow_up_needed' => false,
+                                                            'visible_in_repairs' => $data['visible_in_repairs'] ?? false,
                                                         ];
 
                                                         // If lead is closed, update deal amount
