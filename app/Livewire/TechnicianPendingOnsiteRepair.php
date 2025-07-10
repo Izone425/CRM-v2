@@ -178,28 +178,64 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                     ->sortable()
                     ->searchable(),
 
+                TextColumn::make('days_elapsed')
+                    ->label('Total Days')
+                    ->state(function (AdminRepair $record) {
+                        if (!$record->created_at) {
+                            return '0 days';
+                        }
+
+                        $createdDate = Carbon::parse($record->created_at);
+                        $today = Carbon::now();
+                        $diffInDays = $createdDate->diffInDays($today);
+
+                        return $diffInDays . ' ' . Str::plural('day', $diffInDays);
+                    }),
+
+                TextColumn::make('created_by')
+                    ->label('Submitted By')
+                    ->formatStateUsing(function ($state, AdminRepair $record) {
+                        if (!$state) {
+                            return 'Unknown';
+                        }
+
+                        $user = User::find($state);
+                        return $user ? $user->name : 'Unknown User';
+                    }),
+
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
-                    ->sortable(),
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
 
-                TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
+                            if ($company) {
+                                $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                                $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
 
-                TextColumn::make('zoho_ticket')
-                    ->label('Zoho Ticket')
-                    ->searchable(),
+                                return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                        target="_blank"
+                                        title="' . e($company->company_name) . '"
+                                        class="inline-block"
+                                        style="color:#338cf0;">
+                                        ' . $company->company_name . '
+                                    </a>');
+                            }
+                        }
+
+                        // If we have a state but no company was found by lead_id
+                        if ($state) {
+                            $shortened = strtoupper(Str::limit($state, 20, '...'));
+                            return "<span title='" . e($state) . "'>{$state}</span>";
+                        }
+
+                        return 'N/A';
+                    })
+                    ->html(),
 
                 TextColumn::make('status')
-                    ->label('Status')
-                    ->colors([
-                        'gray' => ['Draft', 'Closed'],
-                        'danger' => 'New',
-                        'warning' => 'In Progress',
-                        'info' => 'Awaiting Parts',
-                        'success' => 'Resolved',
-                    ]),
+                    ->label('Status'),
             ])
             ->actions([
                 ActionGroup::make([

@@ -98,7 +98,7 @@
         </div>
 
         <div class="content">
-            <p class="greeting">Dear {{ $content['leadOwnerName'] }},</p>
+            <p class="greeting">Dear All,</p>
 
             <p>A repair appointment has been scheduled with the following details:</p>
 
@@ -139,12 +139,6 @@
                     <th>Technician</th>
                     <td><span class="highlight">{{ $content['lead']['technicianName'] }}</span></td>
                 </tr>
-                @if(isset($content['lead']['leadOwnerMobileNumber']))
-                <tr>
-                    <th>Manager Contact</th>
-                    <td>{{ $content['lead']['leadOwnerMobileNumber'] }}</td>
-                </tr>
-                @endif
             </table>
 
             @if(isset($content['lead']['remarks']) && !empty($content['lead']['remarks']))
@@ -156,13 +150,9 @@
             </div>
             @endif
 
-            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact your manager as soon as possible.</p>
+            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact admin at 03-80709933</p>
 
             <p>Thank you,<br>TimeTec CRM</p>
-
-            <div class="footer">
-                <p>This is an automated message from TimeTec CRM system. Please do not reply to this email.</p>
-            </div>
         </div>
     </div>
 </body>
