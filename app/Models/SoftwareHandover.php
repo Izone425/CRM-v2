@@ -77,6 +77,10 @@ class SoftwareHandover extends Model
         'remarks',
         'submitted_at',
         'completed_at',
+
+        'manual_follow_up_count',
+        'follow_up_date',
+        'follow_up_counter',
     ];
 
     protected $casts = [

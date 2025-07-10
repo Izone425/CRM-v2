@@ -47,7 +47,7 @@ class TechnicianCalendar extends Component
     public array $selectedTechnicians = [];
     public bool $allTechniciansSelected = true;
 
-    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE"];
+    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "FINGERTEC TASK"];
     public array $selectedRepairType = [];
     public bool $allRepairTypeSelected = true;
 
@@ -156,6 +156,7 @@ class TechnicianCalendar extends Component
             "NEW INSTALLATION" => 0,
             "REPAIR" => 0,
             "MAINTENANCE SERVICE" => 0,
+            "FINGERTEC TASK" => 0, // Add FINGERTEC TASK counter
             "NEW" => 0,
             "DONE" => 0,
             "CANCELLED" => 0
@@ -171,6 +172,8 @@ class TechnicianCalendar extends Component
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where('type', 'MAINTENANCE SERVICE')
             ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["FINGERTEC TASK"] = $query->clone()->where('type', 'FINGERTEC TASK')
+            ->where('status', '!=', 'Cancelled')->count(); // Add FINGERTEC TASK count
 
         // Count by status
         $this->totalRepairs["NEW"] = $query->clone()->where('status', 'New')->count();
@@ -220,9 +223,15 @@ class TechnicianCalendar extends Component
 
         // Retrieve repair appointments for the selected week
         $appointments = DB::table('repair_appointments')
-            ->join('leads', 'leads.id', '=', 'repair_appointments.lead_id')
-            ->join('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
-            ->select('company_details.company_name', 'repair_appointments.*')
+            ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->select(
+                DB::raw('CASE
+                    WHEN repair_appointments.lead_id IS NULL THEN "No Company"
+                    ELSE COALESCE(company_details.company_name, "No Company")
+                END as company_name'),
+                'repair_appointments.*'
+            )
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
             ->when($this->selectedTechnicians, function ($query) {
@@ -328,7 +337,9 @@ class TechnicianCalendar extends Component
                 // Format appointment times
                 $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
                 $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-                $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+                $appointment->url = $appointment->lead_id
+                    ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
+                    : '#';
 
                 // Apply filters
                 $includeRepairType = $this->allRepairTypeSelected ||
@@ -463,9 +474,15 @@ class TechnicianCalendar extends Component
 
         // Query appointments for these resellers
         $resellerAppointments = DB::table('repair_appointments')
-            ->join('leads', 'leads.id', '=', 'repair_appointments.lead_id')
-            ->join('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
-            ->select('company_details.company_name', 'repair_appointments.*')
+            ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->select(
+                DB::raw('CASE
+                    WHEN repair_appointments.lead_id IS NULL THEN "No Company"
+                    ELSE COALESCE(company_details.company_name, "No Company")
+                END as company_name'),
+                'repair_appointments.*'
+            )
             ->whereIn('technician', $resellerCompanyNames)
             ->whereBetween('date', [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
@@ -495,7 +512,9 @@ class TechnicianCalendar extends Component
             // Format appointment times
             $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
             $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-            $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+            $appointment->url = $appointment->lead_id
+                ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
+                : '#';
 
             // Get the day of the week for this appointment
             $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
@@ -574,6 +593,7 @@ class TechnicianCalendar extends Component
             'NEW INSTALLATION' => 0,
             'REPAIR' => 0,
             'MAINTENANCE SERVICE' => 0,
+            'FINGERTEC TASK' => 0, // Add FINGERTEC TASK to result array
         ];
 
         foreach ($appointments as $appointment) {

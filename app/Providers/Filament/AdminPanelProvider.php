@@ -29,6 +29,7 @@ use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
+use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
@@ -197,6 +198,7 @@ class AdminPanelProvider extends PanelProvider
                 ImplementerDataFile::class,
                 SoftwareHandoverAnalysis::class,
                 DemoAnalysisTableForm::class,
+                TechnicianAppointment::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

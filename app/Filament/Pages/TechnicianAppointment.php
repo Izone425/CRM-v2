@@ -1,0 +1,339 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\RepairAppointment;
+use Carbon\Carbon;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+
+class TechnicianAppointment extends Page implements HasTable
+{
+    use InteractsWithTable;
+
+    protected static ?string $navigationIcon = 'heroicon-o-calendar';
+    protected static ?string $navigationLabel = 'Technician Appointments';
+    protected static string $view = 'filament.pages.technician-appointment';
+    protected static ?int $navigationSort = 80;
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(
+                RepairAppointment::query()
+                    ->orderBy('date', 'desc')
+                    ->orderBy('start_time', 'desc')
+            )
+            ->columns([
+                TextColumn::make('date')
+                    ->date('d M Y')
+                    ->sortable(),
+                TextColumn::make('start_time')
+                    ->time('h:i A')
+                    ->sortable(),
+                TextColumn::make('end_time')
+                    ->time('h:i A'),
+                TextColumn::make('technician')
+                    ->searchable(),
+                TextColumn::make('lead.companyDetail.company_name')
+                    ->searchable()
+                    ->label('Company')
+                    ->getStateUsing(function (RepairAppointment $record): string {
+                        // Fallback mechanism if relation is not available
+                        if ($record->lead && $record->lead->companyDetail) {
+                            return $record->lead->companyDetail->company_name ?? 'N/A';
+                        } elseif ($record->company_name) {
+                            return $record->company_name;
+                        }
+                        return 'N/A';
+                    }),
+                TextColumn::make('type')
+                    ->label('Demo Type'),
+                TextColumn::make('appointment_type')
+                    ->label('Appointment Type'),
+                TextColumn::make('status')
+                    ->label('Status'),
+            ])
+            ->filters([
+                // Add filters if needed
+            ])
+            ->actions([
+                ActionGroup::make([
+                    Action::make('edit')
+                        ->label('Reschedule')
+                        ->color('warning')
+                        ->icon('heroicon-o-pencil')
+                        ->form(fn (RepairAppointment $record) => $this->getFormSchema())
+                        ->fillForm(fn (RepairAppointment $record) => [
+                            'company_name' => $record->company_name,
+                            'date' => $record->date,
+                            'start_time' => $record->start_time,
+                            'end_time' => $record->end_time,
+                            'type' => $record->type,
+                            'appointment_type' => $record->appointment_type,
+                            'technician' => $record->technician,
+                            'remarks' => $record->remarks,
+                            'required_attendees' => $record->required_attendees,
+                            'mode' => 'auto',
+                        ])
+                        ->action(function (array $data, RepairAppointment $record): void {
+                            $record->update($data);
+
+                            $this->notify('success', 'Appointment updated successfully');
+                        }),
+                    Action::make('cancel')
+                        ->label('Cancel Appointment')
+                        ->color('danger')
+                        ->icon('heroicon-o-x-circle')
+                        ->requiresConfirmation()
+                        ->modalHeading('Cancel Repair Appointment')
+                        ->modalDescription('Are you sure you want to cancel this appointment? This action cannot be undone.')
+                        ->modalSubmitActionLabel('Yes, cancel appointment')
+                        ->visible(fn (RepairAppointment $record) => $record->status !== 'Cancelled')
+                        ->action(function (array $data, RepairAppointment $record): void {
+                            // Update the appointment status
+                            $record->update([
+                                'status' => 'Cancelled',
+                            ]);
+                            Notification::make()
+                                ->success()
+                                ->title('Appointment Cancelled')
+                                ->body('The appointment has been successfully cancelled.')
+                                ->send();
+                        })
+                ])->button()
+            ])
+            ->bulkActions([
+                // Add bulk actions if needed
+            ])
+            ->headerActions([
+                Action::make('create')
+                    ->label('Add FingerTec Appointment')
+                    ->form($this->getFormSchema())
+                    ->action(function (array $data): void {
+                        RepairAppointment::create($data);
+                    })
+            ]);
+    }
+
+    protected function getFormSchema(): array
+    {
+        return [
+            ToggleButtons::make('mode')
+                ->label('')
+                ->options([
+                    'auto' => 'Auto',
+                    'custom' => 'Custom',
+                ])
+                ->reactive()
+                ->inline()
+                ->grouped()
+                ->default('auto')
+                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                    if ($state === 'custom') {
+                        $set('date', null);
+                        $set('start_time', null);
+                        $set('end_time', null);
+                    }else{
+                        $set('date', Carbon::today()->toDateString());
+                        $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                        $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                    }
+                }),
+
+            Grid::make(3)
+                ->schema([
+                    DatePicker::make('date')
+                        ->required()
+                        ->label('DATE')
+                        ->default(Carbon::today()->toDateString())
+                        ->reactive(),
+
+                    TimePicker::make('start_time')
+                        ->label('START TIME')
+                        ->required()
+                        ->seconds(false)
+                        ->reactive()
+                        ->default(function () {
+                            // Round up to the next 30-minute interval
+                            $now = Carbon::now();
+                            return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                        })
+                        ->datalist(function (callable $get) {
+                            $user = Auth::user();
+                            $date = $get('date');
+
+                            if ($get('mode') === 'custom') {
+                                return [];
+                            }
+
+                            $times = [];
+                            $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+
+                            if ($user && in_array($user->role_id, [9]) && $date) {
+                                // Fetch all booked appointments as full models
+                                $appointments = RepairAppointment::where('technician', $user->id)
+                                    ->whereDate('date', $date)
+                                    ->whereIn('status', ['New', 'Completed'])
+                                    ->get(['start_time', 'end_time']);
+
+                                for ($i = 0; $i < 48; $i++) {
+                                    $slotStart = $startTime->copy();
+                                    $slotEnd = $startTime->copy()->addMinutes(30);
+                                    $formattedTime = $slotStart->format('H:i');
+
+                                    $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                        $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                        $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                        // Check if the slot overlaps with the appointment
+                                        return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                    });
+
+                                    if (!$isBooked) {
+                                        $times[] = $formattedTime;
+                                    }
+
+                                    $startTime->addMinutes(30);
+                                }
+                            } else {
+                                for ($i = 0; $i < 48; $i++) {
+                                    $times[] = $startTime->format('H:i');
+                                    $startTime->addMinutes(30);
+                                }
+                            }
+
+                            return $times;
+                        })
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            if ($get('mode') === 'auto' && $state) {
+                                $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                            }
+                        }),
+
+                    TimePicker::make('end_time')
+                        ->label('END TIME')
+                        ->required()
+                        ->seconds(false)
+                        ->reactive()
+                        ->default(function (callable $get) {
+                            $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                            return $startTime->addHour()->format('H:i');
+                        })
+                        ->datalist(function (callable $get) {
+                            $user = Auth::user();
+                            $date = $get('date');
+
+                            if ($get('mode') === 'custom') {
+                                return [];
+                            }
+
+                            $times = [];
+                            $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                            if ($user && in_array($user->role_id, [9]) && $date) {
+                                // Fetch booked time slots for this technician on the selected date
+                                $bookedAppointments = RepairAppointment::where('technician', $user->id)
+                                    ->whereDate('date', $date)
+                                    ->pluck('end_time', 'start_time')
+                                    ->toArray();
+
+                                for ($i = 0; $i < 48; $i++) {
+                                    $formattedTime = $startTime->format('H:i');
+
+                                    // Check if time is booked
+                                    $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                        return $formattedTime >= $start && $formattedTime <= $end;
+                                    });
+
+                                    if (!$isBooked) {
+                                        $times[] = $formattedTime;
+                                    }
+
+                                    $startTime->addMinutes(30);
+                                }
+                            } else {
+                                // Default available slots
+                                for ($i = 0; $i < 48; $i++) {
+                                    $times[] = $startTime->format('H:i');
+                                    $startTime->addMinutes(30);
+                                }
+                            }
+
+                            return $times;
+                        }),
+                ]),
+                Grid::make(3)
+                ->schema([
+                    Select::make('type')
+                        ->options([
+                            'FINGERTEC TASK' => 'FINGERTEC TASK',
+                        ])
+                        ->default('FINGERTEC TASK')
+                        ->required()
+                        ->label('DEMO TYPE')
+                        ->reactive(),
+
+                    Select::make('appointment_type')
+                        ->options([
+                            'ONSITE' => 'ONSITE',
+                            'ONLINE' => 'ONLINE',
+                            'INHOUSE' => 'INHOUSE',
+                        ])
+                        ->required()
+                        ->default('ONSITE')
+                        ->label('APPOINTMENT TYPE'),
+
+                    Select::make('technician')
+                        ->label('TECHNICIAN')
+                        ->options(function () {
+                            // Get technicians (role_id 9) with their names as both keys and values
+                            $technicians = \App\Models\User::where('role_id', 9)
+                                ->orderBy('name')
+                                ->get()
+                                ->mapWithKeys(function ($tech) {
+                                    return [$tech->name => $tech->name];
+                                })
+                                ->toArray();
+
+                            // Return only internal technicians
+                            return $technicians;
+                        })
+                        ->searchable()
+                        ->required()
+                        ->placeholder('Select a technician')
+                    ]),
+            Textarea::make('remarks')
+                ->label('REMARKS')
+                ->rows(3)
+                ->autosize()
+                ->extraAttributes(['style' => 'text-transform: uppercase'])
+                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+            TextInput::make('required_attendees')
+                ->label('Required Attendees')
+                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+        ];
+    }
+
+    protected function isJson($string) {
+        json_decode($string);
+        return (json_last_error() == JSON_ERROR_NONE);
+    }
+}

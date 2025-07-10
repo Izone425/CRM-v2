@@ -972,12 +972,12 @@ class AdminRepairDashboard extends Page implements HasTable
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Draft' => 'gray',
+                        'Inactive' => 'gray',
                         'New' => 'danger',
-                        'In Progress' => 'warning',
-                        'Awaiting Parts' => 'info',
-                        'Resolved' => 'success',
-                        'Closed' => 'gray',
+                        'Accepted' => 'danger',
+                        'Pending Confirmation' => 'danger',
+                        'Pending Onsite Repair' => 'danger',
+                        'Completed' => 'success',
                         default => 'gray',
                     }),
             ])

@@ -387,8 +387,13 @@
         ->count();
 
     // Project Follow Up Counts
-    $followUpToday = 8; // Example count
-    $followUpOverdue = 3;
+    $followUpToday = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpToday::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUpOverdue = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpOverdue::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
 
     // Ticketing System Counts
     $ticketingToday = 12; // Example count
@@ -516,15 +521,6 @@
                     <div class="stat-count">{{ $allProjects }}</div>
                 </div>
 
-                <div class="stat-box status-open"
-                    :class="{'selected': selectedStat === 'status-open'}"
-                    @click="setSelectedStat('status-open')">
-                    <div class="stat-info">
-                        <div class="stat-label">Open</div>
-                    </div>
-                    <div class="stat-count">{{ $openProjects }}</div>
-                </div>
-
                 <div class="stat-box status-closed"
                     :class="{'selected': selectedStat === 'status-closed'}"
                     @click="setSelectedStat('status-closed')">
@@ -532,6 +528,15 @@
                         <div class="stat-label">Closed</div>
                     </div>
                     <div class="stat-count">{{ $closedProjects }}</div>
+                </div>
+
+                <div class="stat-box status-open"
+                    :class="{'selected': selectedStat === 'status-open'}"
+                    @click="setSelectedStat('status-open')">
+                    <div class="stat-info">
+                        <div class="stat-label">Open</div>
+                    </div>
+                    <div class="stat-count">{{ $openProjects }}</div>
                 </div>
 
                 <div class="stat-box status-delay"
@@ -739,12 +744,12 @@
                 <!-- PROJECT FOLLOW UP Tables -->
                 <div x-show="selectedStat === 'follow-up-today'" x-transition>
                     <div class="p-4">
-                        {{-- <livewire:project-follow-up-today-table /> --}}
+                        <livewire:implementer-dashboard.implementer-follow-up-today />
                     </div>
                 </div>
                 <div x-show="selectedStat === 'follow-up-overdue'" x-transition>
                     <div class="p-4">
-                        {{-- <livewire:project-follow-up-overdue-table /> --}}
+                        <livewire:implementer-dashboard.implementer-follow-up-overdue />
                     </div>
                 </div>
 

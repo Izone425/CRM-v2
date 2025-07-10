@@ -682,7 +682,7 @@
                 <h3 class="text-lg font-semibold">Repair Type</h3>
                 <p class="text-gray-600">Total Repairs: {{ $totalRepairs['ALL'] }}</p>
 
-                @foreach (['NEW INSTALLATION' => '#71eb71', 'REPAIR' => '#ffff5cbf', 'MAINTENANCE SERVICE' => '#f86f6f'] as $type => $color)
+                @foreach (['NEW INSTALLATION' => '#71eb71', 'REPAIR' => '#ffff5cbf', 'MAINTENANCE SERVICE' => '#f86f6f', 'FINGERTEC TASK' => '#60a5fa'] as $type => $color)
                     @php
                         $count = $repairBreakdown[$type] ?? 0;
                         $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
@@ -1060,11 +1060,13 @@
                                         {{ $appointment->appointment_type }} |
                                         <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                     </div>
-                                    <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                        <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                            {{ $appointment->company_name }}
-                                        </a>
-                                    </div>
+                                    @if($appointment->company_name && $appointment->company_name != "No Company")
+                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                {{ $appointment->company_name }}
+                                            </a>
+                                        </div>
+                                    @endif
                                     <div class="appointment-time">{{ $appointment->start_time }} -
                                         {{ $appointment->end_time }}</div>
                                 </div>
@@ -1177,11 +1179,13 @@
                                     {{ $appointment->appointment_type }} |
                                     <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                 </div>
-                                <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                        {{ $appointment->company_name }}
-                                    </a>
-                                </div>
+                                @if($appointment->company_name && $appointment->company_name != "No Company")
+                                    <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                        <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                            {{ $appointment->company_name }}
+                                        </a>
+                                    </div>
+                                @endif
                                 <div class="appointment-time">{{ $appointment->start_time }} -
                                     {{ $appointment->end_time }}</div>
                             </div>

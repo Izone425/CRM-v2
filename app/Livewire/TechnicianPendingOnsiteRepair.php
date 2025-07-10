@@ -508,7 +508,6 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->multiple()
                             ->maxFiles(5)
-                            ->required()
                     ]),
                 ]),
 

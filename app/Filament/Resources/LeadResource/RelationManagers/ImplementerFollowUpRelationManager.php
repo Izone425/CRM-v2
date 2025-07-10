@@ -163,8 +163,17 @@ class ImplementerFollowUpRelationManager extends RelationManager
                                     ->required()
                                     ->placeholder('Select a follow-up date')
                                     ->default(function ($record) {
-                                        $lead = $record->lead;
-                                        return optional(optional($lead)->follow_up_date)->addDays(7) ?? now()->addDays(7);
+                                        $softwareHandover = $record->softwareHandover;
+
+                                        // If software handover exists and has a follow_up_date, use next Tuesday after that date
+                                        if ($softwareHandover && $softwareHandover->follow_up_date) {
+                                            // Get the next Tuesday after the last follow-up date
+                                            $date = Carbon::parse($softwareHandover->follow_up_date);
+                                            return $date->next(Carbon::TUESDAY);
+                                        }
+
+                                        // Otherwise use next Tuesday from today
+                                        return now()->next(Carbon::TUESDAY);
                                     })
                                     ->reactive(),
 
@@ -201,25 +210,34 @@ class ImplementerFollowUpRelationManager extends RelationManager
                         // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                         $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
 
-                        // Only update 'status' if it exists in $data
-                        if (isset($data['status'])) {
-                            $updateData['lead_status'] = $data['status'];
+                        // Find the SoftwareHandover record for this lead
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->first();
+
+                        if (!$softwareHandover) {
+                            Notification::make()
+                                ->title('Error: Software Handover record not found')
+                                ->danger()
+                                ->send();
+                            return;
                         }
 
-                        // Update the lead with follow-up information
-                        $lead->update($updateData);
+                        // Update the SoftwareHandover record with follow-up information
+                        $softwareHandover->update([
+                            'follow_up_date' => $followUpDate,
+                            'follow_up_counter' => true,
+                            'manual_follow_up_count' => $softwareHandover->manual_follow_up_count + 1,
+                        ]);
 
                         // Create description for the follow-up
                         $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
 
-                        // Create a new implementer_logs entry instead of updating an existing one
+                        // Create a new implementer_logs entry with reference to SoftwareHandover
                         ImplementerLogs::create([
                             'lead_id' => $lead->id,
                             'description' => $followUpDescription,
                             'causer_id' => auth()->id(),
                             'remark' => $data['remark'],
-                            'follow_up_date' => $followUpDate,
-                            'follow_up_counter' => true,
+                            'subject_id' => $softwareHandover->id, // Store the softwarehandover ID
                         ]);
 
                         // Send a notification
@@ -234,7 +252,16 @@ class ImplementerFollowUpRelationManager extends RelationManager
                 ])->icon('heroicon-m-list-bullet')
                 ->size(ActionSize::Small)
                 ->color('primary')
-                ->button(),
+                ->button()
+                ->hidden(function (ImplementerLogs $record): bool {
+                    // Get the latest record ID for comparison
+                    $latestRecordId = ImplementerLogs::where('lead_id', $record->lead_id)
+                        ->latest('id')
+                        ->first()?->id;
+
+                    // Only show on the record with the highest/latest ID (the first row when sorted by desc)
+                    return $record->id !== $latestRecordId;
+                })
             ])->defaultSort('id', 'desc');
     }
 }

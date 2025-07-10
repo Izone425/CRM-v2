@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\UserResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\UserResource\RelationManagers;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 
 class UserResource extends Resource
 {
@@ -89,205 +91,226 @@ class UserResource extends Resource
             ->schema([
                 Forms\Components\Section::make('User Details')
                     ->schema([
-                        Forms\Components\Select::make('role_id')
-                            ->label('Role')
-                            ->searchable()
-                            ->required()
-                            ->preload()
-                            ->live()
-                            ->options([
-                                1 => 'Lead Owner',
-                                2 => 'Salesperson',
-                                3 => 'Manager',
-                                4 => 'Implementer',
-                                5 => 'Team Lead Implementer',
-                                6 => 'Trainer',
-                                7 => 'Team Lead Trainer',
-                                8 => 'Support',
-                                9 => 'Technician',
-                                // 10 => 'Admin Handover',
-                            ])
-                            ->afterStateUpdated(function ($state, callable $set) {
-                                if (!$state) return;
+                        Grid::make(5)
+                            ->schema([
+                                FileUpload::make("avatar_path")
+                                    ->label('Profile Pic')         // Removes the label text
+                                    ->placeholder('')
+                                    ->disk('public')
+                                    ->directory('uploads/photos')
+                                    ->image()
+                                    ->avatar()
+                                    ->imageEditor()
+                                    ->extraAttributes(['class' => 'mx-auto'])
+                                    ->columnSpan(1),
+                                Grid::make(1)
+                                ->schema([
+                                    Forms\Components\TextInput::make('name')
+                                        ->required()
+                                        ->maxLength(255),
 
-                                if ((int)$state === 10) {
-                                    $set('role_id', 1);
-                                    $set('additional_role', 1);
-                                } else {
-                                    $set('additional_role', 0);
-                                }
+                                    Forms\Components\Select::make('role_id')
+                                        ->label('Role')
+                                        ->searchable()
+                                        ->required()
+                                        ->preload()
+                                        ->live()
+                                        ->options([
+                                            1 => 'Lead Owner',
+                                            2 => 'Salesperson',
+                                            3 => 'Manager',
+                                            4 => 'Implementer',
+                                            5 => 'Team Lead Implementer',
+                                            6 => 'Trainer',
+                                            7 => 'Team Lead Trainer',
+                                            8 => 'Support',
+                                            9 => 'Technician',
+                                            // 10 => 'Admin Handover',
+                                        ])
+                                        ->afterStateUpdated(function ($state, callable $set) {
+                                            if (!$state) return;
 
-                                // Define default permissions for each role
-                                $rolePermissions = match ((int) $state) {
-                                    // Lead Owner Permissions
-                                    1 => [
-                                        'leads' => true,
-                                        'quotations' => true,
-                                        'proforma_invoices' => false,
-                                        'chat_room' => true,
-                                        'software_handover' => false,
-                                        'hardware_handover' => false,
-                                        'sales_forecast' => true,
-                                        'sales_forecast_summary' => true,
-                                        'calendar' => true,
-                                        'search_lead' => false,
-                                        'weekly_calendar_v2' => true,
-                                        'monthly_calendar' => true,
-                                        'demo_ranking' => false,
-                                        'lead_analysis' => true,
-                                        'demo_analysis' => true,
-                                        'marketing_analysis' => false,
-                                        'sales_admin_analysis_v1' => true,
-                                        'sales_admin_analysis_v2' => true,
-                                        'sales_admin_analysis_v3' => true,
-                                        'products' => false,
-                                        'users' => false,
-                                        'industries' => false,
-                                        'lead_sources' => false,
-                                        'invalid_lead_reasons' => false,
-                                        'resellers' => false,
-                                        'installers' => false,
-                                        'spare_parts' => false,
-                                        'software_attachments' => false,
-                                        'hardware_attachments' => false,
-                                        'hardware_dashboard_all' => false,
-                                        'hardware_dashboard_pending_stock' => false,
-                                        'admin_repair_dashboard' => false,
-                                        'admin_repairs' => false,
-                                    ],
+                                            if ((int)$state === 10) {
+                                                $set('role_id', 1);
+                                                $set('additional_role', 1);
+                                            } else {
+                                                $set('additional_role', 0);
+                                            }
 
-                                    // Salesperson Permissions
-                                    2 => [
-                                        'leads' => true,
-                                        'search_lead' => true,
-                                        'quotations' => true,
-                                        'proforma_invoices' => false,
-                                        'chat_room' => false,
-                                        'software_handover' => true,
-                                        'hardware_handover' => true,
-                                        'sales_forecast' => true,
-                                        'sales_forecast_summary' => false,
-                                        'calendar' => true,
-                                        'weekly_calendar_v2' => false,
-                                        'monthly_calendar' => true,
-                                        'demo_ranking' => false,
-                                        'lead_analysis' => true,
-                                        'demo_analysis' => true,
-                                        'marketing_analysis' => false,
-                                        'sales_admin_analysis_v1' => false,
-                                        'sales_admin_analysis_v2' => false,
-                                        'sales_admin_analysis_v3' => false,
-                                        'products' => false,
-                                        'users' => false,
-                                        'industries' => false,
-                                        'lead_sources' => false,
-                                        'invalid_lead_reasons' => false,
-                                        'resellers' => false,
-                                        'installers' => false,
-                                        'spare_parts' => false,
-                                        'software_attachments' => true,
-                                        'hardware_attachments' => true,
-                                        'hardware_dashboard_all' => true,
-                                        'hardware_dashboard_pending_stock' => true,
-                                        'admin_repair_dashboard' => false,
-                                        'admin_repairs' => false,
-                                    ],
+                                            // Define default permissions for each role
+                                            $rolePermissions = match ((int) $state) {
+                                                // Lead Owner Permissions
+                                                1 => [
+                                                    'leads' => true,
+                                                    'quotations' => true,
+                                                    'proforma_invoices' => false,
+                                                    'chat_room' => true,
+                                                    'software_handover' => false,
+                                                    'hardware_handover' => false,
+                                                    'sales_forecast' => true,
+                                                    'sales_forecast_summary' => true,
+                                                    'calendar' => true,
+                                                    'search_lead' => false,
+                                                    'weekly_calendar_v2' => true,
+                                                    'monthly_calendar' => true,
+                                                    'demo_ranking' => false,
+                                                    'lead_analysis' => true,
+                                                    'demo_analysis' => true,
+                                                    'marketing_analysis' => false,
+                                                    'sales_admin_analysis_v1' => true,
+                                                    'sales_admin_analysis_v2' => true,
+                                                    'sales_admin_analysis_v3' => true,
+                                                    'products' => false,
+                                                    'users' => false,
+                                                    'industries' => false,
+                                                    'lead_sources' => false,
+                                                    'invalid_lead_reasons' => false,
+                                                    'resellers' => false,
+                                                    'installers' => false,
+                                                    'spare_parts' => false,
+                                                    'software_attachments' => false,
+                                                    'hardware_attachments' => false,
+                                                    'hardware_dashboard_all' => false,
+                                                    'hardware_dashboard_pending_stock' => false,
+                                                    'admin_repair_dashboard' => false,
+                                                    'admin_repairs' => false,
+                                                ],
 
-                                    // Implementer Permissions
-                                    4 => [
-                                        'leads' => false,
-                                        'search_lead' => false,
-                                        'quotations' => false,
-                                        'proforma_invoices' => false,
-                                        'chat_room' => false,
-                                        'software_handover' => true,
-                                        'hardware_handover' => true,
-                                        'sales_forecast' => false,
-                                        'sales_forecast_summary' => false,
-                                        'calendar' => false,
-                                        'weekly_calendar_v2' => false,
-                                        'monthly_calendar' => false,
-                                        'demo_ranking' => false,
-                                        'lead_analysis' => false,
-                                        'demo_analysis' => false,
-                                        'marketing_analysis' => false,
-                                        'sales_admin_analysis_v1' => false,
-                                        'sales_admin_analysis_v2' => false,
-                                        'sales_admin_analysis_v3' => false,
-                                        'products' => false,
-                                        'users' => false,
-                                        'industries' => false,
-                                        'lead_sources' => false,
-                                        'invalid_lead_reasons' => false,
-                                        'resellers' => false,
-                                        'installers' => false,
-                                        'spare_parts' => false,
-                                        'software_attachments' => true,
-                                        'hardware_attachments' => true,
-                                        'hardware_dashboard_all' => true,
-                                        'hardware_dashboard_pending_stock' => true,
-                                        'admin_repair_dashboard' => false,
-                                        'admin_repairs' => false,
-                                    ],
+                                                // Salesperson Permissions
+                                                2 => [
+                                                    'leads' => true,
+                                                    'search_lead' => true,
+                                                    'quotations' => true,
+                                                    'proforma_invoices' => false,
+                                                    'chat_room' => false,
+                                                    'software_handover' => true,
+                                                    'hardware_handover' => true,
+                                                    'sales_forecast' => true,
+                                                    'sales_forecast_summary' => false,
+                                                    'calendar' => true,
+                                                    'weekly_calendar_v2' => false,
+                                                    'monthly_calendar' => true,
+                                                    'demo_ranking' => false,
+                                                    'lead_analysis' => true,
+                                                    'demo_analysis' => true,
+                                                    'marketing_analysis' => false,
+                                                    'sales_admin_analysis_v1' => false,
+                                                    'sales_admin_analysis_v2' => false,
+                                                    'sales_admin_analysis_v3' => false,
+                                                    'products' => false,
+                                                    'users' => false,
+                                                    'industries' => false,
+                                                    'lead_sources' => false,
+                                                    'invalid_lead_reasons' => false,
+                                                    'resellers' => false,
+                                                    'installers' => false,
+                                                    'spare_parts' => false,
+                                                    'software_attachments' => true,
+                                                    'hardware_attachments' => true,
+                                                    'hardware_dashboard_all' => true,
+                                                    'hardware_dashboard_pending_stock' => true,
+                                                    'admin_repair_dashboard' => false,
+                                                    'admin_repairs' => false,
+                                                ],
 
-                                    // Trainer Permissions
-                                    6 => [
-                                        'leads' => false,
-                                        'search_lead' => false,
-                                        'quotations' => false,
-                                        'proforma_invoices' => false,
-                                        'chat_room' => false,
-                                        'software_handover' => false,
-                                        'hardware_handover' => false,
-                                        'sales_forecast' => false,
-                                        'sales_forecast_summary' => false,
-                                        'calendar' => false,
-                                        'weekly_calendar_v2' => false,
-                                        'monthly_calendar' => false,
-                                        'demo_ranking' => false,
-                                        'lead_analysis' => false,
-                                        'demo_analysis' => false,
-                                        'marketing_analysis' => false,
-                                        'sales_admin_analysis_v1' => false,
-                                        'sales_admin_analysis_v2' => false,
-                                        'sales_admin_analysis_v3' => false,
-                                        'products' => false,
-                                        'users' => false,
-                                        'industries' => false,
-                                        'lead_sources' => false,
-                                        'invalid_lead_reasons' => false,
-                                        'resellers' => false,
-                                        'installers' => false,
-                                        'spare_parts' => false,
-                                        'software_attachments' => false,
-                                        'hardware_attachments' => false,
-                                        'hardware_dashboard_all' => false,
-                                        'hardware_dashboard_pending_stock' => false,
-                                        'admin_repair_dashboard' => false,
-                                        'admin_repairs' => false,
-                                    ],
+                                                // Implementer Permissions
+                                                4 => [
+                                                    'leads' => false,
+                                                    'search_lead' => false,
+                                                    'quotations' => false,
+                                                    'proforma_invoices' => false,
+                                                    'chat_room' => false,
+                                                    'software_handover' => true,
+                                                    'hardware_handover' => true,
+                                                    'sales_forecast' => false,
+                                                    'sales_forecast_summary' => false,
+                                                    'calendar' => false,
+                                                    'weekly_calendar_v2' => false,
+                                                    'monthly_calendar' => false,
+                                                    'demo_ranking' => false,
+                                                    'lead_analysis' => false,
+                                                    'demo_analysis' => false,
+                                                    'marketing_analysis' => false,
+                                                    'sales_admin_analysis_v1' => false,
+                                                    'sales_admin_analysis_v2' => false,
+                                                    'sales_admin_analysis_v3' => false,
+                                                    'products' => false,
+                                                    'users' => false,
+                                                    'industries' => false,
+                                                    'lead_sources' => false,
+                                                    'invalid_lead_reasons' => false,
+                                                    'resellers' => false,
+                                                    'installers' => false,
+                                                    'spare_parts' => false,
+                                                    'software_attachments' => true,
+                                                    'hardware_attachments' => true,
+                                                    'hardware_dashboard_all' => true,
+                                                    'hardware_dashboard_pending_stock' => true,
+                                                    'admin_repair_dashboard' => false,
+                                                    'admin_repairs' => false,
+                                                ],
 
-                                    // Manager (full access)
-                                    3 => array_fill_keys(array_keys(self::$routePermissionMap), true),
+                                                // Trainer Permissions
+                                                6 => [
+                                                    'leads' => false,
+                                                    'search_lead' => false,
+                                                    'quotations' => false,
+                                                    'proforma_invoices' => false,
+                                                    'chat_room' => false,
+                                                    'software_handover' => false,
+                                                    'hardware_handover' => false,
+                                                    'sales_forecast' => false,
+                                                    'sales_forecast_summary' => false,
+                                                    'calendar' => false,
+                                                    'weekly_calendar_v2' => false,
+                                                    'monthly_calendar' => false,
+                                                    'demo_ranking' => false,
+                                                    'lead_analysis' => false,
+                                                    'demo_analysis' => false,
+                                                    'marketing_analysis' => false,
+                                                    'sales_admin_analysis_v1' => false,
+                                                    'sales_admin_analysis_v2' => false,
+                                                    'sales_admin_analysis_v3' => false,
+                                                    'products' => false,
+                                                    'users' => false,
+                                                    'industries' => false,
+                                                    'lead_sources' => false,
+                                                    'invalid_lead_reasons' => false,
+                                                    'resellers' => false,
+                                                    'installers' => false,
+                                                    'spare_parts' => false,
+                                                    'software_attachments' => false,
+                                                    'hardware_attachments' => false,
+                                                    'hardware_dashboard_all' => false,
+                                                    'hardware_dashboard_pending_stock' => false,
+                                                    'admin_repair_dashboard' => false,
+                                                    'admin_repairs' => false,
+                                                ],
 
-                                    default => [],
-                                };
+                                                // Manager (full access)
+                                                3 => array_fill_keys(array_keys(self::$routePermissionMap), true),
 
-                                // Set form state for all permissions
-                                foreach ($rolePermissions as $key => $value) {
-                                    $set("permissions.{$key}", $value);
-                                }
-                            }),
-                        Forms\Components\TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('email')
-                            ->email()
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('code')
-                            ->label('Code')
-                            ->maxLength(2),
+                                                default => [],
+                                            };
+
+                                            // Set form state for all permissions
+                                            foreach ($rolePermissions as $key => $value) {
+                                                $set("permissions.{$key}", $value);
+                                            }
+                                        }),
+                                ])->columnSpan(2),
+
+                                Grid::make(1)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('email')
+                                            ->email()
+                                            ->required()
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('code')
+                                            ->label('Code')
+                                            ->maxLength(2),
+                                    ])->columnspan(2),
+                            ]),
                         Forms\Components\TextInput::make('mobile_number')
                             ->label('Phone Number'),
                         Forms\Components\TextInput::make('password')
@@ -295,6 +318,7 @@ class UserResource extends Resource
                             ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
                             ->dehydrated(fn (?string $state): bool => filled($state))
                             ->required(fn (string $operation): bool => $operation === 'create')
+                            ->visible(fn (string $operation): bool => $operation === 'create')
                             ->maxLength(255),
                         Forms\Components\TextInput::make('api_user_id')
                             ->label('Staff ID'),

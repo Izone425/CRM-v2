@@ -321,7 +321,7 @@
                     @foreach($remarks as $index => $remark)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $remark['remark'] ?? 'N/A' }}</td>
+                            <td style="white-space: pre-line;">{{ $remark['remark'] ?? 'N/A' }}</td>
                             <td>
                                 @if(isset($remark['attachments']) && !empty($remark['attachments']))
                                     @php

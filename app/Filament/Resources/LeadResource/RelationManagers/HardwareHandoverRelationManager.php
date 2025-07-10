@@ -854,8 +854,13 @@ class HardwareHandoverRelationManager extends RelationManager
                         }
                     }
 
-                    // Create the handover record
-                    $handover = HardwareHandover::create($data);
+                    $nextId = $this->getNextAvailableId();
+
+                    // Create the handover record with specific ID
+                    $handover = new HardwareHandover();
+                    $handover->id = $nextId;
+                    $handover->fill($data);
+                    $handover->save();
 
                     app(GenerateHardwareHandoverPdfController::class)->generateInBackground($handover);
 
@@ -1171,5 +1176,29 @@ class HardwareHandoverRelationManager extends RelationManager
         }
 
         return false;
+    }
+
+    private function getNextAvailableId()
+    {
+        // Get all existing IDs in the table
+        $existingIds = HardwareHandover::pluck('id')->toArray();
+
+        if (empty($existingIds)) {
+            return 1; // If table is empty, start with ID 1
+        }
+
+        // Find the highest ID currently in use
+        $maxId = max($existingIds);
+
+        // Check for gaps from ID 1 to maxId
+        for ($i = 1; $i <= $maxId; $i++) {
+            if (!in_array($i, $existingIds)) {
+                // Found a gap, return this ID
+                return $i;
+            }
+        }
+
+        // No gaps found, return next ID after max
+        return $maxId + 1;
     }
 }
