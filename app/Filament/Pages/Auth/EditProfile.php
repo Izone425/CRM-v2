@@ -17,15 +17,15 @@ class EditProfile extends BaseEditProfile
     {
         return $form
             ->schema([
-                FileUpload::make("avatar_path")
-                    ->label('')         // Removes the label text
-                    ->placeholder('')
-                    ->disk('public')
-                    ->directory('uploads/photos')
-                    ->image()
-                    ->avatar()
-                    ->imageEditor()
-                    ->extraAttributes(['class' => 'mx-auto']),
+                // FileUpload::make("avatar_path")
+                //     ->label('')         // Removes the label text
+                //     ->placeholder('')
+                //     ->disk('public')
+                //     ->directory('uploads/photos')
+                //     ->image()
+                //     ->avatar()
+                //     ->imageEditor()
+                //     ->extraAttributes(['class' => 'mx-auto']),
                 // $this->getNameFormComponent(),
                 $this->getEmailFormComponent(),
                 $this->getPasswordFormComponent(),

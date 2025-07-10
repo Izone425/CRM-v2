@@ -1212,11 +1212,6 @@
                                 <span>Dashboard</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Technician Calendar</span>
-                            </a>
-
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
@@ -1228,6 +1223,14 @@
                             </a> --}}
                         </div>
                     </div>
+                    <a href="{{ route('filament.admin.pages.technician-appointment') }}" class="sidebar-item">
+                        <i class="bi bi-dot"></i>
+                        <span>Technician Appointment</span>
+                    </a>
+                    <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
+                        <i class="bi bi-dot"></i>
+                        <span>Technician Calendar</span>
+                    </a>
                 </div>
             </div>
             @endif

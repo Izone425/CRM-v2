@@ -73,7 +73,7 @@ class ViewLeadRecord extends ViewRecord
                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                 'debtor_follow_up', 'software_handover', 'hardware_handover'];
         } elseif ($user->role_id === 4) { // Implementer
-            return ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+            return ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
         } elseif ($user->role_id === 9) { // Technician
             return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
@@ -221,7 +221,7 @@ class ViewLeadRecord extends ViewRecord
                                 'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;
                         case 'implementer':
-                            $tabs = ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+                            $tabs = ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
                             break;
                         case 'admin_repair':
                             $tabs = ['company', 'quotation', 'repair_appointment'];

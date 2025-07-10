@@ -226,7 +226,7 @@
                                                     <!-- Remark (Left Column) -->
                                                     <div class="p-3 text-gray-800 bg-gray-100 rounded">
                                                         <h5 class="mb-2 font-medium">Remark:</h5>
-                                                        <p class="whitespace-pre-line">{{ $remark['remark'] }}</p>
+                                                        <div style='white-space: pre-line'>{{ strtoupper($remark['remark'] ?? 'No remarks provided') }}</div>
                                                     </div>
 
                                                     <!-- Attachments (Right Column) -->
@@ -434,7 +434,7 @@
                     x-transition
                     @click.outside="deviceModalOpen = false"
                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                    <div class="relative w-full max-w-lg p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="deviceModalOpen = false">
+                    <div class="relative w-full max-w-xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="deviceModalOpen = false">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Device Details</h3>
                             <button type="button" @click="deviceModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
@@ -449,6 +449,8 @@
                                     <tr class="bg-gray-100">
                                         <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
                                         <th class="px-4 py-2 text-left border border-gray-300">Serial Number</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Warranty Status</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Invoice Date</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -457,28 +459,87 @@
                                             $devices = is_string($record->devices)
                                                 ? json_decode($record->devices, true)
                                                 : $record->devices;
+
+                                            // Get warranty information
+                                            $devicesWarranty = !empty($record->devices_warranty)
+                                                ? (is_string($record->devices_warranty)
+                                                    ? json_decode($record->devices_warranty, true)
+                                                    : $record->devices_warranty)
+                                                : [];
+
+                                            // Create lookup by serial number
+                                            $warrantyBySerial = [];
+                                            if (is_array($devicesWarranty)) {
+                                                foreach ($devicesWarranty as $warranty) {
+                                                    if (!empty($warranty['device_serial'])) {
+                                                        $warrantyBySerial[$warranty['device_serial']] = $warranty;
+                                                    }
+                                                }
+                                            }
                                         @endphp
 
                                         @if(is_array($devices) && count($devices) > 0)
                                             @foreach($devices as $index => $device)
+                                                @php
+                                                    $serial = $device['device_serial'] ?? '';
+                                                    $hasWarranty = !empty($warrantyBySerial[$serial]);
+                                                    $warrantyStatus = $hasWarranty ? ($warrantyBySerial[$serial]['warranty_status'] ?? null) : null;
+                                                    $invoiceDate = $hasWarranty ? ($warrantyBySerial[$serial]['invoice_date'] ?? null) : null;
+                                                @endphp
                                                 <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
                                                     <td class="px-4 py-2 border border-gray-300">{{ $device['device_model'] }}</td>
                                                     <td class="px-4 py-2 border border-gray-300">{{ $device['device_serial'] }}</td>
+                                                    <td class="px-4 py-2 border border-gray-300">
+                                                        {{ $invoiceDate ? date('d M Y', strtotime($invoiceDate)) : 'N/A' }}
+                                                    </td>
+                                                    <td class="px-4 py-2 border border-gray-300">
+                                                        @if($warrantyStatus == 'In Warranty')
+                                                            <span style="display: inline-block; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; color: #166534; background-color: #dcfce7; border-radius: 9999px;">
+                                                                In Warranty
+                                                            </span>
+                                                        @elseif($warrantyStatus == 'Out of Warranty')
+                                                            <span style="display: inline-block; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; color: #991b1b; background-color: #fee2e2; border-radius: 9999px;">
+                                                                Out of Warranty
+                                                            </span>
+                                                        @else
+                                                            <span style="display: inline-block; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 500; color: #1f2937; background-color: #f3f4f6; border-radius: 9999px;">
+                                                                Unknown
+                                                            </span>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         @else
                                             <tr>
-                                                <td colspan="2" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
+                                                <td colspan="4" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
                                             </tr>
                                         @endif
                                     @elseif($record->device_model)
                                         <tr>
                                             <td class="px-4 py-2 border border-gray-300">{{ $record->device_model }}</td>
                                             <td class="px-4 py-2 border border-gray-300">{{ $record->device_serial }}</td>
+                                            <td class="px-4 py-2 border border-gray-300">
+                                                @if($record->warranty_status == 'In Warranty')
+                                                    <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+                                                        In Warranty
+                                                    </span>
+                                                @elseif($record->warranty_status == 'Out of Warranty')
+                                                    <span class="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">
+                                                        Out of Warranty
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">
+                                                        Unknown
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-2 border border-gray-300">
+                                                {{ $record->invoice_date ? date('d M Y', strtotime($record->invoice_date)) : 'N/A' }}
+                                            </td>
                                         </tr>
                                     @else
                                         <tr>
-                                            <td colspan="2" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
+                                            <td colspan="4" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
                                         </tr>
                                     @endif
                                 </tbody>
@@ -550,7 +611,7 @@
                                                         <tr>
                                                             <td class="px-4 py-2 border border-gray-300" style ='width:70%'>
                                                                 <strong>Repair Remark:</strong><br>
-                                                                <div class="whitespace-pre-line">{{ $remark['remark'] ?? 'No remarks provided' }}</div>
+                                                                <div style='white-space: pre-line'>{{ strtoupper(str_replace('\n', PHP_EOL, $remark['remark'] ?? 'No remarks provided')) }}</div>
                                                             </td>
                                                             <td class="px-4 py-2 border border-gray-300" style ='width:30%'>
                                                                 <strong>Attachment:</strong><br>
@@ -673,7 +734,7 @@
 
                             <!-- Spare Parts Used -->
                             <div class="mb-6">
-                                    <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: crimson;'>Spare Parts Used</h4>
+                                    <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: green;'>Spare Parts Used</h4>
                                     @php
                                         // Get all spare parts from repair_remark
                                         $allParts = [];
@@ -769,17 +830,17 @@
                                         <div class="space-y-4">
                                             @foreach($sparePartsBySerial as $serial => $deviceGroup)
                                                 <div class="mb-3">
-                                                    <div class="px-4 py-2 font-medium text-white bg-red-600 rounded-t-lg" style='background-color: crimson;'>
+                                                    <div class="px-4 py-2 font-medium text-white bg-green-600 rounded-t-lg" style='background-color: green;'>
                                                         Device: {{ $deviceGroup['device_model'] }} (S/N: {{ $serial }})
                                                     </div>
 
                                                     <!-- Left-right grid for spare parts -->
-                                                    <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #ed143d12;'>
+                                                    <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #0080001c;'>
                                                         <div>
                                                             <!-- Left column parts -->
                                                             @foreach($deviceGroup['parts'] as $index => $part)
                                                                 @if($index % 2 == 0)
-                                                                    <div class="flex items-start mb-2">
+                                                                    <div class="items-start mb-2">
                                                                         <span class="mr-2 text-lg">•</span>
                                                                         <span>{{ $part['part_name'] ?? 'N/A' }}</span>
                                                                     </div>
@@ -790,7 +851,7 @@
                                                             <!-- Right column parts -->
                                                             @foreach($deviceGroup['parts'] as $index => $part)
                                                                 @if($index % 2 == 1)
-                                                                    <div class="flex items-start mb-2">
+                                                                    <div class="items-start mb-2">
                                                                         <span class="mr-2 text-lg">•</span>
                                                                         <span>{{ $part['part_name'] ?? 'N/A' }}</span>
                                                                     </div>
@@ -808,7 +869,7 @@
                             <br>
                             <!-- Spare Parts Not Used -->
                             <div class="mb-6">
-                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: green;'>Spare Parts Not Used</h4>
+                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: crimson;'>Spare Parts Not Used</h4>
                                 @php
                                     $unusedParts = !empty($record->spare_parts_unused)
                                         ? (is_string($record->spare_parts_unused)
@@ -898,17 +959,17 @@
                                     <div class="space-y-4">
                                         @foreach($unusedPartsByDevice as $deviceKey => $deviceGroup)
                                             <div class="mb-3">
-                                                <div class="px-4 py-2 font-medium text-white bg-green-600 rounded-t-lg" style='background-color: green;'>
+                                                <div class="px-4 py-2 font-medium text-white bg-red-600 rounded-t-lg" style='background-color: crimson;'>
                                                     Device: {{ $deviceGroup['device_model'] }} (S/N: {{ $deviceGroup['device_serial'] }})
                                                 </div>
 
                                                 <!-- Left-right grid for spare parts -->
-                                                <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #0080001c;'>
+                                                <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #ed143d12;'>
                                                     <div>
                                                         <!-- Left column parts -->
                                                         @foreach($deviceGroup['parts'] as $index => $part)
                                                             @if($index % 2 == 0)
-                                                                <div class="flex items-start mb-2">
+                                                                <div class="items-start mb-2">
                                                                     <span class="mr-2 text-lg">•</span>
                                                                     <span>{{ $part['part_name'] }}</span>
                                                                 </div>
@@ -919,7 +980,7 @@
                                                         <!-- Right column parts -->
                                                         @foreach($deviceGroup['parts'] as $index => $part)
                                                             @if($index % 2 == 1)
-                                                                <div class="flex items-start mb-2">
+                                                                <div class="items-start mb-2">
                                                                     <span class="mr-2 text-lg">•</span>
                                                                     <span>{{ $part['part_name'] }}</span>
                                                                 </div>
