@@ -221,7 +221,7 @@
         ->count();
 
     // Calculate combined pending count
-    $pendingTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount;
+    $allTaskCount = $newCount + $pendingStockCount + $pendingMigrationCount + $completedCount + $draftRejectedCount;
 @endphp
 
 <div id="hardware-handover-container" class="hardware-handover-container"
@@ -250,8 +250,8 @@
         <div class="stats-sidebar">
             <div class="stat-box all"
                  :class="{'selected': selectedStat === 'pending-task'}">
-                <div class="stat-count">{{ $pendingTaskCount }}</div>
-                <div class="stat-label">Pending Task</div>
+                <div class="stat-count">{{ $allTaskCount }}</div>
+                <div class="stat-label">All Task</div>
             </div>
 
             <div class="stat-box new"
@@ -291,7 +291,7 @@
                  @click="setSelectedStat('draft-rejected')"
                  style="cursor: pointer;">
                 <div class="stat-count">{{ $draftRejectedCount }}</div>
-                <div class="stat-label">Draft / Rejected</div>
+                <div class="stat-label">Rejected</div>
             </div>
         </div>
 

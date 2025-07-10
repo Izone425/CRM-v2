@@ -56,20 +56,30 @@ class ViewLeadRecord extends ViewRecord
 
     private function getDefaultVisibleTabs(): array
     {
-        $roleId = auth()->user()->role_id;
-        $additionalRole = auth()->user()->additional_role;
+        $user = auth()->user();
 
-        if ($roleId === 1) { // Lead Owner
+        if (!$user) {
             return ['lead', 'company'];
-        } elseif ($roleId === 2) { // Salesperson
-            // If Salesperson with additional_role 1, show repair-related tabs
-            if ($additionalRole === 1) {
-                return ['company', 'quotation', 'repair_appointment'];
+        } elseif ($user->role_id === 1) { // Lead Owner
+            if ($user->additional_role === 1) {
+                return ['company', 'quotation', 'repair_appointment']; // Admin Repair view
+            } else {
+                return ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                    'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                    'debtor_follow_up', 'software_handover', 'hardware_handover'];
             }
-            // Regular Salesperson view
-            return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
+        } elseif ($user->role_id === 2) { // Salesperson
+            return ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+        } elseif ($user->role_id === 4) { // Implementer
+            return ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+        } elseif ($user->role_id === 9) { // Technician
+            return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
-            return ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice', 'debtor_follow_up', 'software_handover', 'hardware_handover'];
+            return ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                'debtor_follow_up', 'software_handover', 'hardware_handover'];
         }
     }
 
@@ -162,6 +172,7 @@ class ViewLeadRecord extends ViewRecord
                             'admin_repair' => 'Admin Repair View',
                             'salesperson' => 'Salesperson View',
                             'implementer' => 'Implementer View',
+                            'technician' => 'Technician View',
                             'manager' => 'Manager View (All Tabs)',
                         ];
                     }
@@ -190,6 +201,8 @@ class ViewLeadRecord extends ViewRecord
                                     return 'manager';
                                 } elseif ($user->role_id === 4) {
                                     return 'implementer';
+                                } elseif ($user->role_id === 9) {
+                                    return 'technician';
                                 }
                             })
                             ->required()
@@ -203,20 +216,29 @@ class ViewLeadRecord extends ViewRecord
 
                     switch ($roleView) {
                         case 'lead_owner':
-                            $tabs = ['lead', 'company'];
+                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;
                         case 'implementer':
-                            $tabs = ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
+                            $tabs = ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
                             break;
                         case 'admin_repair':
                             $tabs = ['company', 'quotation', 'repair_appointment'];
                             break;
+                        case 'technician':
+                            $tabs = ['company', 'quotation', 'repair_appointment'];
+                            break;
                         case 'salesperson':
-                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up'];
+                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;
                         case 'manager':
                         default:
-                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment', 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice', 'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
+                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;
                     }
 

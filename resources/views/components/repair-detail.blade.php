@@ -657,7 +657,7 @@
                             </button>
                         </div>
 
-                        <div class="max-h-[70vh] overflow-y-auto">
+                        <div class="p-6 overflow-y-auto" style="max-height: 70vh;">
                             <!-- Onsite Repair Remark -->
                             <div class="mb-6">
                                 <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Repair Remarks</h4>
@@ -673,119 +673,142 @@
 
                             <!-- Spare Parts Used -->
                             <div class="mb-6">
-                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Spare Parts Used</h4>
-                                @php
-                                    // Get all spare parts from repair_remark
-                                    $allParts = [];
-                                    $deviceInfo = [];
+                                    <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: crimson;'>Spare Parts Used</h4>
+                                    @php
+                                        // Get all spare parts from repair_remark
+                                        $allParts = [];
+                                        $deviceInfo = [];
 
-                                    // First collect all parts and device info from repair_remark
-                                    if(!empty($record->repair_remark)) {
-                                        $deviceRepairs = is_string($record->repair_remark)
-                                            ? json_decode($record->repair_remark, true)
-                                            : $record->repair_remark;
+                                        // First collect all parts and device info from repair_remark
+                                        if(!empty($record->repair_remark)) {
+                                            $deviceRepairs = is_string($record->repair_remark)
+                                                ? json_decode($record->repair_remark, true)
+                                                : $record->repair_remark;
 
-                                        if(is_array($deviceRepairs)) {
-                                            foreach($deviceRepairs as $repair) {
-                                                if(!empty($repair['device_model']) && !empty($repair['spare_parts'])) {
-                                                    foreach($repair['spare_parts'] as $part) {
-                                                        if(!empty($part['part_id'])) {
-                                                            $partId = $part['part_id'];
-                                                            $partName = $part['name'] ?? 'Unknown Part';
+                                            if(is_array($deviceRepairs)) {
+                                                foreach($deviceRepairs as $repair) {
+                                                    if(!empty($repair['device_model']) && !empty($repair['spare_parts'])) {
+                                                        foreach($repair['spare_parts'] as $part) {
+                                                            if(!empty($part['part_id'])) {
+                                                                $partId = $part['part_id'];
+                                                                $partName = $part['name'] ?? 'Unknown Part';
 
-                                                            // Store part in allParts
-                                                            $allParts[$partId] = [
-                                                                'part_id' => $partId,
-                                                                'part_name' => $partName,
-                                                                'device_model' => $repair['device_model'],
-                                                                'device_serial' => $repair['device_serial'] ?? 'N/A'
-                                                            ];
+                                                                // Store part in allParts
+                                                                $allParts[$partId] = [
+                                                                    'part_id' => $partId,
+                                                                    'part_name' => $partName,
+                                                                    'device_model' => $repair['device_model'],
+                                                                    'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                                ];
 
-                                                            // Also store in deviceInfo for lookup
-                                                            $deviceInfo[$partId] = [
-                                                                'device_model' => $repair['device_model'],
-                                                                'device_serial' => $repair['device_serial'] ?? 'N/A'
-                                                            ];
+                                                                // Also store in deviceInfo for lookup
+                                                                $deviceInfo[$partId] = [
+                                                                    'device_model' => $repair['device_model'],
+                                                                    'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                                ];
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
 
-                                    // Get unused parts
-                                    $unusedParts = !empty($record->spare_parts_unused)
-                                        ? (is_string($record->spare_parts_unused)
-                                            ? json_decode($record->spare_parts_unused, true)
-                                            : $record->spare_parts_unused)
-                                        : [];
+                                        // Get unused parts
+                                        $unusedParts = !empty($record->spare_parts_unused)
+                                            ? (is_string($record->spare_parts_unused)
+                                                ? json_decode($record->spare_parts_unused, true)
+                                                : $record->spare_parts_unused)
+                                            : [];
 
-                                    // Build a lookup for unused parts by part_id
-                                    $unusedPartIds = [];
-                                    if(is_array($unusedParts)) {
-                                        foreach($unusedParts as $part) {
-                                            if(isset($part['part_id'])) {
-                                                $unusedPartIds[$part['part_id']] = true;
+                                        // Build a lookup for unused parts by part_id
+                                        $unusedPartIds = [];
+                                        if(is_array($unusedParts)) {
+                                            foreach($unusedParts as $part) {
+                                                if(isset($part['part_id'])) {
+                                                    $unusedPartIds[$part['part_id']] = true;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    // Calculate actually used parts (all parts minus unused parts)
-                                    $spareParts = [];
-                                    foreach($allParts as $partId => $part) {
-                                        // Only include if not in unused parts
-                                        if(!isset($unusedPartIds[$partId])) {
-                                            $spareParts[] = $part;
+                                        // Calculate actually used parts (all parts minus unused parts)
+                                        $spareParts = [];
+                                        foreach($allParts as $partId => $part) {
+                                            // Only include if not in unused parts
+                                            if(!isset($unusedPartIds[$partId])) {
+                                                $spareParts[] = $part;
+                                            }
                                         }
-                                    }
 
-                                    // If we have specific spare_parts_used data, override with that
-                                    $explicitUsedParts = !empty($record->spare_parts_used)
-                                        ? (is_string($record->spare_parts_used)
-                                            ? json_decode($record->spare_parts_used, true)
-                                            : $record->spare_parts_used)
-                                        : [];
+                                        // If we have specific spare_parts_used data, override with that
+                                        $explicitUsedParts = !empty($record->spare_parts_used)
+                                            ? (is_string($record->spare_parts_used)
+                                                ? json_decode($record->spare_parts_used, true)
+                                                : $record->spare_parts_used)
+                                            : [];
 
-                                    if(!empty($explicitUsedParts) && is_array($explicitUsedParts)) {
-                                        $spareParts = $explicitUsedParts;
-                                    }
-                                @endphp
+                                        if(!empty($explicitUsedParts) && is_array($explicitUsedParts)) {
+                                            $spareParts = $explicitUsedParts;
+                                        }
 
-                                @if(!empty($spareParts) && is_array($spareParts) && count($spareParts) > 0)
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full border border-collapse border-gray-300">
-                                            <thead class="bg-gray-100">
-                                                <tr>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Part Name</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Serial</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($spareParts as $index => $part)
-                                                    <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['part_name'] ?? 'N/A' }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['device_model'] ?? 'N/A' }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['device_serial'] ?? 'N/A' }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">
-                                                            <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
-                                                                Used
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <p class="italic text-gray-500">No spare parts were used</p>
-                                @endif
-                            </div>
+                                        // Group spare parts by device serial number
+                                        $sparePartsBySerial = [];
+                                        foreach($spareParts as $part) {
+                                            $serial = $part['device_serial'] ?? 'N/A';
+                                            if(!isset($sparePartsBySerial[$serial])) {
+                                                $sparePartsBySerial[$serial] = [
+                                                    'device_model' => $part['device_model'] ?? 'N/A',
+                                                    'device_serial' => $serial,
+                                                    'parts' => []
+                                                ];
+                                            }
+                                            $sparePartsBySerial[$serial]['parts'][] = $part;
+                                        }
+                                    @endphp
+
+                                    @if(!empty($spareParts) && is_array($spareParts) && count($spareParts) > 0)
+                                        <div class="space-y-4">
+                                            @foreach($sparePartsBySerial as $serial => $deviceGroup)
+                                                <div class="mb-3">
+                                                    <div class="px-4 py-2 font-medium text-white bg-red-600 rounded-t-lg" style='background-color: crimson;'>
+                                                        Device: {{ $deviceGroup['device_model'] }} (S/N: {{ $serial }})
+                                                    </div>
+
+                                                    <!-- Left-right grid for spare parts -->
+                                                    <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #ed143d12;'>
+                                                        <div>
+                                                            <!-- Left column parts -->
+                                                            @foreach($deviceGroup['parts'] as $index => $part)
+                                                                @if($index % 2 == 0)
+                                                                    <div class="flex items-start mb-2">
+                                                                        <span class="mr-2 text-lg">•</span>
+                                                                        <span>{{ $part['part_name'] ?? 'N/A' }}</span>
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                        <div>
+                                                            <!-- Right column parts -->
+                                                            @foreach($deviceGroup['parts'] as $index => $part)
+                                                                @if($index % 2 == 1)
+                                                                    <div class="flex items-start mb-2">
+                                                                        <span class="mr-2 text-lg">•</span>
+                                                                        <span>{{ $part['part_name'] ?? 'N/A' }}</span>
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <p class="italic text-gray-500">No spare parts were used</p>
+                                    @endif
+                                </div>
                             <br>
                             <!-- Spare Parts Not Used -->
                             <div class="mb-6">
-                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md">Spare Parts Not Used</h4>
+                                <h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style='color: green;'>Spare Parts Not Used</h4>
                                 @php
                                     $unusedParts = !empty($record->spare_parts_unused)
                                         ? (is_string($record->spare_parts_unused)
@@ -842,44 +865,70 @@
                                             }
                                         }
                                     }
+
+                                    // Group unused parts by device model and serial
+                                    $unusedPartsByDevice = [];
+                                    foreach($unusedParts as $part) {
+                                        $partId = $part['part_id'] ?? ($part['id'] ?? null);
+                                        $deviceData = !empty($partId) && isset($deviceInfo[$partId])
+                                            ? $deviceInfo[$partId]
+                                            : null;
+
+                                        // Fall back to data directly in the part if lookup fails
+                                        $deviceModel = $deviceData['device_model'] ?? ($part['device_model'] ?? 'N/A');
+                                        $deviceSerial = $deviceData['device_serial'] ?? ($part['device_serial'] ?? 'N/A');
+
+                                        $key = $deviceModel . '|' . $deviceSerial;
+                                        if (!isset($unusedPartsByDevice[$key])) {
+                                            $unusedPartsByDevice[$key] = [
+                                                'device_model' => $deviceModel,
+                                                'device_serial' => $deviceSerial,
+                                                'parts' => []
+                                            ];
+                                        }
+
+                                        $unusedPartsByDevice[$key]['parts'][] = [
+                                            'part_id' => $partId,
+                                            'part_name' => $part['part_name'] ?? 'N/A'
+                                        ];
+                                    }
                                 @endphp
 
                                 @if(!empty($unusedParts) && is_array($unusedParts) && count($unusedParts) > 0)
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full border border-collapse border-gray-300">
-                                            <thead class="bg-gray-100">
-                                                <tr>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Part Name</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Device Serial</th>
-                                                    <th class="px-4 py-2 text-left border border-gray-300">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($unusedParts as $index => $part)
-                                                    @php
-                                                        $partId = $part['part_id'] ?? ($part['id'] ?? null);
-                                                        $deviceData = !empty($partId) && isset($deviceInfo[$partId])
-                                                            ? $deviceInfo[$partId]
-                                                            : null;
+                                    <div class="space-y-4">
+                                        @foreach($unusedPartsByDevice as $deviceKey => $deviceGroup)
+                                            <div class="mb-3">
+                                                <div class="px-4 py-2 font-medium text-white bg-green-600 rounded-t-lg" style='background-color: green;'>
+                                                    Device: {{ $deviceGroup['device_model'] }} (S/N: {{ $deviceGroup['device_serial'] }})
+                                                </div>
 
-                                                        // Fall back to data directly in the part if lookup fails
-                                                        $deviceModel = $deviceData['device_model'] ?? ($part['device_model'] ?? 'N/A');
-                                                        $deviceSerial = $deviceData['device_serial'] ?? ($part['device_serial'] ?? 'N/A');
-                                                    @endphp
-                                                    <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $part['part_name'] ?? 'N/A' }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $deviceModel }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">{{ $deviceSerial }}</td>
-                                                        <td class="px-4 py-2 border border-gray-300">
-                                                            <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full">
-                                                                Not Used
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
+                                                <!-- Left-right grid for spare parts -->
+                                                <div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style='background-color: #0080001c;'>
+                                                    <div>
+                                                        <!-- Left column parts -->
+                                                        @foreach($deviceGroup['parts'] as $index => $part)
+                                                            @if($index % 2 == 0)
+                                                                <div class="flex items-start mb-2">
+                                                                    <span class="mr-2 text-lg">•</span>
+                                                                    <span>{{ $part['part_name'] }}</span>
+                                                                </div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                    <div>
+                                                        <!-- Right column parts -->
+                                                        @foreach($deviceGroup['parts'] as $index => $part)
+                                                            @if($index % 2 == 1)
+                                                                <div class="flex items-start mb-2">
+                                                                    <span class="mr-2 text-lg">•</span>
+                                                                    <span>{{ $part['part_name'] }}</span>
+                                                                </div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 @else
                                     <p class="italic text-gray-500">No unused spare parts reported</p>
@@ -922,7 +971,7 @@
 
                                 <!-- Repair Form Files -->
                                 <div>
-                                    <p>
+                                    <p class="border-b">
                                         <span class="font-semibold">Repair Form Files:</span>
                                         @php
                                             $repairFormFiles = !empty($record->repair_form_files)

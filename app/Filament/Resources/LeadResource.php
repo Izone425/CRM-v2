@@ -128,6 +128,8 @@ class LeadResource extends Resource
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['company', 'implementer_appointment', 'prospect_follow_up', 'data_file', 'ticketing'];
+            } elseif ($user->role_id === 9) { // Technician
+                $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
                     'lead', 'company', 'system', 'refer_earn', 'appointment',
@@ -136,9 +138,6 @@ class LeadResource extends Resource
                 ];
             }
         }
-
-        // Log for debugging
-        \Illuminate\Support\Facades\Log::debug('Lead form tabs: ', $activeTabs);
 
         // Add tabs based on permissions
         if (in_array('lead', $activeTabs)) {

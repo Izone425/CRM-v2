@@ -32,6 +32,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('repair:check-pending-status')->dailyAt('00:01');
 
         $schedule->command('handovers:check-delays')->dailyAt('00:01');
+
+        $schedule->command('handovers:check-pending-confirmation')->dailyAt('00:01');
     }
 
     /**

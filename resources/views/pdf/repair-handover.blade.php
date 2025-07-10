@@ -587,73 +587,67 @@
             $hasQuotations = (count($productQuotations) > 0 || count($hrdfQuotations) > 0);
         @endphp
 
-        @if($hasQuotations)
-            <div class="clearfix">
-                <!-- Product Quotations -->
-                <div style="margin-bottom: 15px;">
-                    <table>
-                        <thead>
+        <!-- Product Quotations -->
+        <table style="width: 100%; margin-bottom: 15px;">
+            <thead>
+                <tr>
+                    <th style="background-color: #e6e6e6; font-weight: bold;">Product Quotations</th>
+                </tr>
+                <tr>
+                    <th style="background-color: #f2f2f2;">Reference Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(count($productQuotations) > 0)
+                    @foreach($productQuotations as $quoteId)
+                        @php
+                            $quotation = \App\Models\Quotation::find($quoteId);
+                        @endphp
+                        @if($quotation)
                             <tr>
-                                <th colspan="2" style="background-color: #e6e6e6;">Product Quotations</th>
+                                <td>{{ $quotation->quotation_reference_no }}</td>
                             </tr>
-                            <tr>
-                                <th>Reference Number</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if(count($productQuotations) > 0)
-                                @foreach($productQuotations as $quoteId)
-                                    @php
-                                        $quotation = \App\Models\Quotation::find($quoteId);
-                                    @endphp
-                                    @if($quotation)
-                                        <tr>
-                                            <td>{{ $quotation->quotation_reference_no }}</td>
-                                        </tr>
-                                    @endif
-                                @endforeach
-                            @else
-                                <tr>
-                                    <td colspan="2" style="text-align: center; font-style: italic;">No product quotations linked</td>
-                                </tr>
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
+                        @endif
+                    @endforeach
+                @else
+                    <tr>
+                        <td style="text-align: center; font-style: italic;">No product quotations linked</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
 
-                <!-- HRDF Quotations -->
-                <div>
-                    <table>
-                        <thead>
+        <!-- HRDF Quotations -->
+        <table style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="background-color: #e6e6e6; font-weight: bold;">HRDF Quotations</th>
+                </tr>
+                <tr>
+                    <th style="background-color: #f2f2f2;">Reference Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(count($hrdfQuotations) > 0)
+                    @foreach($hrdfQuotations as $quoteId)
+                        @php
+                            $quotation = \App\Models\Quotation::find($quoteId);
+                        @endphp
+                        @if($quotation)
                             <tr>
-                                <th colspan="2" style="background-color: #e6e6e6;">HRDF Quotations</th>
+                                <td>{{ $quotation->quotation_reference_no }}</td>
                             </tr>
-                            <tr>
-                                <th>Reference Number</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if(count($hrdfQuotations) > 0)
-                                @foreach($hrdfQuotations as $quoteId)
-                                    @php
-                                        $quotation = \App\Models\Quotation::find($quoteId);
-                                    @endphp
-                                    @if($quotation)
-                                        <tr>
-                                            <td>{{ $quotation->quotation_reference_no }}</td>
-                                        </tr>
-                                    @endif
-                                @endforeach
-                            @else
-                                <tr>
-                                    <td colspan="2" style="text-align: center; font-style: italic;">No HRDF quotations linked</td>
-                                </tr>
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        @else
+                        @endif
+                    @endforeach
+                @else
+                    <tr>
+                        <td style="text-align: center; font-style: italic;">No HRDF quotations linked</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+
+        @if(!$hasQuotations)
             <p style="text-align: center; font-style: italic; color: #777; padding: 10px;">No quotation information available</p>
         @endif
     </div>

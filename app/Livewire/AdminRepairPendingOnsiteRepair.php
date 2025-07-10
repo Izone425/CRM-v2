@@ -175,6 +175,19 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
+                TextColumn::make('days_elapsed')
+                    ->label('Total Days')
+                    ->state(function (AdminRepair $record) {
+                        if (!$record->created_at) {
+                            return '0 days';
+                        }
+
+                        $createdDate = Carbon::parse($record->created_at);
+                        $today = Carbon::now();
+                        $diffInDays = $createdDate->diffInDays($today);
+
+                        return $diffInDays . ' ' . Str::plural('day', $diffInDays);
+                    }),
 
                 TextColumn::make('created_by')
                     ->label('Submitted By')
@@ -217,43 +230,6 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
                         return 'N/A';
                     })
                     ->html(),
-
-                // TextColumn::make('pic_name')
-                //     ->label('PIC Name')
-                //     ->searchable(),
-
-                // TextColumn::make('devices')
-                //     ->label('Devices')
-                //     ->formatStateUsing(function ($state, AdminRepair $record) {
-                //         if ($record->devices) {
-                //             $devices = is_string($record->devices)
-                //                 ? json_decode($record->devices, true)
-                //                 : $record->devices;
-
-                //             if (is_array($devices)) {
-                //                 return collect($devices)
-                //                     ->map(fn ($device) =>
-                //                         "{$device['device_model']} (SN: {$device['device_serial']})")
-                //                     ->join('<br>');
-                //             }
-                //         }
-
-                //         if ($record->device_model) {
-                //             return "{$record->device_model} (SN: {$record->device_serial})";
-                //         }
-
-                //         return '—';
-                //     })
-                //     ->html()
-                //     ->searchable(query: function (Builder $query, string $search): Builder {
-                //         return $query->where('device_model', 'like', "%{$search}%")
-                //             ->orWhere('device_serial', 'like', "%{$search}%")
-                //             ->orWhere('devices', 'like', "%{$search}%");
-                //     }),
-
-                TextColumn::make('zoho_ticket')
-                    ->label('Zoho Ticket')
-                    ->searchable(),
 
                 TextColumn::make('status')
                     ->label('Status')

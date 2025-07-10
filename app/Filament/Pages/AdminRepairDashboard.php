@@ -893,6 +893,20 @@ class AdminRepairDashboard extends Page implements HasTable
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
+                TextColumn::make('days_elapsed')
+                    ->label('Total Days')
+                    ->state(function (AdminRepair $record) {
+                        if (!$record->created_at) {
+                            return '0 days';
+                        }
+
+                        $createdDate = Carbon::parse($record->created_at);
+                        $today = Carbon::now();
+                        $diffInDays = $createdDate->diffInDays($today);
+
+                        return $diffInDays . ' ' . Str::plural('day', $diffInDays);
+                    }),
+
                 TextColumn::make('creator.name')
                     ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
@@ -924,9 +938,6 @@ class AdminRepairDashboard extends Page implements HasTable
                         // Fallback to the old method as a last resort
                         return $record->companyDetail->company_name ?? 'Unknown Company';
                     }),
-
-                TextColumn::make('pic_name')
-                    ->label('PIC Name'),
 
                 TextColumn::make('devices')
                     ->label('Devices')

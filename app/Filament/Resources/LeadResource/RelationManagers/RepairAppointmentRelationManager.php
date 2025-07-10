@@ -765,8 +765,10 @@ class RepairAppointmentRelationManager extends RelationManager
                     }
 
                     // Set up email recipients
-                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                    // $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                    $recipients = [
+                        'admin.timetec.hr@timeteccloud.com',
+                        'izzuddin@timeteccloud.com'
+                    ];
 
                     // Add required attendees if they have valid emails
                     foreach ($attendeeEmails as $email) {
@@ -809,7 +811,7 @@ class RepairAppointmentRelationManager extends RelationManager
                             \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
                                 $message->from($senderEmail, $senderName)
                                     ->to($recipients)
-                                    ->subject("TIMETEC REPAIR APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
+                                    ->subject("TIMETEC REPAIR APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name}");
                             });
 
                             Notification::make()

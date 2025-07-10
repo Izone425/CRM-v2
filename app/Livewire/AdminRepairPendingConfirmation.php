@@ -177,6 +177,20 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                     ->dateTime('d M Y, h:i A')
                     ->sortable(),
 
+                TextColumn::make('days_elapsed')
+                    ->label('Total Days')
+                    ->state(function (AdminRepair $record) {
+                        if (!$record->created_at) {
+                            return '0 days';
+                        }
+
+                        $createdDate = Carbon::parse($record->created_at);
+                        $today = Carbon::now();
+                        $diffInDays = $createdDate->diffInDays($today);
+
+                        return $diffInDays . ' ' . Str::plural('day', $diffInDays);
+                    }),
+
                 TextColumn::make('created_by')
                     ->label('Submitted By')
                     ->formatStateUsing(function ($state, AdminRepair $record) {
@@ -218,43 +232,6 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                         return 'N/A';
                     })
                     ->html(),
-
-                // TextColumn::make('pic_name')
-                //     ->label('PIC Name')
-                //     ->searchable(),
-
-                // TextColumn::make('devices')
-                //     ->label('Devices')
-                //     ->formatStateUsing(function ($state, AdminRepair $record) {
-                //         if ($record->devices) {
-                //             $devices = is_string($record->devices)
-                //                 ? json_decode($record->devices, true)
-                //                 : $record->devices;
-
-                //             if (is_array($devices)) {
-                //                 return collect($devices)
-                //                     ->map(fn ($device) =>
-                //                         "{$device['device_model']} (SN: {$device['device_serial']})")
-                //                     ->join('<br>');
-                //             }
-                //         }
-
-                //         if ($record->device_model) {
-                //             return "{$record->device_model} (SN: {$record->device_serial})";
-                //         }
-
-                //         return '—';
-                //     })
-                //     ->html()
-                //     ->searchable(query: function (Builder $query, string $search): Builder {
-                //         return $query->where('device_model', 'like', "%{$search}%")
-                //             ->orWhere('device_serial', 'like', "%{$search}%")
-                //             ->orWhere('devices', 'like', "%{$search}%");
-                //     }),
-
-                TextColumn::make('zoho_ticket')
-                    ->label('Zoho Ticket')
-                    ->searchable(),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -403,7 +380,7 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                                         ->placeholder('Select a technician')
                                 ]),
 
-                            Textarea::make('remarks')
+                            Textarea::make('appointment_remarks')
                                 ->label('REMARKS')
                                 ->rows(3)
                                 ->autosize()
@@ -499,7 +476,7 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                                 'technician' => $data['technician'],
                                 'causer_id' => auth()->user()->id,
                                 'technician_assigned_date' => now(),
-                                'remarks' => $data['remarks'] ?? null,
+                                'remarks' => $data['appointment_remarks'] ?? null,
                                 'status' => 'New',
                             ];
 
@@ -525,8 +502,10 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                             // Send email notification about the appointment
                             if ($appointment && $lead) {
                                 // Set up email recipients
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                                // $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                                $recipients = [
+                                    'admin.timetec.hr@timeteccloud.com',
+                                    'izzuddin@timeteccloud.com'
+                                ];
 
                                 // Process required attendees
                                 $attendeeEmails = [];
@@ -560,7 +539,7 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                                         'leadOwnerMobileNumber' => $leadOwner->mobile_number ?? 'N/A',
                                         'repair_type' => $data['type'],
                                         'appointment_type' => $data['appointment_type'],
-                                        'remarks' => $data['remarks'] ?? 'N/A',
+                                        'remarks' => $data['appointment_remarks'] ?? 'N/A',
                                     ],
                                 ];
 
