@@ -42,6 +42,10 @@ class ChatRoom extends Page
     public string $searchCompany = '';
     public string $searchPhone = '';
 
+    public string $errorMessage = '';
+    public bool $showError = false;
+    public int $errorTimestamp = 0;
+
     public function mount()
     {
         $this->endDate = Carbon::now()->toDateString(); // default to today
@@ -89,11 +93,26 @@ class ChatRoom extends Page
             'user2' => $user2
         ];
 
-        // ChatMessage::where('sender', $user1)
-        // ->where('receiver', $user2)
-        // ->where('is_from_customer', true)
-        // ->where('is_read', false)
-        // ->update(['is_read' => true]);
+        // Get the participant phone number
+        $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
+        $cleanUser1 = preg_replace('/^\+/', '', $user1);
+        $cleanUser2 = preg_replace('/^\+/', '', $user2);
+        $chatParticipant = ($cleanUser1 === $twilioNumber) ? $cleanUser2 : $cleanUser1;
+
+        // Check if we can send freeform messages
+        $whatsappService = new WhatsAppService();
+        $canSendFreeform = $whatsappService->canSendFreeformMessage($chatParticipant);
+
+        // Set the error message if outside the 24-hour window
+        if (!$canSendFreeform) {
+            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+            $this->showError = true;
+            $this->errorTimestamp = time();
+        } else {
+            // Clear any existing error
+            $this->showError = false;
+            $this->errorMessage = '';
+        }
     }
 
     public function markMessagesAsRead($data, $forceState = null)
@@ -389,6 +408,29 @@ class ChatRoom extends Page
 
         $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
 
+        // CHECK MESSAGING WINDOW HERE
+        // Check if we can send freeform messages to this participant
+        $whatsappService = new WhatsAppService();
+        $canSendFreeform = $whatsappService->canSendFreeformMessage($chatParticipant);
+
+        // Set the error message if the participant is outside the 24-hour window
+        if (!$canSendFreeform) {
+            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+            $this->showError = true;
+            $this->errorTimestamp = time(); // Store current time
+
+            // Dispatch event to keep error visible
+            $this->dispatch('persistent-error', [
+                'message' => $this->errorMessage,
+                'duration' => 60 // Show for 60 seconds
+            ]);
+        } else {
+            // Clear any existing error if the participant is within the window
+            $this->showError = false;
+            $this->errorMessage = '';
+        }
+
+        // Rest of your existing fetchParticipantDetails code
         // Array to store all found leads
         $foundLeads = [];
         $primaryLead = null;
@@ -493,15 +535,21 @@ class ChatRoom extends Page
                 'company_url' => url('admin/leads/' . Encryptor::encrypt($primaryLead->id)),
                 'source' => $primaryLead->lead_code ?? 'N/A',
                 'lead_status' => $primaryLead->lead_status ?? 'N/A',
+                'can_send_freeform' => $canSendFreeform, // Add this to the response
             ];
         }
 
         // STEP 5: No match found at all
         return $this->defaultParticipantResponse($chatParticipant);
     }
+
     // Reusable fallback
     private function defaultParticipantResponse($phone)
     {
+        // Check if we can send freeform messages
+        $whatsappService = new WhatsAppService();
+        $canSendFreeform = $phone ? $whatsappService->canSendFreeformMessage($phone) : false;
+
         return [
             'name' => 'Unknown',
             'email' => 'N/A',
@@ -510,6 +558,7 @@ class ChatRoom extends Page
             'company_url' => null,
             'source' => 'Not Found',
             'lead_status' => 'N/A',
+            'can_send_freeform' => $canSendFreeform, // Add this to the response
         ];
     }
 
@@ -582,10 +631,28 @@ class ChatRoom extends Page
                 if (isset($result['error']) && $result['error'] === '24_hour_window_closed') {
                     // Special handling for 24-hour window error
                     $this->dispatchTemplateMessageModal($recipient);
-                    session()->flash('error', 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.');
+
+                    // Set persistent error message properties
+                    $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+                    $this->showError = true;
+                    $this->errorTimestamp = time(); // Store current time
+
+                    // Dispatch event to trigger JavaScript timer
+                    $this->dispatch('persistent-error', [
+                        'message' => $this->errorMessage,
+                        'duration' => 60 // Show for 60 seconds
+                    ]);
                 } else {
                     // Other error
-                    session()->flash('error', $result['message'] ?? 'Failed to send message');
+                    $this->errorMessage = $result['message'] ?? 'Failed to send message';
+                    $this->showError = true;
+                    $this->errorTimestamp = time();
+
+                    // Dispatch event to trigger JavaScript timer
+                    $this->dispatch('persistent-error', [
+                        'message' => $this->errorMessage,
+                        'duration' => 30 // Show for 30 seconds
+                    ]);
                 }
             }
         } else {
