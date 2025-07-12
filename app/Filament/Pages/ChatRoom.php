@@ -539,11 +539,9 @@ class ChatRoom extends Page
         $fileMimeType = null;
 
         if ($this->file) {
-            $path = $this->file->store('uploads', 'public'); // ✅ Store in public disk
-            $fileUrl = Storage::url($path); // ✅ Get accessible URL
+            $path = $this->file->store('uploads', 'public');
+            $fileUrl = Storage::url($path);
             $fileMimeType = $this->file->getMimeType();
-
-            // ✅ Convert local storage URL to a full URL
             $fileUrl = asset(str_replace('public/', 'storage/', $fileUrl));
         }
 
@@ -555,29 +553,136 @@ class ChatRoom extends Page
         // Send Message via WhatsApp API
         $whatsappService = new WhatsAppService();
 
+        // Attempt to send message/file
         if ($fileUrl) {
-            // ✅ Send file if uploaded
             $result = $whatsappService->sendFile($recipient, $fileUrl, $fileMimeType);
         } else {
-            // ✅ Send text message
             $result = $whatsappService->sendMessage($recipient, $this->message);
         }
 
-        if ($result) {
-            // Store message in database
-            ChatMessage::create([
-                'sender' => preg_replace('/^\+|^whatsapp:/', '', env('TWILIO_WHATSAPP_FROM')),
-                'receiver' => preg_replace('/^\+|^whatsapp:/', '', $recipient),
-                'message' => $this->message ?: '[File Sent]',
-                'twilio_message_id' => $result,
-                'is_from_customer' => false,
-                'media_url' => $fileUrl,
-                'media_type' => $fileMimeType,
-            ]);
+        // Handle the response from the service
+        if (is_array($result) && isset($result['success'])) {
+            if ($result['success'] === true) {
+                // Message sent successfully
+                ChatMessage::create([
+                    'sender' => preg_replace('/^\+|^whatsapp:/', '', env('TWILIO_WHATSAPP_FROM')),
+                    'receiver' => preg_replace('/^\+|^whatsapp:/', '', $recipient),
+                    'message' => $this->message ?: '[File Sent]',
+                    'twilio_message_id' => $result['sid'],
+                    'is_from_customer' => false,
+                    'media_url' => $fileUrl,
+                    'media_type' => $fileMimeType,
+                ]);
+
+                $this->dispatch('messageSent');
+                $this->reset(['message', 'file']);
+
+            } else {
+                // Message failed
+                if (isset($result['error']) && $result['error'] === '24_hour_window_closed') {
+                    // Special handling for 24-hour window error
+                    $this->dispatchTemplateMessageModal($recipient);
+                    session()->flash('error', 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.');
+                } else {
+                    // Other error
+                    session()->flash('error', $result['message'] ?? 'Failed to send message');
+                }
+            }
+        } else {
+            // Legacy response handling (for backward compatibility)
+            if ($result) {
+                ChatMessage::create([
+                    'sender' => preg_replace('/^\+|^whatsapp:/', '', env('TWILIO_WHATSAPP_FROM')),
+                    'receiver' => preg_replace('/^\+|^whatsapp:/', '', $recipient),
+                    'message' => $this->message ?: '[File Sent]',
+                    'twilio_message_id' => $result,
+                    'is_from_customer' => false,
+                    'media_url' => $fileUrl,
+                    'media_type' => $fileMimeType,
+                ]);
+
+                $this->dispatch('messageSent');
+                $this->reset(['message', 'file']);
+            } else {
+                session()->flash('error', 'Failed to send message');
+            }
+        }
+    }
+
+    public function dispatchTemplateMessageModal($recipient)
+    {
+        // Get the recipient's lead details
+        $recipientDetails = $this->fetchParticipantDetails();
+
+        // Dispatch browser event to open template modal
+        $this->dispatch('open-template-modal', [
+            'recipient' => $recipient,
+            'name' => $recipientDetails['name'],
+            'company' => $recipientDetails['company']
+        ]);
+    }
+
+    public function sendTemplateMessage($phoneNumber, $templateId)
+    {
+        // Validate inputs
+        if (empty($phoneNumber) || empty($templateId)) {
+            session()->flash('error', 'Missing required information to send template message');
+            return;
         }
 
-        $this->dispatch('messageSent');
-        $this->reset(['message', 'file']);
+        try {
+            // Get recipient details
+            $details = $this->fetchParticipantDetails();
+            $recipientName = $details['name'];
+
+            // Set up template variables
+            $variables = [];
+
+            // Configure variables based on template ID
+            if ($templateId === 'HX50b95050ff8d2fe33edf0873c4d2e2b4') {
+                // Request Details Template
+                $variables = [$recipientName];
+            } elseif ($templateId === 'HX16773cfc70580af7cea0a8a5587486b5') {
+                // Demo Selection Template
+                $today = \Carbon\Carbon::now();
+                $day1 = $today->copy()->addBusinessDay()->format('d/m (l)') . ' - 10:00 AM / 2:00 PM';
+                $day2 = $today->copy()->addBusinessDays(2)->format('d/m (l)') . ' - 11:00 AM / 3:00 PM';
+
+                $variables = [
+                    $recipientName,
+                    $day1 . "\n\n" . $day2
+                ];
+            }
+
+            // Send the template message
+            $whatsappController = new \App\Http\Controllers\WhatsAppController();
+            $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $templateId, $variables);
+
+            // Log success
+            \Illuminate\Support\Facades\Log::info('Template message sent successfully', [
+                'phone' => $phoneNumber,
+                'templateId' => $templateId,
+                'response' => $response
+            ]);
+
+            // Show success notification
+            Notification::make()
+                ->title('Template Message Sent')
+                ->body('Template message has been sent successfully.')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            // Log error
+            \Illuminate\Support\Facades\Log::error('Error sending template message: ' . $e->getMessage());
+
+            // Show error notification
+            Notification::make()
+                ->title('Error Sending Template')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     // public static function getNavigationBadge(): ?string
