@@ -1338,6 +1338,273 @@ class ActivityLogRelationManager extends RelationManager
                                 Log::error("WhatsApp Error: {$e->getMessage()}");
                             }
                         }),
+                    Tables\Actions\Action::make('send_request_details')
+                        ->label('Request Details')
+                        ->color('info')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->modalHeading('Send Request Details WhatsApp Message')
+                        ->modalDescription('This will send a WhatsApp message to request additional details from the lead.')
+                        ->requiresConfirmation()
+                        ->action(function (ActivityLog $activityLog) {
+                            $lead = $activityLog->lead;
+
+                            // Get phone number from lead
+                            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+
+                            if (empty($phoneNumber)) {
+                                Notification::make()
+                                    ->title('Missing Phone Number')
+                                    ->body('No valid phone number found for this lead.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Get recipient name
+                            $recipientName = $lead->companyDetail->name ?? $lead->name;
+
+                            // Template SID for request details
+                            $contentTemplateSid = 'HX50b95050ff8d2fe33edf0873c4d2e2b4';
+
+                            // Set up variables for the template
+                            $variables = [$recipientName];
+
+                            try {
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+
+                                // Update activity log
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Sent request details WhatsApp message');
+
+                                Notification::make()
+                                    ->title('Message Sent')
+                                    ->body('Request details WhatsApp message has been sent successfully.')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Log::error('WhatsApp Request Details Error: ' . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Failed to Send Message')
+                                    ->body('Error: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->visible(function (ActivityLog $record) {
+                            $lead = $record->lead;
+
+                            // Check if lead exists and has a valid phone number
+                            if (!$lead || empty($lead->companyDetail->contact_no ?? $lead->phone)) {
+                                return false;
+                            }
+
+                            // Get the latest activity log for the lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('updated_at')
+                                ->first();
+
+                            // Only show on the latest activity log entry
+                            if ($record->id !== $latestActivityLog->id) {
+                                return false;
+                            }
+
+                            // Show for active leads that aren't in demo or follow-up stages
+                            return $lead->categories !== 'Inactive' &&
+                                !in_array($lead->stage, ['Demo', 'Follow Up']);
+                        }),
+                    Tables\Actions\Action::make('send_demo_selection')
+                        ->label('Demo Selection')
+                        ->color('success')
+                        ->icon('heroicon-o-calendar')
+                        ->modalHeading('Send Demo Selection WhatsApp Message')
+                        ->modalDescription('This will send available demo time slots to the lead.')
+                        ->form([
+                            Select::make('demo_type')
+                                ->label('Demo Type')
+                                ->options([
+                                    'online' => 'Online',
+                                    'onsite' => 'Onsite',
+                                    'hybrid' => 'Hybrid (Online/Onsite)',
+                                ])
+                                ->required()
+                                ->default('online'),
+
+                            Select::make('num_days')
+                                ->label('Number of Days to Offer')
+                                ->options([
+                                    '1' => '1 Day',
+                                    '2' => '2 Days',
+                                    '3' => '3 Days',
+                                ])
+                                ->required()
+                                ->default('2')
+                                ->reactive(),
+
+                            Grid::make(2)
+                                ->schema([
+                                    DatePicker::make('date_1')
+                                        ->label('First Day')
+                                        ->required()
+                                        ->weekStartsOnMonday()
+                                        ->minDate(now())
+                                        ->default(fn() => now()->nextWeekday()),
+
+                                    Grid::make(1)
+                                        ->schema([
+                                            Forms\Components\CheckboxList::make('slots_1')
+                                                ->label('Time Slots - First Day')
+                                                ->options([
+                                                    '9:00 AM' => '9:00 AM',
+                                                    '10:00 AM' => '10:00 AM',
+                                                    '11:00 AM' => '11:00 AM',
+                                                    '2:00 PM' => '2:00 PM',
+                                                    '2:30 PM' => '2:30 PM',
+                                                    '3:00 PM' => '3:00 PM',
+                                                    '4:00 PM' => '4:00 PM',
+                                                    '5:00 PM' => '5:00 PM',
+                                                ])
+                                                ->columns(4)
+                                                ->required(),
+                                        ]),
+                                ]),
+
+                            Grid::make(2)
+                                ->schema([
+                                    DatePicker::make('date_2')
+                                        ->label('Second Day')
+                                        ->required()
+                                        ->weekStartsOnMonday()
+                                        ->minDate(now()->addDay())
+                                        ->default(fn() => now()->nextWeekday()->addDay()),
+
+                                    Grid::make(1)
+                                        ->schema([
+                                            Forms\Components\CheckboxList::make('slots_2')
+                                                ->label('Time Slots - Second Day')
+                                                ->options([
+                                                    '9:00 AM' => '9:00 AM',
+                                                    '10:00 AM' => '10:00 AM',
+                                                    '11:00 AM' => '11:00 AM',
+                                                    '2:00 PM' => '2:00 PM',
+                                                    '2:30 PM' => '2:30 PM',
+                                                    '3:00 PM' => '3:00 PM',
+                                                    '4:00 PM' => '4:00 PM',
+                                                    '5:00 PM' => '5:00 PM',
+                                                ])
+                                                ->columns(4)
+                                                ->required(),
+                                        ]),
+                                ])
+                                ->visible(fn (callable $get) => $get('num_days') >= 2),
+
+                            Grid::make(2)
+                                ->schema([
+                                    DatePicker::make('date_3')
+                                        ->label('Third Day')
+                                        ->required()
+                                        ->weekStartsOnMonday()
+                                        ->minDate(now()->addDays(2))
+                                        ->default(fn() => now()->nextWeekday()->addDays(2)),
+
+                                    Grid::make(1)
+                                        ->schema([
+                                            Forms\Components\CheckboxList::make('slots_3')
+                                                ->label('Time Slots - Third Day')
+                                                ->options([
+                                                    '9:00 AM' => '9:00 AM',
+                                                    '10:00 AM' => '10:00 AM',
+                                                    '11:00 AM' => '11:00 AM',
+                                                    '2:00 PM' => '2:00 PM',
+                                                    '2:30 PM' => '2:30 PM',
+                                                    '3:00 PM' => '3:00 PM',
+                                                    '4:00 PM' => '4:00 PM',
+                                                    '5:00 PM' => '5:00 PM',
+                                                ])
+                                                ->columns(4)
+                                                ->required()
+                                                ->default(['10:00 AM', '2:30 PM', '4:00 PM']),
+                                        ]),
+                                ])
+                                ->visible(fn (callable $get) => $get('num_days') >= 3),
+                        ])
+                        ->action(function (ActivityLog $activityLog, array $data) {
+                            $lead = $activityLog->lead;
+
+                            // Get phone number from lead
+                            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+
+                            if (empty($phoneNumber)) {
+                                Notification::make()
+                                    ->title('Missing Phone Number')
+                                    ->body('No valid phone number found for this lead.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Get recipient name
+                            $recipientName = $lead->companyDetail->name ?? $lead->name;
+
+                            // Format dates and create demo slots message
+                            $demoSlots = "";
+
+                            // Format first day slots
+                            $date1 = \Carbon\Carbon::parse($data['date_1'])->format('d/m (l)');
+                            $formattedSlots1 = implode(' / ', $data['slots_1']);
+                            $demoSlots .= "$date1 - $formattedSlots1";
+
+                            // Add second day if selected
+                            if ((int)$data['num_days'] >= 2) {
+                                $date2 = \Carbon\Carbon::parse($data['date_2'])->format('d/m (l)');
+                                $formattedSlots2 = implode(' / ', $data['slots_2']);
+                                $demoSlots .= "\n$date2 - $formattedSlots2";
+                            }
+
+                            // Add third day if selected
+                            if ((int)$data['num_days'] >= 3) {
+                                $date3 = \Carbon\Carbon::parse($data['date_3'])->format('d/m (l)');
+                                $formattedSlots3 = implode(' / ', $data['slots_3']);
+                                $demoSlots .= "\n$date3 - $formattedSlots3";
+                            }
+
+                            // Template SID for demo selection
+                            $contentTemplateSid = 'HXbf22d4a72a1cac36e2e2db33add66359';
+
+                            // Set up variables for the template
+                            $variables = [
+                                $recipientName,
+                                $demoSlots
+                            ];
+
+                            try {
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+
+                                // Update activity log
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Sent demo selection options via WhatsApp');
+
+                                Notification::make()
+                                    ->title('Message Sent')
+                                    ->body('Demo selection options have been sent successfully.')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Log::error('WhatsApp Demo Selection Error: ' . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Failed to Send Message')
+                                    ->body('Error: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\Action::make('archive')
                         ->label(__('Archive'))
                         ->modalHeading('Mark Lead as Inactive')

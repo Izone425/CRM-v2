@@ -114,6 +114,8 @@ class HardwareDashboardAll extends Page implements HasTable
                     // })
                     ->orderBy('created_at', 'desc')
             )
+            ->defaultPaginationPageOption(50)
+            ->paginationPageOptions([25, 50,])
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -240,19 +242,19 @@ class HardwareDashboardAll extends Page implements HasTable
                     ->toggleable(),
 
                 TextColumn::make('pending_stock_at')
-                    ->label('Date Pending Stock')
+                    ->label(new HtmlString('Date<br>Pending Stock'))
                     ->date('d M Y')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('pending_migration_at')
-                    ->label('Date Pending Migration')
+                    ->label(new HtmlString('Date<br>Pending Migration'))
                     ->date('d M Y')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('completed_at')
-                    ->label('Date Completed')
+                    ->label(new HtmlString('Date<br>Completed'))
                     ->date('d M Y')
                     ->sortable()
                     ->toggleable(),
