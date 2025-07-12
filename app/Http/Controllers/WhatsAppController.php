@@ -89,7 +89,7 @@ class WhatsAppController extends Controller
                 "Just popping in one last time to make sure I’m not overloading your WhatsApp. 🙈\n\n" .
                 "If now isn’t the right time for a chat, could you let me know when might be better, or if there’s someone else I should reach out to?\n\n" .
                 "And hey, if you ever want to revisit this down the line, I’m just a message away and ready to dive back in whenever you are! 😊",
-            
+
             //BM
             'HXcc05134b6c74ecc02682a25887978630' =>
                 "Hai {{1}}! Saya {{2}} daripada TimeTec. Terima kasih atas minat anda terhadap Penyelesaian HR Berasaskan Awan kami!\n\n" .
@@ -118,6 +118,32 @@ class WhatsAppController extends Controller
                 "Maaf kerana mengganggu, saya cuma nak pastikan mesej saya sebelum ini tak tenggelam di WhatsApp anda.\n" .
                 "Sekiranya waktu ini kurang sesuai untuk berbual, mohon maklumkan waktu yang lebih sesuai, atau jika ada individu lain yang lebih berkaitan untuk saya hubungi.\n" .
                 "Sekiranya anda ingin berbincang semula pada masa akan datang, saya sentiasa bersedia untuk membantu. Cukup sekadar hantarkan mesej, dan saya akan bantu sebaik mungkin. 😊",
+
+            //Request company info template
+            'HX50b95050ff8d2fe33edf0873c4d2e2b4' =>
+                "Hi {{1}}, as per our phone conversation, please provide your details below so we can provide quotation to you:
+                (Minimum headcount is 5 user/staff)
+
+                Department:
+                Company Name (As registered in SSM):
+                Address:
+                Email:
+                Mobile number:
+                HRDF Register:
+                Headcount:
+                Module interested:",
+
+            //Send demo slot template
+            'HXbf22d4a72a1cac36e2e2db33add66359' =>
+                "Hi {{1}}, below is our available online/onsite demo slot:
+
+                {{2}}
+
+                Please let me know, if you available to join our demo.
+
+                *The demo will take 1 hour, including a Q&A session
+
+                *Kindly reply if you have received this message.*",
         ];
 
         // Get the template text
