@@ -1549,40 +1549,50 @@ class ActivityLogRelationManager extends RelationManager
                             // Get recipient name
                             $recipientName = $lead->companyDetail->name ?? $lead->name;
 
-                            // Format dates and create demo slots message
-                            $demoSlots = "";
-
-                            // Format first day slots
+                            // Format dates as separate variables for each day
+                            // First day (always present)
                             $date1 = \Carbon\Carbon::parse($data['date_1'])->format('d/m (l)');
                             $formattedSlots1 = implode(' / ', $data['slots_1']);
-                            $demoSlots .= "$date1 - $formattedSlots1";
+                            $day1 = "$date1 - $formattedSlots1";
 
-                            // Add second day if selected
+                            // Second day (only if num_days >= 2)
+                            $day2 = null;
                             if ((int)$data['num_days'] >= 2) {
                                 $date2 = \Carbon\Carbon::parse($data['date_2'])->format('d/m (l)');
                                 $formattedSlots2 = implode(' / ', $data['slots_2']);
-                                $demoSlots .= "\n$date2 - $formattedSlots2";
+                                $day2 = "$date2 - $formattedSlots2";
                             }
 
-                            // Add third day if selected
+                            // Third day (only if num_days >= 3)
+                            $day3 = null;
                             if ((int)$data['num_days'] >= 3) {
                                 $date3 = \Carbon\Carbon::parse($data['date_3'])->format('d/m (l)');
                                 $formattedSlots3 = implode(' / ', $data['slots_3']);
-                                $demoSlots .= "\n$date3 - $formattedSlots3";
+                                $day3 = "$date3 - $formattedSlots3";
                             }
 
                             // Template SID for demo selection
-                            $contentTemplateSid = 'HXbf22d4a72a1cac36e2e2db33add66359';
+                            $contentTemplateSid = 'HX29489f00b2999894545b0844b150560c'; // Update with new template SID if changed
 
-                            // Set up variables for the template
+                            // Set up variables for the template (using 4 variables now)
                             $variables = [
                                 $recipientName,
-                                $demoSlots
+                                $day1,
+                                $day2 ?? ' ',  // Send empty string if day2 is null
+                                $day3 ?? ' '   // Send empty string if day3 is null
                             ];
 
                             try {
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+                                $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
+
+                                // Log successful message for debugging
+                                \Illuminate\Support\Facades\Log::info('WhatsApp message sent successfully', [
+                                    'phone' => $phoneNumber,
+                                    'templateId' => $contentTemplateSid,
+                                    'variables' => $variables,
+                                    'response' => $response
+                                ]);
 
                                 // Update activity log
                                 activity()
@@ -1596,7 +1606,12 @@ class ActivityLogRelationManager extends RelationManager
                                     ->success()
                                     ->send();
                             } catch (\Exception $e) {
-                                Log::error('WhatsApp Demo Selection Error: ' . $e->getMessage());
+                                \Illuminate\Support\Facades\Log::error('WhatsApp Demo Selection Error', [
+                                    'error' => $e->getMessage(),
+                                    'phone' => $phoneNumber,
+                                    'templateId' => $contentTemplateSid,
+                                    'variables' => $variables
+                                ]);
 
                                 Notification::make()
                                     ->title('Failed to Send Message')

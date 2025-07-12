@@ -490,6 +490,77 @@
             </div>
         </div>
         @endif
+        <div x-data="{
+            isOpen: false,
+            recipient: '',
+            recipientName: '',
+            company: '',
+            selectedTemplate: '',
+            templates: [
+                { id: 'HX50b95050ff8d2fe33edf0873c4d2e2b4', name: 'Request Details', description: 'Ask for company details' },
+                { id: 'HX16773cfc70580af7cea0a8a5587486b5', name: 'Demo Selection', description: 'Offer demo time slots' }
+            ]
+        }"
+            x-init="
+                window.addEventListener('open-template-modal', (event) => {
+                    isOpen = true;
+                    recipient = event.detail.recipient;
+                    recipientName = event.detail.name;
+                    company = event.detail.company;
+                });
+            "
+            x-show="isOpen"
+            class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50"
+            x-cloak
+        >
+            <div class="relative w-full max-w-lg p-6 mx-auto bg-white rounded-lg shadow-xl" @click.outside="isOpen = false">
+                <div class="flex items-start justify-between mb-4">
+                    <h3 class="text-xl font-semibold text-gray-900">
+                        Send Template Message
+                    </h3>
+                    <button @click="isOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4 text-gray-700">
+                    <p class="mb-4">The 24-hour messaging window has expired. You need to use a template message.</p>
+
+                    <div class="p-4 mb-4 text-sm border border-yellow-200 rounded-lg bg-yellow-50">
+                        <p><strong>Recipient:</strong> <span x-text="recipientName"></span></p>
+                        <p><strong>Company:</strong> <span x-text="company"></span></p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-700">Select a Template</label>
+                        <select x-model="selectedTemplate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" disabled selected>-- Choose Template --</option>
+                            <template x-for="template in templates" :key="template.id">
+                                <option :value="template.id" x-text="template.name + ' - ' + template.description"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3">
+                    <button @click="isOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button
+                        @click="
+                            $wire.sendTemplateMessage(recipient, selectedTemplate);
+                            isOpen = false;
+                        "
+                        :disabled="!selectedTemplate"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                    >
+                        Send Template
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript for Custom Audio Player -->

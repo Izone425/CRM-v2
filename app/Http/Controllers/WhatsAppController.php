@@ -134,10 +134,12 @@ class WhatsAppController extends Controller
                 Module interested:",
 
             //Send demo slot template
-            'HXbf22d4a72a1cac36e2e2db33add66359' =>
+            'HX29489f00b2999894545b0844b150560c' =>
                 "Hi {{1}}, below is our available online/onsite demo slot:
 
                 {{2}}
+                {{3}}
+                {{4}}
 
                 Please let me know, if you available to join our demo.
 
@@ -145,6 +147,10 @@ class WhatsAppController extends Controller
 
                 *Kindly reply if you have received this message.*",
         ];
+
+        if (!isset($templates[$contentTemplateSid])) {
+            throw new \Exception("Template not found with ID: $contentTemplateSid");
+        }
 
         // Get the template text
         $templateText = $templates[$contentTemplateSid] ?? "Message content unavailable.";
