@@ -172,26 +172,26 @@ class SoftwareHandoverResource extends Resource
                                             ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
                                             ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
 
-                                        DatePicker::make('go_live_date')
-                                            ->label('System Go Live')
-                                            ->format('Y-m-d')
-                                            ->displayFormat('d/m/Y')
-                                            ->live()  // Make it react to changes
-                                            ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
-                                                // If a go_live_date is set (not null or empty), set status to Closed
-                                                if (!empty($state)) {
-                                                    $set('status_handover', 'Closed');
-                                                }
-                                            })
-                                            ->disabled(function () {
-                                                // Disable this field if the user has role_id 2 (salesperson)
-                                                return auth()->user()->role_id === 2;
-                                            })
-                                            ->dehydrated(function () {
-                                                // Even if disabled, we still want to save any existing value
-                                                // This ensures the field value is still submitted when the form is saved
-                                                return true;
-                                            }),
+                                    DatePicker::make('go_live_date')
+                                        ->label('System Go Live')
+                                        ->format('Y-m-d')
+                                        ->displayFormat('d/m/Y')
+                                        ->live() // Make it react to changes
+                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
+                                            // If a go_live_date is set (not null or empty), set status to Closed
+                                            if (!empty($state)) {
+                                                $set('status_handover', 'Closed');
+                                            }
+                                        })
+                                        ->disabled(function () {
+                                            // Disable this field if the user has role_id 2 (salesperson)
+                                            return auth()->user()->role_id === 2;
+                                        })
+                                        ->dehydrated(function () {
+                                            // Even if disabled, we still want to save any existing value
+                                            // This ensures the field value is still submitted when the form is saved
+                                            return true;
+                                        }),
                                     ]),
                             ]),
 
@@ -375,35 +375,36 @@ class SoftwareHandoverResource extends Resource
                             ->columnSpan(1)
                             ->schema([
                                 Select::make('status_handover')
-                                    ->label('Status')
-                                    ->options([
-                                        'Open' => 'Open',
-                                        'Delay' => 'Delay',
-                                        'Inactive' => 'Inactive',
-                                        'Closed' => 'Closed',
-                                    ])
-                                    ->default(function (SoftwareHandover $record) {
-                                        // If go_live_date is set, default to Closed
-                                        if ($record && $record->go_live_date) {
-                                            return 'Closed';
+                                    ->label('Project Status')
+                                    ->options(function (callable $get) {
+                                        // Basic options always available
+                                        $options = [
+                                            'Open' => 'Open',
+                                            'Inactive' => 'Inactive',
+                                        ];
+
+                                        // Only include 'Closed' option if go_live_date has been selected
+                                        if (!empty($get('go_live_date'))) {
+                                            $options['Closed'] = 'Closed';
                                         }
 
-                                        // If total days > 60, default to Delay
-                                        if ($record && $record->completed_at) {
-                                            $completedDate = Carbon::parse($record->completed_at);
-                                            $today = Carbon::now();
-                                            $daysDifference = $completedDate->diffInDays($today);
-
-                                            if ($daysDifference > 60 && $record->status_handover !== 'Closed') {
-                                                return 'Delay';
-                                            }
-                                        }
-
-                                        // Otherwise use existing status or fall back to Open
-                                        return $record->status_handover ?? 'Open';
+                                        return $options;
                                     })
+                                        ->default(function (callable $get, SoftwareHandover $record) {
+                                            // If go_live_date is set, default to Closed
+                                            if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
+                                                return 'Closed';
+                                            }
+
+                                            // Otherwise use existing status or fall back to Open
+                                            // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
+                                            $currentStatus = $record->status_handover ?? 'Open';
+                                            return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
+                                                ? 'Open'
+                                                : $currentStatus;
+                                        })
                                     ->live() // Make it react to changes
-                                    ->required(),
+                                    ->required()
                             ]),
                     ]),
             ]);
@@ -416,7 +417,7 @@ class SoftwareHandoverResource extends Resource
             ->modifyQueryUsing(function ($query) {
                 $query
                     ->where('status', '=', 'Completed')
-                    ->orderBy('id', 'asc');
+                    ->orderBy('id', 'desc');
 
                 // if (auth()->user()->role_id === 2) {
                 //     $userId = auth()->id();
@@ -425,6 +426,8 @@ class SoftwareHandoverResource extends Resource
                 //     });
                 // }
             })
+            ->defaultPaginationPageOption(50) // Set default pagination to 50 records per page
+            ->paginationPageOptions([25, 50]) // Customize pagination options
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -465,6 +468,20 @@ class SoftwareHandoverResource extends Resource
                 TextColumn::make('company_name')
                     ->searchable()
                     ->label('Company Name')
+                    ->formatStateUsing(function ($state, $record) {
+                        // This will control what's displayed
+                        $company = CompanyDetail::where('company_name', $state)->first();
+
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            return strtoupper(Str::limit($state, 30, '...'));
+                        }
+
+                        return $state;
+                    })
                     ->url(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 
@@ -473,14 +490,11 @@ class SoftwareHandoverResource extends Resource
                         }
 
                         if ($company) {
-                            $shortened = strtoupper(Str::limit($company->company_name, 30, '...'));
                             $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
-
-                            $html = '<a href="' . url('admin/leads/' . $encryptedId) . '" target="_blank" title="' . e($state) . '" style="color:#338cf0;"> ' . $shortened . '</a>';
                             return url('admin/leads/' . $encryptedId);
                         }
 
-                        // return $state;
+                        return null; // No URL if no company found
                     })
                     ->openUrlInNewTab()
                     ->color(function ($record) {
