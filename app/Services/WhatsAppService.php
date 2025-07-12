@@ -27,27 +27,72 @@ class WhatsAppService
      */
     public function canSendFreeformMessage($phoneNumber)
     {
-        // Clean phone number
-        $phoneNumber = preg_replace('/^\+|^whatsapp:/', '', $phoneNumber);
+        try {
+            // Clean phone number - make sure we're working with just the number
+            $phoneNumber = preg_replace('/^\+|^whatsapp:/', '', $phoneNumber);
 
-        // Get the Twilio WhatsApp number
-        $twilioNumber = preg_replace('/^\+|^whatsapp:/', '', env('TWILIO_WHATSAPP_FROM'));
+            // Log the cleaned phone number for debugging
+            Log::info("Checking 24-hour window for: {$phoneNumber}");
 
-        // Find the latest message from this customer to our system
-        $lastIncomingMessage = ChatMessage::where('sender', $phoneNumber)
-            ->where('receiver', $twilioNumber)
-            ->where('is_from_customer', true)
-            ->latest()
-            ->first();
+            // Get the Twilio WhatsApp number (similarly cleaned)
+            $twilioNumber = preg_replace('/^\+|^whatsapp:/', '', env('TWILIO_WHATSAPP_FROM'));
+            Log::info("Twilio number used for comparison: {$twilioNumber}");
 
-        if (!$lastIncomingMessage) {
-            // No prior communication from this customer
+            // Find the latest message from this customer to our system
+            // FIXED QUERY: Remove the plus sign from both sides of the comparison
+            $lastIncomingMessage = ChatMessage::where('sender', 'like', '%' . $phoneNumber)
+                ->where('receiver', 'like', '%' . $twilioNumber)
+                ->where('is_from_customer', true)
+                ->latest()
+                ->first();
+
+            if (!$lastIncomingMessage) {
+                // Also try with a different format - with country code
+                $lastIncomingMessage = ChatMessage::where(function ($query) use ($phoneNumber) {
+                    $query->where('sender', 'like', '%' . $phoneNumber)
+                        ->orWhere('sender', 'like', '%+' . $phoneNumber);
+                })
+                ->where(function ($query) use ($twilioNumber) {
+                    $query->where('receiver', 'like', '%' . $twilioNumber)
+                        ->orWhere('receiver', 'like', '%+' . $twilioNumber);
+                })
+                ->where('is_from_customer', true)
+                ->latest()
+                ->first();
+            }
+
+            // Log whether we found a message and when it was
+            if (!$lastIncomingMessage) {
+                Log::warning("No prior messages found from customer {$phoneNumber}");
+
+                // Double-check the database for any messages from this number in ANY format
+                $anyMessages = ChatMessage::where('sender', 'like', '%' . substr($phoneNumber, -9))
+                    ->where('is_from_customer', true)
+                    ->latest()
+                    ->first();
+
+                if ($anyMessages) {
+                    Log::info("Found message using partial phone number match: " . $anyMessages->sender);
+                    $lastIncomingMessage = $anyMessages;
+                } else {
+                    return false;
+                }
+            }
+
+            // Check if the last message from customer was within 24 hours
+            $window = Carbon::now()->subHours(24);
+            $messageTime = $lastIncomingMessage->created_at;
+            $isInWindow = $messageTime->gt($window);
+
+            // Log the detailed time comparison
+            Log::info("Last message time: {$messageTime}, Window cutoff: {$window}, Is within window: " . ($isInWindow ? 'Yes' : 'No'));
+
+            return $isInWindow;
+        } catch (\Exception $e) {
+            // If anything goes wrong, log it
+            Log::error("Error in canSendFreeformMessage: " . $e->getMessage());
             return false;
         }
-
-        // Check if the last message from customer was within 24 hours
-        $window = Carbon::now()->subHours(24);
-        return $lastIncomingMessage->created_at->gt($window);
     }
 
     public function sendMessage($to, $message)
