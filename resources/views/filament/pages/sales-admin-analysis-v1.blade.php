@@ -336,7 +336,7 @@
                                 @foreach ([
                                     ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
                                     ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
-                                    ['label' => 'Shahilah', 'percentage' => $shahilahPercentage, 'count' => $shahilahLeads, 'color' => '#00796b', 'bg-color' => '#c8e6e1'],
+                                    ['label' => 'Sheena', 'percentage' => $sheenaPercentage, 'count' => $sheenaLeads, 'color' => '#00796b', 'bg-color' => '#c8e6e1'],
                                     ['label' => 'Backup Admin', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da'],
                                     ['label' => 'None', 'percentage' => $nonePercentage, 'count' => $noneLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee']
                                 ] as $data)
