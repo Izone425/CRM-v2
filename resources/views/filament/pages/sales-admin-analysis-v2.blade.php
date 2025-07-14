@@ -413,7 +413,7 @@
                         @foreach ([
                             ['label' => 'New', 'percentage' => $newPercentage, 'count' => $newLeads, 'color' => '#5c6bc0', 'bg-color' => '#daddee'],
                             ['label' => 'Jaja', 'percentage' => $jajaPercentage, 'count' => $jajaLeads, 'color' => '#6a1b9a', 'bg-color' => '#ddcde7'],
-                            ['label' => 'Shahilah', 'percentage' => $shahilahPercentage, 'count' => $shahilahLeads, 'color' => '#00796b', 'bg-color' => '#c8e6e1'],
+                            ['label' => 'Sheena', 'percentage' => $sheenaPercentage, 'count' => $sheenaLeads, 'color' => '#00796b', 'bg-color' => '#c8e6e1'],
                             ['label' => 'Backup Admin', 'percentage' => $afifahPercentage, 'count' => $afifahLeads, 'color' => '#b1365b', 'bg-color' => '#ebd3da'],
                         ] as $data)
                             <div class="relative text-center cursor-pointer group" wire:click="openLeadBreakdownSlideOver('{{ $data['label'] }}')">
@@ -682,18 +682,18 @@
 
         <div class="p-6 bg-white rounded-lg shadow-lg" wire:poll.1s>
             <div class="flex items-center space-x-3">
-                <p class="m-0 lead-label">Total Leads (Admin Shahilah):</p>&nbsp;
-                <p class="m-0 lead-number">{{ array_sum($adminShahilahLeadStats) }}</p>
+                <p class="m-0 lead-label">Total Leads (Admin Sheena):</p>&nbsp;
+                <p class="m-0 lead-number">{{ array_sum($adminSheenaLeadStats) }}</p>
             </div>
 
             <div class="lead-summary-box">
                 <div class="lead-progress">
-                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Shahilah)</h3>
+                    <h3 class="mb-4 text-center status-title">Lead Categories (Admin Sheena)</h3>
 
                     <div class="flex justify-center w-full space-x-10">
-                        @foreach ($adminShahilahLeadStats as $category => $count)
+                        @foreach ($adminSheenaLeadStats as $category => $count)
                             @php
-                                $totalLeads = array_sum($adminShahilahLeadStats);
+                                $totalLeads = array_sum($adminSheenaLeadStats);
                                 $percentage = $totalLeads > 0 ? round(($count / $totalLeads) * 100, 2) : 0;
 
                                 $categoryColors = [
@@ -712,7 +712,7 @@
                                 $bgColor = $categoryBgColors[$category] ?? '#E5E7EB';
                             @endphp
 
-                            <div class="relative text-center cursor-pointer group" wire:click="openShahilahLeadCategorySlideOver('{{ $category }}')">
+                            <div class="relative text-center cursor-pointer group" wire:click="openSheenaLeadCategorySlideOver('{{ $category }}')">
                                 <div class="relative w-28 h-28">
                                     <svg width="100" height="100" viewBox="0 0 36 36">
                                         <circle cx="18" cy="18" r="14" stroke="{{ $bgColor }}" stroke-opacity="0.3" stroke-width="5" fill="none"></circle>
@@ -744,9 +744,9 @@
                     <h3 class="text-lg font-bold text-center text-gray-800">Summary Active</h3>
 
                     <div class="mt-4">
-                        @foreach ($activeLeadsDataShahilah as $status => $count)
+                        @foreach ($activeLeadsDataSheena as $status => $count)
                             @php
-                                $percentage = $totalActiveLeadsShahilah > 0 ? round(($count / $totalActiveLeadsShahilah) * 100, 2) : 0;
+                                $percentage = $totalActiveLeadsSheena > 0 ? round(($count / $totalActiveLeadsSheena) * 100, 2) : 0;
 
                                 // Color mapping from your existing code
                                 $color = match($status) {
@@ -769,7 +769,7 @@
                             @endphp
 
                             <!-- Clickable Slide-Over Trigger -->
-                            <div class="mb-4 cursor-pointer" wire:click="openActiveLeadsShahilahSlideOver('{{ $status }}')">
+                            <div class="mb-4 cursor-pointer" wire:click="openActiveLeadsSheenaSlideOver('{{ $status }}')">
                                 <div class="progress-info">
                                     <span>{{ $displayStatus }}</span>
                                     <span>{{ $count }} ({{ $percentage }}%)</span>
@@ -789,9 +789,9 @@
                 <div class="lead-progress">
                     <h3 class="text-lg font-bold text-center text-gray-800">Summary Salesperson</h3>
                     <div class="mt-4">
-                        @foreach ($transferStagesDataShahilah as $stage => $count)
+                        @foreach ($transferStagesDataSheena as $stage => $count)
                             @php
-                                $percentage = $totalTransferLeadsShahilah > 0 ? round(($count / $totalTransferLeadsShahilah) * 100, 2) : 0;
+                                $percentage = $totalTransferLeadsSheena > 0 ? round(($count / $totalTransferLeadsSheena) * 100, 2) : 0;
 
                                 $color = match($stage) {
                                     'Transfer' => '#ffde59',  /* Light Yellow */
@@ -809,7 +809,7 @@
                             @endphp
 
                             <!-- Clickable Slide-Over Trigger -->
-                            <div class="mb-4 cursor-pointer" wire:click="openTransferLeadsShahilahSlideOver('{{ $stage }}')">
+                            <div class="mb-4 cursor-pointer" wire:click="openTransferLeadsSheenaSlideOver('{{ $stage }}')">
                                 <div class="progress-info">
                                     <span>{{ $stage }}</span>
                                     <span>{{ $count }} ({{ $percentage }}%)</span>
@@ -831,9 +831,9 @@
                     <h3 class="text-lg font-bold text-center text-gray-800">Summary Inactive</h3>
 
                     <div class="mt-4">
-                        @foreach ($inactiveLeadDataShahilah as $status => $count)
+                        @foreach ($inactiveLeadDataSheena as $status => $count)
                             @php
-                                $percentage = $totalInactiveLeadsShahilah > 0 ? round(($count / $totalInactiveLeadsShahilah) * 100, 2) : 0;
+                                $percentage = $totalInactiveLeadsSheena > 0 ? round(($count / $totalInactiveLeadsSheena) * 100, 2) : 0;
 
                                 $color = match($status) {
                                     'Junk' => '#545454',
@@ -853,7 +853,7 @@
                             @endphp
 
                             <!-- Clickable Slide-Over Trigger -->
-                            <div class="mb-4 cursor-pointer" wire:click="openInactiveLeadsShahilahSlideOver('{{ $status }}')">
+                            <div class="mb-4 cursor-pointer" wire:click="openInactiveLeadsSheenaSlideOver('{{ $status }}')">
                                 <div class="progress-info">
                                     <span>{{ $status }}</span>
                                     <span>{{ $count }} ({{ $percentage }}%)</span>

@@ -72,6 +72,16 @@ class SalesAdminAnalysisV2 extends Page
     public $inactiveLeadDataShahilah = [];
     public $totalInactiveLeadsShahilah = 0;
 
+    public $sheenaLeads = 0;
+    public $sheenaPercentage = 0;
+    public $adminSheenaLeadStats = [];
+    public $activeLeadsDataSheena = [];
+    public $totalActiveLeadsSheena = 0;
+    public $transferStagesDataSheena = [];
+    public $totalTransferLeadsSheena = 0;
+    public $inactiveLeadDataSheena = [];
+    public $totalInactiveLeadsSheena = 0;
+
     public $showSlideOver = false;
     public $slideOverTitle = 'Leads';
     public $leadList = [];
@@ -108,6 +118,10 @@ class SalesAdminAnalysisV2 extends Page
         $this->fetchInactiveLeadsJaja();
         $this->fetchInactiveLeadsAfifah();
         $this->fetchInactiveLeadsShahilah();
+        $this->fetchLeadsByAdminSheena();
+        $this->fetchActiveLeadsSheena();
+        $this->fetchTransferLeadsSheena();
+        $this->fetchInactiveLeadsSheena();
     }
 
     public function updatedSelectedMonth($month)
@@ -119,16 +133,20 @@ class SalesAdminAnalysisV2 extends Page
         $this->fetchLeadsByCategory();
         $this->fetchLeadsByAdminJaja();
         $this->fetchLeadsByAdminAfifah();
-        $this->fetchLeadsByAdminShahilah();
+        // $this->fetchLeadsByAdminShahilah();
         $this->fetchActiveLeadsJaja();
         $this->fetchActiveLeadsAfifah();
-        $this->fetchActiveLeadsShahilah();
+        // $this->fetchActiveLeadsShahilah();
         $this->fetchTransferLeadsJaja();
         $this->fetchTransferLeadsAfifah();
-        $this->fetchTransferLeadsShahilah();
+        // $this->fetchTransferLeadsShahilah();
         $this->fetchInactiveLeadsJaja();
         $this->fetchInactiveLeadsAfifah();
-        $this->fetchInactiveLeadsShahilah();
+        // $this->fetchInactiveLeadsShahilah();
+        $this->fetchLeadsByAdminSheena();
+        $this->fetchActiveLeadsSheena();
+        $this->fetchTransferLeadsSheena();
+        $this->fetchInactiveLeadsSheena();
     }
 
     public function fetchLeads()
@@ -151,7 +169,8 @@ class SalesAdminAnalysisV2 extends Page
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         // $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
         $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])->count();
-        $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
+        // $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
+        $this->sheenaLeads = $leads->where('lead_owner', 'Sheena Liew')->count();
 
         // Calculate total as the sum of individual counts
         $this->totalLeads = $this->newLeads + $this->jajaLeads + $this->afifahLeads + $this->shahilahLeads;
@@ -161,6 +180,7 @@ class SalesAdminAnalysisV2 extends Page
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
         $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0;
+        $this->sheenaPercentage = $this->totalLeads > 0 ? round(($this->sheenaLeads / $this->totalLeads) * 100, 2) : 0;
     }
 
     public function fetchLeadsByCategory()
@@ -253,6 +273,49 @@ class SalesAdminAnalysisV2 extends Page
 
         // Ensure all categories exist, even if zero
         $this->adminJajaLeadStats = array_merge(
+            array_fill_keys($leadCategories, 0),
+            [
+                'Active' => $activeLeadsCount,
+                'Sales' => $salesLeadsCount,
+                'Inactive' => $inactiveLeadsCount,
+            ]
+        );
+    }
+
+    public function fetchLeadsByAdminSheena()
+    {
+        $queryBase = Lead::query();
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+
+            $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        $leadCategories = ['Active', 'Sales', 'Inactive'];
+
+        // Filter for specific lead owner
+        $queryBase->where('lead_owner', 'Sheena Liew');
+
+        // Clone and count each category separately
+        $salesLeadsCount = (clone $queryBase)
+            ->where('categories', '=', 'Active')
+            ->whereNotNull('salesperson')
+            ->count();
+
+        $activeLeadsCount = (clone $queryBase)
+            ->whereNull('salesperson')
+            ->where('categories', '=', 'Active')
+            ->count();
+
+        $inactiveLeadsCount = (clone $queryBase)
+            ->where('categories', 'Inactive')
+            ->where('lead_status', '!=', 'Closed')
+            ->count();
+
+        // Ensure all categories exist, even if zero
+        $this->adminSheenaLeadStats = array_merge(
             array_fill_keys($leadCategories, 0),
             [
                 'Active' => $activeLeadsCount,
@@ -397,6 +460,55 @@ class SalesAdminAnalysisV2 extends Page
         $this->totalActiveLeadsJaja = array_sum($this->activeLeadsDataJaja);
     }
 
+    public function fetchActiveLeadsSheena()
+    {
+        $queryBase = Lead::query();
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+
+            $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        // Filter for specific lead owner
+        $queryBase->where('lead_owner', 'Sheena Liew');
+
+        // Define active lead categories using queryBase cloning
+        $this->activeLeadsDataSheena = [
+            'Active 24 Below' => (clone $queryBase)
+                ->where('company_size', '=', '1-24')
+                ->where('done_call', '=', '0')
+                ->whereNull('salesperson')
+                ->where('categories', '=', 'Active')
+                ->count(),
+
+            'Active 25 Above' => (clone $queryBase)
+                ->where('company_size', '!=', '1-24')
+                ->where('done_call', '=', '0')
+                ->whereNull('salesperson')
+                ->where('categories', '=', 'Active')
+                ->count(),
+
+            'Call Attempt 24 Below' => (clone $queryBase)
+                ->where('done_call', '=', '1')
+                ->whereNull('salesperson')
+                ->where('company_size', '=', '1-24')
+                ->where('categories', '=', 'Active')
+                ->count(),
+
+            'Call Attempt 25 Above' => (clone $queryBase)
+                ->where('done_call', '=', '1')
+                ->whereNull('salesperson')
+                ->where('categories', '=', 'Active')
+                ->where('company_size', '!=', '1-24')
+                ->count(),
+        ];
+
+        // Sum up all active lead data for Shahilah
+        $this->totalActiveLeadsSheena = array_sum($this->activeLeadsDataSheena);
+    }
+
     public function fetchActiveLeadsShahilah()
     {
         $queryBase = Lead::query();
@@ -534,6 +646,45 @@ class SalesAdminAnalysisV2 extends Page
         $this->totalTransferLeadsJaja = array_sum($this->transferStagesDataJaja);
     }
 
+    public function fetchTransferLeadsSheena()
+    {
+        $queryBase = Lead::query();
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+
+            $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        // Filter for specific lead owner
+        $queryBase->where('lead_owner', 'Sheena Liew');
+
+        // Fetch transfer lead counts by stage
+        $this->transferStagesDataSheena = [
+            'Transfer' => (clone $queryBase)
+                ->where('categories', 'Active')
+                ->whereNotNull('salesperson')
+                ->where('stage', 'Transfer')
+                ->count(),
+
+            'Demo' => (clone $queryBase)
+                ->where('categories', 'Active')
+                ->whereNotNull('salesperson')
+                ->where('stage', 'Demo')
+                ->count(),
+
+            'Follow Up' => (clone $queryBase)
+                ->where('categories', 'Active')
+                ->whereNotNull('salesperson')
+                ->where('stage', 'Follow Up')
+                ->count(),
+        ];
+
+        // Calculate total transfer-related leads
+        $this->totalTransferLeadsSheena = array_sum($this->transferStagesDataSheena);
+    }
+
     public function fetchTransferLeadsShahilah()
     {
         $queryBase = Lead::query();
@@ -647,6 +798,41 @@ class SalesAdminAnalysisV2 extends Page
         ], $leadStatusDataRawJaja);
     }
 
+    public function fetchInactiveLeadsSheena()
+    {
+        $queryBase = Lead::query();
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+
+            $queryBase->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        // Filter for specific lead owner
+        $queryBase->where('lead_owner', 'Sheena Liew');
+
+        // Apply additional filters for inactive leads where salesperson is NULL
+        $query = (clone $queryBase)
+            ->whereIn('lead_status', ['Junk', 'On Hold', 'Lost', 'No Response']); // Filter inactive statuses
+
+        $this->totalInactiveLeadsSheena = $query->count();
+
+        $leadStatusDataRaw = $query
+            ->select('lead_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('lead_status')
+            ->pluck('total', 'lead_status')
+            ->toArray();
+
+        // Ensure all statuses exist in the correct order (fill missing ones with 0)
+        $this->inactiveLeadDataSheena = array_merge([
+            'Junk' => 0,
+            'On Hold' => 0,
+            'Lost' => 0,
+            'No Response' => 0
+        ], $leadStatusDataRaw);
+    }
+
     public function fetchInactiveLeadsShahilah()
     {
         // Base query for Siti Shahilah
@@ -739,9 +925,9 @@ class SalesAdminAnalysisV2 extends Page
         } elseif ($label === 'Jaja') {
             $query->where('lead_owner', 'Nurul Najaa Nadiah');
         } elseif ($label === 'Backup Admin') {
-            $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah']);
-        } elseif ($label === 'Shahilah') { // Add this condition
-            $query->where('lead_owner', 'Siti Shahilah');
+            $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah', 'Siti Shahilah']);
+        } elseif ($label === 'Sheena') { // Add this condition
+            $query->where('lead_owner', 'Sheena Liew');
         } else {
             $this->leadList = collect(); // empty
             $this->slideOverTitle = 'Invalid lead group';
@@ -1001,6 +1187,112 @@ class SalesAdminAnalysisV2 extends Page
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = "Backup Admin - {$status} Leads";
+        $this->showSlideOver = true;
+    }
+
+    public function openSheenaLeadCategorySlideOver($category)
+    {
+        $query = Lead::query()
+            ->where('lead_owner', 'Sheena Liew');
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        if ($category === 'Active') {
+            $query->where('categories', '=', 'Active')
+                ->whereNull('salesperson');
+        } elseif ($category === 'Sales') {
+            $query->where('categories', '=', 'Active')
+                ->whereNotNull('salesperson');
+        } elseif ($category === 'Inactive') {
+            $query->where('categories', 'Inactive')
+                ->where('lead_status', '!=', 'Closed');
+        } else {
+            $this->leadList = collect();
+            $this->slideOverTitle = 'Invalid category';
+            $this->showSlideOver = true;
+            return;
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "{$category} Leads (Sheena)";
+        $this->showSlideOver = true;
+    }
+
+    public function openActiveLeadsSheenaSlideOver($label)
+    {
+        $query = Lead::query();
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        $query->where('lead_owner', 'Sheena Liew')
+            ->whereNull('salesperson')
+            ->where('categories', '=', 'Active');
+
+        if ($label === 'Active 24 Below') {
+            $query->where('company_size', '1-24')
+                ->where('done_call', '=', '0');
+        } elseif ($label === 'Active 25 Above') {
+            $query->where('company_size', '!=', '1-24')
+                ->where('done_call', '=', '0');
+        } elseif ($label === 'Call Attempt 24 Below') {
+            $query->where('company_size', '1-24')
+                ->where('done_call', '=', '1');
+        } elseif ($label === 'Call Attempt 25 Above') {
+            $query->where('company_size', '!=', '1-24')
+                ->where('done_call', '=', '1');
+        } else {
+            $this->leadList = collect();
+            $this->slideOverTitle = 'Invalid status';
+            $this->showSlideOver = true;
+            return;
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "{$label} (Sheena)";
+        $this->showSlideOver = true;
+    }
+
+    public function openTransferLeadsSheenaSlideOver($stage)
+    {
+        $query = Lead::query()
+            ->where('lead_owner', 'Sheena Liew')
+            ->where('categories', 'Active')
+            ->whereNotNull('salesperson')
+            ->where('stage', $stage);
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "Sheena - $stage Leads";
+        $this->showSlideOver = true;
+    }
+
+    public function openInactiveLeadsSheenaSlideOver($status)
+    {
+        $query = Lead::query()
+            ->where('lead_owner', 'Sheena Liew')
+            ->where('lead_status', $status);
+
+        if (!empty($this->selectedMonth)) {
+            $date = Carbon::parse($this->selectedMonth);
+            $query->whereDate('created_at', '>=', $date->startOfMonth()->toDateString())
+                ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
+        }
+
+        $this->leadList = $query->with('companyDetail')->get();
+        $this->slideOverTitle = "Sheena - {$status} Leads";
         $this->showSlideOver = true;
     }
 

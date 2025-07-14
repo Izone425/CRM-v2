@@ -25,12 +25,14 @@ class SalesAdminAnalysisV1 extends Page
     public $jajaLeads = 0;
     public $afifahLeads = 0;
     public $shahilahLeads = 0;
+    public $sheenaLeads = 0;
     public $noneLeads = 0;
 
     public $newPercentage = 0;
     public $jajaPercentage = 0;
     public $afifahPercentage = 0;
     public $shahilahPercentage = 0;
+    public $sheenaPercentage = 0;
     public $nonePercentage = 0;
     public $categoriesData = [];
     public $companySizeData = [];
@@ -104,14 +106,16 @@ class SalesAdminAnalysisV1 extends Page
         $this->newLeads = $leads->where('categories', 'New')->count();
         $this->jajaLeads = $leads->where('lead_owner', 'Nurul Najaa Nadiah')->count();
         // $this->afifahLeads = $leads->where('lead_owner', 'Siti Afifah')->count();
-        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah'])->count();
+        $this->afifahLeads = $leads->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah', 'Siti Shahilah'])->count();
         $this->shahilahLeads = $leads->where('lead_owner', 'Siti Shahilah')->count();
+        $this->sheenaLeads = $leads->where('lead_owner', 'Sheena Liew')->count();
         $this->noneLeads = $leads->whereNull('lead_owner')->whereNotNull('salesperson')->count();
 
         $this->newPercentage = $this->totalLeads > 0 ? round(($this->newLeads / $this->totalLeads) * 100, 2) : 0;
         $this->jajaPercentage = $this->totalLeads > 0 ? round(($this->jajaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->afifahPercentage = $this->totalLeads > 0 ? round(($this->afifahLeads / $this->totalLeads) * 100, 2) : 0;
         $this->shahilahPercentage = $this->totalLeads > 0 ? round(($this->shahilahLeads / $this->totalLeads) * 100, 2) : 0;
+        $this->sheenaPercentage = $this->totalLeads > 0 ? round(($this->sheenaLeads / $this->totalLeads) * 100, 2) : 0;
         $this->nonePercentage = $this->totalLeads > 0 ? round(($this->noneLeads / $this->totalLeads) * 100, 2) : 0;
     }
 
@@ -343,6 +347,10 @@ class SalesAdminAnalysisV1 extends Page
                 $query->where('lead_owner', 'Siti Shahilah');
                 $this->slideOverTitle = 'Leads for Shahilah';
                 break;
+            case 'Sheena':
+                $query->where('lead_owner', 'Sheena Liew');
+                $this->slideOverTitle = 'Leads for Sheena';
+                break;
             case 'None':
                 $query->whereNull('lead_owner')
                     ->whereNotNull('salesperson');
@@ -351,6 +359,10 @@ class SalesAdminAnalysisV1 extends Page
             case 'New':
                 $query->where('categories', 'New');
                 $this->slideOverTitle = 'New Leads';
+                break;
+            case 'Backup Admin':
+                $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah', 'Siti Shahilah']);
+                $this->slideOverTitle = 'Leads for Backup Admin';
                 break;
             default:
                 $this->leadList = collect();
