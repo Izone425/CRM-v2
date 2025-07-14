@@ -999,10 +999,6 @@ class DemoAppointmentRelationManager extends RelationManager
                         }
                     }
 
-                    // Send the WhatsApp template message
-                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                    $whatsappController->sendWhatsAppTemplate($phoneNumber, $templateSid, $variables);
-
                     Notification::make()
                         ->title('Demo Added Successfully')
                         ->success()
