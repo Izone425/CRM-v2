@@ -134,18 +134,30 @@ class WhatsAppController extends Controller
                 Module interested:",
 
             //Send demo slot template
-            'HX29489f00b2999894545b0844b150560c' =>
+            'HX8ffc6fd8b995859aa28fa59ba9712529' =>
                 "Hi {{1}}, below is our available online/onsite demo slot:
 
                 {{2}}
                 {{3}}
                 {{4}}
 
-                Please let me know, if you available to join our demo.
+                Please let me know if you are available to join our demo.
 
                 *The demo will take 1 hour, including a Q&A session
 
                 *Kindly reply if you have received this message.*",
+
+            //Send demo confirmation template
+            'HX38ef28749e5a21f1725b67a424bc0b31' =>
+                "Hi {{1}}, your demo session has been confirmed:
+
+                {{2}} ({{3}}) - {{4}}
+                {{5}} Demo
+                Salesperson - {{6}}, {{7}}
+
+                The demo will take 1 hour, including a Q&A session. If you have any questions or things you'd like to clarify, feel free to jot them down and bring them up during the demo.
+
+                Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.",
         ];
 
         if (!isset($templates[$contentTemplateSid])) {

@@ -52,13 +52,13 @@ class EditProfile extends BaseEditProfile
         /** @var \App\Models\User $currentUser **/
         $currentUser = Auth::user();
         // Check if the avatar_path is being changed
-        if ($currentUser->avatar_path !== $data['avatar_path']) {
-            $oldFile = $currentUser->avatar_path;
-            // Delete the old file if it exists on the public disk
-            if ($oldFile && Storage::disk('public')->exists($oldFile)) {
-                Storage::disk('public')->delete($oldFile);
-            }
-        }
+        // if ($currentUser->avatar_path !== $data['avatar_path']) {
+        //     $oldFile = $currentUser->avatar_path;
+        //     // Delete the old file if it exists on the public disk
+        //     if ($oldFile && Storage::disk('public')->exists($oldFile)) {
+        //         Storage::disk('public')->delete($oldFile);
+        //     }
+        // }
 
         // Update the record with the new data
         if ($currentUser->update($data)) {

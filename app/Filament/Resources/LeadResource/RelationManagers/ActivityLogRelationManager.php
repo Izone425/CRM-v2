@@ -1395,6 +1395,11 @@ class ActivityLogRelationManager extends RelationManager
                             }
                         })
                         ->visible(function (ActivityLog $record) {
+                            // First check user role - only show for Lead Owners (1) and Managers (3)
+                            if (!in_array(auth()->user()->role_id, [1, 3])) {
+                                return false;
+                            }
+
                             $lead = $record->lead;
 
                             // Check if lead exists and has a valid phone number
@@ -1418,10 +1423,37 @@ class ActivityLogRelationManager extends RelationManager
                         }),
                     Tables\Actions\Action::make('send_demo_selection')
                         ->label('Demo Selection')
-                        ->color('success')
-                        ->icon('heroicon-o-calendar')
+                        ->color('info')
+                        ->icon('heroicon-o-paper-airplane')
                         ->modalHeading('Send Demo Selection WhatsApp Message')
                         ->modalDescription('This will send available demo time slots to the lead.')
+                        ->visible(function (ActivityLog $record) {
+                            // First check user role - only show for Lead Owners (1) and Managers (3)
+                            if (!in_array(auth()->user()->role_id, [1, 3])) {
+                                return false;
+                            }
+
+                            $lead = $record->lead;
+
+                            // Check if lead exists and has a valid phone number
+                            if (!$lead || empty($lead->companyDetail->contact_no ?? $lead->phone)) {
+                                return false;
+                            }
+
+                            // Get the latest activity log for the lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('updated_at')
+                                ->first();
+
+                            // Only show on the latest activity log entry
+                            if ($record->id !== $latestActivityLog->id) {
+                                return false;
+                            }
+
+                            // Show for active leads that aren't in demo or follow-up stages
+                            return $lead->categories !== 'Inactive' &&
+                                !in_array($lead->stage, ['Demo', 'Follow Up']);
+                        })
                         ->form([
                             Select::make('demo_type')
                                 ->label('Demo Type')
@@ -1458,14 +1490,9 @@ class ActivityLogRelationManager extends RelationManager
                                             Forms\Components\CheckboxList::make('slots_1')
                                                 ->label('Time Slots - First Day')
                                                 ->options([
-                                                    '9:00 AM' => '9:00 AM',
                                                     '10:00 AM' => '10:00 AM',
-                                                    '11:00 AM' => '11:00 AM',
-                                                    '2:00 PM' => '2:00 PM',
                                                     '2:30 PM' => '2:30 PM',
-                                                    '3:00 PM' => '3:00 PM',
                                                     '4:00 PM' => '4:00 PM',
-                                                    '5:00 PM' => '5:00 PM',
                                                 ])
                                                 ->columns(4)
                                                 ->required(),
@@ -1486,7 +1513,6 @@ class ActivityLogRelationManager extends RelationManager
                                             Forms\Components\CheckboxList::make('slots_2')
                                                 ->label('Time Slots - Second Day')
                                                 ->options([
-                                                    '9:00 AM' => '9:00 AM',
                                                     '10:00 AM' => '10:00 AM',
                                                     '11:00 AM' => '11:00 AM',
                                                     '2:00 PM' => '2:00 PM',
@@ -1572,7 +1598,7 @@ class ActivityLogRelationManager extends RelationManager
                             }
 
                             // Template SID for demo selection
-                            $contentTemplateSid = 'HX29489f00b2999894545b0844b150560c'; // Update with new template SID if changed
+                            $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529'; // Update with new template SID if changed
 
                             // Set up variables for the template (using 4 variables now)
                             $variables = [
