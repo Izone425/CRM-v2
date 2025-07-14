@@ -1338,12 +1338,12 @@ class ActivityLogRelationManager extends RelationManager
                                 Log::error("WhatsApp Error: {$e->getMessage()}");
                             }
                         }),
-                    Tables\Actions\Action::make('send_request_details')
-                        ->label('Request Details')
+                    Tables\Actions\Action::make('send_quotation_template')
+                        ->label('Send Quotation Request')
                         ->color('info')
                         ->icon('heroicon-o-paper-airplane')
-                        ->modalHeading('Send Request Details WhatsApp Message')
-                        ->modalDescription('This will send a WhatsApp message to request additional details from the lead.')
+                        ->modalHeading('Send Request Quotation Message')
+                        ->modalDescription('This will send a WhatsApp message to request additional details for quotation from the lead.')
                         ->requiresConfirmation()
                         ->action(function (ActivityLog $activityLog) {
                             $lead = $activityLog->lead;
@@ -1373,11 +1373,82 @@ class ActivityLogRelationManager extends RelationManager
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
                                 $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
-                                // Update activity log
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($lead)
-                                    ->log('Sent request details WhatsApp message');
+                                Notification::make()
+                                    ->title('Message Sent')
+                                    ->body('Request details WhatsApp message has been sent successfully.')
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Log::error('WhatsApp Request Details Error: ' . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Failed to Send Message')
+                                    ->body('Error: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->visible(function (ActivityLog $record) {
+                            // First check user role - only show for Lead Owners (1) and Managers (3)
+                            if (!in_array(auth()->user()->role_id, [1, 3])) {
+                                return false;
+                            }
+
+                            $lead = $record->lead;
+
+                            // Check if lead exists and has a valid phone number
+                            if (!$lead || empty($lead->companyDetail->contact_no ?? $lead->phone)) {
+                                return false;
+                            }
+
+                            // Get the latest activity log for the lead
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('updated_at')
+                                ->first();
+
+                            // Only show on the latest activity log entry
+                            if ($record->id !== $latestActivityLog->id) {
+                                return false;
+                            }
+
+                            // Show for active leads that aren't in demo or follow-up stages
+                            return $lead->categories !== 'Inactive' &&
+                                !in_array($lead->stage, ['Demo', 'Follow Up']);
+                        }),
+                    Tables\Actions\Action::make('send_request_details')
+                        ->label('Request Company Details')
+                        ->color('info')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->modalHeading('Send Request Details WhatsApp Message')
+                        ->modalDescription('This will send a WhatsApp message to request additional details from the lead.')
+                        ->requiresConfirmation()
+                        ->action(function (ActivityLog $activityLog) {
+                            $lead = $activityLog->lead;
+
+                            // Get phone number from lead
+                            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+
+                            if (empty($phoneNumber)) {
+                                Notification::make()
+                                    ->title('Missing Phone Number')
+                                    ->body('No valid phone number found for this lead.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Get recipient name
+                            $recipientName = $lead->companyDetail->name ?? $lead->name;
+
+                            // Template SID for request details
+                            $contentTemplateSid = 'HXff1b1179918e04a20f823db72a70ea16';
+
+                            // Set up variables for the template
+                            $variables = [$recipientName];
+
+                            try {
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
 
                                 Notification::make()
                                     ->title('Message Sent')
@@ -1619,12 +1690,6 @@ class ActivityLogRelationManager extends RelationManager
                                     'variables' => $variables,
                                     'response' => $response
                                 ]);
-
-                                // Update activity log
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($lead)
-                                    ->log('Sent demo selection options via WhatsApp');
 
                                 Notification::make()
                                     ->title('Message Sent')

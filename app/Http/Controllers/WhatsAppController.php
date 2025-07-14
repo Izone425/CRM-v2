@@ -119,7 +119,7 @@ class WhatsAppController extends Controller
                 "Sekiranya waktu ini kurang sesuai untuk berbual, mohon maklumkan waktu yang lebih sesuai, atau jika ada individu lain yang lebih berkaitan untuk saya hubungi.\n" .
                 "Sekiranya anda ingin berbincang semula pada masa akan datang, saya sentiasa bersedia untuk membantu. Cukup sekadar hantarkan mesej, dan saya akan bantu sebaik mungkin. 😊",
 
-            //Request company info template
+            //Request quotation
             'HX50b95050ff8d2fe33edf0873c4d2e2b4' =>
                 "Hi {{1}}, as per our phone conversation, please provide your details below so we can provide quotation to you:
                 (Minimum headcount is 5 user/staff)
@@ -158,6 +158,20 @@ class WhatsAppController extends Controller
                 The demo will take 1 hour, including a Q&A session. If you have any questions or things you'd like to clarify, feel free to jot them down and bring them up during the demo.
 
                 Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.",
+
+            //Request company info template
+            'HXff1b1179918e04a20f823db72a70ea16' =>
+                "If you're interested, please provide your details below so we can check slot availability for you:
+                (Minimum headcount is 5 user/staff)
+
+                Department:
+                Company Name (As registered in SSM):
+                Address:
+                Email:
+                Mobile number:
+                HRDF Register:
+                Headcount:
+                Module interested:",
         ];
 
         if (!isset($templates[$contentTemplateSid])) {
