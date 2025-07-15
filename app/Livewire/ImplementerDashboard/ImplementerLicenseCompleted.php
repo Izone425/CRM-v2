@@ -219,15 +219,8 @@ class ImplementerLicenseCompleted extends Component implements HasForms, HasTabl
                     })
                     ->html(),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
-                    }),
+                TextColumn::make('status_handover')
+                    ->label('Status'),
             ])
             // ->filters([
             //     // Filter for Creator

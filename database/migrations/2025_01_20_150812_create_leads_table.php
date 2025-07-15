@@ -14,6 +14,7 @@ class CreateLeadsTable extends Migration
     {
         Schema::create('leads', function (Blueprint $table) {
             $table->id();
+            $table->string('zoho_id')->nullable();
             $table->string('name', 20);
             $table->string('email', 50)->nullable();
             $table->string('phone', 20)->nullable();
@@ -30,13 +31,26 @@ class CreateLeadsTable extends Migration
             $table->string('remark', 100)->nullable();
             $table->string('salesperson', 50)->nullable();
             $table->string('lead_owner', 50)->nullable();
-            $table->unsignedInteger('demo_appointment')->nullable();
-            $table->timestamps();
+            $table->integer('demo_appointment')->nullable();
+            $table->enum('customer_type', ['END USER', 'RESELLER'])->default('END USER');
+            $table->enum('region', ['LOCAL', 'OVERSEA'])->default('LOCAL');
+            $table->timestamp('salesperson_assigned_date')->nullable();
             $table->timestamp('rfq_followup_at')->nullable();
+            $table->timestamp('rfq_transfer_at')->nullable();
+            $table->timestamp('pickup_date')->nullable();
+            $table->timestamp('closing_date')->nullable();
             $table->boolean('follow_up_needed')->default(0);
-            $table->unsignedInteger('follow_up_counter')->default(0);
-            $table->unsignedInteger('follow_up_count')->default(0);
-            $table->unsignedInteger('demo_follow_up_count')->default(0);
+            $table->boolean('follow_up_counter')->nullable();
+            $table->integer('follow_up_count')->default(0);
+            $table->integer('manual_follow_up_count')->default(0);
+            $table->integer('done_call')->default(0)->nullable();
+            $table->integer('call_attempt')->default(0)->nullable();
+            $table->decimal('deal_amount', 10, 2)->nullable();
+            $table->string('contact_id')->nullable();
+            $table->integer('reseller_id')->nullable();
+            $table->integer('visible_in_repairs')->nullable();
+            $table->timestamps();
+
         });
     }
 

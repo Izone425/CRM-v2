@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('proforma_invoices', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('description')->nullable();
-            $table->json('route_permissions')->nullable();
+            $table->string('company_name')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
+            $table->enum('inv_type', ['HRDF','NON HRDF']);
+            $table->string('remark')->nullable();
+            $table->integer('salesperson')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('proforma_invoices');
     }
 };

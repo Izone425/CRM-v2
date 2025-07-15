@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('license_certificates', function (Blueprint $table) {
             $table->id();
             $table->string('company_name');
-            $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
+           $table->bigInteger('software_handover_id')->unsigned()->nullable(); // Assuming this is a foreign key to a users table
             $table->date('kick_off_date');
             $table->date('buffer_license_start');
             $table->date('buffer_license_end');
@@ -27,10 +27,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Add license_certificate_id column to software_handovers table
-        Schema::table('software_handovers', function (Blueprint $table) {
-            $table->foreignId('license_certificate_id')->nullable()->after('data_migrated')->constrained()->nullOnDelete();
-        });
     }
 
     /**
@@ -38,11 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('software_handovers', function (Blueprint $table) {
-            $table->dropForeign(['license_certificate_id']);
-            $table->dropColumn('license_certificate_id');
-        });
-
         Schema::dropIfExists('license_certificates');
     }
 };

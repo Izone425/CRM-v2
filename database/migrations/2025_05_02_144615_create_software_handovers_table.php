@@ -16,54 +16,56 @@ return new class extends Migration
             $table->foreignId('lead_id')->constrained()->onDelete('cascade');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
 
-            // Section 5: Module Subscription
-            $table->integer('attendance_headcount')->nullable();
-            $table->integer('attendance_subscription_months')->nullable();
-            $table->string('attendance_purchase_type')->nullable();
-            $table->integer('leave_headcount')->nullable();
-            $table->integer('leave_subscription_months')->nullable();
-            $table->string('leave_purchase_type')->nullable();
-            $table->integer('claim_headcount')->nullable();
-            $table->integer('claim_subscription_months')->nullable();
-            $table->string('claim_purchase_type')->nullable();
-            $table->integer('payroll_headcount')->nullable();
-            $table->integer('payroll_subscription_months')->nullable();
-            $table->string('payroll_purchase_type')->nullable();
-            $table->integer('appraisal_headcount')->nullable();
-            $table->integer('appraisal_subscription_months')->nullable();
-            $table->string('appraisal_purchase_type')->nullable();
-            $table->integer('recruitment_headcount')->nullable();
-            $table->integer('recruitment_subscription_months')->nullable();
-            $table->string('recruitment_purchase_type')->nullable();
-            $table->integer('power_bi_headcount')->nullable();
-            $table->integer('power_bi_subscription_months')->nullable();
-            $table->string('power_bi_purchase_type')->nullable();
+            $table->string('status', 50)->nullable(); // Status of the handover
+            $table->string('handover_type', 50)->nullable(); // Type of handover
+            $table->string('handover_pdf')->nullable(); // PDF file for the handover
+            $table->string('company_name')->nullable(); // Name of the company
+            $table->string('headcount', 50)->nullable();
+            $table->string('salesperson')->nullable();
+            $table->string('pic_name')->nullable();
+            $table->string('pic_phone')->nullable();
+            $table->json('implementation_pics')->nullable();
+            $table->json('remarks')->nullable();
 
-            // Section 6: Other Details
-            $table->text('customization_details')->nullable();
-            $table->text('enhancement_details')->nullable();
-            $table->text('special_remark')->nullable();
-            $table->text('device_integration')->nullable();
-            $table->text('existing_hr_system')->nullable();
-            $table->text('experience_implementing_hr_system')->nullable();
-            $table->boolean('vip_package')->default(false);
-            $table->text('fingertec_device')->nullable();
+            $table->bigInteger('ta')->default(0);
+            $table->bigInteger('tl')->default(0);
+            $table->bigInteger('tc')->default(0);
+            $table->bigInteger('tp')->default(0);
+            $table->bigInteger('tapp')->default(0);
+            $table->bigInteger('thire')->default(0);
+            $table->bigInteger('tacc')->default(0);
+            $table->bigInteger('tpbi')->default(0);
 
-            // Section 7: Onsite Package
-            $table->boolean('onsite_kick_off_meeting')->default(false);
-            $table->boolean('onsite_webinar_training')->default(false);
-            $table->boolean('onsite_briefing')->default(false);
-
-            // Section 8: Payment Terms
-            $table->string('payment_term')->nullable(); // Options: full_payment, payment_via_ibgc, payment_via_term
-
-            // Section 9: Proforma Invoices
-            $table->string('proforma_invoice_number')->nullable();
-
-            // Section 10: Attachments
+            $table->string('reject_reason')->nullable();
+            $table->string('admin_remarks')->nullable();
+            $table->string('payroll_code')->nullable();
+            $table->string('implementer')->nullable();
+            $table->string('training_type')->nullable();
+            $table->string('speaker_category')->nullable();
+            $table->string('proforma_invoice_hrdf')->nullable();
+            $table->string('proforma_invoice_product')->nullable();
             $table->string('confirmation_order_file')->nullable();
             $table->string('payment_slip_file')->nullable();
+            $table->string('hrdf_grant_file')->nullable();
+            $table->string('invoice_file')->nullable();
+            $table->string('new_attachment_file')->nullable();
 
+            $table->boolean('license_activated')->default(false);
+            $table->boolean('data_migrated')->default(false);
+            $table->boolean('follow_up_counter')->default(false);
+
+            $table->integer('manual_follow_up_count')->nullable();
+
+            $table->date('follow_up_date')->nullable();
+            $table->bigInteger('license_certification_id')->nullable();
+
+            $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('db_creation')->nullable();
+            $table->timestamp('kick_off_meeting')->nullable();
+            $table->timestamp('webinar_training')->nullable();
+            $table->timestamp('total_days')->nullable();
+            $table->timestamp('go_live_date')->nullable();
             $table->timestamps();
         });
     }

@@ -17,62 +17,48 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->string('status')->default('New');
 
-            // Section 1: Company Details
-            $table->string('company_name')->nullable();
-            $table->string('industry')->nullable();
-            $table->string('headcount')->nullable();
-            $table->string('country')->nullable();
-            $table->string('state')->nullable();
-            $table->string('salesperson')->nullable();
+            $table->string('handover_pdf')->nullable();
+            $table->string('courier')->nullable();
+            $table->string('courier_address')->nullable();
+            $table->string('installation_type')->nullable();
 
-            // Section 2: Superadmin Details
+            $table->json('category2')->nullable();
+
+            $table->string('contact_detail')->nullable();
             $table->string('pic_name')->nullable();
             $table->string('pic_phone')->nullable();
             $table->string('email')->nullable();
-            $table->string('password')->nullable();
+            $table->string('installer')->nullable();
+            $table->string('reseller')->nullable();
+            $table->string('implementer')->nullable();
+            $table->string('proforma_invoice_hrdf')->nullable();
+            $table->string('proforma_invoice_product')->nullable();
+            $table->string('reject_reason')->nullable();
 
-            // Section 3: Invoice Details
-            $table->string('company_name_invoice')->nullable();
-            $table->text('company_address')->nullable();
-            $table->string('salesperson_invoice')->nullable();
-            $table->string('pic_name_invoice')->nullable();
-            $table->string('pic_email_invoice')->nullable();
-            $table->string('pic_phone_invoice')->nullable();
+            $table->json('remarks')->nullable();
+            $table->json('admin_remarks')->nullable();
 
-            // Section 4: Implementation PICs
-            $table->text('implementation_pics')->nullable(); // Stored as JSON
+            $table->integer('tc10_quantity')->nullable();
+            $table->integer('tc20_quantity')->nullable();
+            $table->integer('face_id5_quantity')->nullable();
+            $table->integer('face_id6_quantity')->nullable();
+            $table->integer('time_beacon_quantity')->nullable();
+            $table->integer('nfc_tag_quantity')->nullable();
 
-            // Section 5: Module Subscription
-            $table->text('modules')->nullable(); // Stored as JSON
+            $table->string('invoice_type')->nullable();
+            $table->text('related_software_handovers')->nullable();
 
-            // Section 6: Other Details
-            $table->text('customization_details')->nullable();
-            $table->text('enhancement_details')->nullable();
-            $table->text('special_remark')->nullable();
-            $table->string('device_integration')->nullable();
-            $table->string('existing_hr_system')->nullable();
-            $table->string('experience_implementing_hr_system')->nullable();
-            $table->string('vip_package')->nullable();
-            $table->string('fingertec_device')->nullable();
-
-            // Section 7: Onsite Package
-            $table->boolean('onsite_kick_off_meeting')->default(false);
-            $table->boolean('onsite_webinar_training')->default(false);
-            $table->boolean('onsite_briefing')->default(false);
-
-            // Section 8: Payment Terms
-            $table->string('payment_term')->nullable(); // Options: full_payment, payment_via_ibgc, payment_via_term
-
-            // Section 9: Proforma Invoices
-            $table->string('proforma_invoice_number')->nullable();
-
-            // Section 10: Attachments
-            $table->text('confirmation_order_file')->nullable(); // Stored as JSON
-            $table->text('payment_slip_file')->nullable(); // Stored as JSON
-
-            // Section 11: Installation Details
-            // Note: special_remark is already defined in Section 6
-            $table->string('installation_media')->nullable();
+            $table->string('video_files')->nullable();
+            $table->string('confirmation_order_file')->nullable();
+            $table->string('hrdf_grant_file')->nullable();
+            $table->string('payment_slip_file')->nullable();
+            $table->string('new_attachment_file')->nullable();
+            $table->string('invoice_file')->nullable();
+            $table->string('sales_order_file')->nullable();
+            $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('pending_stock_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('pending_migration_at')->nullable();
 
             $table->timestamps();
         });

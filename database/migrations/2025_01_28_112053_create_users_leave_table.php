@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('leave_type');
             $table->date('date');
             $table->integer('day_of_week');
+            $table->enum('session', ['full', 'am', 'pm'])->default('full');
+            $table->enum('status', ['Approved', 'RequestCancel', 'Pending', 'PendingCancel'])->default('Pending');
+            $table->time('start_time')->nullable();
+            $table->time('end_time')->nullable();
         });
     }
 

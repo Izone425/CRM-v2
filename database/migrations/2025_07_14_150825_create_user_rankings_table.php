@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('avatar_path')->nullable(); // You can change "after('email')" to a column that makes sense for your schema.        
+        Schema::create('user_rankings', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('user_name');
+            $table->date('month_year');
+            $table->integer('ranking');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('avatar_path');
-        });
+        Schema::dropIfExists('user_rankings');
     }
 };
