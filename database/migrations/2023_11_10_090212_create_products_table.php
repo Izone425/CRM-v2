@@ -13,8 +13,15 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->integer('price');
+            $table->string('code')->nullable();
+            $table->integer('sort_order')->nullable();
+            $table->string('description')->nullable();
+            $table->enum('solution', ['software', 'hardware', 'hrdf', 'other']);
+            $table->float('unit_price', 8, 2)->nullable();
+            $table->string('package_group')->nullable();
+            $table->integer('package_sort_order')->nullable();
+            $table->boolean('taxable')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

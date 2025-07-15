@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('sales_targets', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('description')->nullable();
-            $table->json('route_permissions')->nullable();
+            $table->integer('salesperson')->default(0);
+            $table->decimal('target_amount', 10, 2)->default(0);
+            $table->string('month', 15)->default(0);
+            $table->string('year', 10)->default(0);
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('sales_targets');
     }
 };

@@ -19,6 +19,8 @@ class CreateCompanyDetailsTable extends Migration
             $table->string('company_name', 50)->nullable(); // Name of the company
             $table->string('company_address1', 50)->nullable(); // Company address line 1
             $table->string('company_address2', 50)->nullable(); // Company address line 2
+
+            
             $table->string('postcode', 50)->nullable(); // Postcode
             $table->string('state', 50)->nullable(); // State
             $table->string('name', 50)->nullable(); // Contact person name

@@ -21,6 +21,7 @@ class CreateAppointmentsTable extends Migration
             $table->time('start_time')->nullable(); // Start time of the appointment
             $table->time('end_time')->nullable(); // End time of the appointment
             $table->string('salesperson', 50)->nullable(); // Salesperson assigned
+            $table->string('causer_id', 50)->nullable(); // ID of the person who created the appointment
             $table->string('remarks', 100)->nullable(); // Additional remarks
             $table->string('title', 50)->nullable(); // Title of the appointment
             $table->string('required_attendees', 255)->nullable(); // Required attendees

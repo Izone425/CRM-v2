@@ -16,15 +16,19 @@ class CreateBankDetailsTable extends Migration
         Schema::create('bank_details', function (Blueprint $table) {
             $table->id(); // Auto-incrementing primary key
             $table->unsignedBigInteger('lead_id')->nullable(); // Foreign key to leads table
-            $table->string('full_name', 50)->nullable(); // Full name of the account holder
-            $table->string('ic', 50)->nullable(); // IC (Identity Card) number
+            $table->string('referral_name')->nullable(); // Full name of the account holder
             $table->string('tin', 50)->nullable(); // Tax Identification Number (TIN)
-            $table->string('bank_name', 50)->nullable(); // Name of the bank
-            $table->string('bank_account_no', 50)->nullable(); // Bank account number
-            $table->string('contact_no', 50)->nullable(); // Contact number
+            $table->string('hp_number', 50)->nullable();
             $table->string('email', 50)->nullable(); // Email address
-            $table->enum('referral_payment_status', ['PENDING', 'COMPLETED'])->default('PENDING'); // Referral payment status
-            $table->string('remark', 50)->nullable(); // Additional remarks
+            $table->string('referral_address')->nullable();
+            $table->string('postcode', 50)->nullable();
+            $table->string('city', 50)->nullable();
+            $table->string('state', 50)->nullable();
+            $table->string('country')->nullable();
+            $table->string('referral_bank_name')->nullable();
+            $table->string('beneficiary_name')->nullable();
+            $table->string('bank_name')->nullable();
+            $table->string('bank_account_no')->nullable();
             $table->timestamps(); // Created_at and Updated_at columns
 
             // Foreign key constraint

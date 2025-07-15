@@ -13,13 +13,10 @@ return new class extends Migration
     {
         Schema::create('spare_parts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('device_model_id')->constrained('device_models')->onDelete('cascade');
+            $table->string('device_model', 50);
             $table->string('name');
             $table->string('picture_url')->nullable();
-            $table->text('description')->nullable();
-            $table->decimal('price', 10, 2)->default(0.00);
-            $table->integer('stock_quantity')->default(0);
-            $table->string('part_number')->nullable();
+            $table->string('autocount_code')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

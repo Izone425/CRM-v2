@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('system_question_phase2s', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('description')->nullable();
-            $table->json('route_permissions')->nullable();
+            $table->integer('lead_id')->nullable();
+            $table->string('causer_name', 50)->nullable();
+            $table->string('support')->nullable();
+            $table->string('product')->nullable();
+            $table->string('additional')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('system_question_phase2s');
     }
 };

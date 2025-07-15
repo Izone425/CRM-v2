@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create('invoices', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('description')->nullable();
-            $table->json('route_permissions')->nullable();
+            $table->string('company_name');
+            $table->decimal('amount', 10, 2);
+            $table->string('invoice_no', 50);
+            $table->string('invoice_date', 50);
+            $table->integer('salesperson');
             $table->timestamps();
         });
     }
@@ -25,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('invoices');
     }
 };
