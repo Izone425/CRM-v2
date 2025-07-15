@@ -1531,7 +1531,6 @@ class ActivityLogRelationManager extends RelationManager
                                 ->options([
                                     'online' => 'Online',
                                     'onsite' => 'Onsite',
-                                    'hybrid' => 'Hybrid (Online/Onsite)',
                                 ])
                                 ->required()
                                 ->default('online'),
@@ -1547,83 +1546,245 @@ class ActivityLogRelationManager extends RelationManager
                                 ->default('2')
                                 ->reactive(),
 
-                            Grid::make(2)
+                            Grid::make(4)
                                 ->schema([
                                     DatePicker::make('date_1')
                                         ->label('First Day')
                                         ->required()
+                                        ->native(false)
+                                        ->displayFormat('d M Y')
                                         ->weekStartsOnMonday()
                                         ->minDate(now())
-                                        ->default(fn() => now()->nextWeekday()),
+                                        ->default(fn() => now()->nextWeekday())
+                                        ->columnSpan(1),
 
-                                    Grid::make(1)
+                                    Repeater::make('slots_1')
+                                        ->label('Time Slots - First Day')
+                                        ->grid(3)
+                                        ->columnSpan(3)
                                         ->schema([
-                                            Forms\Components\CheckboxList::make('slots_1')
-                                                ->label('Time Slots - First Day')
-                                                ->options([
-                                                    '10:00 AM' => '10:00 AM',
-                                                    '2:30 PM' => '2:30 PM',
-                                                    '4:00 PM' => '4:00 PM',
-                                                ])
-                                                ->columns(4)
-                                                ->required(),
-                                        ]),
+                                            TimePicker::make('time')
+                                                ->hiddenLabel()
+                                                ->seconds(false)
+                                                ->required()
+                                                ->datalist(function (callable $get) {
+                                                    $date = $get('../date_1'); // Get selected date
+                                                    if (!$date) {
+                                                        return [];
+                                                    }
+
+                                                    $times = [];
+                                                    $startTime = Carbon::parse($date)->setHour(9)->setMinute(0);
+                                                    $endTime = Carbon::parse($date)->setHour(17)->setMinute(30);
+
+                                                    $user = Auth::user();
+
+                                                    // If user is a salesperson, check availability
+                                                    if ($user && $user->role_id == 2) {
+                                                        // Fetch booked appointments for this date
+                                                        $appointments = Appointment::where('salesperson', $user->id)
+                                                            ->whereDate('date', $date)
+                                                            ->whereIn('status', ['New', 'Done'])
+                                                            ->get(['start_time', 'end_time']);
+
+                                                        // Generate available time slots
+                                                        while ($startTime <= $endTime) {
+                                                            $slotStart = $startTime->copy();
+                                                            $slotEnd = $startTime->copy()->addMinutes(30);
+                                                            $formattedTime = $slotStart->format('H:i');
+
+                                                            $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                                $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                                $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                                                return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                                            });
+
+                                                            if (!$isBooked) {
+                                                                $times[] = $formattedTime;
+                                                            }
+
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    } else {
+                                                        // Standard time slots for non-salespersons
+                                                        while ($startTime <= $endTime) {
+                                                            $times[] = $startTime->format('H:i');
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    }
+
+                                                    return $times;
+                                                })
+                                        ])
+                                        ->minItems(1)
+                                        ->maxItems(3)
+                                        ->defaultItems(3)
+                                        ->columns(1)
+                                        ->reorderable(false)
+                                        ->default([
+                                            ['time' => '10:00'],
+                                            ['time' => '14:30'],
+                                            ['time' => '16:00']
+                                        ])
                                 ]),
 
-                            Grid::make(2)
+                            Grid::make(4)
                                 ->schema([
                                     DatePicker::make('date_2')
                                         ->label('Second Day')
                                         ->required()
+                                        ->native(false)
+                                        ->displayFormat('d M Y')
                                         ->weekStartsOnMonday()
                                         ->minDate(now()->addDay())
+                                        ->columnSpan(1)
                                         ->default(fn() => now()->nextWeekday()->addDay()),
 
-                                    Grid::make(1)
+                                    Repeater::make('slots_2')
+                                        ->label('Time Slots - Second Day')
+                                        ->grid(3)
+                                        ->columnSpan(3)
                                         ->schema([
-                                            Forms\Components\CheckboxList::make('slots_2')
-                                                ->label('Time Slots - Second Day')
-                                                ->options([
-                                                    '10:00 AM' => '10:00 AM',
-                                                    '11:00 AM' => '11:00 AM',
-                                                    '2:00 PM' => '2:00 PM',
-                                                    '2:30 PM' => '2:30 PM',
-                                                    '3:00 PM' => '3:00 PM',
-                                                    '4:00 PM' => '4:00 PM',
-                                                    '5:00 PM' => '5:00 PM',
-                                                ])
-                                                ->columns(4)
-                                                ->required(),
+                                            TimePicker::make('time')
+                                                ->hiddenLabel()
+                                                ->seconds(false)
+                                                ->required()
+                                                ->datalist(function (callable $get) {
+                                                    $date = $get('../date_2');
+                                                    if (!$date) {
+                                                        return [];
+                                                    }
+
+                                                    $times = [];
+                                                    $startTime = Carbon::parse($date)->setHour(9)->setMinute(0);
+                                                    $endTime = Carbon::parse($date)->setHour(17)->setMinute(30);
+
+                                                    $user = Auth::user();
+
+                                                    if ($user && $user->role_id == 2) {
+                                                        $appointments = Appointment::where('salesperson', $user->id)
+                                                            ->whereDate('date', $date)
+                                                            ->whereIn('status', ['New', 'Done'])
+                                                            ->get(['start_time', 'end_time']);
+
+                                                        while ($startTime <= $endTime) {
+                                                            $slotStart = $startTime->copy();
+                                                            $slotEnd = $startTime->copy()->addMinutes(30);
+                                                            $formattedTime = $slotStart->format('H:i');
+
+                                                            $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                                $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                                $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                                                return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                                            });
+
+                                                            if (!$isBooked) {
+                                                                $times[] = $formattedTime;
+                                                            }
+
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    } else {
+                                                        while ($startTime <= $endTime) {
+                                                            $times[] = $startTime->format('H:i');
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    }
+
+                                                    return $times;
+                                                })
+                                        ])
+                                        ->minItems(1)
+                                        ->maxItems(3)
+                                        ->defaultItems(3)
+                                        ->columns(1)
+                                        ->reorderable(false)
+                                        ->default([
+                                            ['time' => '10:00'],
+                                            ['time' => '14:30'],
+                                            ['time' => '16:00']
                                         ]),
                                 ])
                                 ->visible(fn (callable $get) => $get('num_days') >= 2),
 
-                            Grid::make(2)
+                            Grid::make(4)
                                 ->schema([
                                     DatePicker::make('date_3')
                                         ->label('Third Day')
+                                        ->native(false)
+                                        ->displayFormat('d M Y')
                                         ->required()
                                         ->weekStartsOnMonday()
                                         ->minDate(now()->addDays(2))
+                                        ->columnSpan(1)
                                         ->default(fn() => now()->nextWeekday()->addDays(2)),
 
-                                    Grid::make(1)
+                                    Repeater::make('slots_3')
+                                        ->label('Time Slots - Third Day')
                                         ->schema([
-                                            Forms\Components\CheckboxList::make('slots_3')
-                                                ->label('Time Slots - Third Day')
-                                                ->options([
-                                                    '9:00 AM' => '9:00 AM',
-                                                    '10:00 AM' => '10:00 AM',
-                                                    '11:00 AM' => '11:00 AM',
-                                                    '2:00 PM' => '2:00 PM',
-                                                    '2:30 PM' => '2:30 PM',
-                                                    '3:00 PM' => '3:00 PM',
-                                                    '4:00 PM' => '4:00 PM',
-                                                    '5:00 PM' => '5:00 PM',
-                                                ])
-                                                ->columns(4)
+                                            TimePicker::make('time')
+                                                ->hiddenLabel()
+                                                ->seconds(false)
                                                 ->required()
-                                                ->default(['10:00 AM', '2:30 PM', '4:00 PM']),
+                                                ->datalist(function (callable $get) {
+                                                    $date = $get('../date_3');
+                                                    if (!$date) {
+                                                        return [];
+                                                    }
+
+                                                    $times = [];
+                                                    $startTime = Carbon::parse($date)->setHour(9)->setMinute(0);
+                                                    $endTime = Carbon::parse($date)->setHour(17)->setMinute(30);
+
+                                                    $user = Auth::user();
+
+                                                    if ($user && $user->role_id == 2) {
+                                                        $appointments = Appointment::where('salesperson', $user->id)
+                                                            ->whereDate('date', $date)
+                                                            ->whereIn('status', ['New', 'Done'])
+                                                            ->get(['start_time', 'end_time']);
+
+                                                        while ($startTime <= $endTime) {
+                                                            $slotStart = $startTime->copy();
+                                                            $slotEnd = $startTime->copy()->addMinutes(30);
+                                                            $formattedTime = $slotStart->format('H:i');
+
+                                                            $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                                $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                                $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
+
+                                                                return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                                            });
+
+                                                            if (!$isBooked) {
+                                                                $times[] = $formattedTime;
+                                                            }
+
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    } else {
+                                                        while ($startTime <= $endTime) {
+                                                            $times[] = $startTime->format('H:i');
+                                                            $startTime->addMinutes(30);
+                                                        }
+                                                    }
+
+                                                    return $times;
+                                                })
+                                        ])
+                                        ->minItems(1)
+                                        ->grid(3)
+                                        ->columnSpan(3)
+                                        ->maxItems(3)
+                                        ->defaultItems(3)
+                                        ->columns(1)
+                                        ->reorderable(false)
+                                        ->default([
+                                            ['time' => '10:00'],
+                                            ['time' => '14:30'],
+                                            ['time' => '16:00']
                                         ]),
                                 ])
                                 ->visible(fn (callable $get) => $get('num_days') >= 3),
@@ -1646,17 +1807,25 @@ class ActivityLogRelationManager extends RelationManager
                             // Get recipient name
                             $recipientName = $lead->companyDetail->name ?? $lead->name;
 
-                            // Format dates as separate variables for each day
+                            // Format slots for each day
                             // First day (always present)
                             $date1 = \Carbon\Carbon::parse($data['date_1'])->format('d/m (l)');
-                            $formattedSlots1 = implode(' / ', $data['slots_1']);
+
+                            // Format time slots with AM/PM
+                            $slots1 = collect($data['slots_1'])->pluck('time')->map(function($time) {
+                                return \Carbon\Carbon::parse($time)->format('g:i A');
+                            })->toArray();
+                            $formattedSlots1 = implode(' / ', $slots1);
                             $day1 = "$date1 - $formattedSlots1";
 
                             // Second day (only if num_days >= 2)
                             $day2 = null;
                             if ((int)$data['num_days'] >= 2) {
                                 $date2 = \Carbon\Carbon::parse($data['date_2'])->format('d/m (l)');
-                                $formattedSlots2 = implode(' / ', $data['slots_2']);
+                                $slots2 = collect($data['slots_2'])->pluck('time')->map(function($time) {
+                                    return \Carbon\Carbon::parse($time)->format('g:i A');
+                                })->toArray();
+                                $formattedSlots2 = implode(' / ', $slots2);
                                 $day2 = "$date2 - $formattedSlots2";
                             }
 
@@ -1664,12 +1833,15 @@ class ActivityLogRelationManager extends RelationManager
                             $day3 = null;
                             if ((int)$data['num_days'] >= 3) {
                                 $date3 = \Carbon\Carbon::parse($data['date_3'])->format('d/m (l)');
-                                $formattedSlots3 = implode(' / ', $data['slots_3']);
+                                $slots3 = collect($data['slots_3'])->pluck('time')->map(function($time) {
+                                    return \Carbon\Carbon::parse($time)->format('g:i A');
+                                })->toArray();
+                                $formattedSlots3 = implode(' / ', $slots3);
                                 $day3 = "$date3 - $formattedSlots3";
                             }
 
                             // Template SID for demo selection
-                            $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529'; // Update with new template SID if changed
+                            $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529';
 
                             // Set up variables for the template (using 4 variables now)
                             $variables = [
@@ -1682,14 +1854,6 @@ class ActivityLogRelationManager extends RelationManager
                             try {
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
                                 $response = $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
-
-                                // Log successful message for debugging
-                                \Illuminate\Support\Facades\Log::info('WhatsApp message sent successfully', [
-                                    'phone' => $phoneNumber,
-                                    'templateId' => $contentTemplateSid,
-                                    'variables' => $variables,
-                                    'response' => $response
-                                ]);
 
                                 Notification::make()
                                     ->title('Message Sent')

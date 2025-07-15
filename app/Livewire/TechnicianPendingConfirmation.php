@@ -291,7 +291,12 @@ class TechnicianPendingConfirmation extends Component implements HasForms, HasTa
             str_contains($model, 'TC20') => 2,
             str_contains($model, 'FACE ID 5') => 2,
             str_contains($model, 'FACE ID 6') => 2,
-            str_contains($model, 'TA100C') => 2,
+            str_contains($model, 'TA100C / HID') => 2,
+            str_contains($model, 'TA100C / R') => 2,
+            str_contains($model, 'TA100C / MF') => 2,
+            str_contains($model, 'TA100C / R / W') => 2,
+            str_contains($model, 'TA100C / MF / W') => 2,
+            str_contains($model, 'TA100C / HID / W') => 2,
             str_contains($model, 'TIME BEACON') => 1,
             str_contains($model, 'NFC') => 1,
             // Default case
