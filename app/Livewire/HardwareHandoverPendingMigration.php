@@ -665,6 +665,10 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                             'quantity' => (int)$record->face_id6_quantity,
                                             'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
+                                        'ta100c' => [
+                                            'quantity' => (int)$record->tc100c_quantity,
+                                            'status' => (int)$record->tc100c_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,
                                             'status' => (int)$record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'

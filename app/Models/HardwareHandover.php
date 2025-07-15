@@ -35,6 +35,7 @@ class HardwareHandover extends Model
         'proforma_invoice_hrdf',
         'proforma_invoice_product',
         'tc10_quantity',
+        'ta100c_quantity',
         'tc20_quantity',
         'face_id5_quantity',
         'face_id6_quantity',

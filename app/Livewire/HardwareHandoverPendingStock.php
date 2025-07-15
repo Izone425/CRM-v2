@@ -277,6 +277,14 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                             return $record->face_id6_quantity ?? 0;
                                         }),
 
+                                    TextInput::make('ta100c_quantity')
+                                        ->label('TA100C')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->ta100c_quantity ?? 0;
+                                        }),
+
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -444,6 +452,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 'tc20_quantity' => $data['tc20_quantity'] ?? 0,
                                 'face_id5_quantity' => $data['face_id5_quantity'] ?? 0,
                                 'face_id6_quantity' => $data['face_id6_quantity'] ?? 0,
+                                'ta100c_quantity' => $data['ta100c_quantity'] ?? 0,
                                 'time_beacon_quantity' => $data['time_beacon_quantity'] ?? 0,
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'] ?? 0,
                             ];
@@ -555,6 +564,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         'face_id6' => [
                                             'quantity' => (int)$record->face_id6_quantity,
                                             'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100c' => [
+                                            'quantity' => (int)$record->ta100c_quantity,
+                                            'status' => (int)$record->ta100c_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

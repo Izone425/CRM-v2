@@ -825,6 +825,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
+                                    TextInput::make('ta100c_quantity')
+                                        ->label('TA100C')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -997,6 +1003,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'tc20_quantity' => $data['tc20_quantity'],
                                 'face_id5_quantity' => $data['face_id5_quantity'],
                                 'face_id6_quantity' => $data['face_id6_quantity'],
+                                'ta100c_quantity' => $data['ta100c_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
@@ -1112,6 +1119,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                             'quantity' => (int)$data['face_id6_quantity'],
                                             'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
+                                        'ta100c' => [
+                                            'quantity' => (int)$data['ta100c_quantity'],
+                                            'status' => (int)$data['ta100c_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
                                             'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
@@ -1196,6 +1207,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                                     TextInput::make('tc20_quantity')
                                         ->label('TC20')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
+                                    TextInput::make('ta100c_quantity')
+                                        ->label('TA100C')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -1378,6 +1395,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'tc20_quantity' => $data['tc20_quantity'],
                                 'face_id5_quantity' => $data['face_id5_quantity'],
                                 'face_id6_quantity' => $data['face_id6_quantity'],
+                                'ta100c_quantity' => $data['ta100c_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName ?? null,
@@ -1492,6 +1510,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         'face_id6' => [
                                             'quantity' => (int)$data['face_id6_quantity'],
                                             'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100c' => [
+                                            'quantity' => (int)$data['ta100c_quantity'],
+                                            'status' => (int)$data['ta100c_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],

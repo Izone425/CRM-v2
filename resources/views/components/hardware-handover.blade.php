@@ -343,6 +343,13 @@
                                         </tr>
                                     @endif
 
+                                    @if(isset($record->ta100c_quantity) && $record->ta100c_quantity > 0)
+                                        <tr>
+                                            <td class="px-6 py-3 border border-gray-300">TA100C</td>
+                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100c_quantity }}</td>
+                                        </tr>
+                                    @endif
+
                                     @if(isset($record->time_beacon_quantity) && $record->time_beacon_quantity > 0)
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TIME BEACON</td>
@@ -362,6 +369,7 @@
                                         (!isset($record->tc20_quantity) || $record->tc20_quantity <= 0) &&
                                         (!isset($record->face_id5_quantity) || $record->face_id5_quantity <= 0) &&
                                         (!isset($record->face_id6_quantity) || $record->face_id6_quantity <= 0) &&
+                                        (!isset($record->ta100c_quantity) || $record->ta100c_quantity <= 0) &&
                                         (!isset($record->time_beacon_quantity) || $record->time_beacon_quantity <= 0) &&
                                         (!isset($record->nfc_tag_quantity) || $record->nfc_tag_quantity <= 0)
                                     )

@@ -26,6 +26,7 @@ class ListSpareParts extends ListRecords
             'tc20' => Tab::make('TC20')->query(fn ($query) => $query->where('device_model', 'TC20')),
             'faceid5' => Tab::make('FACE ID 5')->query(fn ($query) => $query->where('device_model', 'FACE ID 5')),
             'faceid6' => Tab::make('FACE ID 6')->query(fn ($query) => $query->where('device_model', 'FACE ID 6')),
+            'ta100c' => Tab::make('TA100C')->query(fn ($query) => $query->where('device_model', 'TA100C')),
         ];
     }
 }
