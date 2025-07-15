@@ -403,6 +403,7 @@ class AdminRepairDashboard extends Page implements HasTable
                                             'FACE ID 6' => 'FACE ID 6',
                                             'TIME BEACON' => 'TIME BEACON',
                                             'NFC TAG' => 'NFC TAG',
+                                            'TA100C' => 'TA100C',
                                         ])
                                         ->searchable()
                                         ->required(),

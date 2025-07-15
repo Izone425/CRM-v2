@@ -300,6 +300,7 @@ class AdminRepairPendingOnsiteRepair extends Component implements HasForms, HasT
             str_contains($model, 'TC20') => 2,
             str_contains($model, 'FACE ID 5') => 2,
             str_contains($model, 'FACE ID 6') => 2,
+            str_contains($model, 'TC100C') => 2,
             str_contains($model, 'TIME BEACON') => 1,
             str_contains($model, 'NFC') => 1,
             // Default case
