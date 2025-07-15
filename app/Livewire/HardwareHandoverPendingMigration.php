@@ -665,9 +665,29 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                             'quantity' => (int)$record->face_id6_quantity,
                                             'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
-                                        'ta100c' => [
-                                            'quantity' => (int)$record->tc100c_quantity,
-                                            'status' => (int)$record->tc100c_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        'ta100cr' => [
+                                            'quantity' => (int)$record->tc100cr_quantity,
+                                            'status' => (int)$record->tc100cr_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cmf' => [
+                                            'quantity' => (int)$record->tc100cmf_quantity,
+                                            'status' => (int)$record->tc100cmf_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100chid' => [
+                                            'quantity' => (int)$record->tc100chid_quantity,
+                                            'status' => (int)$record->tc100chid_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100crw' => [
+                                            'quantity' => (int)$record->tc100crw_quantity,
+                                            'status' => (int)$record->tc100crw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cmfw' => [
+                                            'quantity' => (int)$record->tc100cmfw_quantity,
+                                            'status' => (int)$record->tc100cmfw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100chidw' => [
+                                            'quantity' => (int)$record->tc100chidw_quantity,
+                                            'status' => (int)$record->tc100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

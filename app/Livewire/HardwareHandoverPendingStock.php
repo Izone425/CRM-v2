@@ -277,12 +277,44 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                             return $record->face_id6_quantity ?? 0;
                                         }),
 
-                                    TextInput::make('ta100c_quantity')
-                                        ->label('TA100C')
+                                    TextInput::make('tc100cr_quantity')
+                                        ->label('TA100C / R')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(function (HardwareHandover $record) {
-                                            return $record->ta100c_quantity ?? 0;
+                                            return $record->tc100cr_quantity ?? 0;
+                                        }),
+
+                                    TextInput::make('tc100cmf_quantity')
+                                        ->label('TA100C / MF')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100cmf_quantity ?? 0;
+                                        }),
+
+                                    TextInput::make('tc100chid_quantity')
+                                        ->label('TA100C / HID')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100chid_quantity ?? 0;
+                                        }),
+
+                                    TextInput::make('tc100crw_quantity')
+                                        ->label('TA100C / R / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100crw_quantity ?? 0;
+                                        }),
+
+                                    TextInput::make('tc100cmfw_quantity')
+                                        ->label('TA100C / MF / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100cmfw_quantity ?? 0;
                                         }),
 
                                     TextInput::make('nfc_tag_quantity')
@@ -291,6 +323,14 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->minValue(0)
                                         ->default(function (HardwareHandover $record) {
                                             return $record->nfc_tag_quantity ?? 0;
+                                        }),
+
+                                    TextInput::make('tc100chidw_quantity')
+                                        ->label('TA100C / HID / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100chidw_quantity ?? 0;
                                         }),
                                 ]),
 
@@ -452,7 +492,12 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 'tc20_quantity' => $data['tc20_quantity'] ?? 0,
                                 'face_id5_quantity' => $data['face_id5_quantity'] ?? 0,
                                 'face_id6_quantity' => $data['face_id6_quantity'] ?? 0,
-                                'ta100c_quantity' => $data['ta100c_quantity'] ?? 0,
+                                'tc100cr_quantity' => $data['tc100cr_quantity'] ?? 0,
+                                'tc100cmf_quantity' => $data['tc100cmf_quantity'] ?? 0,
+                                'tc100chid_quantity' => $data['tc100chid_quantity'] ?? 0,
+                                'tc100crw_quantity' => $data['tc100crw_quantity'] ?? 0,
+                                'tc100cmfw_quantity' => $data['tc100cmfw_quantity'] ?? 0,
+                                'tc100chidw_quantity' => $data['tc100chidw_quantity'] ?? 0,
                                 'time_beacon_quantity' => $data['time_beacon_quantity'] ?? 0,
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'] ?? 0,
                             ];
@@ -565,9 +610,29 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                             'quantity' => (int)$record->face_id6_quantity,
                                             'status' => (int)$record->face_id6_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
-                                        'ta100c' => [
-                                            'quantity' => (int)$record->ta100c_quantity,
-                                            'status' => (int)$record->ta100c_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        'ta100cr' => [
+                                            'quantity' => (int)$record->tc100cr_quantity,
+                                            'status' => (int)$record->tc100cr_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cmf' => [
+                                            'quantity' => (int)$record->tc100cmf_quantity,
+                                            'status' => (int)$record->tc100cmf_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100chid' => [
+                                            'quantity' => (int)$record->tc100chid_quantity,
+                                            'status' => (int)$record->tc100chid_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100crw' => [
+                                            'quantity' => (int)$record->tc100crw_quantity,
+                                            'status' => (int)$record->tc100crw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cmfw' => [
+                                            'quantity' => (int)$record->tc100cmfw_quantity,
+                                            'status' => (int)$record->tc100cmfw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100chidw' => [
+                                            'quantity' => (int)$record->tc100chidw_quantity,
+                                            'status' => (int)$record->tc100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

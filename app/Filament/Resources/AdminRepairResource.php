@@ -146,7 +146,12 @@ class AdminRepairResource extends Resource
                                         'FACE ID 6' => 'FACE ID 6',
                                         'TIME BEACON' => 'TIME BEACON',
                                         'NFC TAG' => 'NFC TAG',
-                                        'TA100C' => 'TA100C',
+                                        'TA100C / HID' => 'TA100C / HID',
+                                        'TA100C / R' => 'TA100C / R',
+                                        'TA100C / MF' => ' TA100C / MF',
+                                        'TA100C / R / W' => 'TA100C / R / W',
+                                        'TA100C / MF / W' => 'TA100C / MF / W',
+                                        'TA100C / HID / W' => 'TA100C / HID / W',
                                     ])
                                     ->searchable()
                                     ->required(),

@@ -106,12 +106,57 @@
             </div>
         </div>
 
-        <!-- TA100C Stats -->
+        <!-- TA100C / R Stats -->
         <div class="stat-card indigo-theme">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TA100C</div>
-                <div class="stat-value">{{ $this->getDeviceCount('ta100c_quantity') }}</div>
+                <div class="stat-title">TA100C / R</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100cr_quantity') }}</div>
+            </div>
+        </div>
+
+        <!-- TA100C / MF Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / MF</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100cmf_quantity') }}</div>
+            </div>
+        </div>
+
+        <!-- TA100C / HID Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / HID</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100chid_quantity') }}</div>
+            </div>
+        </div>
+
+        <!-- TA100C / R / W Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / R / W</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100crw_quantity') }}</div>
+            </div>
+        </div>
+
+        <!-- TA100C / MF / W Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / MF / W</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100cmfw_quantity') }}</div>
+            </div>
+        </div>
+
+        <!-- TA100C / HID / W Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / HID / W</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100chidw_quantity') }}</div>
             </div>
         </div>
 
