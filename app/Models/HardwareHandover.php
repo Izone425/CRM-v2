@@ -41,6 +41,7 @@ class HardwareHandover extends Model
         'tc100crw_quantity',
         'tc100cmfw_quantity',
         'tc100chidw_quantity',
+        'tc100cw_quantity',
         'tc20_quantity',
         'face_id5_quantity',
         'face_id6_quantity',
