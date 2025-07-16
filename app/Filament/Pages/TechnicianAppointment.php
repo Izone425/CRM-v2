@@ -128,6 +128,12 @@ class TechnicianAppointment extends Page implements HasTable
                     ->form($this->getFormSchema())
                     ->action(function (array $data): void {
                         RepairAppointment::create($data);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Appointment Created')
+                            ->body('The appointment has been successfully created.')
+                            ->send();
                     })
             ]);
     }

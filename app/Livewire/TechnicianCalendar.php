@@ -47,7 +47,7 @@ class TechnicianCalendar extends Component
     public array $selectedTechnicians = [];
     public bool $allTechniciansSelected = true;
 
-    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "FINGERTEC TASK"];
+    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "FINGERTEC TASK", "SITE SURVEY"];
     public array $selectedRepairType = [];
     public bool $allRepairTypeSelected = true;
 
@@ -157,6 +157,7 @@ class TechnicianCalendar extends Component
             "REPAIR" => 0,
             "MAINTENANCE SERVICE" => 0,
             "FINGERTEC TASK" => 0, // Add FINGERTEC TASK counter
+            "SITE SURVEY" => 0,
             "NEW" => 0,
             "DONE" => 0,
             "CANCELLED" => 0
@@ -171,6 +172,8 @@ class TechnicianCalendar extends Component
         $this->totalRepairs["REPAIR"] = $query->clone()->where('type', 'REPAIR')
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where('type', 'MAINTENANCE SERVICE')
+            ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["SITE SURVEY"] = $query->clone()->where('type', 'SITE SURVEY')
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["FINGERTEC TASK"] = $query->clone()->where('type', 'FINGERTEC TASK')
             ->where('status', '!=', 'Cancelled')->count(); // Add FINGERTEC TASK count

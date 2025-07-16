@@ -249,6 +249,9 @@ class FetchZohoLeads extends Command
                         'lead_owner'   => 'Sheena Liew',
                         'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
                         'created_at'   => $leadCreatedTime,
+                        'categories'   => 'Active',
+                        'stage'        => 'Transfer',
+                        'lead_status'  => 'Under Review',
                     ]);
 
                     $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
