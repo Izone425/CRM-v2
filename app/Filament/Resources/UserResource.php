@@ -298,6 +298,15 @@ class UserResource extends Resource
                                                 $set("permissions.{$key}", $value);
                                             }
                                         }),
+                                    Forms\Components\TextInput::make('mobile_number')
+                                        ->label('Phone Number'),
+                                    Forms\Components\TextInput::make('password')
+                                        ->password()
+                                        ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
+                                        ->dehydrated(fn (?string $state): bool => filled($state))
+                                        ->required(fn (string $operation): bool => $operation === 'create')
+                                        ->visible(fn (string $operation): bool => $operation === 'create')
+                                        ->maxLength(255),
                                 ])->columnSpan(2),
 
                                 Grid::make(1)
@@ -309,19 +318,10 @@ class UserResource extends Resource
                                         Forms\Components\TextInput::make('code')
                                             ->label('Code')
                                             ->maxLength(2),
+                                        Forms\Components\TextInput::make('api_user_id')
+                                            ->label('Staff ID'),
                                     ])->columnspan(2),
                             ]),
-                        Forms\Components\TextInput::make('mobile_number')
-                            ->label('Phone Number'),
-                        Forms\Components\TextInput::make('password')
-                            ->password()
-                            ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
-                            ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->required(fn (string $operation): bool => $operation === 'create')
-                            ->visible(fn (string $operation): bool => $operation === 'create')
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('api_user_id')
-                            ->label('Staff ID'),
                     ])
                     ->columns(2),
 

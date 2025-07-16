@@ -160,6 +160,15 @@
             </div>
         </div>
 
+        <!-- TA100C / W Stats -->
+        <div class="stat-card indigo-theme">
+            <div class="stat-card-header"></div>
+            <div class="stat-card-content">
+                <div class="stat-title">TA100C / W</div>
+                <div class="stat-value">{{ $this->getDeviceCount('ta100cw_quantity') }}</div>
+            </div>
+        </div>
+
         <!-- TIME BEACON Stats -->
         <div class="stat-card amber-theme">
             <div class="stat-card-header"></div>

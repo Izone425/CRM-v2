@@ -385,6 +385,13 @@
                                         </tr>
                                     @endif
 
+                                    @if(isset($record->ta100cw_quantity) && $record->ta100cw_quantity > 0)
+                                        <tr>
+                                            <td class="px-6 py-3 border border-gray-300">TA100C / W</td>
+                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100cw_quantity }}</td>
+                                        </tr>
+                                    @endif
+
                                     @if(isset($record->time_beacon_quantity) && $record->time_beacon_quantity > 0)
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TIME BEACON</td>
@@ -410,6 +417,7 @@
                                         (!isset($record->ta100crw_quantity) || $record->ta100crw_quantity <= 0) &&
                                         (!isset($record->ta100cmfw_quantity) || $record->ta100cmfw_quantity <= 0) &&
                                         (!isset($record->ta100chidw_quantity) || $record->ta100chidw_quantity <= 0) &&
+                                        (!isset($record->ta100cw_quantity) || $record->ta100cw_quantity <= 0) &&
                                         (!isset($record->time_beacon_quantity) || $record->time_beacon_quantity <= 0) &&
                                         (!isset($record->nfc_tag_quantity) || $record->nfc_tag_quantity <= 0)
                                     )

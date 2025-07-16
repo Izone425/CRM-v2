@@ -332,6 +332,14 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->default(function (HardwareHandover $record) {
                                             return $record->tc100chidw_quantity ?? 0;
                                         }),
+
+                                    TextInput::make('tc100cw_quantity')
+                                        ->label('TA100C / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc100cw_quantity ?? 0;
+                                        }),
                                 ]),
 
                             Select::make('implementer')
@@ -633,6 +641,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         'ta100chidw' => [
                                             'quantity' => (int)$record->tc100chidw_quantity,
                                             'status' => (int)$record->tc100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cw' => [
+                                            'quantity' => (int)$record->tc100cw_quantity,
+                                            'status' => (int)$record->tc100cw_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

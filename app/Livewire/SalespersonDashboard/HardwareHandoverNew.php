@@ -862,6 +862,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
+                                    TextInput::make('tc100cw_quantity')
+                                        ->label('TA100C / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -1040,6 +1046,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100crw_quantity' => $data['tc100crw_quantity'],
                                 'ta100cmfw_quantity' => $data['tc100cmfw_quantity'],
                                 'ta100chidw_quantity' => $data['tc100chidw_quantity'],
+                                'ta100cw_quantity' => $data['tc100cw_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
@@ -1179,6 +1186,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                             'quantity' => (int)$record->tc100chidw_quantity,
                                             'status' => (int)$record->tc100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
+                                        'ta100cw' => [
+                                            'quantity' => (int)$data['tc100cw_quantity'],
+                                            'status' => (int)$data['tc100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
                                             'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
@@ -1300,6 +1311,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                                     TextInput::make('tc100chidw_quantity')
                                         ->label('TA100C / HID / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
+                                    TextInput::make('tc100cw_quantity')
+                                        ->label('TA100C / W')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -1487,7 +1504,9 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100chid_quantity' => $data['tc100chid_quantity'],
                                 'ta100crw_quantity' => $data['tc100crw_quantity'],
                                 'ta100cmfw_quantity' => $data['tc100cmfw_quantity'],
-                                'ta100chidw_quantity' => $data['tc100chidw_quantity'],                                'time_beacon_quantity' => $data['time_beacon_quantity'],
+                                'ta100chidw_quantity' => $data['tc100chidw_quantity'],
+                                'ta100cw_quantity' => $data['ta100cw_quantity'],
+                                'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName ?? null,
                                 'pending_migration_at' => now(),
@@ -1625,6 +1644,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         'ta100chidw' => [
                                             'quantity' => (int)$record->tc100chidw_quantity,
                                             'status' => (int)$record->tc100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'ta100cw' => [
+                                            'quantity' => (int)$data['tc100cw_quantity'],
+                                            'status' => (int)$data['tc100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],

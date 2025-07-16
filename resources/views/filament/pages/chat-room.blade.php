@@ -18,14 +18,17 @@
         </label>
         &nbsp;&nbsp;
         <!-- 🧑‍💼 Dropdown: Filter by Lead Owner -->
-        <div>
+        <div class="relative">
             <select wire:model="selectedLeadOwner"
-                class="mt-1 border-gray-300 rounded-md shadow-sm">
+                class="pr-8 mt-1 border-gray-300 rounded-md shadow-sm">
                 <option value="">All Lead Owners</option>
                 @foreach(\App\Models\User::where('role_id', 1)->pluck('name', 'name') as $name => $nameLabel)
                     <option value="{{ $name }}">{{ $nameLabel }}</option>
                 @endforeach
             </select>
+            <div wire:loading wire:target="selectedLeadOwner" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                <i class="text-sm fas fa-spinner fa-spin"></i>
+            </div>
         </div>
         &nbsp;&nbsp;
         <div class="flex items-center ml-10 space-x-4">

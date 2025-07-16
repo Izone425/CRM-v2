@@ -185,13 +185,27 @@ class ProductResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->modalHeading('Edit Product')
                     ->closeModalByClickingAway(false)
-                    ->hidden(fn(): bool => auth()->user()->role == User::IS_USER),
+                    ->hidden(fn(): bool => auth()->user()->role_id !== 3),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->hidden(fn(): bool => auth()->user()->role_id !== 3),
                 ]),
             ]);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->check() && auth()->user()->role_id === 3;
+    }
+
+    /**
+     * Determine if the current user can delete products in bulk.
+     */
+    public static function canDeleteAny(): bool
+    {
+        return auth()->check() && auth()->user()->role_id === 3;
     }
 
     public static function getRelations(): array

@@ -66,9 +66,9 @@ class TechnicianCalendar extends Component
         $this->date = Carbon::now();
 
         // If current user is a technician then only can access their own calendar
-        if (auth()->user()->role_id == 9) {
-            $this->selectedTechnicians[] = auth()->user()->id;
-        }
+        // if (auth()->user()->role_id == 9) {
+        //     $this->selectedTechnicians[] = auth()->user()->id;
+        // }
     }
 
     // Update date variable when user choose another date

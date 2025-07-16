@@ -58,6 +58,7 @@ class SparePartResource extends Resource
                                     'TA100C / R / W' => 'TA100C / R / W',
                                     'TA100C / MF / W' => 'TA100C / MF / W',
                                     'TA100C / HID / W' => 'TA100C / HID / W',
+                                    'TA100C / W' => 'TA100C / W',
                                 ])
                                 ->searchable()
                                 ->required(),
@@ -160,6 +161,7 @@ class SparePartResource extends Resource
                         'TA100C / R / W' => 'TA100C / R / W',
                         'TA100C / MF / W' => 'TA100C / MF / W',
                         'TA100C / HID / W' => 'TA100C / HID / W',
+                        'TA100C / W' => 'TA100C / W',
                     ])
                     ->multiple(),
 
