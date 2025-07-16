@@ -307,7 +307,7 @@ class SoftwareHandoverResource extends Resource
                                                     ];
 
                                                     // Initialize recipients array with admin email
-                                                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // UNCOMMENTED - Always include admin
+                                                    $recipients = ['faiz@timeteccloud.com']; // UNCOMMENTED - Always include admin
 
                                                     // Add new implementer email if valid
                                                     if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
@@ -956,7 +956,7 @@ class SoftwareHandoverResource extends Resource
                         if ($count > 0) {
                             try {
                                 // Initialize recipients for the batch email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['faiz@timeteccloud.com']; // Always include admin
 
                                 // Add new implementer email if valid
                                 if ($newImplementerUser->email && filter_var($newImplementerUser->email, FILTER_VALIDATE_EMAIL)) {

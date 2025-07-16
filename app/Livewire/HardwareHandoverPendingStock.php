@@ -658,7 +658,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                                $recipients = ['']; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {

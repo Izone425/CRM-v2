@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LeadSourceResource\Pages;
+use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\User;
 use Filament\Forms\Form;
@@ -52,9 +53,15 @@ class LeadSourceResource extends Resource
             ])
             ->actions([
                 EditAction::make()
-                    ->closeModalByClickingAway(false),
+                    ->closeModalByClickingAway(false)
+                    ->hidden(function (LeadSource $record): bool {
+                        return Lead::where('lead_code', $record->lead_code)->exists();
+                    }),
                 DeleteAction::make()
-                    ->closeModalByClickingAway(false),
+                    ->closeModalByClickingAway(false)
+                    ->hidden(function (LeadSource $record): bool {
+                        return Lead::where('lead_code', $record->lead_code)->exists();
+                    })
             ]);
     }
 

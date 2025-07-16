@@ -756,7 +756,7 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                                 }
 
                                 // Always include admin
-                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                $recipients[] = '';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
