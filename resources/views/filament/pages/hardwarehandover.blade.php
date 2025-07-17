@@ -315,7 +315,7 @@
         ->getOverdueHardwareHandovers()
         ->count();
 
-    $completedMigrationCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverCompleted::class)
+    $completedMigrationCount = app(\App\Livewire\HardwareHandoverCompletedMigration::class)
         ->getOverdueHardwareHandovers()
         ->count();
 

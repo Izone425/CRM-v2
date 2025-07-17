@@ -74,7 +74,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
     public function getOverdueHardwareHandovers()
     {
         return HardwareHandover::query()
-            ->whereIn('status', ['Completed'])
+            ->whereIn('status', ['Completed Migration'])
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
@@ -1099,6 +1099,14 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                         'ta100cw' => [
                                             'quantity' => (int)$record->ta100cw_quantity,
                                             'status' => (int)$record->ta100cw_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'time_attendance' => [
+                                            'quantity' => (int)$record->time_attendance_quantity,
+                                            'status' => (int)$record->time_attendance_quantity > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'door_access' => [
+                                            'quantity' => (int)$record->door_access_quantity,
+                                            'status' => (int)$record->door_access_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

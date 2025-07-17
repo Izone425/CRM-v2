@@ -109,11 +109,14 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
+                        'Rejected' => 'Rejected',
                         'Draft' => 'Draft',
                         'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Pending Stock' => 'Pending Stock',
+                        'Pending Migration' => 'Pending Migration',
+                        'Completed: Installation' => 'Completed: Installation',
+                        'Completed: Courier' => 'Completed: Courier',
+                        'Completed Migration' => 'Completed Migration',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),

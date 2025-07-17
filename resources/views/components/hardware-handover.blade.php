@@ -392,6 +392,20 @@
                                         </tr>
                                     @endif
 
+                                    @if(isset($record->time_attendance_quantity) && $record->time_attendance_quantity > 0)
+                                        <tr>
+                                            <td class="px-6 py-3 border border-gray-300">TIME ATTENDANCE</td>
+                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->time_attendance_quantity }}</td>
+                                        </tr>
+                                    @endif
+
+                                    @if(isset($record->door_access_quantity) && $record->door_access_quantity > 0)
+                                        <tr>
+                                            <td class="px-6 py-3 border border-gray-300">DOOR ACCESS</td>
+                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->door_access_quantity }}</td>
+                                        </tr>
+                                    @endif
+
                                     @if(isset($record->time_beacon_quantity) && $record->time_beacon_quantity > 0)
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TIME BEACON</td>
@@ -418,6 +432,8 @@
                                         (!isset($record->ta100cmfw_quantity) || $record->ta100cmfw_quantity <= 0) &&
                                         (!isset($record->ta100chidw_quantity) || $record->ta100chidw_quantity <= 0) &&
                                         (!isset($record->ta100cw_quantity) || $record->ta100cw_quantity <= 0) &&
+                                        (!isset($record->time_attendance_quantity) || $record->time_attendance_quantity <= 0) &&
+                                        (!isset($record->door_access_quantity) || $record->door_access_quantity <= 0) &&
                                         (!isset($record->time_beacon_quantity) || $record->time_beacon_quantity <= 0) &&
                                         (!isset($record->nfc_tag_quantity) || $record->nfc_tag_quantity <= 0)
                                     )
