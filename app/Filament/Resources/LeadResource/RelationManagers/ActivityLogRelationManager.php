@@ -1323,7 +1323,7 @@ class ActivityLogRelationManager extends RelationManager
                                         'email' => $lead->email ?? 'N/A',
                                         'country' => $lead->country ?? 'N/A',
                                         'products' => $lead->products ?? 'N/A',
-                                        'position' => $salespersonUser->position ?? 'N/A',
+                                        'position' => $leadowner->position ?? 'N/A',
                                         'companyName' => $lead->companyDetail->company_name ?? 'Unknown Company',
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
                                     ],

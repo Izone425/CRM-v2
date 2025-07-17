@@ -119,6 +119,36 @@ class WhatsAppController extends Controller
                 "Sekiranya waktu ini kurang sesuai untuk berbual, mohon maklumkan waktu yang lebih sesuai, atau jika ada individu lain yang lebih berkaitan untuk saya hubungi.\n" .
                 "Sekiranya anda ingin berbincang semula pada masa akan datang, saya sentiasa bersedia untuk membantu. Cukup sekadar hantarkan mesej, dan saya akan bantu sebaik mungkin. 😊",
 
+            //CN
+            'HXcc05134b6c74ecc02682a25887978630' =>
+                "您好！我是TimeTec的{{1}}。非常感谢您对我们HR云端系统的关注！\n\n" .
+                "我们提供一系列超实用的HR模块，协助您轻松应对人事管理：\n" .
+                "✅考勤系统\n" .
+                "✅薪资系统\n" .
+                "✅报销系统\n" .
+                "✅休假系统\n\n" .
+                "🎁限时优惠：\n" .
+                "现在订阅我们的考勤系统，即可免费获得生物识别设备！（需符合条款与条件）\n\n" .
+                "立即预约系统演示，我们将向您展示我们的系统如何优化HR流程，我们也会说明如何领取您的免费设备。\n\n" .
+                "🚀若想更了解我们的产品，请查阅我们的简介：\n" .
+                "https://www.timeteccloud.com/download/brochure/TimeTecHR-E.pdf\n\n" .
+                "期待与您详谈 ！😊",
+
+            'HX3e98ef9c87b7b95ecab108dd5fefa299' =>
+                "您好 {{1}}！😊\n\n" .
+                "想与您跟进一下，看看您是否有时间浏览我们的宣传册。\n" .
+                "如果您有兴趣参加我们的系统演示，请让我知道您方便接听电话的时间，好让我们为您安排。",
+
+            'HX56b6870ea3e16d538bccca337fa7ac84' =>
+                "温馨提醒：我们目前仍提供免费生物识别设备！（需符合条款与条件）\n" .
+                "这是零成本让您提升HR效率的好机会。😊\n" .
+                "如果现在不是合适的时机，或你希望联系其他负责人，请您随时告知。我很乐意协助！",
+
+            'HXf0bfe0b10f2816c62edd73cf2ff017b5' =>
+                "这是我最后一次小小的打扰 🙈\n\n" .
+                "如果您现在不方便，请告诉我什么时候联系您会更合适，如果需要联系其他负责人，也请您随时告知。\n\n" .
+                "如果您之后有兴趣重新了解，我随时愿意与您接洽！😊",
+
             //Request quotation
             'HX50b95050ff8d2fe33edf0873c4d2e2b4' =>
                 "Hi {{1}}, as per our phone conversation, please provide your details below so we can provide quotation to you:
@@ -132,6 +162,20 @@ class WhatsAppController extends Controller
                 HRDF Register:
                 Headcount:
                 Module interested:",
+
+            'HXef2f5718c4a0f099a18e53c2e0fce7fc' =>
+                "您好 {{1}}，根据我们之前的电话沟通，请您协助提供以下资料以便我们报价：
+
+                （最低人数为5位用户/员工）
+
+                部门名称：
+                公司名称（需与SSM注册一致）：
+                公司地址：
+                联系邮箱：
+                手机号码：
+                是否已注册HRDF：
+                员工人数：
+                感兴趣的产品：",
 
             //Send demo slot template
             'HX8ffc6fd8b995859aa28fa59ba9712529' =>
@@ -147,6 +191,19 @@ class WhatsAppController extends Controller
 
                 *Kindly reply if you have received this message.*",
 
+            'HX99cd275a009cf38322ede220d81be784' =>
+                "您好，以下是我们的线上/线下演示可选的时段：
+
+                {{1}}
+                {{2}}
+                {{3}}
+
+                请告知您是否可以参加我们的演示。
+
+                * 整个演示约1小时，其中包含问答环节。
+
+                *如您收到此消息，烦请回复确认。谢谢。*",
+
             //Send demo confirmation template
             'HX38ef28749e5a21f1725b67a424bc0b31' =>
                 "Hi {{1}}, your demo session has been confirmed:
@@ -158,6 +215,19 @@ class WhatsAppController extends Controller
                 The demo will take 1 hour, including a Q&A session. If you have any questions or things you'd like to clarify, feel free to jot them down and bring them up during the demo.
 
                 Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.",
+
+            'HXdcff7fa6fba635b272f4c2bed3a315f8' =>
+                "您好！产品演示已为您安排好了，以下是演示的详情：
+
+                {{1}}，{{2}} - {{3}}
+                {{4}}演示
+                负责人 - {{5}}，{{6}}
+
+                整个演示将进行1小时，我们也预留充足的时间回答您的问题。如果您有任何想了解的内容，欢迎提前准备好问题，届时我们可以重点讨论。
+
+                我们的销售同事会直接与您联系。如果在这之前您有任何疑问，也随时欢迎联系我们。
+
+                期待与您见面交流！",
 
             //Request company info template
             'HXff1b1179918e04a20f823db72a70ea16' =>
@@ -172,6 +242,20 @@ class WhatsAppController extends Controller
                 HRDF Register:
                 Headcount:
                 Module interested:",
+
+            'HXdcc6df08f9a65054d20de4df48f23485' =>
+                "您好！如果您有兴趣参与演示，请提供以下信息，以便我们为您安排合适的时段：
+
+                （最低人数为5位用户/员工）
+
+                部门名称：
+                公司名称（需与SSM注册一致）：
+                公司地址：
+                联系邮箱：
+                手机号码：
+                是否已注册HRDF：
+                员工人数：
+                感兴趣的产品：",
         ];
 
         if (!isset($templates[$contentTemplateSid])) {
