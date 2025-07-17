@@ -15,7 +15,18 @@
     <p>感谢您宝贵的时间，祝事业顺利，蒸蒸日上！</p>
 
     <p>祝商祺！</p>
-    <p>
+    <p> {{ $leadOwnerName }} 敬上<br>
+        @if(isset($lead['position']))
+            @if(strtolower($lead['position']) == 'business development executive')
+                市场开发代表<br>
+            @elseif(strtolower($lead['position']) == 'sales development representative')
+                市场开发专员<br>
+            @else
+                {{ $lead['position'] }}<br>
+            @endif
+        @else
+            TimeTec 客户服务代表<br>
+        @endif
         TimeTec Cloud Sdn Bhd<br>
         办公室电话：+603-8070 9933<br>
         WhatsApp：{{ $lead['leadOwnerMobileNumber'] ?? 'N/A' }}
