@@ -42,8 +42,6 @@ class HardwareHandover extends Model
         'tc100cmfw_quantity',
         'ta100chidw_quantity',
         'ta100cw_quantity',
-        'time_attendance_quantity',
-        'door_access_quantity',
         'tc20_quantity',
         'face_id5_quantity',
         'face_id6_quantity',
