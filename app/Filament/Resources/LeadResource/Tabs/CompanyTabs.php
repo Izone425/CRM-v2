@@ -246,6 +246,39 @@ class CompanyTabs
                                                     return $get('status') !== 'Closed';
                                                 }),
 
+                                            Select::make('software_handover_id')
+                                                ->label('Link Software Handover')
+                                                ->options(function (Lead $record) {
+                                                    $companyName = $record->companyDetail?->company_name;
+
+                                                    if (!$companyName) {
+                                                        return [];
+                                                    }
+
+                                                    // Find orphaned software handovers with matching company name
+                                                    return \App\Models\SoftwareHandover::whereNull('lead_id')
+                                                        ->where('company_name', 'LIKE', "%{$companyName}%")
+                                                        ->get()
+                                                        ->mapWithKeys(function ($handover) {
+                                                            $date = $handover->created_at->format('d M Y');
+                                                            $implementer = $handover->implementer ?? 'Unknown';
+                                                            return [$handover->id => "#{$handover->id} - {$handover->company_name} ({$implementer} - {$date})"];
+                                                        })
+                                                        ->toArray();
+                                                })
+                                                ->searchable()
+                                                ->placeholder('Select handover to link')
+                                                ->helperText('Link an orphaned software handover to this lead')
+                                                ->hidden(function (callable $get) {
+                                                    // Hide if user is a salesperson (role_id 2)
+                                                    if (auth()->user()->role_id == 2) {
+                                                        return true;
+                                                    }
+
+                                                    // No need to hide based on status
+                                                    return false;
+                                                }),
+
                                             // Reason Field - Visible only when status is NOT Closed
                                             Select::make('reason')
                                                 ->label('Select a Reason')
@@ -319,6 +352,24 @@ class CompanyTabs
 
                                             $lead->update($updateData);
 
+                                            if (!empty($data['software_handover_id'])) {
+                                                $handoverId = $data['software_handover_id'];
+                                                $handover = \App\Models\SoftwareHandover::find($handoverId);
+
+                                                if ($handover) {
+                                                    // Update the software handover with the lead_id
+                                                    $handover->update([
+                                                        'lead_id' => $lead->id
+                                                    ]);
+
+                                                    // Log this action
+                                                    activity()
+                                                        ->causedBy(auth()->user())
+                                                        ->performedOn($lead)
+                                                        ->log('Software handover #' . $handoverId . ' linked to this lead');
+                                                }
+                                            }
+
                                             $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
                                                 ->orderByDesc('created_at')
                                                 ->first();
@@ -335,8 +386,6 @@ class CompanyTabs
                                                     'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
                                                 ]);
                                             }
-
-                                            // Rest of your existing action code...
 
                                             Notification::make()
                                                 ->title('Lead Archived')

@@ -95,6 +95,7 @@ class AdminRepairDashboard extends Page implements HasTable
                                     // 2. Get handovers with direct company_name values
                                     $directCompanyHandovers = \App\Models\SoftwareHandover::whereNotNull('company_name')
                                         ->where('company_name', '!=', '')
+                                        ->whereNotNull('lead_id')
                                         ->orderBy('id', 'desc')
                                         ->get();
 
