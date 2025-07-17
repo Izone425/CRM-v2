@@ -232,6 +232,7 @@ class RepairAppointmentRelationManager extends RelationManager
                                 'NEW INSTALLATION' => 'NEW INSTALLATION',
                                 'REPAIR' => 'REPAIR',
                                 'MAINTENANCE SERVICE' => 'MAINTENANCE SERVICE',
+                                'SITE SURVEY' => 'SITE SURVEY',
                             ])
                             ->default(function ($record = null) {
                                 // If we have a record (for reschedule), use its type

@@ -15,6 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\View;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -203,201 +204,256 @@ class CompanyTabs
                                     View::make('components.person-in-charge')
                                 ]),
                             ])->columnSpan(1),
-                    Grid::make(1) // Nested grid for left side (single column)
+                    Grid::make(1)
                         ->schema([
                             Section::make('Status')
                                 ->icon('heroicon-o-information-circle')
                                 ->extraAttributes([
                                     'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                 ])
+                                ->headerActions([
+                                    Action::make('archive')
+                                        ->label(__('Edit'))
+                                        ->visible(fn(Lead $record) => !empty($record->salesperson) || !empty($record->lead_owner))
+                                        ->modalHeading('Mark Lead as Inactive')
+                                        ->form([
+                                            Placeholder::make('')
+                                                ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
+
+                                            Select::make('status')
+                                                ->label('INACTIVE STATUS')
+                                                ->options([
+                                                    'On Hold' => 'On Hold',
+                                                    'Junk' => 'Junk',
+                                                    'Lost' => 'Lost',
+                                                    'Closed' => 'Closed',
+                                                ])
+                                                ->default('On Hold')
+                                                ->required()
+                                                ->reactive(),
+
+                                            Checkbox::make('visible_in_repairs')
+                                                ->label('Visible in Repair Dashboard')
+                                                ->helperText('When checked, this lead will appear in the Admin Repair Dashboard')
+                                                ->default(fn (Lead $record) => $record->visible_in_repairs ?? false)
+                                                ->hidden(function (callable $get) {
+                                                    // Hide if user is a salesperson (role_id 2)
+                                                    if (auth()->user()->role_id == 2) {
+                                                        return true;
+                                                    }
+
+                                                    // Also hide if status is not 'Closed'
+                                                    return $get('status') !== 'Closed';
+                                                }),
+
+                                            // Reason Field - Visible only when status is NOT Closed
+                                            Select::make('reason')
+                                                ->label('Select a Reason')
+                                                ->options(fn (callable $get) =>
+                                                    $get('status') !== 'Closed'
+                                                        ? InvalidLeadReason::where('lead_stage', $get('status'))->pluck('reason', 'id')->toArray()
+                                                        : [] // Hide options when Closed
+                                                )
+                                                ->hidden(fn (callable $get) => $get('status') === 'Closed')
+                                                ->required(fn (callable $get) => $get('status') !== 'Closed')
+                                                ->reactive()
+                                                ->createOptionForm([
+                                                    Select::make('lead_stage')
+                                                        ->options([
+                                                            'On Hold' => 'On Hold',
+                                                            'Junk' => 'Junk',
+                                                            'Lost' => 'Lost',
+                                                            'Closed' => 'Closed',
+                                                        ])
+                                                        ->default(fn (callable $get) => $get('status'))
+                                                        ->required(),
+                                                    TextInput::make('reason')
+                                                        ->label('New Reason')
+                                                        ->required(),
+                                                ])
+                                                ->createOptionUsing(function (array $data) {
+                                                    $newReason = InvalidLeadReason::create([
+                                                        'lead_stage' => $data['lead_stage'],
+                                                        'reason' => $data['reason'],
+                                                    ]);
+                                                    return $newReason->id;
+                                                }),
+
+                                            Textarea::make('remark')
+                                                ->label('Remarks')
+                                                ->rows(3)
+                                                ->autosize()
+                                                ->reactive()
+                                                ->required()
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                                        ])
+                                        ->action(function (Lead $record, array $data) {
+                                            $statusLabels = [
+                                                'on_hold' => 'On Hold',
+                                                'junk' => 'Junk',
+                                                'lost' => 'Lost',
+                                                'closed' => 'Closed',
+                                            ];
+
+                                            $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
+                                            $lead = $record;
+
+                                            $updateData = [
+                                                'categories' => 'Inactive',
+                                                'lead_status' => $statusLabel,
+                                                'remark' => $data['remark'],
+                                                'stage' => null,
+                                                'follow_up_date' => null,
+                                                'follow_up_needed' => false,
+                                                'visible_in_repairs' => $data['visible_in_repairs'] ?? false,
+                                            ];
+
+                                            // If lead is closed, update deal amount
+                                            if ($data['status'] === 'Closed') {
+                                                $updateData['deal_amount'] = $data['deal_amount'] ?? null;
+                                                $updateData['closing_date'] = now();
+                                            } else {
+                                                // If not closed, update reason
+                                                $updateData['reason'] = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
+                                            }
+
+                                            $lead->update($updateData);
+
+                                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                                ->orderByDesc('created_at')
+                                                ->first();
+
+                                            if ($latestActivityLog) {
+                                                activity()
+                                                    ->causedBy(auth()->user())
+                                                    ->performedOn($lead)
+                                                    ->log('Lead marked as inactive.');
+
+                                                sleep(1);
+
+                                                $latestActivityLog->update([
+                                                    'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
+                                                ]);
+                                            }
+
+                                            // Rest of your existing action code...
+
+                                            Notification::make()
+                                                ->title('Lead Archived')
+                                                ->success()
+                                                ->body('You have successfully marked the lead as inactive.')
+                                                ->send();
+                                        }),
+                                ])
                                 ->schema([
                                     Grid::make(1) // Single column in the right-side section
                                         ->schema([
                                             View::make('components.deal-information'),
-                                            Actions::make([
-                                                Action::make('archive')
-                                                    ->label(__('Edit'))
-                                                    ->visible(fn(Lead $record) => !empty($record->salesperson) || !empty($record->lead_owner))
-                                                    ->modalHeading('Mark Lead as Inactive')
-                                                    ->form([
-                                                        Placeholder::make('')
-                                                            ->content(__('Please select the reason to mark this lead as inactive and add any relevant remarks.')),
-
-                                                        Select::make('status')
-                                                            ->label('INACTIVE STATUS')
-                                                            ->options([
-                                                                'On Hold' => 'On Hold',
-                                                                'Junk' => 'Junk',
-                                                                'Lost' => 'Lost',
-                                                                'Closed' => 'Closed',
-                                                            ])
-                                                            ->default('On Hold')
-                                                            ->required()
-                                                            ->reactive(),
-
-                                                        Checkbox::make('visible_in_repairs')
-                                                            ->label('Visible in Repair Dashboard')
-                                                            ->helperText('When checked, this lead will appear in the Admin Repair Dashboard')
-                                                            ->default(fn (Lead $record) => $record->visible_in_repairs ?? false)
-                                                            ->hidden(function (callable $get) {
-                                                                // Hide if user is a salesperson (role_id 2)
-                                                                if (auth()->user()->role_id == 2) {
-                                                                    return true;
-                                                                }
-
-                                                                // Also hide if status is not 'Closed'
-                                                                return $get('status') !== 'Closed';
-                                                            }),
-
-                                                        // Reason Field - Visible only when status is NOT Closed
-                                                        Select::make('reason')
-                                                            ->label('Select a Reason')
-                                                            ->options(fn (callable $get) =>
-                                                                $get('status') !== 'Closed'
-                                                                    ? InvalidLeadReason::where('lead_stage', $get('status'))->pluck('reason', 'id')->toArray()
-                                                                    : [] // Hide options when Closed
-                                                            )
-                                                            ->hidden(fn (callable $get) => $get('status') === 'Closed')
-                                                            ->required(fn (callable $get) => $get('status') !== 'Closed')
-                                                            ->reactive()
-                                                            ->createOptionForm([
-                                                                Select::make('lead_stage')
-                                                                    ->options([
-                                                                        'On Hold' => 'On Hold',
-                                                                        'Junk' => 'Junk',
-                                                                        'Lost' => 'Lost',
-                                                                        'Closed' => 'Closed',
-                                                                    ])
-                                                                    ->default(fn (callable $get) => $get('status'))
-                                                                    ->required(),
-                                                                TextInput::make('reason')
-                                                                    ->label('New Reason')
-                                                                    ->required(),
-                                                            ])
-                                                            ->createOptionUsing(function (array $data) {
-                                                                $newReason = InvalidLeadReason::create([
-                                                                    'lead_stage' => $data['lead_stage'],
-                                                                    'reason' => $data['reason'],
-                                                                ]);
-                                                                return $newReason->id;
-                                                            }),
-
-                                                        // Deal Amount Field - Visible only when status is Closed
-                                                        // TextInput::make('deal_amount')
-                                                        //     ->label('Close Deal Amount')
-                                                        //     ->numeric()
-                                                        //     ->hidden(fn (callable $get) => $get('status') !== 'Closed')
-                                                        //     ->required(fn (callable $get) => $get('status') === 'Closed'),
-
-                                                        Textarea::make('remark')
-                                                            ->label('Remarks')
-                                                            ->rows(3)
-                                                            ->autosize()
-                                                            ->reactive()
-                                                            ->required()
-                                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                                    ])
-                                                    ->action(function (Lead $record, array $data) {
-                                                        $statusLabels = [
-                                                            'on_hold' => 'On Hold',
-                                                            'junk' => 'Junk',
-                                                            'lost' => 'Lost',
-                                                            'closed' => 'Closed',
-                                                        ];
-
-                                                        $statusLabel = $statusLabels[$data['status']] ?? $data['status'];
-                                                        $lead = $record;
-
-                                                        $updateData = [
-                                                            'categories' => 'Inactive',
-                                                            'lead_status' => $statusLabel,
-                                                            'remark' => $data['remark'],
-                                                            'stage' => null,
-                                                            'follow_up_date' => null,
-                                                            'follow_up_needed' => false,
-                                                            'visible_in_repairs' => $data['visible_in_repairs'] ?? false,
-                                                        ];
-
-                                                        // If lead is closed, update deal amount
-                                                        if ($data['status'] === 'Closed') {
-                                                            $updateData['deal_amount'] = $data['deal_amount'] ?? null;
-                                                            $updateData['closing_date'] = now();
-                                                        } else {
-                                                            // If not closed, update reason
-                                                            $updateData['reason'] = InvalidLeadReason::find($data['reason'])?->reason ?? 'Unknown Reason';
-                                                        }
-
-                                                        $lead->update($updateData);
-
-                                                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                                            ->orderByDesc('created_at')
-                                                            ->first();
-
-                                                        if ($latestActivityLog) {
-                                                            activity()
-                                                                ->causedBy(auth()->user())
-                                                                ->performedOn($lead)
-                                                                ->log('Lead marked as inactive.');
-
-                                                            sleep(1);
-
-                                                            $latestActivityLog->update([
-                                                                'description' => 'Marked as ' . $statusLabel . ': ' . ($updateData['reason'] ?? 'Close Deal'),
-                                                            ]);
-                                                        }
-
-                                                        try {
-                                                            // Check if this is a BD Referral lead and it's being marked as Closed or Lost
-                                                            if ($lead->lead_code === 'BD Referral Program' && in_array($data['status'], ['Closed', 'Lost'])) {
-                                                                $viewName = 'emails.bd_referral_closure';
-
-                                                                // Set recipients for BD Referral notifications
-                                                                $recipients = collect([
-                                                                    (object)[
-                                                                        'email' => 'jonathan@timeteccloud.com',
-                                                                        'name' => 'Jonathan Tay'
-                                                                    ]
-                                                                ]);
-
-                                                                foreach ($recipients as $recipient) {
-                                                                    $emailContent = [
-                                                                        'recipient_name' => $recipient->name,
-                                                                        'lead' => [
-                                                                            'id' => $lead->id,
-                                                                            'company_name' => $lead->companyDetail->company_name ?? 'N/A',
-                                                                            'contact_person' => $lead->companyDetail->name ?? $lead->name,
-                                                                            'email' => $lead->companyDetail->email ?? $lead->email,
-                                                                            'phone' => $lead->companyDetail->contact_no ?? $lead->phone,
-                                                                            'status' => $data['status'], // Closed or Lost
-                                                                            'closed_date' => now()->format('d M Y, h:i A'),
-                                                                        ],
-                                                                        'remarks' => $data['remark'] ?? 'No remarks provided',
-                                                                        'closed_by' => auth()->user()->name
-                                                                    ];
-
-                                                                    Mail::to($recipient->email)
-                                                                        ->send(new BDReferralClosure($emailContent, $viewName));
-                                                                }
-
-                                                                Log::info("BD Referral closure notification sent", [
-                                                                    'lead_id' => $lead->id,
-                                                                    'company' => $lead->companyDetail->company_name ?? 'N/A',
-                                                                    'status' => $data['status']
-                                                                ]);
-                                                            }
-                                                        } catch (\Exception $e) {
-                                                            Log::error("BD Referral Notification Error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
-                                                        }
-
-                                                        Notification::make()
-                                                            ->title('Lead Archived')
-                                                            ->success()
-                                                            ->body('You have successfully marked the lead as inactive.')
-                                                            ->send();
-                                                    }),
-                                            ])
                                         ]),
+                                    ]),
+                            Section::make('Project Information')
+                                ->icon('heroicon-o-clipboard-document-list')
+                                ->extraAttributes([
+                                    'style' => 'background-color: #fff5f5; border: dashed; border-color: #feb2b2;'
                                 ])
+                                ->visible(function (Lead $lead) {
+                                    // Admin role always has access
+                                    if (auth()->user()->role_id === 3) {
+                                        return true;
+                                    }
+
+                                    // Check if current user is the implementer for this lead
+                                    $latestHandover = $lead->softwareHandover()
+                                        ->orderBy('created_at', 'desc')
+                                        ->first();
+
+                                    if ($latestHandover && strtolower($latestHandover->implementer) === strtolower(auth()->user()->name)) {
+                                        return true;
+                                    }
+
+                                    return false;
+                                })
+                                ->headerActions([
+                                    Action::make('edit_project_info')
+                                        ->label('Edit')
+                                        ->visible(function (Lead $lead) {
+                                            // Admin role always has access
+                                            if (auth()->user()->role_id === 3) {
+                                                return true;
+                                            }
+
+                                            // Check if current user is the implementer for this lead
+                                            $latestHandover = $lead->softwareHandover()
+                                                ->orderBy('created_at', 'desc')
+                                                ->first();
+
+                                            if ($latestHandover && strtolower($latestHandover->implementer) === strtolower(auth()->user()->name)) {
+                                                return true;
+                                            }
+
+                                            return false;
+                                        })
+                                        ->modalHeading('Edit Project Information')
+                                        ->modalSubmitActionLabel('Save Changes')
+                                        ->form([
+                                            Select::make('status_handover')
+                                                ->label('Project Status')
+                                                ->options([
+                                                    'Inactive' => 'Inactive',
+                                                    'Closed' => 'Closed',
+                                                ])
+                                                ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->status_handover ?? 'Open')
+                                                ->reactive()
+                                                ->required(),
+
+                                            DatePicker::make('go_live_date')
+                                                ->label('Go Live Date')
+                                                ->format('Y-m-d')
+                                                ->displayFormat('d/m/Y')
+                                                ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->go_live_date ?? null)
+                                                // Only require go_live_date when status is NOT Inactive
+                                                ->required(fn (callable $get) => $get('status_handover') !== 'Inactive')
+                                                // Hide field when status is Inactive
+                                                ->visible(fn (callable $get) => $get('status_handover') == 'Closed'),
+                                        ])
+                                        ->action(function (Lead $lead, array $data) {
+                                            // Get the latest software handover record
+                                            $handover = $lead->softwareHandover()->latest('created_at')->first();
+
+                                            // Prepare update data - don't include go_live_date when status is Inactive
+                                            $updateData = [
+                                                'status_handover' => $data['status_handover'],
+                                            ];
+
+                                            // Only include go_live_date if status is not Inactive
+                                            if ($data['status_handover'] !== 'Inactive') {
+                                                $updateData['go_live_date'] = $data['go_live_date'];
+                                            }
+
+                                            if ($handover) {
+                                                // Update existing software handover
+                                                $handover->update($updateData);
+
+                                                Notification::make()
+                                                    ->title('Project Information Updated')
+                                                    ->success()
+                                                    ->send();
+                                            } else {
+                                                // Create new software handover
+                                                $lead->softwareHandover()->create(array_merge($updateData, [
+                                                    'status' => 'Completed',
+                                                ]));
+
+                                                Notification::make()
+                                                    ->title('Project Information Created')
+                                                    ->success()
+                                                    ->send();
+                                            }
+                                        }),
+                                ])
+                                ->schema([
+                                    View::make('components.project-information'),
+                                ]),
                         ])->columnSpan(1),
                     ]),
                     // Section::make('E-Invoice Details')

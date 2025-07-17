@@ -251,7 +251,7 @@ class FetchZohoLeads extends Command
                         'created_at'   => $leadCreatedTime,
                         'categories'   => 'Active',
                         'stage'        => 'Transfer',
-                        'lead_status'  => 'Under Review',
+                        'lead_status'  => 'New',
                     ]);
 
                     $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
@@ -264,6 +264,8 @@ class FetchZohoLeads extends Command
                             'description' => 'New lead created',
                         ]);
                     }
+
+                    sleep(1);
 
                     // Add a new activity log for lead owner assignment
                     ActivityLog::create([

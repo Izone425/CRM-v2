@@ -396,21 +396,23 @@
         ->count();
 
     // Ticketing System Counts
-    $ticketingToday = 12; // Example count
-    $ticketingOverdue = 7;
+    $internalTicketsToday = 0; // Replace with actual count
+    $internalTicketsOverdue = 0; // Replace with actual count
+    $externalTicketsToday = 0; // Replace with actual count
+    $externalTicketsOverdue = 0;
 
     // New Request Counts
-    $customizationPending = 9; // Example count
-    $customizationCompleted = 14;
-    $enhancementPending = 6;
-    $enhancementCompleted = 11;
+    $customizationPending = 0; // Example count
+    $customizationCompleted = 0;
+    $enhancementPending = 0;
+    $enhancementCompleted = 0;
 
     // Calculate totals for main categories
     $projectStatusTotal = $allProjects;
     $licenseTotal = $pendingLicenseCount + $completedLicenseCount;
     $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
     $followUpTotal = $followUpToday + $followUpOverdue;
-    $ticketingTotal = $ticketingToday + $ticketingOverdue;
+    $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
 @endphp
 
@@ -462,7 +464,7 @@
                 :class="{'selected': selectedGroup === 'license'}"
                 @click="setSelectedGroup('license')">
                 <div class="group-info">
-                    <div class="group-title">License Certification</div>
+                    <div class="group-title">License Certificate</div>
                 </div>
                 <div class="group-count">{{ $licenseTotal }}</div>
             </div>
@@ -624,21 +626,39 @@
             <!-- TICKETING SYSTEM Sub-tabs -->
             <div class="category-container" x-show="selectedGroup === 'ticketing'" x-transition>
                 <div class="stat-box ticketing-today"
-                    :class="{'selected': selectedStat === 'ticketing-today'}"
-                    @click="setSelectedStat('ticketing-today')">
+                    :class="{'selected': selectedStat === 'internal-today'}"
+                    @click="setSelectedStat('internal-today')">
                     <div class="stat-info">
-                        <div class="stat-label">Today</div>
+                        <div class="stat-label">Internal Today</div>
                     </div>
-                    <div class="stat-count">{{ $ticketingToday }}</div>
+                    <div class="stat-count">{{ $internalTicketsToday ?? 0 }}</div>
                 </div>
 
                 <div class="stat-box ticketing-overdue"
-                    :class="{'selected': selectedStat === 'ticketing-overdue'}"
-                    @click="setSelectedStat('ticketing-overdue')">
+                    :class="{'selected': selectedStat === 'internal-overdue'}"
+                    @click="setSelectedStat('internal-overdue')">
                     <div class="stat-info">
-                        <div class="stat-label">Overdue</div>
+                        <div class="stat-label">Internal Overdue</div>
                     </div>
-                    <div class="stat-count">{{ $ticketingOverdue }}</div>
+                    <div class="stat-count">{{ $internalTicketsOverdue ?? 0 }}</div>
+                </div>
+
+                <div class="stat-box ticketing-today"
+                    :class="{'selected': selectedStat === 'external-today'}"
+                    @click="setSelectedStat('external-today')">
+                    <div class="stat-info">
+                        <div class="stat-label">External Today</div>
+                    </div>
+                    <div class="stat-count">{{ $externalTicketsToday ?? 0 }}</div>
+                </div>
+
+                <div class="stat-box ticketing-overdue"
+                    :class="{'selected': selectedStat === 'external-overdue'}"
+                    @click="setSelectedStat('external-overdue')">
+                    <div class="stat-info">
+                        <div class="stat-label">External Overdue</div>
+                    </div>
+                    <div class="stat-count">{{ $externalTicketsOverdue ?? 0 }}</div>
                 </div>
             </div>
 
@@ -754,14 +774,24 @@
                 </div>
 
                 <!-- TICKETING SYSTEM Tables -->
-                <div x-show="selectedStat === 'ticketing-today'" x-transition>
+                <div x-show="selectedStat === 'internal-today'" x-transition>
                     <div class="p-4">
-                        {{-- <livewire:ticketing-today-table /> --}}
+                        {{-- <livewire:implementer-dashboard.internal-tickets-today /> --}}
                     </div>
                 </div>
-                <div x-show="selectedStat === 'ticketing-overdue'" x-transition>
+                <div x-show="selectedStat === 'internal-overdue'" x-transition>
                     <div class="p-4">
-                        {{-- <livewire:ticketing-overdue-table /> --}}
+                        {{-- <livewire:implementer-dashboard.internal-tickets-overdue /> --}}
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'external-today'" x-transition>
+                    <div class="p-4">
+                        {{-- <livewire:implementer-dashboard.external-tickets-today /> --}}
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'external-overdue'" x-transition>
+                    <div class="p-4">
+                        {{-- <livewire:implementer-dashboard.external-tickets-overdue /> --}}
                     </div>
                 </div>
 

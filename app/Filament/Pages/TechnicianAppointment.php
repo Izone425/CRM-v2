@@ -75,6 +75,69 @@ class TechnicianAppointment extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('View Appointment')
+                        ->icon('heroicon-o-eye')
+                        ->color('success')
+                        ->modalHeading('Repair Appointment Details')
+                        ->modalSubmitAction(false)
+                        ->form(function ($record) {
+                            if (!$record) {
+                                return [
+                                    TextInput::make('error')->default('Appointment not found')->disabled(),
+                                ];
+                            }
+
+                            return [
+                                Grid::make(3)
+                                    ->schema([
+                                        TextInput::make('type')
+                                            ->label('Repair Type')
+                                            ->default(strtoupper($record->type))
+                                            ->disabled(),
+
+                                        TextInput::make('appointment_type')
+                                            ->label('Appointment Type')
+                                            ->default($record->appointment_type)
+                                            ->disabled(),
+
+                                        TextInput::make('technician')
+                                            ->label('Technician')
+                                            ->default($record->technician)
+                                            ->disabled(),
+                                    ]),
+
+                                Grid::make(3)
+                                    ->schema([
+                                        DatePicker::make('date')
+                                            ->label('Date')
+                                            ->default($record->date)
+                                            ->disabled(),
+
+                                        TimePicker::make('start_time')
+                                            ->label('Start Time')
+                                            ->default($record->start_time)
+                                            ->disabled(),
+
+                                        TimePicker::make('end_time')
+                                            ->label('End Time')
+                                            ->default($record->end_time)
+                                            ->disabled(),
+                                    ]),
+
+                                Textarea::make('remarks')
+                                    ->label('Remarks')
+                                    ->default($record->remarks)
+                                    ->autosize()
+                                    ->disabled()
+                                    ->reactive()
+                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                                TextInput::make('required_attendees')
+                                    ->label('Required Attendees')
+                                    ->default($record->required_attendees)
+                                    ->disabled(),
+                            ];
+                        }),
                     Action::make('edit')
                         ->label('Reschedule')
                         ->color('warning')
@@ -290,6 +353,9 @@ class TechnicianAppointment extends Page implements HasTable
                     Select::make('type')
                         ->options([
                             'FINGERTEC TASK' => 'FINGERTEC TASK',
+                            'TIMETEC HR TASK' => 'TIMETEC HR TASK',
+                            'TIMETEC PARKING TASK' => 'TIMETEC PARKING TASK',
+                            'TIMETEC PROPERTY TASK' => 'TIMETEC PROPERTY TASK',
                         ])
                         ->default('FINGERTEC TASK')
                         ->required()

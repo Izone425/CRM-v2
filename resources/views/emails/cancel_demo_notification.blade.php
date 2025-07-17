@@ -8,7 +8,7 @@
 
     <p>I wanted to inform you that our meeting scheduled for
         {{ Carbon\Carbon::createFromFormat('d/m/Y', $lead['date'])->format('j F Y') }}
-        at {{ Carbon\Carbon::parse($lead['startTime'])->format('h:iA') }} has been canceled.</p>
+        at {{ Carbon\Carbon::parse($lead['startTime'])->format('h:iA') }} has been cancelled.</p>
 
     <p>If you'd like to reschedule, just let us know a convenient time.</p>
 
