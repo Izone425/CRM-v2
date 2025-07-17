@@ -318,22 +318,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                             return $record->ta100cmfw_quantity ?? 0;
                                         }),
 
-                                    TextInput::make('time_attendance_quantity')
-                                        ->label('TIME ATTENDANCE')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(function (HardwareHandover $record) {
-                                            return $record->time_attendance_quantity ?? 0;
-                                        }),
-
-                                    TextInput::make('door_access_quantity')
-                                        ->label('DOOR ACCESS')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(function (HardwareHandover $record) {
-                                            return $record->door_access_quantity ?? 0;
-                                        }),
-
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -523,8 +507,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 'ta100crw_quantity' => $data['ta100crw_quantity'] ?? 0,
                                 'ta100cmfw_quantity' => $data['ta100cmfw_quantity'] ?? 0,
                                 'ta100chidw_quantity' => $data['ta100chidw_quantity'] ?? 0,
-                                'door_access_quantity' => $data['door_access_quantity'] ?? 0,
-                                'time_attendance_quantity' => $data['time_attendance_quantity'] ?? 0,
                                 'time_beacon_quantity' => $data['time_beacon_quantity'] ?? 0,
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'] ?? 0,
                             ];
@@ -664,14 +646,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         'ta100cw' => [
                                             'quantity' => (int)$record->ta100cw_quantity,
                                             'status' => (int)$record->ta100cw_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'door_access' => [
-                                            'quantity' => (int)$record->door_access_quantity,
-                                            'status' => (int)$record->door_access_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'time_attendance' => [
-                                            'quantity' => (int)$record->time_attendance_quantity,
-                                            'status' => (int)$record->time_attendance_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,

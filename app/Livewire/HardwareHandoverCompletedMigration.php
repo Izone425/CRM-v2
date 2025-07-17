@@ -1100,14 +1100,6 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                             'quantity' => (int)$record->ta100cw_quantity,
                                             'status' => (int)$record->ta100cw_quantity > 0 ? 'Available' : 'Pending Stock'
                                         ],
-                                        'time_attendance' => [
-                                            'quantity' => (int)$record->time_attendance_quantity,
-                                            'status' => (int)$record->time_attendance_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'door_access' => [
-                                            'quantity' => (int)$record->door_access_quantity,
-                                            'status' => (int)$record->door_access_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$record->time_beacon_quantity,
                                             'status' => (int)$record->time_beacon_quantity > 0 ? 'Available' : 'Pending Stock'

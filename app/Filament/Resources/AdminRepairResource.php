@@ -153,8 +153,6 @@ class AdminRepairResource extends Resource
                                         'TA100C / MF / W' => 'TA100C / MF / W',
                                         'TA100C / HID / W' => 'TA100C / HID / W',
                                         'TA100C / W' => 'TA100C / W',
-                                        'TIME ATTENDANCE' => 'TIME ATTENDANCE',
-                                        'DOOR ACCESS' => 'DOOR ACCESS',
                                     ])
                                     ->searchable()
                                     ->required(),
@@ -361,44 +359,6 @@ class AdminRepairResource extends Resource
 
                                 return $state;
                             }),
-                        ]),
-
-                        // FIELD 8 – VIDEO DETAILS
-                        Section::make('Video Details')
-                        ->columnSpan(1)
-                        ->schema([
-                            FileUpload::make('video_files')
-                            ->label('Upload Videos (MP4, MOV, AVI)')
-                            ->disk('public')
-                            ->directory('repair/videos')
-                            ->visibility('public')
-                            ->multiple()
-                            ->maxFiles(3)
-                            ->maxSize(10000)
-                            ->acceptedFileTypes([
-                                'video/mp4',
-                                'video/quicktime',
-                                'video/x-msvideo',
-                                'video/x-ms-wmv',
-                                'video/webm'
-                            ])
-                            // Add these settings
-                            ->preserveFilenames()
-                            ->enableOpen()
-                            ->enableDownload()
-                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                                // Get extension
-                                $extension = $file->getClientOriginalExtension();
-
-                                // Generate a unique identifier
-                                $timestamp = now()->format('YmdHis');
-                                $random = rand(1000, 9999);
-
-                                return "RP-VIDEO-{$timestamp}-{$random}.{$extension}";
-                            })
-                            ->openable()
-                            ->previewable()
-                            ->downloadable()
                         ]),
                 ]),
             ]);

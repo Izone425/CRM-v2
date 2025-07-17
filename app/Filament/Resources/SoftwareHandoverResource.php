@@ -664,6 +664,25 @@ class SoftwareHandoverResource extends Resource
             ])
             ->filters([
                 // Existing date range filter
+                Tables\Filters\SelectFilter::make('lead_association')
+                    ->label('Lead Association')
+                    ->options([
+                        'with_lead' => 'Has Lead ID',
+                        'without_lead' => 'Missing Lead ID',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        // Return early if no value is selected
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'with_lead' => $query->whereNotNull('lead_id'),
+                            'without_lead' => $query->whereNull('lead_id'),
+                            default => $query,
+                        };
+                    })
+                    ->indicator('Lead Association'),
                 Filter::make('completed_at')
                     ->form([
                         DateRangePicker::make('date_range')

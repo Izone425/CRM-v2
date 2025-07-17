@@ -26,8 +26,6 @@
                         <th class="p-3 text-left">TA100C / MF / W</th>
                         <th class="p-3 text-left">TA100C / HID / R</th>
                         <th class="p-3 text-left">TA100C / W</th>
-                        <th class="p-3 text-left">TIME ATTENDANCE</th>
-                        <th class="p-3 text-left">DOOR ACCESS</th>
                         <th class="p-3 text-left">Time Beacon</th>
                         <th class="p-3 text-left">NFC Tag</th>
                         <th class="p-3 text-left">Date Submit</th>
@@ -63,8 +61,6 @@
                             <td class="p-3 text-center">{{ $handover->ta100cmfw_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->ta100chidw_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->ta100cw_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->time_attendance_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->door_access_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->time_beacon_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->nfc_tag_quantity ?? '0' }}</td>
                             <td class="p-3">

@@ -869,18 +869,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
-                                    TextInput::make('time_attendance_quantity')
-                                        ->label('TIME ATTENDANCE')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
-
-                                    TextInput::make('door_access_quantity')
-                                        ->label('DOOR ACCESS')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
-
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -1060,8 +1048,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
                                 'ta100chidw_quantity' => $data['ta100chidw_quantity'],
                                 'ta100cw_quantity' => $data['ta100cw_quantity'],
-                                'time_attendance_quantity' => $data['time_attendance_quantity'],
-                                'door_access_quantity' => $data['door_access_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
@@ -1205,14 +1191,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                             'quantity' => (int)$data['ta100cw_quantity'],
                                             'status' => (int)$data['ta100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
-                                        'time_attendance' => [
-                                            'quantity' => (int)$data['time_attendance_quantity'],
-                                            'status' => (int)$data['time_attendance_quantity'] > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'door_access' => [
-                                            'quantity' => (int)$data['door_access_quantity'],
-                                            'status' => (int)$data['door_access_quantity'] > 0 ? 'Available' : 'Pending Stock'
-                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
                                             'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
@@ -1339,18 +1317,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                                     TextInput::make('ta100cw_quantity')
                                         ->label('TA100C / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
-
-                                    TextInput::make('time_attendance_quantity')
-                                        ->label('TIME ATTENDANCE')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
-
-                                    TextInput::make('door_access_quantity')
-                                        ->label('DOOR ACCESS')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -1540,8 +1506,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
                                 'ta100chidw_quantity' => $data['ta100chidw_quantity'],
                                 'ta100cw_quantity' => $data['ta100cw_quantity'],
-                                'door_access_quantity' => $data['door_access_quantity'],
-                                'time_attendance_quantity' => $data['time_attendance_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName ?? null,
@@ -1684,14 +1648,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         'ta100cw' => [
                                             'quantity' => (int)$data['ta100cw_quantity'],
                                             'status' => (int)$data['ta100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'door_access' => [
-                                            'quantity' => (int)$data['door_access_quantity'],
-                                            'status' => (int)$data['door_access_quantity'] > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'time_attendance' => [
-                                            'quantity' => (int)$data['time_attendance_quantity'],
-                                            'status' => (int)$data['time_attendance_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
