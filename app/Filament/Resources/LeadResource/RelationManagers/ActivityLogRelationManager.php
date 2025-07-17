@@ -818,7 +818,17 @@ class ActivityLogRelationManager extends RelationManager
                             try {
                                 $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                 $templateSelector = new TemplateSelector();
-                                $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+
+                                if ($lead->lead_code && (
+                                    str_contains($lead->lead_code, '(CN)') ||
+                                    str_contains($lead->lead_code, 'CN')
+                                )) {
+                                    // Use CN templates
+                                    $template = $templateSelector->getTemplateByLeadSource('CN', 0);
+                                } else {
+                                    // Use regular templates based on UTM campaign
+                                    $template = $templateSelector->getTemplate($utmCampaign, 0); // first follow-up
+                                }
 
                                 $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                                 $leadowner = User::where('name', $lead->lead_owner)->first();
@@ -1284,9 +1294,19 @@ class ActivityLogRelationManager extends RelationManager
 
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                             $templateSelector = new TemplateSelector();
-                            $template = $templateSelector->getTemplate($utmCampaign, 1);
 
-                            $viewName = 'emails.email_blasting_1st';
+                            if ($lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            )) {
+                                // Use CN templates
+                                $template = $templateSelector->getTemplateByLeadSource('CN', 1);
+                            } else {
+                                // Use regular templates based on UTM campaign
+                                $template = $templateSelector->getTemplate($utmCampaign, 1); // first follow-up
+                            }
+
+                            $viewName = $template['email'] ?? 'emails.email_blasting_1st';
                             $contentTemplateSid = $template['sid'];
                             $followUpDescription = '1st Automation Follow Up';
                             try {
@@ -2325,7 +2345,17 @@ class ActivityLogRelationManager extends RelationManager
                                     ]);
                                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                     $templateSelector = new TemplateSelector();
-                                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+
+                                    if ($lead->lead_code && (
+                                        str_contains($lead->lead_code, '(CN)') ||
+                                        str_contains($lead->lead_code, 'CN')
+                                    )) {
+                                        // Use CN templates
+                                        $template = $templateSelector->getTemplateByLeadSource('CN', 5);
+                                    } else {
+                                        // Use regular templates based on UTM campaign
+                                        $template = $templateSelector->getTemplate($utmCampaign, 5); // first follow-up
+                                    }
 
                                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [

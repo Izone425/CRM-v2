@@ -206,6 +206,16 @@ class Lead extends Model
         return $this->hasMany(AdminRepair::class, 'lead_id', 'id');
     }
 
+    public function implementerNotes()
+    {
+        return $this->hasMany(ImplementerNote::class);
+    }
+
+    public function implementerForms()
+    {
+        return $this->hasMany(ImplementerForm::class);
+    }
+
     public function systemQuestion(): HasOne
     {
         return $this->hasOne(SystemQuestion::class, 'lead_id', 'id');

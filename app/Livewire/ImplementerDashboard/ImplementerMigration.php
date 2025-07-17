@@ -260,7 +260,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                         ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading("Mark as Migration Completed")
-                        ->modalDescription('Are you sure you want to mark this handover as migration completed? This will complete the software handover process.')
+                        ->modalDescription('Are you sure you want to mark this handover as migration completed? This will complete the software handover process and update the associated hardware handover.')
                         ->modalSubmitActionLabel('Yes, Mark as Migration Completed')
                         ->modalCancelActionLabel('No, Cancel')
                         ->action(function (SoftwareHandover $record): void {
@@ -277,11 +277,47 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                             // Get the company name
                             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
-                            // Update the record
+                            // Update the software handover record
                             $record->update([
                                 'completed_at' => now(),
                                 'data_migrated' => true
                             ]);
+
+                            // Update the associated hardware handover
+                            if ($record->lead_id) {
+                                // Find the latest hardware handover for the same lead
+                                $hardwareHandover = HardwareHandover::where('lead_id', $record->lead_id)
+                                    ->where('status', 'Pending Migration')
+                                    ->orderBy('created_at', 'desc')
+                                    ->first();
+
+                                // If found, update its status to 'Completed'
+                                if ($hardwareHandover) {
+                                    $hardwareHandover->update([
+                                        'status' => 'Completed',
+                                        'completed_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+
+                                    // Log the hardware handover update
+                                    \Illuminate\Support\Facades\Log::info("Hardware handover #{$hardwareHandover->id} marked as Completed from software handover migration completion", [
+                                        'software_handover_id' => $record->id,
+                                        'lead_id' => $record->lead_id,
+                                        'hardware_handover_id' => $hardwareHandover->id,
+                                        'updated_by' => auth()->user()->name,
+                                    ]);
+
+                                    // Show additional success notification for hardware handover
+                                    Notification::make()
+                                        ->title("Hardware handover #{$hardwareHandover->id} updated")
+                                        ->success()
+                                        ->body("The associated hardware handover has been marked as completed.")
+                                        ->send();
+
+                                    // Emit event to refresh hardware handover tables
+                                    $this->dispatch('refresh-hardwarehandover-tables');
+                                }
+                            }
 
                             // Format the handover ID properly
                             $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
@@ -321,7 +357,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                                 }
 
                                 // Always include admin
-                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                $recipients[] = '';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();

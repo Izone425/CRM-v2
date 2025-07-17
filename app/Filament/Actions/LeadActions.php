@@ -733,7 +733,17 @@ class LeadActions
                         try {
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                             $templateSelector = new TemplateSelector();
-                            $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+
+                            if ($lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            )) {
+                                // Use CN templates
+                                $template = $templateSelector->getTemplateByLeadSource('CN', 0);
+                            } else {
+                                // Use regular templates based on UTM campaign
+                                $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+                            }
 
                             $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();
@@ -1197,7 +1207,17 @@ class LeadActions
             // Load template using service
             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
             $templateSelector = new TemplateSelector();
-            $template = $templateSelector->getTemplate($utmCampaign, 1); // first follow-up
+
+            if ($lead->lead_code && (
+                str_contains($lead->lead_code, '(CN)') ||
+                str_contains($lead->lead_code, 'CN')
+            )) {
+                // Use CN templates
+                $template = $templateSelector->getTemplateByLeadSource('CN', 1);
+            } else {
+                // Use regular templates based on UTM campaign
+                $template = $templateSelector->getTemplate($utmCampaign, 1); // first follow-up
+            }
 
             $viewName = $template['email'];
             $contentTemplateSid = $template['sid'];
@@ -1618,7 +1638,17 @@ class LeadActions
 
                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                     $templateSelector = new TemplateSelector();
-                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+
+                    if ($lead->lead_code && (
+                        str_contains($lead->lead_code, '(CN)') ||
+                        str_contains($lead->lead_code, 'CN')
+                    )) {
+                        // Use CN templates
+                        $template = $templateSelector->getTemplateByLeadSource('CN', 5);
+                    } else {
+                        // Use regular templates based on UTM campaign
+                        $template = $templateSelector->getTemplate($utmCampaign, 5); // first follow-up
+                    }
 
                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
 
@@ -2062,7 +2092,17 @@ class LeadActions
                         try {
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                             $templateSelector = new TemplateSelector();
-                            $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+
+                            if ($lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            )) {
+                                // Use CN templates
+                                $template = $templateSelector->getTemplateByLeadSource('CN', 0);
+                            } else {
+                                // Use regular templates based on UTM campaign
+                                $template = $templateSelector->getTemplate($utmCampaign, 0); // first follow-up
+                            }
 
                             $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
                             $leadowner = User::where('name', $lead->lead_owner)->first();

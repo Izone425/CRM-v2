@@ -22,11 +22,14 @@ use Filament\Support\Enums\FontWeight;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerFollowUpRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
@@ -34,8 +37,11 @@ use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
 use App\Filament\Resources\LeadResource\Tabs\HardwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerFollowUpTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerHandoverTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerNoteTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerPICTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerServiceFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
-use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTab;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\QuotationTabs;
@@ -44,39 +50,16 @@ use App\Filament\Resources\LeadResource\Tabs\RepairAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
 use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
-use App\Mail\BDReferralClosure;
-use App\Models\ActivityLog;
-use App\Models\Industry;
-use App\Models\InvalidLeadReason;
-use App\Models\LeadSource;
-use App\Models\SoftwareHandover;
 use Carbon\Carbon;
-use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\View;
-use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\HtmlString;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
-use Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class LeadResource extends Resource
 {
@@ -94,6 +77,11 @@ class LeadResource extends Resource
         }
 
         return $user->hasRouteAccess('filament.admin.resources.leads.index');
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 
     public static function form(Form $form): Form
@@ -127,7 +115,9 @@ class LeadResource extends Resource
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
             } elseif ($user->role_id === 4) { // Implementer
-                $activeTabs = ['company', 'implementer_appointment', 'implementer_follow_up', 'data_file', 'ticketing'];
+                $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
+                    'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
+                    'data_file', 'implementer_service_form', 'ticketing'];
             } elseif ($user->role_id === 9) { // Technician
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
@@ -165,14 +155,34 @@ class LeadResource extends Resource
                 ->schema(AppointmentTabs::getSchema());
         }
 
+        if (in_array('implementer_handover', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Handover')
+                ->schema(ImplementerHandoverTabs::getSchema());
+        }
+
+        if (in_array('implementer_pic_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('PIC Details')
+                ->schema(ImplementerPICTabs::getSchema());
+        }
+
+        if (in_array('implementer_notes', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Notes')
+                ->schema(ImplementerNoteTabs::getSchema());
+        }
+
         if (in_array('implementer_follow_up', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Implementer Follow Up')
+            $tabs[] = Tabs\Tab::make('Follow Up')
                 ->schema(ImplementerFollowUpTabs::getSchema());
         }
 
         if (in_array('implementer_appointment', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Implementer Appointment')
+            $tabs[] = Tabs\Tab::make('Appointment')
                 ->schema(ImplementerAppointmentTabs::getSchema());
+        }
+
+        if (in_array('implementer_service_form', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Service Form')
+                ->schema(ImplementerServiceFormTabs::getSchema());
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
@@ -806,6 +816,9 @@ class LeadResource extends Resource
             RepairAppointmentRelationManager::class,
             ImplementerAppointmentRelationManager::class,
             ImplementerFollowUpRelationManager::class,
+            SHTableRelationManager::class,
+            HHTableRelationManager::class,
+            RPTableRelationManager::class,
         ];
     }
 

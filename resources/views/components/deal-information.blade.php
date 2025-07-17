@@ -1,6 +1,10 @@
 @php
     $lead = $this->record;
-    $quotations = $lead->quotations()->orderByDesc('quotation_date')->get();
+    // Filter quotations to only include those marked as final
+    $quotations = $lead->quotations()
+        ->where('mark_as_final', true)
+        ->orderByDesc('quotation_date')
+        ->get();
 @endphp
 
 <div class="grid gap-6">
@@ -14,20 +18,20 @@
             </div>
         </div>
 
-        {{-- Quotations --}}
+        {{-- Quotations (Final Only) --}}
         <div>
-            <div class="text-sm font-medium text-gray-950 dark:text-white">Quotations</div>
-            <div class="text-sm text-gray-900 dark:text-white space-y-1">
+            <div class="text-sm font-medium text-gray-950 dark:text-white">Final Quotations</div>
+            <div class="space-y-1 text-sm text-gray-900 dark:text-white">
                 @forelse ($quotations as $quotation)
                     <div>
                         <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
                            target="_blank"
-                           class="text-primary-600 underline">
+                           class="underline text-primary-600">
                             {{ $quotation->quotation_reference_no }}
                         </a>
                     </div>
                 @empty
-                    <div>No Quotations</div>
+                    <div>No Final Quotations</div>
                 @endforelse
             </div>
         </div>

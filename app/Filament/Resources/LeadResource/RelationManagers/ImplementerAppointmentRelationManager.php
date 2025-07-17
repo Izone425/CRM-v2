@@ -75,16 +75,17 @@ class ImplementerAppointmentRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            DatePicker::make('date')
-                ->required()
-                ->label('DATE (MONDAY-THURSDAY/FRIDAY)')
-                ->default(function ($record = null) {
-                    return $record ? $record->date : Carbon::today()->toDateString();
-                })
-                ->reactive(),
-
             Grid::make(3)
             ->schema([
+                DatePicker::make('date')
+                    ->required()
+                    ->label('DATE (MONDAY-THURSDAY/FRIDAY)')
+                    ->default(function ($record = null) {
+                        return $record ? $record->date : Carbon::today()->toDateString();
+                    })
+                    ->reactive()
+                    ->columnSpan(1),
+
                 Select::make('session')
                     ->label('SESSION')
                     ->options(function (callable $get) {
@@ -97,20 +98,20 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // Friday sessions (dayOfWeek = 5)
                         if ($dayOfWeek === 5) {
                             return [
-                                'SESSION 1' => 'SESSION 1',
-                                'SESSION 2' => 'SESSION 2',
-                                'SESSION 4' => 'SESSION 4',
-                                'SESSION 5' => 'SESSION 5',
+                                'SESSION 1' => 'SESSION 1 (0930 - 1030)',
+                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                'SESSION 4' => 'SESSION 4 (1530 - 1630)',
+                                'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                             ];
                         }
                         // Monday to Thursday sessions (dayOfWeek = 1-4)
                         else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
                             return [
-                                'SESSION 1' => 'SESSION 1',
-                                'SESSION 2' => 'SESSION 2',
-                                'SESSION 3' => 'SESSION 3',
-                                'SESSION 4' => 'SESSION 4',
-                                'SESSION 5' => 'SESSION 5',
+                                'SESSION 1' => 'SESSION 1 (0930 - 1030)',
+                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                'SESSION 3' => 'SESSION 3 (1400 - 1500)',
+                                'SESSION 4' => 'SESSION 4 (1530 - 1630)',
+                                'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                             ];
                         }
 
@@ -133,6 +134,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // Default to SESSION 1 for all days
                         return 'SESSION 1';
                     })
+                    ->columnSpan(2)
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -164,7 +166,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     }),
 
                 // Display-only time fields (non-editable)
-                TextInput::make('start_time_display')
+                Hidden::make('start_time_display')
                     ->label('START TIME')
                     ->disabled()
                     ->default(function (callable $get) {
@@ -191,10 +193,9 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         }
 
                         return $times[$session] ?? '09:30';
-                    })
-                    ->placeholder('Will be set based on session'),
+                    }),
 
-                TextInput::make('end_time_display')
+                Hidden::make('end_time_display')
                     ->label('END TIME')
                     ->disabled()
                     ->default(function (callable $get) {
@@ -221,8 +222,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         }
 
                         return $times[$session] ?? '10:30';
-                    })
-                    ->placeholder('Will be set based on session'),
+                    }),
 
                 // These are hidden fields that will store the actual time values
                 Hidden::make('start_time')
@@ -356,7 +356,22 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         return $technicians;
                     })
                     ->default(function ($record = null) {
-                        return $record ? $record->implementer : null;
+                        // First try to get from existing record if editing
+                        if ($record && $record->implementer) {
+                            return $record->implementer;
+                        }
+
+                        // If creating new record or record has no implementer, try to get from lead's first software handover
+                        $lead = $this->getOwnerRecord();
+                        if ($lead) {
+                            $softwareHandover = $lead->softwareHandover()->latest()->first();
+                            if ($softwareHandover && $softwareHandover->implementer) {
+                                return $softwareHandover->implementer;
+                            }
+                        }
+
+                        // Default to null if nothing found
+                        return null;
                     })
                     ->searchable()
                     ->required()
@@ -399,7 +414,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     ->label('IMPLEMENTER')
                     ->sortable(),
                 TextColumn::make('type')
-                    ->label('   IMPLEMENTATION TYPE')
+                    ->label('IMPLEMENTATION TYPE')
                     ->sortable(),
                 TextColumn::make('appointment_type')
                     ->label('APPOINTMENT TYPE')

@@ -324,7 +324,17 @@ class DemoAppointmentRelationManager extends RelationManager
 
                                     $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
                                     $templateSelector = new TemplateSelector();
-                                    $template = $templateSelector->getTemplate($utmCampaign, 5);
+
+                                    if ($lead->lead_code && (
+                                        str_contains($lead->lead_code, '(CN)') ||
+                                        str_contains($lead->lead_code, 'CN')
+                                    )) {
+                                        // Use CN templates
+                                        $template = $templateSelector->getTemplateByLeadSource('CN', 5);
+                                    } else {
+                                        // Use regular templates based on UTM campaign
+                                        $template = $templateSelector->getTemplate($utmCampaign, 5); // first follow-up
+                                    }
 
                                     $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
                                     $emailContent = [

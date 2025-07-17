@@ -18,7 +18,7 @@ class CancelDemoNotification extends Mailable
     {
         return $this->from($this->content['lead']['salespersonEmail'], $this->content['lead']['salespersonName'])
                     ->view($this->viewName)
-                    ->subject("TIMETEC HRMS MEETING CANCELED")
+                    ->subject("TIMETEC HRMS MEETING CANCELLED")
                     ->with([
                         'lead' => $this->content['lead'],
                         'leadOwnerName' => $this->content['leadOwnerName'],

@@ -42,7 +42,17 @@ class AutoFollowUp extends Command
                 if ($lead->lead_status === 'New' || $lead->lead_status === 'Under Review') {
                     $followUpCount = $lead->follow_up_count;
                     $templateSelector = new TemplateSelector();
-                    $template = $templateSelector->getTemplate($lead->utmDetail->utm_campaign ?? null, $followUpCount);
+
+                    if ($lead->lead_code && (
+                        str_contains($lead->lead_code, '(CN)') ||
+                        str_contains($lead->lead_code, 'CN')
+                    )) {
+                        // Use CN templates
+                        $template = $templateSelector->getTemplateByLeadSource('CN', $followUpCount);
+                    } else {
+                        // Use regular templates based on UTM campaign
+                        $template = $templateSelector->getTemplate($lead->utmDetail->utm_campaign ?? null, $followUpCount);
+                    }
 
                     $viewName = $template['email'];
                     $contentTemplateSid = $template['sid'];

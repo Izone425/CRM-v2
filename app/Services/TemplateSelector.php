@@ -41,9 +41,31 @@ class TemplateSelector
         ],
     ];
 
+    protected array $leadSourceTemplates = [
+        // Chinese templates
+        'CN' => [
+            0 => ['email' => 'emails.demo_notification_cn', 'sid' => null],
+            1 => ['email' => 'emails.email_blasting_1st_cn', 'sid' => 'HXbd3b09adc6ec254a63b9456984945357'],
+            2 => ['email' => 'emails.email_blasting_2nd_cn', 'sid' => 'HX3e98ef9c87b7b95ecab108dd5fefa299'],
+            3 => ['email' => 'emails.email_blasting_3rd_cn', 'sid' => 'HX56b6870ea3e16d538bccca337fa7ac84'],
+            4 => ['email' => 'emails.email_blasting_4th_cn', 'sid' => 'HXf0bfe0b10f2816c62edd73cf2ff017b5'],
+            5 => ['email' => 'emails.cancel_demo_notification_cn', 'sid' => null],
+        ],
+    ];
+
     public function getTemplate(?string $utmCampaign, int $followUpCount): array
     {
         $campaignKey = array_key_exists($utmCampaign, $this->templates) ? $utmCampaign : 'default';
         return $this->templates[$campaignKey][$followUpCount] ?? $this->templates['default'][1];
+    }
+
+    public function getTemplateByLeadSource(?string $leadSource, int $followUpCount): array
+    {
+        if ($leadSource && isset($this->leadSourceTemplates[$leadSource]) && isset($this->leadSourceTemplates[$leadSource][$followUpCount])) {
+            return $this->leadSourceTemplates[$leadSource][$followUpCount];
+        }
+
+        // Fall back to default template if lead source template doesn't exist
+        return $this->templates['default'][$followUpCount] ?? $this->templates['default'][1];
     }
 }
