@@ -644,6 +644,8 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
             str_contains($model, 'TA100C / MF / W') => 2,
             str_contains($model, 'TA100C / HID / W') => 2,
             str_contains($model, 'TA100C / W') => 2,
+            str_contains($model, 'TIME ATTENDANCE') => 2,
+            str_contains($model, 'DOOR ACCESS') => 2,
             str_contains($model, 'TIME BEACON') => 1,
             str_contains($model, 'NFC') => 1,
             // Default case

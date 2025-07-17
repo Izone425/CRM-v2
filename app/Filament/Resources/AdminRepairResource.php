@@ -153,6 +153,8 @@ class AdminRepairResource extends Resource
                                         'TA100C / MF / W' => 'TA100C / MF / W',
                                         'TA100C / HID / W' => 'TA100C / HID / W',
                                         'TA100C / W' => 'TA100C / W',
+                                        'TIME ATTENDANCE' => 'TIME ATTENDANCE',
+                                        'DOOR ACCESS' => 'DOOR ACCESS',
                                     ])
                                     ->searchable()
                                     ->required(),

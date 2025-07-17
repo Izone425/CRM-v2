@@ -294,7 +294,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                                 // If found, update its status to 'Completed'
                                 if ($hardwareHandover) {
                                     $hardwareHandover->update([
-                                        'status' => 'Completed',
+                                        'status' => 'Completed Migration',
                                         'completed_at' => now(),
                                         'updated_at' => now(),
                                     ]);

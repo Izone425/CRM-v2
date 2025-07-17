@@ -9,6 +9,7 @@ use App\Models\HardwareHandover;
 use App\Models\Lead;
 use App\Models\User;
 use App\Services\CategoryService;
+use Dom\Text;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
@@ -868,6 +869,18 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
+                                    TextInput::make('time_attendance_quantity')
+                                        ->label('TIME ATTENDANCE')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
+                                    TextInput::make('door_access_quantity')
+                                        ->label('DOOR ACCESS')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -1047,6 +1060,8 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
                                 'ta100chidw_quantity' => $data['ta100chidw_quantity'],
                                 'ta100cw_quantity' => $data['ta100cw_quantity'],
+                                'time_attendance_quantity' => $data['time_attendance_quantity'],
+                                'door_access_quantity' => $data['door_access_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
@@ -1190,6 +1205,14 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                             'quantity' => (int)$data['ta100cw_quantity'],
                                             'status' => (int)$data['ta100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
+                                        'time_attendance' => [
+                                            'quantity' => (int)$data['time_attendance_quantity'],
+                                            'status' => (int)$data['time_attendance_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'door_access' => [
+                                            'quantity' => (int)$data['door_access_quantity'],
+                                            'status' => (int)$data['door_access_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
                                             'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
@@ -1290,7 +1313,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
-
                                     TextInput::make('ta100chid_quantity')
                                         ->label('TA100C / HID')
                                         ->numeric()
@@ -1317,6 +1339,18 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
                                     TextInput::make('ta100cw_quantity')
                                         ->label('TA100C / W')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
+                                    TextInput::make('time_attendance_quantity')
+                                        ->label('TIME ATTENDANCE')
+                                        ->numeric()
+                                        ->minValue(0)
+                                        ->default(0),
+
+                                    TextInput::make('door_access_quantity')
+                                        ->label('DOOR ACCESS')
                                         ->numeric()
                                         ->minValue(0)
                                         ->default(0),
@@ -1506,6 +1540,8 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
                                 'ta100chidw_quantity' => $data['ta100chidw_quantity'],
                                 'ta100cw_quantity' => $data['ta100cw_quantity'],
+                                'door_access_quantity' => $data['door_access_quantity'],
+                                'time_attendance_quantity' => $data['time_attendance_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName ?? null,
@@ -1649,6 +1685,14 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                             'quantity' => (int)$data['ta100cw_quantity'],
                                             'status' => (int)$data['ta100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
+                                        'door_access' => [
+                                            'quantity' => (int)$data['door_access_quantity'],
+                                            'status' => (int)$data['door_access_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
+                                        'time_attendance' => [
+                                            'quantity' => (int)$data['time_attendance_quantity'],
+                                            'status' => (int)$data['time_attendance_quantity'] > 0 ? 'Available' : 'Pending Stock'
+                                        ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
                                             'status' => (int)$data['time_beacon_quantity'] > 0 ? 'Available' : 'Pending Stock'
@@ -1735,58 +1779,41 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
-                    // Action::make('mark_data_migration_completed')
-                    //     ->label('Data Migration Completed')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->action(function (HardwareHandover $record): void {
-                    //         $record->update(['status' => 'Data Migration Completed']);
+                    Action::make('mark_as_completed_migration')
+                        ->label(fn(): HtmlString => new HtmlString('Mark as Completed<br> Migration'))
+                        ->icon('heroicon-o-check-circle')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->modalHeading("Mark as Completed: Migration")
+                        ->modalDescription('Are you sure you want to mark this handover as migration completed?')
+                        ->modalSubmitActionLabel('Yes, Mark as Completed')
+                        ->modalCancelActionLabel('No, Cancel')
+                        ->action(function (HardwareHandover $record): void {
+                            // Update the status
+                            $record->update([
+                                'status' => 'Completed Migration',
+                                'completed_at' => now(),
+                            ]);
 
-                    //         Notification::make()
-                    //             ->title('Hardware Handover marked as Data Migration Completed')
-                    //             ->success()
-                    //             ->send();
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->hidden(fn (HardwareHandover $record): bool =>
-                    //         $record->status !== 'New' || auth()->user()->role_id === 2
-                    //     ),
-                    // Action::make('mark_courier_completed')
-                    //     ->label('Courier Completed')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->action(function (HardwareHandover $record): void {
-                    //         $record->update(['status' => 'Courier Completed']);
+                            // Log the status change
+                            \Illuminate\Support\Facades\Log::info("Hardware handover #{$record->id} marked as Completed from Pending Migration", [
+                                'lead_id' => $record->lead_id,
+                                'updated_by' => auth()->user()->name,
+                            ]);
 
-                    //         Notification::make()
-                    //             ->title('Hardware Handover marked as Courier Completed')
-                    //             ->success()
-                    //             ->send();
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->hidden(fn (HardwareHandover $record): bool =>
-                    //         $record->status !== 'New' ||
-                    //         auth()->user()->role_id === 2 ||
-                    //         $record->installation_type !== 'courier'
-                    //     ),
-                    // Action::make('mark_installation_completed')
-                    //     ->label('Installation Completed')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->action(function (HardwareHandover $record): void {
-                    //         $record->update(['status' => 'Installation Completed']);
+                            // Show success notification
+                            Notification::make()
+                                ->title('Hardware handover marked as completed')
+                                ->success()
+                                ->body('The hardware handover migration has been completed successfully.')
+                                ->send();
 
-                    //         Notification::make()
-                    //             ->title('Hardware Handover marked as Installation Completed')
-                    //             ->success()
-                    //             ->send();
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->hidden(fn (HardwareHandover $record): bool =>
-                    //         $record->status !== 'New' ||
-                    //         auth()->user()->role_id === 2 ||
-                    //         $record->installation_type === 'courier'
-                    //     ),
+                            // Refresh tables to show the updated status
+                            $this->dispatch('refresh-hardwarehandover-tables');
+                        })
+                        ->hidden(fn (HardwareHandover $record): bool =>
+                            $record->status !== 'New' || auth()->user()->role_id === 2
+                        ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')
                         ->icon('heroicon-o-document')
