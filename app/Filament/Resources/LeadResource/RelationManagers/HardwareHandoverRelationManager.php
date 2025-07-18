@@ -889,7 +889,20 @@ class HardwareHandoverRelationManager extends RelationManager
 
                         // Format ID with prefix 250 and padding to ensure at least 3 digits
                         return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                    }),
+                    })
+                    ->color('primary')
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (HardwareHandover $record): View {
+                                return view('components.hardware-handover')
+                                    ->with('extraAttributes', ['record' => $record]);
+                            })
+                    ),
                 TextColumn::make('submitted_at')
                     ->label('Date Submit')
                     ->date('d M Y')

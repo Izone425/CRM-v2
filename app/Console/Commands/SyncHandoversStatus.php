@@ -28,7 +28,7 @@ class SyncHandoversStatus extends Command
      */
     public function handle()
     {
-        $this->info('Starting handover synchronization...');
+        Log::info('Starting handover synchronization...');
         $count = 0;
 
         // Get all completed software handovers with data migrated = true
@@ -37,7 +37,7 @@ class SyncHandoversStatus extends Command
             ->whereNotNull('lead_id')
             ->get();
 
-        $this->info('Found ' . $migratedSoftwareHandovers->count() . ' migrated software handovers');
+        Log::info('Found ' . $migratedSoftwareHandovers->count() . ' migrated software handovers');
 
         // For each migrated software handover, check related hardware handovers
         foreach ($migratedSoftwareHandovers as $softwareHandover) {
@@ -48,7 +48,7 @@ class SyncHandoversStatus extends Command
 
             // Skip if no hardware handover exists
             if (!$latestHandover) {
-                $this->info("No hardware handover found for lead #{$softwareHandover->lead_id}");
+                Log::info("No hardware handover found for lead #{$softwareHandover->lead_id}");
                 continue;
             }
 
@@ -65,7 +65,6 @@ class SyncHandoversStatus extends Command
             }
         }
 
-        $this->info("Sync completed. Updated $count hardware handovers.");
-        return Command::SUCCESS;
+        Log::info("Sync completed. Updated $count hardware handovers.");
     }
 }
