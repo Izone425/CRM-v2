@@ -37,7 +37,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('handovers:check-pending-confirmation')->dailyAt('00:01');
 
-        // $schedule->command('handovers:sync')->everyThirtyMinutes();
+        $schedule->command('handovers:sync')->everyThirtyMinutes();
     }
 
     /**

@@ -1,202 +1,132 @@
+<!-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/softwarehandover.blade.php -->
 <style>
-    /* General hint message styling */
+    /* Container styling */
+    .hardware-handover-container {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    /* Main layout with grid setup */
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 15px;
+    }
+
+    /* Group column styling */
+    .group-column {
+        padding-right: 10px;
+        width: 230px;
+    }
+
+    .group-box {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-top: 4px solid transparent;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+        width: 100%;
+        min-width: 150px;
+        text-align: center;
+        max-height: 82px;
+        max-width: 220px;
+    }
+
+    .group-box:hover {
+        transform: translateY(-3px);
+        background-color: #f9fafb;
+    }
+
+    .group-box.selected {
+        background-color: #f9fafb;
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .group-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .group-count {
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    /* GROUP COLORS */
+    .group-all-items { border-top-color: #6b7280; }
+    .group-new-task { border-top-color: #2563eb; }
+    .group-pending-kick-off { border-top-color: #f59e0b; }
+    .group-pending-license { border-top-color: #8b5cf6; }
+    .group-completed { border-top-color: #10b981; }
+    .group-rejected { border-top-color: #ef4444; }
+
+    .group-all-items .group-count { color: #6b7280; }
+    .group-new-task .group-count { color: #2563eb; }
+    .group-pending-kick-off .group-count { color: #f59e0b; }
+    .group-pending-license .group-count { color: #8b5cf6; }
+    .group-completed .group-count { color: #10b981; }
+    .group-rejected .group-count { color: #ef4444; }
+
+    /* Group container layout */
+    .group-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        border-right: none;
+        padding-right: 0;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    /* Content area */
+    .content-column {
+        min-height: 600px;
+    }
+
+    .content-area {
+        min-height: 600px;
+    }
+
+    .content-area .fi-ta {
+        margin-top: 0;
+    }
+
+    .content-area .fi-ta-content {
+        padding: 0.75rem !important;
+    }
+
+    /* Hint message */
     .hint-message {
         text-align: center;
         background-color: #f9fafb;
         border-radius: 0.5rem;
         border: 1px dashed #d1d5db;
         height: 530px;
-    }
-
-    .hint-message .icon-container {
         display: flex;
+        flex-direction: column;
         justify-content: center;
-        margin-bottom: 1rem;
-    }
-
-    .hint-message i {
-        font-size: 3rem;
-        color: #6b7280;
+        align-items: center;
     }
 
     .hint-message h3 {
         font-size: 1.25rem;
         font-weight: 600;
         color: #374151;
-        margin-top: 15rem;
         margin-bottom: 0.5rem;
     }
 
     .hint-message p {
         color: #6b7280;
-        min-height: 340px;
-    }
-
-    /* Container styling */
-    .hardware-handover-container {
-        grid-column: 1 / -1; /* Span all columns in a grid */
-        width: 100%;
-    }
-
-    .fi-ta-ctn .py-4 {
-        padding-top: .5rem !important;
-        padding-bottom: .5rem !important;
-    }
-
-    /* New dashboard layout structure */
-    .dashboard-container {
-        display: flex;
-        gap: 20px;
-        width: 100%;
-    }
-
-    .stats-sidebar {
-        flex: 0.5 /* Change from 0 0 250px to 1 to make it grow */
-        max-width: 50%; /* Cap at 50% of the container width */
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .content-area {
-        flex: 2; /* Keep flex: 1 to match the sidebar */
-        max-width: 85%; /* Cap at 50% of the container width */
-        min-width: 0; /* Prevent overflow */
-    }
-
-    /* Adjust grid for wider sidebar */
-    .dashboard-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr); /* Keep 2-column layout */
-        gap: 15px; /* Increase gap slightly for more spacing */
-        margin-bottom: 20px;
-    }
-
-    /* Make the boxes a bit taller to fill the space better */
-    .stat-box {
-        background-color: white;
-        width: 300px;
-        height: 75px;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        text-align: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        border-top: 4px solid transparent; /* Changed to top border */
-        min-height: 50px; /* Set minimum height */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    /* Hover and selected states */
-    .stat-box:hover {
-        background-color: #f9fafb;
-        transform: translateX(3px); /* Move slightly right instead of up */
-    }
-
-    .stat-box.selected {
-        background-color: #f9fafb;
-        transform: translateX(5px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-    }
-
-    .stat-count {
-        font-size: 24px;
-        font-weight: bold;
-        margin: 5px 0;
-    }
-
-    .stat-label {
-        color: #6b7280;
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    /* Color coding for different statuses - change from top border to left border */
-    .new { border-left: 4px solid #2563eb; }
-    .new .stat-count { color: #2563eb; }
-
-    .pending-stock { border-left: 4px solid #f59e0b; }
-    .pending-stock .stat-count { color: #f59e0b; }
-
-    .pending-migration { border-left: 4px solid #8b5cf6; }
-    .pending-migration .stat-count { color: #8b5cf6; }
-
-    .completed { border-left: 4px solid #10b981; }
-    .completed .stat-count { color: #10b981; }
-
-    .all { border-left: 4px solid #6b7280; }
-    .all .stat-count { color: #6b7280; }
-
-    .draft-rejected { border-left: 4px solid #ef4444; }
-    .draft-rejected .stat-count { color: #ef4444; }
-
-    /* Add more visual distinction for selected state */
-    .stat-box.selected.new { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
-    .stat-box.selected.pending-stock { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
-    .stat-box.selected.pending-migration { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
-    .stat-box.selected.completed { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
-    .stat-box.selected.all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
-    .stat-box.selected.draft-rejected { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
-
-    /* Responsive adjustments */
-    @media (max-width: 1200px) {
-        .dashboard-container {
-            flex-direction: column;
-        }
-
-        .stats-sidebar {
-            flex: none;
-            width: 100%;
-        }
-
-        .dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            flex-direction: row;
-        }
-
-        .stat-box:hover, .stat-box.selected {
-            transform: translateY(-3px); /* Change to vertical movement for grid layout */
-        }
-
-        /* Switch border back to top for responsive grid */
-        .stat-box {
-            border-left: none;
-            border-top: 4px solid transparent;
-        }
-
-        .new { border-top: 4px solid #2563eb; border-left: none; }
-        .pending-stock { border-top: 4px solid #f59e0b; border-left: none; }
-        .pending-migration { border-top: 4px solid #8b5cf6; border-left: none; }
-        .completed { border-top: 4px solid #10b981; border-left: none; }
-        .all { border-top: 4px solid #6b7280; border-left: none; }
-        .draft-rejected { border-top: 4px solid #ef4444; border-left: none; }
-
-        .stat-box.selected.new { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.pending-stock { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.pending-migration { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.completed { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.all { border-top-width: 6px; border-left: none; }
-        .stat-box.selected.draft-rejected { border-top-width: 6px; border-left: none; }
-    }
-
-    @media (max-width: 640px) {
-        .dashboard-stats {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    /* Content area styling */
-    .content-area {
-        /* background: #ffffff; */
-        border-radius: 8px;
-        /* box-shadow: 0 1px 3px rgba(0,0,0,0.05); */
-    }
-
-    /* Table adjustments */
-    .content-area .fi-ta {
-        margin-top: 0;
     }
 
     /* Animation for tab switching */
@@ -204,9 +134,34 @@
         transition: all 0.2s ease-out;
     }
 
-    /* Remove excess padding in tables */
-    .content-area .fi-ta-content {
-        padding: 0.75rem !important;
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .dashboard-layout {
+            grid-template-columns: 100%;
+            grid-template-rows: auto auto;
+        }
+
+        .group-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            border-right: none;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .group-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .group-container {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -220,7 +175,6 @@
     $newCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
         ->getNewSoftwareHandovers()
         ->count();
-
 
     // Define queries for Pending Kick Off
     $pendingKickOffCount = app(\App\Livewire\SoftwareHandoverKickOffReminder::class)
@@ -247,105 +201,135 @@
 
 <div id="software-handover-container" class="hardware-handover-container"
      x-data="{
-         selectedStat: null,
+         selectedSection: null,
 
-         setSelectedStat(value) {
-             console.log('Setting software stat to:', value);
-             if (this.selectedStat === value) {
-                 this.selectedStat = null;
+         setSelectedSection(value) {
+             console.log('Setting software section to:', value);
+             if (this.selectedSection === value) {
+                 this.selectedSection = null;
              } else {
-                 this.selectedStat = value;
+                 this.selectedSection = value;
              }
          },
 
          init() {
              console.log('Software handover Alpine component initialized');
-             this.selectedStat = null;
+             this.selectedSection = null;
          }
      }"
      x-init="init()">
 
     <!-- New container structure -->
-    <div class="dashboard-container" wire:poll.300s>
-        <!-- Left sidebar with stats -->
-        <div class="stats-sidebar">
-            <div class="stat-box all"
-                    :class="{'selected': selectedStat === 'pending-task'}">
-                <div class="stat-count">{{ $allTaskCount }}</div>
-                <div class="stat-label">All Task</div>
-            </div>
+    <div class="dashboard-layout" wire:poll.300s>
+        <!-- Left sidebar with groups -->
+        <div class="group-column">
+            <div class="group-container">
+                <!-- Group: All Task -->
+                <div class="group-box group-all-items"
+                     :class="{'selected': selectedSection === 'all-tasks'}">
+                    <div class="group-title">All Tasks</div>
+                    <div class="group-count">{{ $allTaskCount }}</div>
+                </div>
 
-            <div class="stat-box new"
-                    :class="{'selected': selectedStat === 'new'}"
-                    @click="setSelectedStat('new')"
-                    style="cursor: pointer;">
-                <div class="stat-count">{{ $newCount }}</div>
-                <div class="stat-label">New Task</div>
-            </div>
+                <!-- Group: New Task -->
+                <div class="group-box group-new-task"
+                     :class="{'selected': selectedSection === 'new'}"
+                     @click="setSelectedSection('new')">
+                    <div class="group-title">New Task</div>
+                    <div class="group-count">{{ $newCount }}</div>
+                </div>
 
-            <div class="stat-box pending-stock"
-                    :class="{'selected': selectedStat === 'pending-kick-off'}"
-                    @click="setSelectedStat('pending-kick-off')"
-                    style="cursor: pointer;">
-                <div class="stat-count">{{ $pendingKickOffCount }}</div>
-                <div class="stat-label">Pending Kick Off</div>
-            </div>
+                <!-- Group: Pending Kick Off -->
+                <div class="group-box group-pending-kick-off"
+                     :class="{'selected': selectedSection === 'pending-kick-off'}"
+                     @click="setSelectedSection('pending-kick-off')">
+                    <div class="group-title">Pending Kick Off</div>
+                    <div class="group-count">{{ $pendingKickOffCount }}</div>
+                </div>
 
-            <div class="stat-box pending-migration"
-                    :class="{'selected': selectedStat === 'pending-license'}"
-                    @click="setSelectedStat('pending-license')"
-                    style="cursor: pointer;">
-                <div class="stat-count">{{ $pendingLicenseCount }}</div>
-                <div class="stat-label">Pending License Activation</div>
-            </div>
+                <!-- Group: Pending License -->
+                <div class="group-box group-pending-license"
+                     :class="{'selected': selectedSection === 'pending-license'}"
+                     @click="setSelectedSection('pending-license')">
+                    <div class="group-title">Pending License</div>
+                    <div class="group-count">{{ $pendingLicenseCount }}</div>
+                </div>
 
-            <div class="stat-box completed"
-                    :class="{'selected': selectedStat === 'completed'}"
-                    @click="setSelectedStat('completed')"
-                    style="cursor: pointer;">
-                <div class="stat-count">{{ $completedCount }}</div>
-                <div class="stat-label">Completed</div>
-            </div>
+                <!-- Group: Completed -->
+                <div class="group-box group-completed"
+                     :class="{'selected': selectedSection === 'completed'}"
+                     @click="setSelectedSection('completed')">
+                    <div class="group-title">Completed</div>
+                    <div class="group-count">{{ $completedCount }}</div>
+                </div>
 
-            <div class="stat-box draft-rejected"
-                    :class="{'selected': selectedStat === 'draft-rejected'}"
-                    @click="setSelectedStat('draft-rejected')"
-                    style="cursor: pointer;">
-                <div class="stat-count">{{ $draftRejectedCount }}</div>
-                <div class="stat-label">Rejected</div>
+                <!-- Group: Rejected -->
+                <div class="group-box group-rejected"
+                     :class="{'selected': selectedSection === 'draft-rejected'}"
+                     @click="setSelectedSection('draft-rejected')">
+                    <div class="group-title">Rejected</div>
+                    <div class="group-count">{{ $draftRejectedCount }}</div>
+                </div>
             </div>
         </div>
 
         <!-- Right content area -->
-        <div class="content-area">
-            <div class="hint-message" x-show="selectedStat === null" x-transition>
-                <h3>Select a category to view data</h3>
-                <p>Click on any of the stat boxes to display the corresponding information</p>
-            </div>
+        <div class="content-column">
+            <!-- Content Area for Tables -->
+            <div class="content-area">
+                <!-- Display hint message when nothing is selected -->
+                <div class="hint-message" x-show="selectedSection === null" x-transition>
+                    <h3>Select a group to view data</h3>
+                    <p>Click on any of the group boxes to display the corresponding information</p>
+                </div>
 
-            <div x-show="selectedStat === 'new' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-new'">
-                <livewire:salesperson-dashboard.software-handover-new />
-            </div>
+                <!-- All Tasks -->
+                <div x-show="selectedSection === 'all-tasks'" x-transition :key="'all-tasks'">
+                    <div x-show="selectedSection === 'all-tasks' || selectedSection === null">
+                        <livewire:salesperson-dashboard.software-handover-new />
+                    </div>
+                    <div x-show="selectedSection === 'all-tasks' || selectedSection === null">
+                        @livewire('software-handover-kick-off-reminder')
+                    </div>
+                    <div x-show="selectedSection === 'all-tasks' || selectedSection === null">
+                        @livewire('software-handover-pending-license')
+                    </div>
+                    <div x-show="selectedSection === 'all-tasks' || selectedSection === null">
+                        <livewire:salesperson-dashboard.software-handover-completed />
+                    </div>
+                    <div x-show="selectedSection === 'all-tasks' || selectedSection === null">
+                        @livewire('software-handover-addon')
+                    </div>
+                </div>
 
-            <div x-show="selectedStat === 'pending-kick-off' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-kick-off'">
-                @livewire('software-handover-kick-off-reminder')
-            </div>
+                <!-- New Task -->
+                <div x-show="selectedSection === 'new'" x-transition :key="'new'">
+                    <livewire:salesperson-dashboard.software-handover-new />
+                </div>
 
-            <div x-show="selectedStat === 'pending-license' || selectedStat === 'pending-task'" x-transition :key="selectedStat + '-license'">
-                @livewire('software-handover-pending-license')
-            </div>
+                <!-- Pending Kick Off -->
+                <div x-show="selectedSection === 'pending-kick-off'" x-transition :key="'kick-off'">
+                    @livewire('software-handover-kick-off-reminder')
+                </div>
 
-            <div x-show="selectedStat === 'completed'" x-transition :key="selectedStat + '-completed'">
-                <livewire:salesperson-dashboard.software-handover-completed />
-            </div>
+                <!-- Pending License -->
+                <div x-show="selectedSection === 'pending-license'" x-transition :key="'license'">
+                    @livewire('software-handover-pending-license')
+                </div>
 
-            <div x-show="selectedStat === 'draft-rejected'" x-transition :key="selectedStat + '-rejected'">
-                @livewire('software-handover-addon')
+                <!-- Completed -->
+                <div x-show="selectedSection === 'completed'" x-transition :key="'completed'">
+                    <livewire:salesperson-dashboard.software-handover-completed />
+                </div>
+
+                <!-- Draft/Rejected -->
+                <div x-show="selectedSection === 'draft-rejected'" x-transition :key="'rejected'">
+                    @livewire('software-handover-addon')
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 
 <script>
     // When the page loads, setup handlers for this component
@@ -354,7 +338,7 @@
         window.resetSoftwareHandover = function() {
             const container = document.getElementById('software-handover-container');
             if (container && container.__x) {
-                container.__x.$data.selectedStat = null;
+                container.__x.$data.selectedSection = null;
                 console.log('Software handover reset via global function');
             }
         };

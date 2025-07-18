@@ -387,188 +387,191 @@ class AdminRepairDashboard extends Page implements HasTable
                             })
                 ]),
 
-            // Section 2: Device Details
             Section::make('Device Details')
-                ->schema([
-                    Repeater::make('devices')
-                        ->hiddenLabel()
+            ->schema([
+                Repeater::make('devices')
+                    ->hiddenLabel()
+                    ->schema([
+                        Grid::make(3)
                         ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    Select::make('device_model')
-                                        ->label('Device Model')
-                                        ->options([
-                                            'TC10' => 'TC10',
-                                            'TC20' => 'TC20',
-                                            'FACE ID 5' => 'FACE ID 5',
-                                            'FACE ID 6' => 'FACE ID 6',
-                                            'TIME BEACON' => 'TIME BEACON',
-                                            'NFC TAG' => 'NFC TAG',
-                                            'TA100C / HID' => 'TA100C / HID',
-                                            'TA100C / R' => 'TA100C / R',
-                                            'TA100C / MF' => ' TA100C / MF',
-                                            'TA100C / R / W' => 'TA100C / R / W',
-                                            'TA100C / MF / W' => 'TA100C / MF / W',
-                                            'TA100C / HID / W' => 'TA100C / HID / W',
-                                            'TA100C / W' => 'TA100C / W',
-                                        ])
-                                        ->searchable()
-                                        ->required(),
-
-                                    TextInput::make('device_serial')
-                                        ->label('Serial Number')
-                                        ->required()
-                                        ->maxLength(100),
+                            Select::make('device_model')
+                                ->label('Device Model')
+                                ->options([
+                                    'TC10' => 'TC10',
+                                    'TC20' => 'TC20',
+                                    'FACE ID 5' => 'FACE ID 5',
+                                    'FACE ID 6' => 'FACE ID 6',
+                                    'TIME BEACON' => 'TIME BEACON',
+                                    'NFC TAG' => 'NFC TAG',
+                                    'TA100C / HID' => 'TA100C / HID',
+                                    'TA100C / R' => 'TA100C / R',
+                                    'TA100C / MF' => ' TA100C / MF',
+                                    'TA100C / R / W' => 'TA100C / R / W',
+                                    'TA100C / MF / W' => 'TA100C / MF / W',
+                                    'TA100C / HID / W' => 'TA100C / HID / W',
+                                    'TA100C / W' => 'TA100C / W',
                                 ])
-                        ])
-                        ->itemLabel(fn() => __('Device') . ' ' . ++self::$indexDeviceCounter)
-                        ->addActionLabel('Add Another Device')
-                        ->maxItems(5) // Limit to 5 devices
-                        ->defaultItems(1) // Start with 1 device
-                        ->default(function (?AdminRepair $record = null) {
-                            if (!$record) {
-                                return [
-                                    ['device_model' => '', 'device_serial' => '']
-                                ];
-                            }
+                                ->searchable()
+                                ->required(),
 
-                            // If we have existing devices in JSON format
-                            if ($record->devices) {
-                                $devices = is_string($record->devices)
-                                    ? json_decode($record->devices, true)
-                                    : $record->devices;
+                            TextInput::make('device_serial')
+                                ->label('Serial Number')
+                                ->required()
+                                ->maxLength(100),
 
-                                if (is_array($devices) && !empty($devices)) {
-                                    return $devices;
-                                }
-                            }
+                            Select::make('device_category')
+                                ->label('Device Category')
+                                ->options([
+                                    'TIME ATTENDANCE' => 'TIME ATTENDANCE',
+                                    'DOOR ACCESS' => 'DOOR ACCESS',
+                                ])
+                                ->searchable()
+                                ->required(),
+                        ]),
+                        Textarea::make('remark')
+                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                            ->label('Repair Remark')
+                            ->placeholder('ENTER DEVICE ISSUE DETAILS HERE')
+                            ->rows(3)
+                            ->required(),
 
-                            // Fallback to legacy fields if no devices array
-                            if ($record->device_model) {
-                                return [
-                                    ['device_model' => $record->device_model, 'device_serial' => $record->device_serial]
-                                ];
-                            }
+                        Section::make('Video Links')
+                            ->collapsible()
+                            ->schema([
+                                TextInput::make('video_link_1')
+                                    ->label('Video Link 1')
+                                    ->url()
+                                    ->placeholder('Enter video link 1 here'),
 
+                                TextInput::make('video_link_2')
+                                    ->label('Video Link 2')
+                                    ->url()
+                                    ->placeholder('Enter video link 2 here'),
+
+                                TextInput::make('video_link_3')
+                                    ->label('Video Link 3')
+                                    ->url()
+                                    ->placeholder('Enter video link 3 here'),
+                            ]),
+
+                        FileUpload::make('attachments')
+                            ->label('Attachment')
+                            ->disk('public')
+                            ->directory('repair-attachments')
+                            ->visibility('public')
+                            ->multiple()
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                            ->openable()
+                            ->previewable()
+                            ->downloadable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                $timestamp = now()->format('YmdHis');
+                                $random = rand(1000, 9999);
+                                $extension = $file->getClientOriginalExtension();
+                                return "repair-attachment-{$timestamp}-{$random}.{$extension}";
+                            }),
+                    ])
+                    ->itemLabel(fn() => __('Device') . ' ' . ++self::$indexDeviceCounter)
+                    ->addActionLabel('Add Another Device')
+                    ->maxItems(5) // Limit to 5 devices
+                    ->defaultItems(1) // Start with 1 device
+                    ->default(function (?AdminRepair $record = null) {
+                        if (!$record) {
                             return [
-                                ['device_model' => '', 'device_serial' => '']
+                                [
+                                    'device_model' => '',
+                                    'device_serial' => '',
+                                    'device_category' => '',
+                                    'remark' => '',
+                                    'attachments' => [],
+                                    'video_link_1' => '',
+                                    'video_link_2' => '',
+                                    'video_link_3' => ''
+                                ]
                             ];
-                        }),
-                ]),
+                        }
 
-            // Section 3: Remarks
-            Section::make('Repair Remarks')
-                ->schema([
-                    Repeater::make('remarks')
-                        ->hiddenLabel()
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('remark')
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->hiddenLabel()
-                                        ->placeholder('ENTER REMARKS HERE')
-                                        ->rows(3)
-                                        ->required(),
+                        // If we have existing devices in JSON format
+                        if ($record->devices) {
+                            $devices = is_string($record->devices)
+                                ? json_decode($record->devices, true)
+                                : $record->devices;
 
-                                    FileUpload::make('attachments')
-                                        ->hiddenLabel()
-                                        ->disk('public')
-                                        ->directory('repair-attachments')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                        ->openable()
-                                        ->previewable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-                                            $extension = $file->getClientOriginalExtension();
-                                            return "repair-attachment-{$timestamp}-{$random}.{$extension}";
-                                        }),
-                                ])
-                        ])
-                        ->itemLabel(fn() => __('Repair Remark') . ' ' . ++self::$indexRemarkCounter)
-                        ->addActionLabel('Add Another Remark')
-                        ->collapsible()
-                        ->maxItems(5)
-                        ->defaultItems(1)
-                        // Set default remarks data from record
-                        ->default(function (?AdminRepair $record = null) {
-                            if (!$record || !$record->remarks) {
-                                return [
-                                    ['remark' => '', 'attachments' => []]
-                                ];
-                            }
-
-                            try {
-                                $remarks = is_string($record->remarks)
-                                    ? json_decode($record->remarks, true)
-                                    : $record->remarks;
-
-                                if (is_array($remarks)) {
-                                    // Process each remark to handle attachments
-                                    foreach ($remarks as $key => $remark) {
-                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true) ?: [];
-                                        } elseif (!isset($remark['attachments'])) {
-                                            $remarks[$key]['attachments'] = [];
-                                        }
+                            if (is_array($devices) && !empty($devices)) {
+                                // Ensure proper structure for attachments and video links
+                                foreach ($devices as $key => $device) {
+                                    // Handle attachments consistently
+                                    if (isset($device['repair_attachments']) && !isset($device['attachments'])) {
+                                        $devices[$key]['attachments'] = $device['repair_attachments'];
+                                        unset($devices[$key]['repair_attachments']);
                                     }
-                                    return $remarks;
+
+                                    // Convert old video_link to new format
+                                    if (isset($device['video_link']) && !isset($device['video_link_1'])) {
+                                        $devices[$key]['video_link_1'] = $device['video_link'];
+                                        unset($devices[$key]['video_link']);
+                                    }
+
+                                    // Ensure other video links exist
+                                    if (!isset($devices[$key]['video_link_2'])) {
+                                        $devices[$key]['video_link_2'] = '';
+                                    }
+
+                                    if (!isset($devices[$key]['video_link_3'])) {
+                                        $devices[$key]['video_link_3'] = '';
+                                    }
+
+                                    // Make sure attachments field exists
+                                    if (!isset($devices[$key]['attachments'])) {
+                                        $devices[$key]['attachments'] = [];
+                                    }
                                 }
-                            } catch (\Exception $e) {
-                                // Log the error but continue
-                                \Illuminate\Support\Facades\Log::error("Error processing remarks: {$e->getMessage()}");
+                                return $devices;
+                            }
+                        }
+
+                        // Fallback to legacy fields if no devices array
+                        if ($record->device_model) {
+                            $attachments = [];
+                            if ($record->attachments) {
+                                if (is_string($record->attachments)) {
+                                    $decodedAttachments = json_decode($record->attachments, true);
+                                    $attachments = is_array($decodedAttachments) ? $decodedAttachments : [];
+                                } else {
+                                    $attachments = is_array($record->attachments) ? $record->attachments : [];
+                                }
                             }
 
                             return [
-                                ['remark' => '', 'attachments' => []]
+                                [
+                                    'device_model' => $record->device_model,
+                                    'device_serial' => $record->device_serial,
+                                    'device_category' => $record->device_category,
+                                    'remark' => $record->remark ?? '',
+                                    'attachments' => $attachments,
+                                    'video_link_1' => $record->video_link ?? '',
+                                    'video_link_2' => '',
+                                    'video_link_3' => ''
+                                ]
                             ];
-                        }),
-                ]),
+                        }
 
-            // Section 4: Video Files
-            Section::make('Video Files')
-                ->schema([
-                    FileUpload::make('video_files')
-                        ->hiddenLabel()
-                        ->helperText('Upload videos of the issue for better diagnostics. Maximum 10MB')
-                        ->disk('public')
-                        ->directory('repair-videos')
-                        ->visibility('public')
-                        ->multiple()
-                        ->acceptedFileTypes(['video/mp4', 'video/quicktime', 'video/x-msvideo'])
-                        ->openable()
-                        ->previewable()
-                        ->downloadable()
-                        ->default(function (?AdminRepair $record = null) {
-                            if (!$record || !$record->video_files) {
-                                return [];
-                            }
-
-                            try {
-                                $videoFiles = is_string($record->video_files)
-                                    ? json_decode($record->video_files, true)
-                                    : $record->video_files;
-
-                                return $videoFiles ?: [];
-                            } catch (\Exception $e) {
-                                // Log the error but continue
-                                \Illuminate\Support\Facades\Log::error("Error processing video files: {$e->getMessage()}");
-                                return [];
-                            }
-                        })
-                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                            $timestamp = now()->format('YmdHis');
-                            $random = rand(1000, 9999);
-                            $extension = $file->getClientOriginalExtension();
-                            return "repair-video-{$timestamp}-{$random}.{$extension}";
-                        }),
-                ]),
+                        return [
+                            [
+                                'device_model' => '',
+                                'device_serial' => '',
+                                'device_category' => '',
+                                'remark' => '',
+                                'attachments' => [],
+                                'video_link_1' => '',
+                                'video_link_2' => '',
+                                'video_link_3' => ''
+                            ]
+                        ];
+                    }),
+            ]),
 
             // Hidden fields for record keeping
             Hidden::make('status')
@@ -617,43 +620,61 @@ class AdminRepairDashboard extends Page implements HasTable
     // Process and save form data (common function for create and update)
     protected function processAndSaveRepairData(?AdminRepair $record, array $data): AdminRepair
     {
-        // Process remarks with attachments
-        if (isset($data['remarks']) && is_array($data['remarks'])) {
-            foreach ($data['remarks'] as $key => $remark) {
-                // Encode attachments array for each remark if it exists
-                if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                    $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                } else {
-                    $data['remarks'][$key]['attachments'] = json_encode([]);
-                }
-            }
-            // Encode the entire remarks structure
-            $data['remarks'] = json_encode($data['remarks']);
-        } else {
-            $data['remarks'] = json_encode([]);
+        // Encode devices array
+        if (isset($data['attachments'])) {
+            unset($data['attachments']);
         }
 
-        // Encode devices array
+        // Process devices array
         if (isset($data['devices']) && is_array($data['devices'])) {
+            // Process each device
+            foreach ($data['devices'] as $key => $device) {
+                // Make sure attachments is properly handled - consistent naming as 'attachments'
+                if (!isset($device['attachments'])) {
+                    $data['devices'][$key]['attachments'] = [];
+                }
+
+                // Process video links
+                if (isset($device['video_link']) && !isset($device['video_link_1'])) {
+                    $data['devices'][$key]['video_link_1'] = $device['video_link'];
+                    unset($data['devices'][$key]['video_link']);
+                }
+
+                // Make sure all video link fields exist
+                if (!isset($device['video_link_1'])) {
+                    $data['devices'][$key]['video_link_1'] = '';
+                }
+
+                if (!isset($device['video_link_2'])) {
+                    $data['devices'][$key]['video_link_2'] = '';
+                }
+
+                if (!isset($device['video_link_3'])) {
+                    $data['devices'][$key]['video_link_3'] = '';
+                }
+
+                // Ensure remark field exists
+                if (!isset($device['remark'])) {
+                    $data['devices'][$key]['remark'] = '';
+                }
+            }
+
+            // Encode entire devices array to JSON
             $data['devices'] = json_encode($data['devices']);
 
-            // Also set the first device to the legacy fields for compatibility
-            if (!empty($data['devices'])) {
-                $decoded = json_decode($data['devices'], true);
-                if (is_array($decoded) && !empty($decoded[0])) {
-                    $data['device_model'] = $decoded[0]['device_model'] ?? null;
-                    $data['device_serial'] = $decoded[0]['device_serial'] ?? null;
-                }
+            // Set legacy fields for backward compatibility from first device
+            $decoded = json_decode($data['devices'], true);
+            if (is_array($decoded) && !empty($decoded[0])) {
+                $data['device_model'] = $decoded[0]['device_model'] ?? null;
+                $data['device_serial'] = $decoded[0]['device_serial'] ?? null;
+                $data['device_category'] = $decoded[0]['device_category'] ?? null;
+                $data['remark'] = $decoded[0]['remark'] ?? null;
+                $data['video_link'] = $decoded[0]['video_link_1'] ?? null;
+
+                // Don't set attachments directly - it doesn't exist in the database
             }
         } else {
             $data['devices'] = json_encode([]);
-        }
-
-        // Encode video files array
-        if (isset($data['video_files']) && is_array($data['video_files'])) {
-            $data['video_files'] = json_encode($data['video_files']);
-        } else {
-            $data['video_files'] = json_encode([]);
         }
 
         // Set timestamps and user IDs
@@ -775,10 +796,44 @@ class AdminRepairDashboard extends Page implements HasTable
 
                 if (is_array($devices)) {
                     foreach ($devices as $device) {
-                        $emailContent['devices'][] = [
+                        $deviceData = [
                             'device_model' => $device['device_model'] ?? 'N/A',
-                            'device_serial' => $device['device_serial'] ?? 'N/A'
+                            'device_serial' => $device['device_serial'] ?? 'N/A',
+                            'remark' => $device['remark'] ?? '',
+                            'video_links' => [],
+                            'attachments' => []
                         ];
+
+                        // Add all available video links
+                        if (!empty($device['video_link_1'])) {
+                            $deviceData['video_links'][] = $device['video_link_1'];
+                        }
+
+                        if (!empty($device['video_link_2'])) {
+                            $deviceData['video_links'][] = $device['video_link_2'];
+                        }
+
+                        if (!empty($device['video_link_3'])) {
+                            $deviceData['video_links'][] = $device['video_link_3'];
+                        }
+
+                        // Process attachments
+                        if (!empty($device['attachments'])) {
+                            $attachments = is_string($device['attachments'])
+                                ? json_decode($device['attachments'], true)
+                                : $device['attachments'];
+
+                            if (is_array($attachments)) {
+                                foreach ($attachments as $attachment) {
+                                    $deviceData['attachments'][] = [
+                                        'url' => url('storage/' . $attachment),
+                                        'filename' => basename($attachment)
+                                    ];
+                                }
+                            }
+                        }
+
+                        $emailContent['devices'][] = $deviceData;
                     }
                 }
             }
@@ -819,9 +874,9 @@ class AdminRepairDashboard extends Page implements HasTable
 
             // Define recipients
             $recipients = [
-                'admin.timetec.hr@timeteccloud.com',
-                'support@timeteccloud.com',
-                'izzuddin@timeteccloud.com'
+                // 'admin.timetec.hr@timeteccloud.com',
+                // 'support@timeteccloud.com',
+                // 'izzuddin@timeteccloud.com'
             ];
 
             // Send email notification
