@@ -19,6 +19,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -49,6 +50,13 @@ class TechnicianAppointment extends Page implements HasTable
                     ->sortable(),
                 TextColumn::make('end_time')
                     ->time('h:i A'),
+                TextColumn::make('causer_id')
+                    ->label('Created By')
+                    ->getStateUsing(function (RepairAppointment $record): string {
+                        // Find the user directly from the users table
+                        $user = \App\Models\User::find($record->causer_id);
+                        return $user ? $user->name : 'N/A';
+                    }),
                 TextColumn::make('technician')
                     ->searchable(),
                 TextColumn::make('lead.companyDetail.company_name')
@@ -71,7 +79,26 @@ class TechnicianAppointment extends Page implements HasTable
                     ->label('Status'),
             ])
             ->filters([
-                // Add filters if needed
+                Filter::make('type')
+                    ->label('Demo Type')
+                    ->form([
+                        Select::make('type')
+                            ->label('Demo Type')
+                            ->options([
+                                'FINGERTEC TASK' => 'FingerTec Task',
+                                'TIMETEC HR TASK' => 'TimeTec HR Task',
+                                'TIMETEC PARKING TASK' => 'TimeTec Parking Task',
+                                'TIMETEC PROPERTY TASK' => 'TimeTec Property Task',
+                            ])
+                            ->placeholder('All Demo Types')
+                            ->multiple()
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['type'],
+                            fn (Builder $query, $types): Builder => $query->whereIn('type', $types)
+                        );
+                    })
             ])
             ->actions([
                 ActionGroup::make([
@@ -190,7 +217,9 @@ class TechnicianAppointment extends Page implements HasTable
                     ->label('Add FingerTec Appointment')
                     ->form($this->getFormSchema())
                     ->action(function (array $data): void {
-                        RepairAppointment::create($data);
+                        RepairAppointment::create(array_merge($data, [
+                            'causer_id' => Auth::id(),
+                        ]));
 
                         Notification::make()
                             ->success()
