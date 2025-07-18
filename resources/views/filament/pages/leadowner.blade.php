@@ -15,6 +15,7 @@
     /* Group column styling */
     .group-column {
         padding-right: 10px;
+        width: 230px;
     }
 
     .group-box {
@@ -33,7 +34,8 @@
         width: 100%;
         min-width: 150px;
         text-align: center;
-        min-height: 130px;
+        max-height: 82px;
+        max-width: 220px;
     }
 
     .group-box:hover {
@@ -59,6 +61,7 @@
     }
 
     /* Update color coding for different groups to use top border */
+    .group-all { border-top-color: #64748b; border-left: none; }
     .group-new { border-top-color: #2563eb; border-left: none; }
     .group-active { border-top-color: #10b981; border-left: none; }
     .group-inactive { border-top-color: #f43f5e; border-left: none; }
@@ -193,6 +196,10 @@
     }
 
     /* Color coding for different groups */
+    /* All Leads styles */
+    .group-all { border-left-color: #64748b; }
+    .group-all .group-count { color: #64748b; }
+
     .group-new { border-left-color: #2563eb; }
     .group-new .group-count { color: #2563eb; }
 
@@ -204,6 +211,10 @@
 
     .group-salesperson { border-left-color: #8b5cf6; }
     .group-salesperson .group-count { color: #8b5cf6; }
+
+    /* All leads categories */
+    .all-leads { border-left: 4px solid #64748b; }
+    .all-leads .stat-count { color: #64748b; }
 
     /* Color coding for different stat boxes */
     .new-leads { border-left: 4px solid #2563eb; }
@@ -255,6 +266,7 @@
     .salesperson-big .stat-count { color: #84cc16; }
 
     /* Selected state styling */
+    .stat-box.selected.all-leads { background-color: rgba(100, 116, 139, 0.05); border-left-width: 6px; }
     .stat-box.selected.new-leads { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.pending-leads { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
     .stat-box.selected.reminder-today { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
@@ -352,6 +364,8 @@
     @php
     // New Leads count
     $user = Auth::user();
+
+    $allLeadsCount = DB::table('leads')->count();
 
     $newLeadsCount = app(\App\Livewire\LeadownerDashboard\NewLeadTable::class)
         ->getPendingLeadsQuery()
@@ -457,6 +471,11 @@
         <div class="dashboard-layout" wire:poll.300s>
             <div class="group-column">
                 <div class="group-container">
+                    <div class="group-box group-all"
+                         :class="{'selected': selectedGroup === 'all'}">
+                        <div class="group-title">All Leads</div>
+                        <div class="group-count">{{ $allLeadsCount }}</div>
+                    </div>
                     <!-- Group 1: New Leads -->
                     <div class="group-box group-new"
                          :class="{'selected': selectedGroup === 'new'}"
