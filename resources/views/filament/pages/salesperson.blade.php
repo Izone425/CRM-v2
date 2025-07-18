@@ -15,6 +15,7 @@
     /* Group column styling */
     .group-column {
         padding-right: 10px;
+        width: 230px;
     }
 
     .group-box {

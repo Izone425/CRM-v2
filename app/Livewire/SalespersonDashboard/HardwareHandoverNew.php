@@ -826,48 +826,48 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
-                                    TextInput::make('ta100cr_quantity')
-                                        ->label('TA100C / R')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cr_quantity')
+                                    //     ->label('TA100C / R')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cmf_quantity')
-                                        ->label('TA100C / MF')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cmf_quantity')
+                                    //     ->label('TA100C / MF')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
 
-                                    TextInput::make('ta100chid_quantity')
-                                        ->label('TA100C / HID')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100chid_quantity')
+                                    //     ->label('TA100C / HID')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100crw_quantity')
-                                        ->label('TA100C / R / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100crw_quantity')
+                                    //     ->label('TA100C / R / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cmfw_quantity')
-                                        ->label('TA100C / MF / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cmfw_quantity')
+                                    //     ->label('TA100C / MF / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100chidw_quantity')
-                                        ->label('TA100C / HID / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100chidw_quantity')
+                                    //     ->label('TA100C / HID / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cw_quantity')
-                                        ->label('TA100C / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cw_quantity')
+                                    //     ->label('TA100C / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
@@ -1279,47 +1279,47 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
-                                    TextInput::make('ta100cr_quantity')
-                                        ->label('TA100C / R')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cr_quantity')
+                                    //     ->label('TA100C / R')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cmf_quantity')
-                                        ->label('TA100C / MF')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cmf_quantity')
+                                    //     ->label('TA100C / MF')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100chid_quantity')
-                                        ->label('TA100C / HID')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100chid_quantity')
+                                    //     ->label('TA100C / HID')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100crw_quantity')
-                                        ->label('TA100C / R / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100crw_quantity')
+                                    //     ->label('TA100C / R / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cmfw_quantity')
-                                        ->label('TA100C / MF / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cmfw_quantity')
+                                    //     ->label('TA100C / MF / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100chidw_quantity')
-                                        ->label('TA100C / HID / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100chidw_quantity')
+                                    //     ->label('TA100C / HID / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
-                                    TextInput::make('ta100cw_quantity')
-                                        ->label('TA100C / W')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->default(0),
+                                    // TextInput::make('ta100cw_quantity')
+                                    //     ->label('TA100C / W')
+                                    //     ->numeric()
+                                    //     ->minValue(0)
+                                    //     ->default(0),
 
                                     TextInput::make('face_id6_quantity')
                                         ->label('FACE ID 6')
