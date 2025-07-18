@@ -16,7 +16,7 @@
     /* Group column styling */
     .group-column {
         padding-right: 10px;
-        width: 220px;
+        width: 230px;
     }
 
     .group-box {
@@ -35,8 +35,8 @@
         width: 100%;
         min-width: 150px;
         text-align: center;
-        min-height: 82px;
-        max-height: 95px;
+        max-height: 82px;
+        max-width: 220px;
     }
 
     .group-box:hover {
@@ -515,7 +515,7 @@
                     <div class="stat-count">{{ $completedCourierCount }}</div>
                 </div>
             </div>
-
+            <br>
             <!-- Content Area for Tables -->
             <div class="content-area">
                 <!-- Display hint message when nothing is selected -->
