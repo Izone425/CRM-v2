@@ -120,7 +120,7 @@ class WhatsAppController extends Controller
                 "Sekiranya anda ingin berbincang semula pada masa akan datang, saya sentiasa bersedia untuk membantu. Cukup sekadar hantarkan mesej, dan saya akan bantu sebaik mungkin. 😊",
 
             //CN
-            'HXcc05134b6c74ecc02682a25887978630' =>
+            'HXbd3b09adc6ec254a63b9456984945357' =>
                 "您好！我是TimeTec的{{1}}。非常感谢您对我们HR云端系统的关注！\n\n" .
                 "我们提供一系列超实用的HR模块，协助您轻松应对人事管理：\n" .
                 "✅考勤系统\n" .

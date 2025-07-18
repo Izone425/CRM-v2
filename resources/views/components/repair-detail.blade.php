@@ -288,40 +288,6 @@
                 </div>
             </div>
 
-            <!-- Video Files Section -->
-            <div class="mb-6">
-                @php
-                    $videos = $record->video_files
-                        ? (is_string($record->video_files) ? json_decode($record->video_files, true) : $record->video_files)
-                        : [];
-
-                    $hasVideos = is_array($videos) && count($videos) > 0;
-                @endphp
-
-                @if($hasVideos)
-                    <p class="mb-2">
-                        <span class="font-semibold">Video Attachment:</span>
-                        @foreach($videos as $index => $video)
-                            <a
-                                href="{{ asset('storage/' . $video) }}"
-                                target="_blank"
-                                class="ml-2 font-medium text-blue-600"
-                                style="color: #2563EB; text-decoration: none; font-weight: 500;"
-                                onmouseover="this.style.textDecoration='underline'"
-                                onmouseout="this.style.textDecoration='none'"
-                            >
-                                Video {{ $index + 1 }}
-                            </a>
-                        @endforeach
-                    </p>
-                @else
-                    <p class="mb-2">
-                        <span class="font-semibold">Video Attachment:</span>
-                        <span class="ml-1">Not Available</span>
-                    </p>
-                @endif
-            </div>
-
 
             {{-- Invoice Attachment --}}
             <div class="mb-2">

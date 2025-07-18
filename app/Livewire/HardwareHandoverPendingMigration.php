@@ -235,39 +235,6 @@ class HardwareHandoverPendingMigration extends Component implements HasForms, Ha
                             return view('components.hardware-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
-
-                    Action::make('mark_as_completed_migration')
-                        ->label(fn(): HtmlString => new HtmlString('Mark as Completed<br> Migration'))
-                        ->icon('heroicon-o-check-circle')
-                        ->color('primary')
-                        ->requiresConfirmation()
-                        ->modalHeading("Mark as Completed: Migration")
-                        ->modalDescription('Are you sure you want to mark this handover as migration completed?')
-                        ->modalSubmitActionLabel('Yes, Mark as Completed')
-                        ->modalCancelActionLabel('No, Cancel')
-                        ->action(function (HardwareHandover $record): void {
-                            // Update the status
-                            $record->update([
-                                'status' => 'Completed Migration',
-                                'completed_at' => now(),
-                            ]);
-
-                            // Log the status change
-                            \Illuminate\Support\Facades\Log::info("Hardware handover #{$record->id} marked as Completed from Pending Migration", [
-                                'lead_id' => $record->lead_id,
-                                'updated_by' => auth()->user()->name,
-                            ]);
-
-                            // Show success notification
-                            Notification::make()
-                                ->title('Hardware handover marked as completed')
-                                ->success()
-                                ->body('The hardware handover migration has been completed successfully.')
-                                ->send();
-
-                            // Refresh tables to show the updated status
-                            $this->dispatch('refresh-hardwarehandover-tables');
-                        }),
                 ])
                 ->button()
                 ->color('warning')
