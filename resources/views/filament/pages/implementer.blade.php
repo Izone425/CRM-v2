@@ -56,7 +56,7 @@
     .group-title {
         font-size: 15px;
         font-weight: 600;
-        margin-bottom: 2px;
+        margin-bottom: 8px;
     }
 
     .group-desc {
