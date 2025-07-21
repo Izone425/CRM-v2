@@ -422,8 +422,7 @@
             <div class="group-container">
                 <!-- Group: All Items -->
                 <div class="group-box group-all-items"
-                     :class="{'selected': selectedGroup === 'all-items'}"
-                     @click="setSelectedGroup('all-items')">
+                     :class="{'selected': selectedGroup === 'all-items'}">
                     <div class="group-title">All Items</div>
                     <div class="group-count">{{ $allTaskCount }}</div>
                 </div>
