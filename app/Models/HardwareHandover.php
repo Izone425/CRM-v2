@@ -44,6 +44,7 @@ class HardwareHandover extends Model
         'invoice_type',
         'related_software_handovers',
         'video_files',
+        'reseller_invoice',
         'confirmation_order_file',
         'hrdf_grant_file',
         'payment_slip_file',

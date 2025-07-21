@@ -9,6 +9,7 @@ use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
@@ -476,28 +477,28 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 })
                                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 
-                            // FileUpload::make('category2.reseller_invoice')
-                            //     ->label('Reseller Invoice')
-                            //     ->helperText('Upload reseller invoice')
-                            //     ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
-                            //     ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
-                            //     ->disk('public')
-                            //     ->directory('handovers/reseller_invoices')
-                            //     ->visibility('public')
-                            //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                            //     ->multiple()
-                            //     ->maxFiles(5)
-                            //     ->openable()
-                            //     ->downloadable()
-                            //     ->default(function ($record) {
-                            //         if ($record && $record->category2) {
-                            //             $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
-                            //             if (isset($category2['reseller_invoice'])) {
-                            //                 return $category2['reseller_invoice'];
-                            //             }
-                            //         }
-                            //         return [];
-                            //     })
+                            Hidden::make('installation_type')
+                                ->default(function ($record) {
+                                    // This ensures the field gets its value from the record
+                                    return $record->installation_type ?? null;
+                                }),
+
+                            FileUpload::make('reseller_invoice')
+                                ->label('Reseller Invoice')
+                                ->helperText('Upload reseller invoice')
+                                ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                ->disk('public')
+                                ->directory('handovers/reseller_invoices')
+                                ->visibility('public')
+                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                ->multiple()
+                                ->maxFiles(5)
+                                ->openable()
+                                ->downloadable()
+                                ->default(function ($record) {
+                                    return $record->reseller_invoice ?? [];
+                                }),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process remarks to merge with existing ones
@@ -543,6 +544,12 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 $record->update([
                                     'completed_at' => now(),
                                     'status' => 'Completed: Installation',
+                                ]);
+                            }
+
+                            if ($record->installation_type === 'external_installation' && isset($data['reseller_invoice'])) {
+                                $record->update([
+                                    'reseller_invoice' => $data['reseller_invoice']
                                 ]);
                             }
 
