@@ -14,22 +14,10 @@
 
     <p>顺祝 商祺！</p>
     <p>
-        {{ $leadOwnerName }}<br>
-        @if(isset($lead['salespersonPosition']))
-            @if(strtolower($lead['salespersonPosition']) == 'business development executive')
-                市场开发代表<br>
-            @elseif(strtolower($lead['salespersonPosition']) == 'sales development representative')
-                市场开发专员<br>
-            @else
-                {{ $lead['salespersonPosition'] }}<br>
-            @endif
-        @else
-            TimeTec 客户服务代表<br>
-        @endif
+        {{ $lead['salespersonName'] }}<br>
+        市场开发专员<br>
         TimeTec Cloud Sdn. Bhd.<br>
-        @if(isset($lead['leadOwnerMobileNumber']) && !empty($lead['leadOwnerMobileNumber']))
-            联系电话: {{ $lead['leadOwnerMobileNumber'] }}
-        @endif
+        联系电话: {{ $lead['salespersonPhone'] }}
     </p>
 </body>
 </html>

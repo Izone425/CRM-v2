@@ -54,13 +54,6 @@
                             <td class="p-3 text-center">{{ $handover->tc20_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->face_id5_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->face_id6_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100cr_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100cmf_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100chid_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100crw_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100cmfw_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100chidw_quantity ?? '0' }}</td>
-                            <td class="p-3 text-center">{{ $handover->ta100cw_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->time_beacon_quantity ?? '0' }}</td>
                             <td class="p-3 text-center">{{ $handover->nfc_tag_quantity ?? '0' }}</td>
                             <td class="p-3">

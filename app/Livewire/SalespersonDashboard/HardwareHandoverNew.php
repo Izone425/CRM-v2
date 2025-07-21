@@ -55,8 +55,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
     protected static ?int $indexRepeater2 = 0;
     protected static ?int $indexRepeater3 = 0;
     protected static ?int $indexRepeater4 = 0;
-    protected static ?int $indexRepeater5 = 0;
-    protected static ?int $indexRepeater6 = 0;
 
     public $selectedUser;
     public $lastRefreshTime;
@@ -830,49 +828,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->minValue(0)
                                         ->default(0),
 
-                                    // TextInput::make('ta100cr_quantity')
-                                    //     ->label('TA100C / R')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-                                    // TextInput::make('ta100cmf_quantity')
-                                    //     ->label('TA100C / MF')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-
-                                    // TextInput::make('ta100chid_quantity')
-                                    //     ->label('TA100C / HID')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-                                    // TextInput::make('ta100crw_quantity')
-                                    //     ->label('TA100C / R / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-                                    // TextInput::make('ta100cmfw_quantity')
-                                    //     ->label('TA100C / MF / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-                                    // TextInput::make('ta100chidw_quantity')
-                                    //     ->label('TA100C / HID / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
-                                    // TextInput::make('ta100cw_quantity')
-                                    //     ->label('TA100C / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(0),
-
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
@@ -1045,13 +1000,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'tc20_quantity' => $data['tc20_quantity'],
                                 'face_id5_quantity' => $data['face_id5_quantity'],
                                 'face_id6_quantity' => $data['face_id6_quantity'],
-                                'ta100cr_quantity' => $data['ta100cr_quantity'],
-                                'ta100cmf_quantity' => $data['ta100cmf_quantity'],
-                                'ta100chid_quantity' => $data['ta100chid_quantity'],
-                                'ta100crw_quantity' => $data['ta100crw_quantity'],
-                                'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
-                                'ta100chidw_quantity' => $data['ta100chidw_quantity'],
-                                'ta100cw_quantity' => $data['ta100cw_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
@@ -1166,34 +1114,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         'face_id6' => [
                                             'quantity' => (int)$data['face_id6_quantity'],
                                             'status' => (int)$data['face_id6_quantity'] > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100cr' => [
-                                            'quantity' => (int)$record->ta100cr_quantity,
-                                            'status' => (int)$record->ta100cr_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100cmf' => [
-                                            'quantity' => (int)$record->ta100cmf_quantity,
-                                            'status' => (int)$record->ta100cmf_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100chid' => [
-                                            'quantity' => (int)$record->ta100chid_quantity,
-                                            'status' => (int)$record->ta100chid_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100crw' => [
-                                            'quantity' => (int)$record->ta100crw_quantity,
-                                            'status' => (int)$record->ta100crw_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100cmfw' => [
-                                            'quantity' => (int)$record->ta100cmfw_quantity,
-                                            'status' => (int)$record->ta100cmfw_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100chidw' => [
-                                            'quantity' => (int)$record->ta100chidw_quantity,
-                                            'status' => (int)$record->ta100chidw_quantity > 0 ? 'Available' : 'Pending Stock'
-                                        ],
-                                        'ta100cw' => [
-                                            'quantity' => (int)$data['ta100cw_quantity'],
-                                            'status' => (int)$data['ta100cw_quantity'] > 0 ? 'Available' : 'Pending Stock'
                                         ],
                                         'time_beacon' => [
                                             'quantity' => (int)$data['time_beacon_quantity'],
@@ -1452,60 +1372,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ->hidden(fn (Get $get): bool => (int)$get('face_id6_quantity') <= 0)
                                 ->collapsible(),
 
-                            // For TIME BEACON Serial Numbers
-                            Section::make('TIME BEACON Serial Numbers')
-                                ->schema([
-                                    Repeater::make('time_beacon_serials')
-                                        ->hiddenLabel()
-                                        ->schema([
-                                            TextInput::make('serial')
-                                                ->label(fn() => __('TIME BEACON Serial Number #') . ' ' . ++self::$indexRepeater5)
-                                                ->required()
-                                                ->maxLength(50)
-                                        ])
-                                        ->columns(2)
-                                        ->addable(false)
-                                        ->deletable(false)
-                                        ->reorderable(false)
-                                        ->default(function (Get $get) {
-                                            $quantity = (int)$get('time_beacon_quantity');
-                                            return array_map(function() {
-                                                return ['serial' => ''];
-                                            }, array_fill(0, $quantity, null));
-                                        })
-                                        ->hidden(fn (Get $get): bool => (int)$get('time_beacon_quantity') <= 0)
-                                        ->columnSpanFull()
-                                ])
-                                ->hidden(fn (Get $get): bool => (int)$get('time_beacon_quantity') <= 0)
-                                ->collapsible(),
-
-                            // For NFC TAG Serial Numbers
-                            Section::make('NFC TAG Serial Numbers')
-                                ->schema([
-                                    Repeater::make('nfc_tag_serials')
-                                        ->hiddenLabel()
-                                        ->schema([
-                                            TextInput::make('serial')
-                                                ->label(fn() => __('NFC TAG Serial Number #') . ' ' . ++self::$indexRepeater6)
-                                                ->required()
-                                                ->maxLength(50)
-                                        ])
-                                        ->columns(2)
-                                        ->addable(false)
-                                        ->deletable(false)
-                                        ->reorderable(false)
-                                        ->default(function (Get $get) {
-                                            $quantity = (int)$get('nfc_tag_quantity');
-                                            return array_map(function() {
-                                                return ['serial' => ''];
-                                            }, array_fill(0, $quantity, null));
-                                        })
-                                        ->hidden(fn (Get $get): bool => (int)$get('nfc_tag_quantity') <= 0)
-                                        ->columnSpanFull()
-                                ])
-                                ->hidden(fn (Get $get): bool => (int)$get('nfc_tag_quantity') <= 0)
-                                ->collapsible(),
-
                             Select::make('implementer')
                                 ->label('Assign Implementer')
                                 ->options(function () {
@@ -1599,8 +1465,6 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'tc20_serials' => $data['tc20_serials'] ?? [],
                                 'face_id5_serials' => $data['face_id5_serials'] ?? [],
                                 'face_id6_serials' => $data['face_id6_serials'] ?? [],
-                                'time_beacon_serials' => $data['time_beacon_serials'] ?? [],
-                                'nfc_tag_serials' => $data['nfc_tag_serials'] ?? [],
                             ];
 
                             // Process file uploads
@@ -1909,38 +1773,194 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+
+                                            $set('tc10_serials', $serials);
+                                        }),
 
                                     TextInput::make('face_id5_quantity')
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+
+                                            $set('face_id5_serials', $serials);
+                                        }),
 
                                     TextInput::make('time_beacon_quantity')
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                            $set('time_beacon_serials', $serials);
+                                        }),
 
                                     TextInput::make('tc20_quantity')
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                            $set('tc20_serials', $serials);
+                                        }),
 
                                     TextInput::make('face_id6_quantity')
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                            $set('face_id6_serials', $serials);
+                                        }),
 
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live(debounce: 500)
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                            $quantity = (int)$state;
+                                            $serials = array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                            $set('nfc_tag_serials', $serials);
+                                        }),
                                 ]),
+
+                            Section::make('TC10 Serial Numbers')
+                                ->schema([
+                                    Repeater::make('tc10_serials')
+                                        ->hiddenLabel()
+                                        ->schema([
+                                            TextInput::make('serial')
+                                                ->label(fn() => __('TC10 Serial Number #') . ' ' . ++self::$indexRepeater)
+                                                ->required()
+                                                ->maxLength(50)
+                                        ])
+                                        ->columns(2)
+                                        ->addable(false)
+                                        ->deletable(false)
+                                        ->reorderable(false)
+                                        ->default(function (Get $get) {
+                                            $quantity = (int)$get('tc10_quantity');
+                                            return array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                        })
+                                        ->hidden(fn (Get $get): bool => (int)$get('tc10_quantity') <= 0)
+                                        ->columnSpanFull()
+                                ])
+                                ->hidden(fn (Get $get): bool => (int)$get('tc10_quantity') <= 0)
+                                ->collapsible(),
+
+                            Section::make('TC20 Serial Numbers')
+                                ->schema([
+                                    Repeater::make('tc20_serials')
+                                        ->hiddenLabel()
+                                        ->schema([
+                                            TextInput::make('serial')
+                                                ->label(fn() => __('TC20 Serial Number #') . ' ' . ++self::$indexRepeater2)
+                                                ->required()
+                                                ->maxLength(50)
+                                        ])
+                                        ->columns(2)
+                                        ->addable(false)
+                                        ->deletable(false)
+                                        ->reorderable(false)
+                                        ->default(function (Get $get) {
+                                            $quantity = (int)$get('tc20_quantity');
+                                            return array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                        })
+                                        ->hidden(fn (Get $get): bool => (int)$get('tc20_quantity') <= 0)
+                                        ->columnSpanFull()
+                                ])
+                                ->hidden(fn (Get $get): bool => (int)$get('tc20_quantity') <= 0)
+                                ->collapsible(),
+
+                            // For FACE ID 5 Serial Numbers
+                            Section::make('FACE ID 5 Serial Numbers')
+                                ->schema([
+                                    Repeater::make('face_id5_serials')
+                                        ->hiddenLabel()
+                                        ->schema([
+                                            TextInput::make('serial')
+                                                ->label(fn() => __('FACE ID 5 Serial Number #') . ' ' . ++self::$indexRepeater3)
+                                                ->required()
+                                                ->maxLength(50)
+                                        ])
+                                        ->columns(2)
+                                        ->addable(false)
+                                        ->deletable(false)
+                                        ->reorderable(false)
+                                        ->default(function (Get $get) {
+                                            $quantity = (int)$get('face_id5_quantity');
+                                            return array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                        })
+                                        ->hidden(fn (Get $get): bool => (int)$get('face_id5_quantity') <= 0)
+                                        ->columnSpanFull()
+                                ])
+                                ->hidden(fn (Get $get): bool => (int)$get('face_id5_quantity') <= 0)
+                                ->collapsible(),
+
+                            // For FACE ID 6 Serial Numbers
+                            Section::make('FACE ID 6 Serial Numbers')
+                                ->schema([
+                                    Repeater::make('face_id6_serials')
+                                        ->hiddenLabel()
+                                        ->schema([
+                                            TextInput::make('serial')
+                                                ->label(fn() => __('FACE ID 6 Serial Number #') . ' ' . ++self::$indexRepeater4)
+                                                ->required()
+                                                ->maxLength(50)
+                                        ])
+                                        ->columns(2)
+                                        ->addable(false)
+                                        ->deletable(false)
+                                        ->reorderable(false)
+                                        ->default(function (Get $get) {
+                                            $quantity = (int)$get('face_id6_quantity');
+                                            return array_map(function() {
+                                                return ['serial' => ''];
+                                            }, array_fill(0, $quantity, null));
+                                        })
+                                        ->hidden(fn (Get $get): bool => (int)$get('face_id6_quantity') <= 0)
+                                        ->columnSpanFull()
+                                ])
+                                ->hidden(fn (Get $get): bool => (int)$get('face_id6_quantity') <= 0)
+                                ->collapsible(),
 
                             Select::make('implementer')
                                 ->label('Assign Implementer')
@@ -2030,6 +2050,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                             ]),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
+                            $serialData = [
+                                'tc10_serials' => $data['tc10_serials'] ?? [],
+                                'tc20_serials' => $data['tc20_serials'] ?? [],
+                                'face_id5_serials' => $data['face_id5_serials'] ?? [],
+                                'face_id6_serials' => $data['face_id6_serials'] ?? [],
+                            ];
                             // Process file uploads
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
                                 // Get existing invoice files
@@ -2108,15 +2134,9 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'tc20_quantity' => $data['tc20_quantity'],
                                 'face_id5_quantity' => $data['face_id5_quantity'],
                                 'face_id6_quantity' => $data['face_id6_quantity'],
-                                'ta100cr_quantity' => $data['ta100cr_quantity'],
-                                'ta100cmf_quantity' => $data['ta100cmf_quantity'],
-                                'ta100chid_quantity' => $data['ta100chid_quantity'],
-                                'ta100crw_quantity' => $data['ta100crw_quantity'],
-                                'ta100cmfw_quantity' => $data['ta100cmfw_quantity'],
-                                'ta100chidw_quantity' => $data['ta100chidw_quantity'],
-                                'ta100cw_quantity' => $data['ta100cw_quantity'],
                                 'time_beacon_quantity' => $data['time_beacon_quantity'],
                                 'nfc_tag_quantity' => $data['nfc_tag_quantity'],
+                                'device_serials' => json_encode($serialData),
                                 'implementer' => $implementerName ?? null,
                                 'pending_migration_at' => now(),
                                 'status' => 'Completed Migration',
