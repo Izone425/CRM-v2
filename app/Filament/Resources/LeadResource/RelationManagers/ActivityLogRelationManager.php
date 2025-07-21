@@ -558,7 +558,7 @@ class ActivityLogRelationManager extends RelationManager
 
                                             if (auth()->user()->role_id == 3) {
                                                 return \App\Models\User::query()
-                                                    ->whereIn('role_id', [2, 3])
+                                                    ->where('role_id', 2)
                                                     ->pluck('name', 'id')
                                                     ->toArray();
                                             } else {
@@ -1007,7 +1007,7 @@ class ActivityLogRelationManager extends RelationManager
 
                                     // If no salesperson is assigned, return options based on the user's role
                                     if ($user->role_id == 3) {
-                                        return User::whereIn('role_id', [2, 3])
+                                        return User::where('role_id', 2)
                                             ->pluck('name', 'id')
                                             ->toArray();
                                     } else {

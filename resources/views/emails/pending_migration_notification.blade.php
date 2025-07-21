@@ -10,7 +10,7 @@
             color: #333;
         }
         .container {
-            max-width: 650px;
+            max-width: 750px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -49,7 +49,7 @@
         }
         th {
             background-color: #f2f2f2;
-            width: 30%;
+            width: 25%;
         }
         .button-container {
             text-align: center;
@@ -110,9 +110,10 @@
                         <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                             <thead>
                                 <tr>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2; width: 35%;">Product</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 15%;">Quantity</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 50%;">Status</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2; width: 30%;">Product</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 5%;">Quantity</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 35%;">Status</th>
+                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f2f2f2; width: 30%;">Serial Numbers</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -125,12 +126,25 @@
                                                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
                                                     <span style="color: #27ae60;">Pending Migration</span>
                                                 </td>
+                                                <td style="border: 1px solid #ddd; padding: 8px;">
+                                                    @if(isset($emailContent['device_serials']["{$device}_serials"]))
+                                                        <ul style="margin: 0; padding-left: 20px;">
+                                                            @foreach($emailContent['device_serials']["{$device}_serials"] as $serialData)
+                                                                @if(!empty($serialData['serial']))
+                                                                    <li>{{ $serialData['serial'] }}</li>
+                                                                @endif
+                                                            @endforeach
+                                                        </ul>
+                                                    @else
+                                                        <span style="color: #777;">No serial numbers recorded</span>
+                                                    @endif
+                                                </td>
                                             </tr>
                                         @endif
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: center;">No devices pending stock</td>
+                                        <td colspan="4" style="border: 1px solid #ddd; padding: 8px; text-align: center;">No devices pending migration</td>
                                     </tr>
                                 @endif
                             </tbody>

@@ -660,7 +660,7 @@ class DemoAppointmentRelationManager extends RelationManager
 
                                         if (auth()->user()->role_id == 3) {
                                             return \App\Models\User::query()
-                                                ->whereIn('role_id', [2, 3])
+                                                ->where('role_id', 2)
                                                 ->pluck('name', 'id')
                                                 ->toArray();
                                         } else {

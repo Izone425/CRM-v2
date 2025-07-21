@@ -189,14 +189,18 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
-                    ->label('Invoice Type')
-                    ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
-                        default => ucfirst($state ?? 'Unknown')
+                TextColumn::make('installation_type')
+                    ->label('Category 1')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'courier' => 'Courier',
+                            'internal_installation' => 'Internal Installation',
+                            'external_installation' => 'External Installation',
+                            'self_pick_up' => 'Self Pick-up',
+                            default => ucfirst($state),
+                        };
                     })
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+                    ->toggleable(),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -471,6 +475,29 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                     return null; // Return null for new appointments
                                 })
                                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+
+                            // FileUpload::make('category2.reseller_invoice')
+                            //     ->label('Reseller Invoice')
+                            //     ->helperText('Upload reseller invoice')
+                            //     ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
+                            //     ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
+                            //     ->disk('public')
+                            //     ->directory('handovers/reseller_invoices')
+                            //     ->visibility('public')
+                            //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            //     ->multiple()
+                            //     ->maxFiles(5)
+                            //     ->openable()
+                            //     ->downloadable()
+                            //     ->default(function ($record) {
+                            //         if ($record && $record->category2) {
+                            //             $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                            //             if (isset($category2['reseller_invoice'])) {
+                            //                 return $category2['reseller_invoice'];
+                            //             }
+                            //         }
+                            //         return [];
+                            //     })
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process remarks to merge with existing ones
@@ -1133,9 +1160,6 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
                                     $recipients[] = $salespersonEmail;
                                 }
-
-                                // Always include admin
-                                $recipients[] = '';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
