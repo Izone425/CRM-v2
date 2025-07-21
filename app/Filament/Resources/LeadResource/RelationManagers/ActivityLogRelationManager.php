@@ -1351,7 +1351,21 @@ class ActivityLogRelationManager extends RelationManager
 
                             try {
                                 $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
-                                $variables = [$lead->name, $lead->lead_owner];
+
+                                $isChinese = $lead->lead_code && (
+                                    str_contains($lead->lead_code, '(CN)') ||
+                                    str_contains($lead->lead_code, 'CN')
+                                );
+
+                                // Set variables based on language
+                                if ($isChinese) {
+                                    // Chinese templates only need one variable for the salesperson's name
+                                    $variables = [$lead->lead_owner]; // Only the lead's name for Chinese template
+                                } else {
+                                    // Regular templates need both lead name and lead owner
+                                    $variables = [$lead->name, $lead->lead_owner];
+                                }
+
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
                                 $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
                             } catch (\Exception $e) {
@@ -1860,16 +1874,34 @@ class ActivityLogRelationManager extends RelationManager
                                 $day3 = "$date3 - $formattedSlots3";
                             }
 
-                            // Template SID for demo selection
-                            $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529';
+                            $isChinese = $lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            );
 
-                            // Set up variables for the template (using 4 variables now)
-                            $variables = [
-                                $recipientName,
-                                $day1,
-                                $day2 ?? ' ',  // Send empty string if day2 is null
-                                $day3 ?? ' '   // Send empty string if day3 is null
-                            ];
+                            if ($isChinese) {
+                                // Chinese template
+                                $contentTemplateSid = 'HX99cd275a009cf38322ede220d81be784';
+
+                                // For Chinese templates, we exclude the recipient name
+                                // and only include the day slots
+                                $variables = [
+                                    $day1,
+                                    $day2 ?? ' ',  // Send empty string if day2 is null
+                                    $day3 ?? ' '   // Send empty string if day3 is null
+                                ];
+                            } else {
+                                // Regular template
+                                $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529';
+
+                                // For regular templates, we include the recipient name
+                                $variables = [
+                                    $recipientName,
+                                    $day1,
+                                    $day2 ?? ' ',  // Send empty string if day2 is null
+                                    $day3 ?? ' '   // Send empty string if day3 is null
+                                ];
+                            }
 
                             try {
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();

@@ -941,7 +941,7 @@ class LeadActions
                     ->options(function () {
                         if (auth()->user()->role_id == 3) {
                             return User::query()
-                                ->whereIn('role_id', [2, 3])
+                                ->where('role_id', 2)
                                 ->pluck('name', 'id')
                                 ->toArray();
                         } else {
@@ -1267,7 +1267,22 @@ class LeadActions
 
             try {
                 $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
-                $variables = [$lead->name, $lead->lead_owner];
+
+                // Check if it's a Chinese lead
+                $isChinese = $lead->lead_code && (
+                    str_contains($lead->lead_code, '(CN)') ||
+                    str_contains($lead->lead_code, 'CN')
+                );
+
+                // Set variables based on language
+                if ($isChinese) {
+                    // Chinese templates only need one variable for the salesperson's name
+                    $variables = [$lead->lead_owner]; // Only the lead's name for Chinese template
+                } else {
+                    // Regular templates need both lead name and lead owner
+                    $variables = [$lead->name, $lead->lead_owner];
+                }
+
                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
                 $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
             } catch (\Exception $e) {

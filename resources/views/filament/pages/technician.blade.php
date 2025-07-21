@@ -190,7 +190,7 @@
         ->count();
 
     // Define queries for Completed and Draft/Rejected
-    $completedCount = app(\App\Livewire\AdminRepairCompleted::class)
+    $completedCount = app(\App\Livewire\AdminRepairCompletedTechnician::class)
         ->getTableQuery()
         ->count();
 
@@ -309,7 +309,7 @@
 
                 <!-- Completed -->
                 <div x-show="selectedSection === 'completed'" x-transition :key="'completed'">
-                    @livewire('admin-repair-completed')
+                    @livewire('admin-repair-completed-technician')
                 </div>
 
                 <!-- Inactive -->

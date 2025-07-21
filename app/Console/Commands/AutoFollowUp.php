@@ -121,7 +121,20 @@ class AutoFollowUp extends Command
                     // WhatsApp
                     try {
                         $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
-                        $variables = [$lead->name, $lead->lead_owner];
+
+                        $isChinese = $lead->lead_code && (
+                            str_contains($lead->lead_code, '(CN)') ||
+                            str_contains($lead->lead_code, 'CN')
+                        );
+
+                        // Set variables based on language
+                        if ($isChinese) {
+                            $variables = [$lead->name];
+                        } else {
+                            // Regular templates need both lead name and lead owner
+                            $variables = [$lead->name, $lead->lead_owner];
+                        }
+
                         $whatsappController = new \App\Http\Controllers\WhatsAppController();
                         $whatsappController->sendWhatsAppTemplate($phoneNumber, $contentTemplateSid, $variables);
                     } catch (Exception $e) {

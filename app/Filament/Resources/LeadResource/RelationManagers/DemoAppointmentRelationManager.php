@@ -981,17 +981,40 @@ class DemoAppointmentRelationManager extends RelationManager
                     $salespersonName = $salespersonUser->name ?? 'N/A';
                     $salespersonContact = $salespersonUser->mobile_number ?? 'N/A';
 
+                    $isChinese = $lead->lead_code && (
+                        str_contains($lead->lead_code, '(CN)') ||
+                        str_contains($lead->lead_code, 'CN')
+                    );
+
                     if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
-                        $templateSid = 'HX38ef28749e5a21f1725b67a424bc0b31';
-                        $variables = [
-                            $recipientName,
-                            $date,
-                            $day,
-                            $time,
-                            $demoType,
-                            $salespersonName,
-                            $salespersonContact
-                        ];
+                        if ($isChinese) {
+                            // Use Chinese template for CN leads
+                            $templateSid = 'HXdcff7fa6fba635b272f4c2bed3a315f8';
+
+                            // For Chinese templates, exclude the recipient name
+                            $variables = [
+                                $date,
+                                $day,
+                                $time,
+                                $demoType,
+                                $salespersonName,
+                                $salespersonContact
+                            ];
+                        } else {
+                            // Use regular template for non-CN leads
+                            $templateSid = 'HX38ef28749e5a21f1725b67a424bc0b31';
+
+                            // For regular templates, include the recipient name
+                            $variables = [
+                                $recipientName,
+                                $date,
+                                $day,
+                                $time,
+                                $demoType,
+                                $salespersonName,
+                                $salespersonContact
+                            ];
+                        }
 
                         // Send the WhatsApp template message
                         try {

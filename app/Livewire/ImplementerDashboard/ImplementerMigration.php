@@ -356,9 +356,6 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                                     $recipients[] = $salespersonEmail;
                                 }
 
-                                // Always include admin
-                                $recipients[] = '';
-
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
                                 $senderEmail = $authUser->email;
