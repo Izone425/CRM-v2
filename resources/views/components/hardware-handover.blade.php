@@ -312,13 +312,33 @@
                                     <tr class="bg-gray-100">
                                         <th class="px-4 py-2 text-left border border-gray-300">Product</th>
                                         <th class="px-4 py-2 text-center border border-gray-300">Quantity</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Serial Numbers</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php
+                                        $deviceSerials = $record->device_serials ?
+                                            (is_string($record->device_serials) ? json_decode($record->device_serials, true) : $record->device_serials) :
+                                            [];
+                                    @endphp
+
                                     @if(isset($record->tc10_quantity) && $record->tc10_quantity > 0)
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TC10</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->tc10_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc10_serials']) && count($deviceSerials['tc10_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc10_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -326,6 +346,19 @@
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TC20</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->tc20_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc20_serials']) && count($deviceSerials['tc20_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc20_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -333,6 +366,19 @@
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">FACE ID5</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->face_id5_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id5_serials']) && count($deviceSerials['face_id5_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id5_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -340,55 +386,19 @@
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">FACE ID6</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->face_id6_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100cr_quantity) && $record->ta100cr_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / R</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100cr_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100cmf_quantity) && $record->ta100cmf_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / MF</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100cmf_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100chid_quantity) && $record->ta100chid_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / MF</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100chid_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100crw_quantity) && $record->ta100crw_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / MF</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100crw_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100cmfw_quantity) && $record->ta100cmfw_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / MF</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100cmfw_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100chidw_quantity) && $record->ta100chidw_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / MF</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100chidw_quantity }}</td>
-                                        </tr>
-                                    @endif
-
-                                    @if(isset($record->ta100cw_quantity) && $record->ta100cw_quantity > 0)
-                                        <tr>
-                                            <td class="px-6 py-3 border border-gray-300">TA100C / W</td>
-                                            <td class="px-6 py-3 text-center border border-gray-300">{{ $record->ta100cw_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id6_serials']) && count($deviceSerials['face_id6_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id6_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -396,6 +406,19 @@
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">TIME BEACON</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->time_beacon_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['time_beacon_serials']) && count($deviceSerials['time_beacon_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['time_beacon_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -403,6 +426,19 @@
                                         <tr>
                                             <td class="px-6 py-3 border border-gray-300">NFC TAG</td>
                                             <td class="px-6 py-3 text-center border border-gray-300">{{ $record->nfc_tag_quantity }}</td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['nfc_tag_serials']) && count($deviceSerials['nfc_tag_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['nfc_tag_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['serial'] }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -411,18 +447,11 @@
                                         (!isset($record->tc20_quantity) || $record->tc20_quantity <= 0) &&
                                         (!isset($record->face_id5_quantity) || $record->face_id5_quantity <= 0) &&
                                         (!isset($record->face_id6_quantity) || $record->face_id6_quantity <= 0) &&
-                                        (!isset($record->ta100cr_quantity) || $record->ta100cr_quantity <= 0) &&
-                                        (!isset($record->ta100cmf_quantity) || $record->ta100cmf_quantity <= 0) &&
-                                        (!isset($record->ta100chid_quantity) || $record->ta100chid_quantity <= 0) &&
-                                        (!isset($record->ta100crw_quantity) || $record->ta100crw_quantity <= 0) &&
-                                        (!isset($record->ta100cmfw_quantity) || $record->ta100cmfw_quantity <= 0) &&
-                                        (!isset($record->ta100chidw_quantity) || $record->ta100chidw_quantity <= 0) &&
-                                        (!isset($record->ta100cw_quantity) || $record->ta100cw_quantity <= 0) &&
                                         (!isset($record->time_beacon_quantity) || $record->time_beacon_quantity <= 0) &&
                                         (!isset($record->nfc_tag_quantity) || $record->nfc_tag_quantity <= 0)
                                     )
                                         <tr>
-                                            <td colspan="2" class="px-4 py-2 text-center border border-gray-300">No devices available</td>
+                                            <td colspan="3" class="px-4 py-2 text-center border border-gray-300">No devices available</td>
                                         </tr>
                                     @endif
                                 </tbody>

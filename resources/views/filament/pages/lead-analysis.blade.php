@@ -488,6 +488,7 @@
                                 'Lost' => '#A0A0A0',
                                 'On Hold' => '#B3B3B3',
                                 'No Response' => '#C6C6C6',
+                                'Junk' => '#D1D5DB',
                                 default => '#D1D5DB',
                             };
                             $bgcolor = match($status) {
@@ -495,6 +496,7 @@
                                 'Lost' => '#E5E5E5',
                                 'On Hold' => '#ECECEC',
                                 'No Response' => '#F7F7F7',
+                                'Junk' => '#F1F5F9',
                                 default => '#D1D5DB',
                             };
                         @endphp
@@ -629,7 +631,7 @@
         <!-- Slide-over content -->
         <div
             class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
-            @click.away="open = false" 
+            @click.away="open = false"
         >
             <!-- Header -->
             <br><br>

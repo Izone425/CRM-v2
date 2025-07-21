@@ -129,6 +129,7 @@ class QuotationService
          */
         $newQuotation->status = QuotationStatusEnum::new;
         $newQuotation->quotation_date = now()->format('Y-m-d');
+        $newQuotation->mark_as_final = false;
         $newQuotation->push();
 
         /**

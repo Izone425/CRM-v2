@@ -242,6 +242,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->tc10_quantity ?? 0;
                                         }),
@@ -250,6 +251,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->face_id5_quantity ?? 0;
                                         }),
@@ -258,6 +260,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->time_beacon_quantity ?? 0;
                                         }),
@@ -266,6 +269,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->tc20_quantity ?? 0;
                                         }),
@@ -274,73 +278,19 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->face_id6_quantity ?? 0;
                                         }),
-
-                                    // TextInput::make('ta100cr_quantity')
-                                    //     ->label('TA100C / R')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100cr_quantity ?? 0;
-                                    //     }),
-
-                                    // TextInput::make('ta100cmf_quantity')
-                                    //     ->label('TA100C / MF')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100cmf_quantity ?? 0;
-                                    //     }),
-
-                                    // TextInput::make('ta100chid_quantity')
-                                    //     ->label('TA100C / HID')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100chid_quantity ?? 0;
-                                    //     }),
-
-                                    // TextInput::make('ta100crw_quantity')
-                                    //     ->label('TA100C / R / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100crw_quantity ?? 0;
-                                    //     }),
-
-                                    // TextInput::make('ta100cmfw_quantity')
-                                    //     ->label('TA100C / MF / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100cmfw_quantity ?? 0;
-                                    //     }),
 
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->disabled()
                                         ->default(function (HardwareHandover $record) {
                                             return $record->nfc_tag_quantity ?? 0;
                                         }),
-
-                                    // TextInput::make('ta100chidw_quantity')
-                                    //     ->label('TA100C / HID / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100chidw_quantity ?? 0;
-                                    //     }),
-
-                                    // TextInput::make('ta100cw_quantity')
-                                    //     ->label('TA100C / W')
-                                    //     ->numeric()
-                                    //     ->minValue(0)
-                                    //     ->default(function (HardwareHandover $record) {
-                                    //         return $record->ta100cw_quantity ?? 0;
-                                    //     }),
                                 ]),
 
                             Select::make('implementer')

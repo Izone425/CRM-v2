@@ -230,7 +230,7 @@ class LeadAnalysis extends Page
         $this->totalInactiveLeads = $query->count();
 
         // Define expected statuses
-        $inactiveStatuses = ['Closed', 'Lost', 'On Hold', 'No Response'];
+        $inactiveStatuses = ['Closed', 'Lost', 'On Hold', 'No Response', 'Junk'];
 
         // Fetch leads grouped by their status
         $inactiveStatusCounts = $query

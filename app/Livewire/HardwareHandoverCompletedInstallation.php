@@ -171,7 +171,7 @@ class HardwareHandoverCompletedInstallation extends Component implements HasForm
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 30, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
@@ -179,7 +179,7 @@ class HardwareHandoverCompletedInstallation extends Component implements HasForm
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
+                                    ' . $shortened . '
                                 </a>';
                     })
                     ->html(),
