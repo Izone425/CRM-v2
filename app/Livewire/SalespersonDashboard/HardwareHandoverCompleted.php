@@ -69,7 +69,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed']);
+            ->whereIn('status', ['Completed: Installation', 'Completed: Courier']);
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {

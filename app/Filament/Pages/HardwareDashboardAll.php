@@ -105,7 +105,7 @@ class HardwareDashboardAll extends Page implements HasTable
         return $table
             ->query(
                 HardwareHandover::query()
-                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration'])
+                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier'])
                     // ->when(auth()->user()->role_id === 2, function ($query) {
                     //     $userId = auth()->id();
                     //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
