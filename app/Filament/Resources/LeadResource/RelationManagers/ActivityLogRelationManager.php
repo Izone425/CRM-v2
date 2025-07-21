@@ -1397,8 +1397,15 @@ class ActivityLogRelationManager extends RelationManager
                             // Get recipient name
                             $recipientName = $lead->companyDetail->name ?? $lead->name;
 
-                            // Template SID for request details
-                            $contentTemplateSid = 'HX50b95050ff8d2fe33edf0873c4d2e2b4';
+                            $isChinese = $lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            );
+
+                            // Set template SID based on lead type
+                            $contentTemplateSid = $isChinese
+                                ? 'HXf040c1812afbe8b0de069b4301bd31f8'  // Chinese template
+                                : 'HX7f5ccf2114ed839e0291c70aa25c9df8'; // Default template
 
                             // Set up variables for the template
                             $variables = [$recipientName];
@@ -1474,8 +1481,15 @@ class ActivityLogRelationManager extends RelationManager
                             // Get recipient name
                             $recipientName = $lead->companyDetail->name ?? $lead->name;
 
-                            // Template SID for request details
-                            $contentTemplateSid = 'HXff1b1179918e04a20f823db72a70ea16';
+                            $isChinese = $lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            );
+
+                            // Set template SID based on lead type
+                            $contentTemplateSid = $isChinese
+                                ? 'HXfa73af7acacd48a0d09ffc3ded7c6e43'  // Chinese template
+                                : 'HX04b20de70eaa3c6754846d1d5d94658e'; // Default template
 
                             // Set up variables for the template
                             $variables = [$recipientName];

@@ -70,12 +70,22 @@ class FollowUpLead extends Component implements HasForms, HasTable
 
         $salespersonId = auth()->user()->role_id == 3 && $this->selectedUser ? $this->selectedUser : auth()->id();
 
-        return Lead::query()
-            ->where('salesperson', $salespersonId)
+        $query = Lead::query()
             ->where('stage', 'Follow Up')
             ->where('manual_follow_up_count', '>=', 12)
             ->whereRaw('DATEDIFF(NOW(), created_at) > 97')
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+
+        if ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereIn('salesperson', $salespersonIds);
+        } elseif (is_numeric($this->selectedUser)) {
+            $query->where('salesperson', $this->selectedUser);
+        } else {
+            $query->where('salesperson', auth()->id());
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table

@@ -150,20 +150,21 @@ class WhatsAppController extends Controller
                 "如果您之后有兴趣重新了解，我随时愿意与您接洽！😊",
 
             //Request quotation
-            'HX50b95050ff8d2fe33edf0873c4d2e2b4' =>
+            'HX7f5ccf2114ed839e0291c70aa25c9df8' =>
                 "Hi {{1}}, as per our phone conversation, please provide your details below so we can provide quotation to you:
                 (Minimum headcount is 5 user/staff)
 
                 Department:
                 Company Name (As registered in SSM):
                 Address:
+                Pic Name:
                 Email:
                 Mobile number:
                 HRDF Register:
                 Headcount:
                 Module interested:",
 
-            'HXef2f5718c4a0f099a18e53c2e0fce7fc' =>
+            'HXf040c1812afbe8b0de069b4301bd31f8' =>
                 "您好 {{1}}，根据我们之前的电话沟通，请您协助提供以下资料以便我们报价：
 
                 （最低人数为5位用户/员工）
@@ -171,6 +172,7 @@ class WhatsAppController extends Controller
                 部门名称：
                 公司名称（需与SSM注册一致）：
                 公司地址：
+                公司负责人：
                 联系邮箱：
                 手机号码：
                 是否已注册HRDF：
@@ -230,20 +232,21 @@ class WhatsAppController extends Controller
                 期待与您见面交流！",
 
             //Request company info template
-            'HXff1b1179918e04a20f823db72a70ea16' =>
+            'HX04b20de70eaa3c6754846d1d5d94658e' =>
                 "If you're interested, please provide your details below so we can check slot availability for you:
                 (Minimum headcount is 5 user/staff)
 
                 Department:
                 Company Name (As registered in SSM):
                 Address:
+                Pic Name:
                 Email:
                 Mobile number:
                 HRDF Register:
                 Headcount:
                 Module interested:",
 
-            'HXdcc6df08f9a65054d20de4df48f23485' =>
+            'HXfa73af7acacd48a0d09ffc3ded7c6e43' =>
                 "您好！如果您有兴趣参与演示，请提供以下信息，以便我们为您安排合适的时段：
 
                 （最低人数为5位用户/员工）
@@ -251,6 +254,7 @@ class WhatsAppController extends Controller
                 部门名称：
                 公司名称（需与SSM注册一致）：
                 公司地址：
+                公司负责人：
                 联系邮箱：
                 手机号码：
                 是否已注册HRDF：
