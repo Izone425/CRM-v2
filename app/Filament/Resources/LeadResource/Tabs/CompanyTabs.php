@@ -222,12 +222,21 @@ class CompanyTabs
 
                                             Select::make('status')
                                                 ->label('INACTIVE STATUS')
-                                                ->options([
-                                                    'On Hold' => 'On Hold',
-                                                    'Junk' => 'Junk',
-                                                    'Lost' => 'Lost',
-                                                    'Closed' => 'Closed',
-                                                ])
+                                                ->options(function () {
+                                                    // Create base options array
+                                                    $options = [
+                                                        'On Hold' => 'On Hold',
+                                                        'Lost' => 'Lost',
+                                                        'Closed' => 'Closed',
+                                                    ];
+
+                                                    // Only add Junk option if user is not a salesperson
+                                                    if (auth()->user()->role_id != 2) {
+                                                        $options['Junk'] = 'Junk';
+                                                    }
+
+                                                    return $options;
+                                                })
                                                 ->default('On Hold')
                                                 ->required()
                                                 ->reactive(),
