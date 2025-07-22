@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Classes\Encryptor;
 use App\Filament\Filters\SortFilter;
+use App\Http\Controllers\GenerateRepairHandoverPdfController;
 use App\Http\Controllers\GenerateRepairPdfController;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
@@ -18,6 +19,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
@@ -38,9 +42,10 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Filters\Filter;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
-class AdminRepairAll extends Component implements HasForms, HasTable
+class TechnicianCompletedTechnicianRepair extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -86,6 +91,7 @@ class AdminRepairAll extends Component implements HasForms, HasTable
     public function getTableQuery(): Builder
     {
         $query = AdminRepair::query()
+            ->where('status', 'Completed Technician Repair')
             ->orderBy('created_at', 'desc');
 
         return $query;
@@ -227,7 +233,16 @@ class AdminRepairAll extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('status')
-                    ->label('Status'),
+                    ->label('Status')
+                    ->color(fn (string $state): string => match ($state) {
+                        'Draft' => 'gray',
+                        'New' => 'danger',
+                        'In Progress' => 'warning',
+                        'Awaiting Parts' => 'info',
+                        'Resolved' => 'success',
+                        'Closed' => 'gray',
+                        default => 'gray',
+                    }),
             ])
             ->actions([
                 ActionGroup::make([
@@ -242,41 +257,12 @@ class AdminRepairAll extends Component implements HasForms, HasTable
                             return view('components.repair-detail')
                                 ->with('record', $record);
                         }),
-                ])->button()
+                    ])->button()
             ]);
-    }
-
-    protected static function getSparePartOptionHtml(\App\Models\SparePart $part): string
-    {
-        $imageUrl = $part->picture_url ?? url('images/no-image.jpg');
-        $fullImageUrl = $imageUrl; // Keep the original URL for the full view
-
-        return '
-            <div class="flex items-center w-full gap-2">
-                <div class="flex-shrink-0 w-8 h-8">
-                    <img src="' . e($imageUrl) . '" class="object-cover w-full h-full rounded"
-                        onerror="this.onerror=null; this.src=\'' . e(url('images/no-image.jpg')) . '\'" />
-                </div>
-                <div class="flex-grow truncate">
-                    <div class="font-medium truncate">' . e($part->name) . '</div>
-                    <div class="text-xs text-gray-500 truncate">' . e($part->device_model) . '</div>
-                </div>
-                <div class="flex-shrink-0">
-                    <button type="button"
-                        onclick="event.stopPropagation(); window.open(\'' . e($fullImageUrl) . '\', \'_blank\'); return false;"
-                        class="px-1 py-1 text-xs rounded text-primary-600 hover:text-primary-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        ';
     }
 
     public function render()
     {
-        return view('livewire.admin-repair-all');
+        return view('livewire.technician-completed-technician-repair');
     }
 }
