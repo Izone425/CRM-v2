@@ -26,6 +26,16 @@ class WeeklyCalendarV2 extends Component
 
     public $weekDateArr;
 
+    public $internalSalesTaskTypes = [
+        'EXHIBITION',
+        'INTERNAL MEETING',
+        'SALES MEETING',
+        'PRODUCT MEETING',
+        'TOWNHALL SESSION',
+        'FOLLOW UP SESSION',
+        'BUSINESS TRIP'
+    ];
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -102,19 +112,24 @@ class WeeklyCalendarV2 extends Component
             ->get()
             ->toArray();
 
-
-
-        $result = array_map(function($appointment){
+        $result = array_map(function($appointment) {
+            // Existing code
             $appointment['carbonDate'] = Carbon::parse($appointment['date']);
             $appointment['carbonStartTime'] = Carbon::parse($appointment['start_time'])->format('H:i');
 
-            // $appointment['past'] = false;
-            // if($appointment['carbonDate']->isBefore(Carbon::today())){
-            //     $appointment['past'] = true;
-            // }
-            return $appointment;
-        },$result);
+            // Add type classification
+            if ($appointment['type'] === 'NEW DEMO') {
+                $appointment['type_class'] = 'new-demo';
+            } elseif ($appointment['type'] === 'WEBINAR DEMO') {
+                $appointment['type_class'] = 'webinar-demo';
+            } elseif (in_array($appointment['type'], $this->internalSalesTaskTypes)) {
+                $appointment['type_class'] = 'internal-sales-task';
+            } else {
+                $appointment['type_class'] = 'others';
+            }
 
+            return $appointment;
+        }, $result);
 
         $newArray['appointment'] = $result;
         $newArray['weekDateArr'] = array_map(function($weekDate) use ($salesperson){
@@ -166,27 +181,67 @@ class WeeklyCalendarV2 extends Component
         $this->loadModalArray();
     }
 
-    public function loadModalArray(){
-        $query = DB::table('appointments')
-            ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
-            ->select('company_details.*','appointments.type',"appointments.status",'appointments.appointment_type')
-            ->where("appointments.date", $this->modalProp["date"])
-            ->where("appointments.start_time", $this->modalProp["startTime"])
-            ->where("appointments.end_time", $this->modalProp["endTime"])
-            ->where("appointments.salesperson", $this->modalProp["salespersonID"])
-            ->whereNot("appointments.status", "Cancelled");
+    public function loadModalArray()
+    {
+        // Check if this is an internal sales task
+        $isInternalTask = !empty($this->modalProp["demoType"]) &&
+            in_array($this->modalProp["demoType"], $this->internalSalesTaskTypes);
 
-        // Filter by demo type if specified
-        if (!empty($this->modalProp["demoType"])) {
-            $query->where("appointments.type", $this->modalProp["demoType"]);
+        if ($isInternalTask) {
+            // For internal tasks, we only need data from appointments table
+            $appointments = DB::table('appointments')
+                ->select('appointments.*')
+                ->where("appointments.date", $this->modalProp["date"])
+                ->where("appointments.start_time", $this->modalProp["startTime"])
+                ->where("appointments.end_time", $this->modalProp["endTime"])
+                ->where("appointments.salesperson", $this->modalProp["salespersonID"])
+                ->where("appointments.type", $this->modalProp["demoType"])
+                ->whereNot("appointments.status", "Cancelled")
+                ->get()
+                ->toArray();
+
+            // Format internal task appointments
+            $result = array_map(function ($value) {
+                return [
+                    'is_internal_task' => true,
+                    'type' => $value->type,
+                    'status' => $value->status,
+                    'appointment_type' => $value->appointment_type,
+                    'date' => $value->date,
+                    'start_time' => $value->start_time,
+                    'end_time' => $value->end_time,
+                    'remarks' => $value->remarks ?? null,
+                    // Add any other fields you need
+                ];
+            }, $appointments);
+        } else {
+            // Original code for regular appointments
+            $query = DB::table('appointments')
+                ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
+                ->select('company_details.*','appointments.type',"appointments.status",'appointments.appointment_type',
+                    'appointments.date', 'appointments.start_time', 'appointments.end_time', 'appointments.remarks')
+                ->where("appointments.date", $this->modalProp["date"])
+                ->where("appointments.start_time", $this->modalProp["startTime"])
+                ->where("appointments.end_time", $this->modalProp["endTime"])
+                ->where("appointments.salesperson", $this->modalProp["salespersonID"])
+                ->whereNot("appointments.status", "Cancelled");
+
+            // Filter by demo type if specified
+            if (!empty($this->modalProp["demoType"])) {
+                $query->where("appointments.type", $this->modalProp["demoType"]);
+            }
+
+            $appointments = $query->get()->toArray();
+
+            $result = array_map(function ($value) {
+                $data = (array)$value;
+                if (isset($value->lead_id)) {
+                    $data['url'] = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($value->lead_id)]);
+                }
+                $data['is_internal_task'] = false;
+                return $data;
+            }, $appointments);
         }
-
-        $appointments = $query->get()->toArray();
-
-        $result = array_map(function ($value) {
-            $value->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($value->lead_id)]);
-            return (array)$value;
-        }, $appointments);
 
         $this->modalArray = $result;
     }

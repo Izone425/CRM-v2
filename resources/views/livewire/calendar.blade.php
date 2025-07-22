@@ -400,6 +400,17 @@
             background: #ccc;
             width: 0.5px;
         }
+        .view-remarks-link {
+            cursor: pointer;
+            color: #3b82f6;
+            text-decoration: underline;
+            font-weight: bold;
+            transition: color 0.2s ease;
+        }
+
+        .view-remarks-link:hover {
+            color: #1d4ed8;
+        }
     </style>
 
 
@@ -696,7 +707,12 @@
                     <h3 class="text-lg font-semibold">Demo Type</h3>
                     <p class="text-gray-600">Total Demo: {{ $totalDemos['ALL'] }}</p>
 
-                    @foreach (['NEW DEMO' => '#71eb71', 'WEBINAR DEMO' => '#ffff5cbf', 'OTHERS' => '#f86f6f'] as $type => $color)
+                    @foreach ([
+                        'NEW DEMO' => '#71eb71',
+                        'WEBINAR DEMO' => '#ffff5cbf',
+                        'OTHERS' => '#f86f6f',
+                        'INTERNAL SALES TASK' => '#3b82f6'
+                    ] as $type => $color)
                         @php
                             $count = $totalDemos[$type] ?? 0;
                             $percentage = $totalDemos['ALL'] > 0 ? round(($count / $totalDemos['ALL']) * 100, 2) : 0;
@@ -724,7 +740,6 @@
                             @endif
                         </div>
                     @endforeach
-
                 </div>
 
                 <!-- Demo Status -->
@@ -1095,20 +1110,65 @@
                                     style="background-color: var(--bg-demo-yellow)"
                                 @else
                                     style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
+                                <div class="appointment-card-bar"
+                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                        style="background-color: #3b82f6"
+                                    @endif></div>
                                 <div class="appointment-card-info">
                                     <div class="appointment-demo-type">{{ $appointment->type }}</div>
                                     <div class="appointment-appointment-type">
                                         {{ $appointment->appointment_type }} |
                                         <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                     </div>
-                                    <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                        <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                            {{ $appointment->company_name }}
-                                        </a>
-                                    </div>
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
+
+                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                        <!-- For internal tasks, show the remarks preview and a button to view full remarks -->
+                                        <div class="appointment-company-name"
+                                            x-data="{ remarkModalOpen: false }"
+                                            @keydown.escape.window="remarkModalOpen = false">
+                                            <button
+                                                class="view-remarks-link"
+                                                @click="remarkModalOpen = true">
+                                                View Remark
+                                            </button>
+
+                                            <!-- Remarks Modal (Alpine.js version) -->
+                                            <div x-show="remarkModalOpen"
+                                                x-transition
+                                                @click.outside="remarkModalOpen = false"
+                                                class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                                <div class="relative w-auto p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarkModalOpen = false">
+                                                    <div class="flex items-start justify-between mb-4">
+                                                        <h3 class="text-lg font-medium text-gray-900">{{ $appointment->type }} Remarks</h3>
+                                                        <button type="button" @click="remarkModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <div class="max-h-[60vh] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200" style='color:rgb(66, 66, 66);'>
+                                                        <div class="whitespace-pre-line">{!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}</div>
+                                                    </div>
+                                                    <div class="mt-4 text-center">
+                                                        <button @click="remarkModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                            Close
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="appointment-time">
+                                            {{ $appointment->start_time }} - {{ $appointment->end_time }}
+                                        </div>
+                                    @else
+                                        <!-- For regular appointments, show company name with link -->
+                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                {{ $appointment->company_name }}
+                                            </a>
+                                        </div>
+                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -1237,6 +1297,79 @@
                 })
             }
         }
+    }
+
+    function showRemarksModal(remarks, type) {
+        // Create modal dialog for remarks
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+
+        const content = document.createElement('div');
+        content.style.backgroundColor = 'white';
+        content.style.padding = '20px';
+        content.style.borderRadius = '8px';
+        content.style.maxWidth = '80%';
+        content.style.maxHeight = '80%';
+        content.style.overflow = 'auto';
+        content.style.position = 'relative';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '10px';
+        closeBtn.style.right = '10px';
+        closeBtn.style.fontSize = '24px';
+        closeBtn.style.border = 'none';
+        closeBtn.style.background = 'none';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = function() {
+            document.body.removeChild(modal);
+        };
+
+        const heading = document.createElement('h3');
+        heading.textContent = type + ' Remarks';
+        heading.style.marginBottom = '15px';
+        heading.style.fontSize = '18px';
+        heading.style.fontWeight = 'bold';
+
+        // Create a formatted content container with proper handling of newlines
+        const textContainer = document.createElement('div');
+        textContainer.style.whiteSpace = 'pre-wrap'; // This preserves newlines and wraps text
+        textContainer.style.fontFamily = 'inherit';
+        textContainer.style.wordBreak = 'break-word';
+        textContainer.style.maxHeight = '60vh';
+        textContainer.style.overflowY = 'auto';
+        textContainer.style.padding = '10px';
+        textContainer.style.border = '1px solid #eee';
+        textContainer.style.borderRadius = '4px';
+        textContainer.style.backgroundColor = '#f9f9f9';
+
+        // Use innerHTML with line breaks converted to <br> tags
+        const formattedRemarks = remarks.replace(/\n/g, '<br>');
+        textContainer.innerHTML = formattedRemarks;
+
+        content.appendChild(closeBtn);
+        content.appendChild(heading);
+        content.appendChild(textContainer);
+        modal.appendChild(content);
+
+        document.body.appendChild(modal);
+
+        // Close when clicking outside the content
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
     }
 </script>
 

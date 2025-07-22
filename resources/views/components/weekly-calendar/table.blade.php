@@ -102,6 +102,17 @@
                     for ($i = $count; $i < $total; $i++) {
                         $matched[] = null;
                     }
+
+                    // Define internal sales task types
+                    $internalSalesTaskTypes = [
+                        'EXHIBITION',
+                        'INTERNAL MEETING',
+                        'SALES MEETING',
+                        'PRODUCT MEETING',
+                        'TOWNHALL SESSION',
+                        'FOLLOW UP SESSION',
+                        'BUSINESS TRIP'
+                    ];
                 @endphp
 
                 @if ($leaveType == 'am')
@@ -118,12 +129,16 @@
                         '{{ isset($item['type']) ? $item['type'] : null }}')" @endif
                         class="grid-cell @if (isset($item)) cursor-pointer transition hover:brightness-90 @endif"
                         style="
-                    @if (isset($item) && $item['type'] == 'NEW DEMO') background-color: #71eb71;
-                    @elseif(isset($item) && $item['type'] == 'WEBINAR DEMO')
-                    background-color: #ffff5cbf;
-                    @elseif(isset($item['type']) && $item['type'] != 'NEW DEMO' && $item['type'] != 'WEBINAR DEMO')
-                    background-color: #f86f6f; @endif
-                ">
+                        @if (isset($item) && $item['type'] == 'NEW DEMO')
+                            background-color: #71eb71;
+                        @elseif (isset($item) && $item['type'] == 'WEBINAR DEMO')
+                            background-color: #ffff5cbf;
+                        @elseif (isset($item) && in_array($item['type'], $internalSalesTaskTypes))
+                            background-color: #3b82f6; color: white;
+                        @elseif (isset($item['type']))
+                            background-color: #f86f6f;
+                        @endif
+                    ">
                         {{ $item ? $item['carbonStartTime'] : '' }}
                     </div>
                 @endforeach
@@ -135,5 +150,4 @@
             @endif
         @endforeach
     </div>
-
 </div>

@@ -297,7 +297,7 @@
                      x-transition
                      @click.outside="open = false"
                      class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                    <div class="relative w-full max-w-lg p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="open = false">
+                    <div class="relative w-auto p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="open = false">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Device Inventory</h3>
                             <button type="button" @click="open = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
@@ -313,6 +313,8 @@
                                         <th class="px-4 py-2 text-left border border-gray-300">Product</th>
                                         <th class="px-4 py-2 text-center border border-gray-300">Quantity</th>
                                         <th class="px-4 py-2 text-left border border-gray-300">Serial Numbers</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Installation Address</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Attachments</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -339,6 +341,47 @@
                                                     <span class="text-gray-500">No serials recorded</span>
                                                 @endif
                                             </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc10_serials']) && count($deviceSerials['tc10_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc10_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc10_serials']) && count($deviceSerials['tc10_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc10_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -357,6 +400,47 @@
                                                     </ul>
                                                 @else
                                                     <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc20_serials']) && count($deviceSerials['tc20_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc20_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['tc20_serials']) && count($deviceSerials['tc20_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['tc20_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -379,6 +463,47 @@
                                                     <span class="text-gray-500">No serials recorded</span>
                                                 @endif
                                             </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id5_serials']) && count($deviceSerials['face_id5_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id5_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id5_serials']) && count($deviceSerials['face_id5_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id5_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -397,6 +522,47 @@
                                                     </ul>
                                                 @else
                                                     <span class="text-gray-500">No serials recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id6_serials']) && count($deviceSerials['face_id6_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id6_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['face_id6_serials']) && count($deviceSerials['face_id6_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['face_id6_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -419,6 +585,47 @@
                                                     <span class="text-gray-500">No serials recorded</span>
                                                 @endif
                                             </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['time_beacon_serials']) && count($deviceSerials['time_beacon_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['time_beacon_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['time_beacon_serials']) && count($deviceSerials['time_beacon_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['time_beacon_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -439,6 +646,47 @@
                                                     <span class="text-gray-500">No serials recorded</span>
                                                 @endif
                                             </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['nfc_tag_serials']) && count($deviceSerials['nfc_tag_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['nfc_tag_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>{{ $serialData['installation_address'] ?? 'Not recorded' }}</li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No address recorded</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-3 border border-gray-300">
+                                                @if(isset($deviceSerials['nfc_tag_serials']) && count($deviceSerials['nfc_tag_serials']) > 0)
+                                                    <ul class="pl-4 list-disc">
+                                                        @foreach($deviceSerials['nfc_tag_serials'] as $serialData)
+                                                            @if(!empty($serialData['serial']))
+                                                                <li>
+                                                                    @if(!empty($serialData['attachments']))
+                                                                        @foreach((array)$serialData['attachments'] as $index => $attachment)
+                                                                            <a href="{{ asset('storage/' . $attachment) }}" target="_blank" class="text-blue-600 hover:underline">
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                </svg>
+                                                                                File {{ $index + 1 }}
+                                                                            </a>
+                                                                            @if(!$loop->last) | @endif
+                                                                        @endforeach
+                                                                    @else
+                                                                        <span class="text-gray-500">No attachments</span>
+                                                                    @endif
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <span class="text-gray-500">No attachments</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endif
 
@@ -451,7 +699,7 @@
                                         (!isset($record->nfc_tag_quantity) || $record->nfc_tag_quantity <= 0)
                                     )
                                         <tr>
-                                            <td colspan="3" class="px-4 py-2 text-center border border-gray-300">No devices available</td>
+                                            <td colspan="5" class="px-4 py-2 text-center border border-gray-300">No devices available</td>
                                         </tr>
                                     @endif
                                 </tbody>

@@ -2,7 +2,7 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
             <h3 class="text-lg font-bold">
-                Repair Request Completed
+                Repair Request Completed Technician
             </h3>
             <div x-data="{ lastRefresh: '{{ now()->format('Y-m-d H:i:s') }}' }" class="relative">
                 <button

@@ -499,6 +499,266 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 ->default(function ($record) {
                                     return $record->reseller_invoice ?? [];
                                 }),
+
+                            Grid::make(3)
+                            ->schema([
+                                TextInput::make('category2.pic_name')
+                                    ->label('Name')
+                                    ->disabled()
+                                    ->required(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation']))
+                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                    ->default(function ($record) {
+                                        if ($record && $record->category2) {
+                                            $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                            if (isset($category2['pic_name']) && !empty($category2['pic_name'])) {
+                                                return $category2['pic_name'];
+                                            }
+                                        }
+
+                                        // If installation_type is internal_installation, try to get from contact_detail
+                                        if ($record && $record->installation_type === 'internal_installation' && $record->contact_detail) {
+                                            try {
+                                                $contactDetails = is_string($record->contact_detail)
+                                                    ? json_decode($record->contact_detail, true)
+                                                    : $record->contact_detail;
+
+                                                if (is_array($contactDetails) && count($contactDetails) > 0 && isset($contactDetails[0]['pic_name'])) {
+                                                    return $contactDetails[0]['pic_name'];
+                                                }
+                                            } catch (\Exception $e) {
+                                                \Illuminate\Support\Facades\Log::error('Error parsing contact details', [
+                                                    'error' => $e->getMessage(),
+                                                    'record_id' => $record->id
+                                                ]);
+                                            }
+                                        }
+
+                                        // Fallback to lead information
+                                        $lead = \App\Models\Lead::find($record->lead_id);
+                                        return $lead->companyDetail->name ?? $lead->name ?? '';
+                                    })
+                                    ->visible(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation'])),
+
+                                TextInput::make('category2.pic_phone')
+                                    ->label('HP Number')
+                                    ->disabled()
+                                    ->tel()
+                                    ->required(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation']))
+                                    ->default(function ($record) {
+                                        if ($record && $record->category2) {
+                                            $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                            if (isset($category2['pic_phone']) && !empty($category2['pic_phone'])) {
+                                                return $category2['pic_phone'];
+                                            }
+                                        }
+
+                                        // If installation_type is internal_installation, try to get from contact_detail
+                                        if ($record && $record->installation_type === 'internal_installation' && $record->contact_detail) {
+                                            try {
+                                                $contactDetails = is_string($record->contact_detail)
+                                                    ? json_decode($record->contact_detail, true)
+                                                    : $record->contact_detail;
+
+                                                if (is_array($contactDetails) && count($contactDetails) > 0 && isset($contactDetails[0]['pic_phone'])) {
+                                                    return $contactDetails[0]['pic_phone'];
+                                                }
+                                            } catch (\Exception $e) {
+                                                \Illuminate\Support\Facades\Log::error('Error parsing contact details', [
+                                                    'error' => $e->getMessage(),
+                                                    'record_id' => $record->id
+                                                ]);
+                                            }
+                                        }
+
+                                        // Fallback to lead information
+                                        $lead = \App\Models\Lead::find($record->lead_id);
+                                        return $lead->companyDetail->contact_no ?? $lead->contact_no ?? '';
+                                    })
+                                    ->visible(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation'])),
+
+                                TextInput::make('category2.email')
+                                    ->label('Email Address')
+                                    ->disabled()
+                                    ->email()
+                                    ->required(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation']))
+                                    ->default(function ($record) {
+                                        if ($record && $record->category2) {
+                                            $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
+                                            if (isset($category2['email']) && !empty($category2['email'])) {
+                                                return $category2['email'];
+                                            }
+                                        }
+
+                                        // If installation_type is internal_installation, try to get from contact_detail
+                                        if ($record && $record->installation_type === 'internal_installation' && $record->contact_detail) {
+                                            try {
+                                                $contactDetails = is_string($record->contact_detail)
+                                                    ? json_decode($record->contact_detail, true)
+                                                    : $record->contact_detail;
+
+                                                if (is_array($contactDetails) && count($contactDetails) > 0 && isset($contactDetails[0]['pic_email'])) {
+                                                    return $contactDetails[0]['pic_email'];
+                                                }
+                                            } catch (\Exception $e) {
+                                                \Illuminate\Support\Facades\Log::error('Error parsing contact details', [
+                                                    'error' => $e->getMessage(),
+                                                    'record_id' => $record->id
+                                                ]);
+                                            }
+                                        }
+
+                                        // Fallback to lead information
+                                        $lead = \App\Models\Lead::find($record->lead_id);
+                                        return $lead->companyDetail->email ?? $lead->email ?? '';
+                                    })
+                                    ->visible(fn(callable $get) => in_array($get('installation_type'), ['external_installation', 'internal_installation'])),
+                            ]),
+                            Repeater::make('device_serial_attachments')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        Textarea::make('installation_address')
+                                            ->hiddenLabel()
+                                            ->required()
+                                            ->rows(2)
+                                            ->placeholder('Provide the specific address where this device is installed')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase']),
+
+                                        FileUpload::make('attachments')
+                                            ->hiddenLabel()
+                                            ->helperText('Maximum 5 images or PDF files')
+                                            ->disk('public')
+                                            ->directory('handovers/device_installations')
+                                            ->visibility('public')
+                                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
+                                            ->multiple()
+                                            ->maxFiles(5)
+                                            ->openable()
+                                            ->downloadable()
+                                    ]),
+
+                                Hidden::make('device_type'),
+                                Hidden::make('serial_number')
+                            ])
+                            ->addable(false)
+                            ->deletable(false)
+                            ->columns(1)
+                            ->itemLabel(function (array $state): ?string {
+                                $deviceType = $state['device_type'] ?? null;
+                                $serialNumber = $state['serial_number'] ?? null;
+
+                                if (!$deviceType || !$serialNumber) {
+                                    return 'Device';
+                                }
+
+                                $formattedDeviceType = match ($deviceType) {
+                                    'tc10' => 'TC10',
+                                    'tc20' => 'TC20',
+                                    'face_id5' => 'FACE ID 5',
+                                    'face_id6' => 'FACE ID 6',
+                                    'time_beacon' => 'TIME BEACON',
+                                    'nfc_tag' => 'NFC TAG',
+                                    default => 'DEVICE'
+                                };
+
+                                return "{$formattedDeviceType} - {$serialNumber}";
+                            })
+                            ->visible(function () {
+                                $recordId = $this->mountedTableActionRecord;
+                                $record = \App\Models\HardwareHandover::find($recordId);
+
+                                // If no record or not the right type, hide the repeater
+                                if (!$record instanceof \App\Models\HardwareHandover) {
+                                    return false;
+                                }
+
+                                // If no device_serials, hide the repeater
+                                if (empty($record->device_serials)) {
+                                    return false;
+                                }
+
+                                // Parse device serials if needed
+                                $deviceSerials = is_string($record->device_serials)
+                                    ? json_decode($record->device_serials, true)
+                                    : $record->device_serials;
+
+                                // If not an array or empty, hide the repeater
+                                if (!is_array($deviceSerials)) {
+                                    return false;
+                                }
+
+                                // Check if any device type has serials
+                                $hasAnySerials = false;
+                                $deviceTypes = ['tc10_serials', 'tc20_serials', 'face_id5_serials', 'face_id6_serials', 'time_beacon_serials', 'nfc_tag_serials'];
+
+                                foreach ($deviceTypes as $type) {
+                                    if (!empty($deviceSerials[$type]) && is_array($deviceSerials[$type]) && count($deviceSerials[$type]) > 0) {
+                                        $hasAnySerials = true;
+                                        break;
+                                    }
+                                }
+
+                                return $hasAnySerials;
+                            })
+                            ->afterStateHydrated(function (Repeater $component, $state, callable $set) {
+                                // This ensures we're using the correct record
+                                $recordId = null;
+
+                                if ($this->mountedTableActionRecord instanceof \App\Models\HardwareHandover) {
+                                    // Direct record instance
+                                    $record = $this->mountedTableActionRecord;
+                                } else if (is_numeric($this->mountedTableActionRecord)) {
+                                    // Record ID
+                                    $recordId = $this->mountedTableActionRecord;
+                                    $record = \App\Models\HardwareHandover::find($recordId);
+                                } else {
+                                    // Try to get ID from mountedTableActionRecordId
+                                    $recordId = $this->mountedTableActionRecordId ?? null;
+                                    $record = $recordId ? \App\Models\HardwareHandover::find($recordId) : null;
+                                }
+
+                                // Check if we found a valid record
+                                if (!$record || !$record->device_serials) {
+                                    \Illuminate\Support\Facades\Log::debug('No valid hardware handover record found');
+                                    return;
+                                }
+
+                                // Parse device serials and continue with your existing code...
+                                $deviceSerials = is_string($record->device_serials)
+                                    ? json_decode($record->device_serials, true)
+                                    : $record->device_serials;
+
+                                if (!is_array($deviceSerials)) {
+                                    return;
+                                }
+
+                                $serialItems = [];
+                                $deviceTypeMap = [
+                                    'tc10_serials' => 'tc10',
+                                    'tc20_serials' => 'tc20',
+                                    'face_id5_serials' => 'face_id5',
+                                    'face_id6_serials' => 'face_id6',
+                                    'time_beacon_serials' => 'time_beacon',
+                                    'nfc_tag_serials' => 'nfc_tag'
+                                ];
+
+                                foreach ($deviceTypeMap as $serialKey => $deviceType) {
+                                    if (!empty($deviceSerials[$serialKey]) && is_array($deviceSerials[$serialKey])) {
+                                        foreach ($deviceSerials[$serialKey] as $serial) {
+                                            if (!empty($serial['serial'])) {
+                                                $serialItems[] = [
+                                                    'device_type' => $deviceType,
+                                                    'serial_number' => $serial['serial'],
+                                                    'installation_address' => $serial['installation_address'] ?? '',
+                                                    'attachments' => $serial['attachments'] ?? []
+                                                ];
+                                            }
+                                        }
+                                    }
+                                }
+
+                                $set('device_serial_attachments', $serialItems);
+                            })
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process remarks to merge with existing ones
@@ -553,6 +813,80 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 ]);
                             }
 
+                            $deviceInstallationDetails = [];
+                            if (isset($data['device_serial_attachments']) && is_array($data['device_serial_attachments'])) {
+                                // Get current device serials
+                                $deviceSerials = is_string($record->device_serials)
+                                    ? json_decode($record->device_serials, true)
+                                    : $record->device_serials;
+
+                                if (!is_array($deviceSerials)) {
+                                    $deviceSerials = [];
+                                }
+
+                                // Map form data to device_serials structure
+                                $deviceTypeMap = [
+                                    'tc10' => 'tc10_serials',
+                                    'tc20' => 'tc20_serials',
+                                    'face_id5' => 'face_id5_serials',
+                                    'face_id6' => 'face_id6_serials',
+                                    'time_beacon' => 'time_beacon_serials',
+                                    'nfc_tag' => 'nfc_tag_serials'
+                                ];
+
+                                // Process each submitted device
+                                foreach ($data['device_serial_attachments'] as $attachment) {
+                                    $deviceType = $attachment['device_type'] ?? null;
+                                    $serialNumber = $attachment['serial_number'] ?? null;
+                                    $installationAddress = $attachment['installation_address'] ?? null;
+                                    $uploadedAttachments = $attachment['attachments'] ?? [];
+
+                                    if (!$deviceType || !$serialNumber) {
+                                        continue;
+                                    }
+
+                                     $deviceInstallationDetails[] = [
+                                        'device_type' => $deviceTypeDisplayMap[$deviceType] ?? 'DEVICE',
+                                        'serial_number' => $serialNumber,
+                                        'installation_address' => $installationAddress,
+                                        'attachments' => $uploadedAttachments
+                                    ];
+
+                                    // Get the corresponding key in device_serials
+                                    $serialsKey = $deviceTypeMap[$deviceType] ?? null;
+                                    if (!$serialsKey || !isset($deviceSerials[$serialsKey])) {
+                                        continue;
+                                    }
+
+                                    // Find matching serial number in the device type array
+                                    foreach ($deviceSerials[$serialsKey] as $index => &$serial) {
+                                        if (isset($serial['serial']) && $serial['serial'] === $serialNumber) {
+                                            // Update installation address
+                                            if ($installationAddress) {
+                                                $serial['installation_address'] = strtoupper($installationAddress);
+                                            }
+
+                                            // Update attachments
+                                            if (!empty($uploadedAttachments)) {
+                                                $serial['attachments'] = $uploadedAttachments;
+                                            }
+
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                // Update the record with modified device_serials
+                                $record->update([
+                                    'device_serials' => json_encode($deviceSerials)
+                                ]);
+
+                                // Log successful update
+                                \Illuminate\Support\Facades\Log::info("Updated device serial attachments for handover #{$record->id}", [
+                                    'device_count' => count($data['device_serial_attachments'])
+                                ]);
+                            }
+
                             // Process required attendees from form data
                             $requiredAttendeesInput = $data['required_attendees'] ?? '';
                             $attendeeEmails = [];
@@ -597,7 +931,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                 }
 
                                 // Set up email recipients for appointment notification
-                                $recipients = ['']; // Admin email
+                                $recipients = []; // Admin email
 
                                 // Add required attendees if they have valid emails
                                 foreach ($attendeeEmails as $email) {
@@ -606,12 +940,30 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                     }
                                 }
 
-                                // Get the salesperson info
-                                $salespersonId = $lead->salesperson ?? null;
-                                $salesperson = \App\Models\User::find($salespersonId);
-                                $salespersonEmail = $salesperson?->email ?? null;
-                                if ($salespersonEmail && !in_array($salespersonEmail, $recipients)) {
-                                    $recipients[] = $salespersonEmail;
+                                $technicianName = $data['technician'] ?? null;
+                                $technician = null;
+                                $technicianEmail = null;
+
+                                // Check if technician is a name (string)
+                                if ($technicianName && is_string($technicianName)) {
+                                    // First try to find user by name (internal technician)
+                                    $technician = \App\Models\User::where('name', $technicianName)->first();
+
+                                    // If found, get the email
+                                    if ($technician) {
+                                        $technicianEmail = $technician->email;
+                                    } else {
+                                        // If not found as a user, check if it's a reseller company
+                                        $reseller = \App\Models\Reseller::where('company_name', $technicianName)->first();
+                                        if ($reseller) {
+                                            $technicianEmail = $reseller->email ?? null;
+                                        }
+                                    }
+                                }
+
+                                // Add technician email to recipients if valid
+                                if ($technicianEmail && filter_var($technicianEmail, FILTER_VALIDATE_EMAIL) && !in_array($technicianEmail, $recipients)) {
+                                    $recipients[] = $technicianEmail;
                                 }
 
                                 // Prepare email content for appointment notification
@@ -666,6 +1018,73 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                         ->body('Could not send email notification: ' . $e->getMessage())
                                         ->send();
                                 }
+                            }
+
+                            try {
+                                if ($record->installation_type === 'internal_installation') {
+                                    // Format the handover ID properly
+                                    $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                                    // Get company name
+                                    $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+
+                                    // Create email data array
+                                    $emailData = [
+                                        'handover_id' => $handoverId,
+                                        'company_name' => $companyName,
+                                        'installation_type' => 'INTERNAL INSTALLATION',
+                                        'technician_name' => $data['technician'] ?? 'Not specified',
+                                        'pic_details' => [
+                                            'name' => isset($data['category2']['pic_name']) ? $data['category2']['pic_name'] :
+                                                ($record->contact_detail && is_array(json_decode($record->contact_detail, true)) && !empty(json_decode($record->contact_detail, true)) ?
+                                                    json_decode($record->contact_detail, true)[0]['pic_name'] ?? 'Not specified' :
+                                                    ($record->category2 && is_array($record->category2) ? $record->category2['pic_name'] ?? 'Not specified' : 'Not specified')),
+
+                                            'phone' => isset($data['category2']['pic_phone']) ? $data['category2']['pic_phone'] :
+                                                ($record->contact_detail && is_array(json_decode($record->contact_detail, true)) && !empty(json_decode($record->contact_detail, true)) ?
+                                                    json_decode($record->contact_detail, true)[0]['pic_phone'] ?? 'Not specified' :
+                                                    ($record->category2 && is_array($record->category2) ? $record->category2['pic_phone'] ?? 'Not specified' : 'Not specified')),
+
+                                            'email' => isset($data['category2']['email']) ? $data['category2']['email'] :
+                                                ($record->contact_detail && is_array(json_decode($record->contact_detail, true)) && !empty(json_decode($record->contact_detail, true)) ?
+                                                    json_decode($record->contact_detail, true)[0]['pic_email'] ?? 'Not specified' :
+                                                    ($record->category2 && is_array($record->category2) ? $record->category2['email'] ?? 'Not specified' : 'Not specified')),
+                                        ],
+                                        'devices' => $deviceInstallationDetails,
+                                        'appointment_details' => [
+                                            'date' => Carbon::parse($data['date'])->format('d/m/Y'),
+                                            'start_time' => Carbon::parse($data['start_time'])->format('h:i A'),
+                                            'end_time' => Carbon::parse($data['end_time'])->format('h:i A'),
+                                        ]
+                                    ];
+
+                                    // Get authenticated user's email for sender
+                                    $authUser = auth()->user();
+                                    $senderEmail = $authUser->email;
+                                    $senderName = $authUser->name;
+
+                                    // Send email
+                                    \Illuminate\Support\Facades\Mail::send(
+                                        'emails.hardware_installation_notification',
+                                        ['emailData' => $emailData],
+                                        function ($message) use ($handoverId, $companyName, $senderEmail, $senderName) {
+                                            $message->from($senderEmail, $senderName)
+                                                ->to('zilih.ng@timeteccloud.com')  // Replace with actual email
+                                                ->cc('zilih020906@gmail.com')   // Replace with actual email
+                                                ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName} | PENDING INSTALLATION");
+                                        }
+                                    );
+
+                                    \Illuminate\Support\Facades\Log::info("Hardware installation notification email sent for internal installation", [
+                                        'handover_id' => $handoverId,
+                                        'company' => $companyName
+                                    ]);
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to send hardware installation notification email", [
+                                    'error' => $e->getMessage(),
+                                    'handover_id' => $record->id
+                                ]);
                             }
 
                             Notification::make()

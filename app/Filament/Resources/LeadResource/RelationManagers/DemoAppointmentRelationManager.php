@@ -22,6 +22,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Form;
@@ -706,6 +707,12 @@ class DemoAppointmentRelationManager extends RelationManager
                                     ->hidden(fn () => auth()->user()->role_id === 2)
                                     ->placeholder('Select a salesperson'),
                                 ]),
+                    Toggle::make('skip_notifications')
+                        ->label('Skip Email & Teams Meeting')
+                        ->helperText('Check this to create appointment without sending emails or creating a Teams meeting')
+                        ->default(false)
+                        ->inline(false),
+
                     Textarea::make('remarks')
                         ->label('REMARKS')
                         ->rows(3)
@@ -742,102 +749,6 @@ class DemoAppointmentRelationManager extends RelationManager
                         // 'status' => 'New'
                     ]);
                     $appointment->save();
-                    // Retrieve the related Lead model from ActivityLog
-                    $accessToken = MicrosoftGraphService::getAccessToken(); // Implement your token generation method
-
-                    $graph = new Graph();
-                    $graph->setAccessToken($accessToken);
-
-                    // $startTime = $data['date'] . 'T' . $data['start_time'] . 'Z'; // Format as ISO 8601
-                    $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-                    // $endTime = $data['date'] . 'T' . $data['end_time'] . 'Z';
-                    $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-
-                    // Retrieve the organizer's email dynamically
-                    $salespersonId = $appointment->salesperson; // Assuming `salesperson` holds the user ID
-                    $salesperson = User::find($salespersonId); // Find the user in the User table
-
-                    if (!$salesperson || !$salesperson->email) {
-                        Notification::make()
-                            ->title('Salesperson Not Found')
-                            ->danger()
-                            ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
-                            ->send();
-                        return; // Exit if no valid email is found
-                    }
-
-                    $organizerEmail = $salesperson->email;
-
-                    if ($appointment->type !== 'WEBINAR DEMO') {
-                        $meetingPayload = [
-                            'start' => [
-                                'dateTime' => $startTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'end' => [
-                                'dateTime' => $endTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                            'isOnlineMeeting' => true,
-                            'onlineMeetingProvider' => 'teamsForBusiness',
-                            'allowNewTimeProposals' => false,
-                            'responseRequested' => true ,
-                            'attendees' => [
-                                [
-                                    'emailAddress' => [
-                                        'address' => $lead->email, // Lead's email as required attendee
-                                        'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
-                                    ],
-                                    'type' => 'required' // Required attendee
-                                ]
-                            ]
-                        ];
-                    } else {
-                        $meetingPayload = [
-                            'start' => [
-                                'dateTime' => $startTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'end' => [
-                                'dateTime' => $endTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                            'isOnlineMeeting' => true,
-                            'onlineMeetingProvider' => 'teamsForBusiness',
-                        ];
-                    }
-
-                    try {
-                        // Use the correct endpoint for app-only authentication
-                        $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
-                            ->attachBody($meetingPayload)
-                            ->setReturnType(Event::class)
-                            ->execute();
-
-                        $appointment->update([
-                            'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
-                            'event_id' => $onlineMeeting->getId(),
-                        ]);
-
-                        Notification::make()
-                            ->title('Teams Meeting Created Successfully')
-                            ->success()
-                            ->body('The meeting has been scheduled successfully.')
-                            ->send();
-                    } catch (\Exception $e) {
-                        Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
-                            'request' => $meetingPayload, // Log the request payload for debugging
-                            'user' => $organizerEmail, // Log the user's email or ID
-                        ]);
-
-                        Notification::make()
-                            ->title('Failed to Create Teams Meeting')
-                            ->danger()
-                            ->body('Error: ' . $e->getMessage())
-                            ->send();
-                    }
 
                     $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
                     $demoAppointment = $lead->demoAppointment()->latest('created_at')->first();
@@ -847,82 +758,180 @@ class DemoAppointmentRelationManager extends RelationManager
                     $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
                     $picName = optional($lead->companyDetail)->name ?? $lead->name;
                     $email = optional($lead->companyDetail)->email ?? $lead->email;
-                    info($email);
-                    if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
-                        try {
-                            $viewName = 'emails.demo_notification';
-                            $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                            $emailContent = [
-                                'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
-                                'lead' => [
-                                    'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
-                                    'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                                    'salespersonName' => $salespersonUser->name ?? 'N/A',
-                                    'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
-                                    'salespersonEmail' => $salespersonUser->email ?? 'N/A',
-                                    'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
-                                    'phone' =>$contactNo ?? 'N/A',
-                                    'pic' => $picName ?? 'N/A',
-                                    'email' => $email ?? 'N/A',
-                                    'date' => $formattedDate ?? 'N/A',
-                                    'startTime' => $startTime ?? 'N/A',
-                                    'endTime' => $endTime ?? 'N/A',
-                                    'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
-                                    'position' => $salespersonUser->position ?? 'N/A', // position
-                                    'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                    'demo_type' => $appointment->type,
-                                    'appointment_type' => $appointment->appointment_type
+                    if (!($data['skip_notifications'] ?? false)) {
+                        // Retrieve the related Lead model from ActivityLog
+                        $accessToken = MicrosoftGraphService::getAccessToken(); // Implement your token generation method
+
+                        $graph = new Graph();
+                        $graph->setAccessToken($accessToken);
+
+                        // $startTime = $data['date'] . 'T' . $data['start_time'] . 'Z'; // Format as ISO 8601
+                        $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                        // $endTime = $data['date'] . 'T' . $data['end_time'] . 'Z';
+                        $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+                        // Retrieve the organizer's email dynamically
+                        $salespersonId = $appointment->salesperson; // Assuming `salesperson` holds the user ID
+                        $salesperson = User::find($salespersonId); // Find the user in the User table
+
+                        if (!$salesperson || !$salesperson->email) {
+                            Notification::make()
+                                ->title('Salesperson Not Found')
+                                ->danger()
+                                ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
+                                ->send();
+                            return; // Exit if no valid email is found
+                        }
+
+                        $organizerEmail = $salesperson->email;
+
+                        if ($appointment->type !== 'WEBINAR DEMO') {
+                            $meetingPayload = [
+                                'start' => [
+                                    'dateTime' => $startTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
                                 ],
+                                'end' => [
+                                    'dateTime' => $endTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                'isOnlineMeeting' => true,
+                                'onlineMeetingProvider' => 'teamsForBusiness',
+                                'allowNewTimeProposals' => false,
+                                'responseRequested' => true ,
+                                'attendees' => [
+                                    [
+                                        'emailAddress' => [
+                                            'address' => $lead->email, // Lead's email as required attendee
+                                            'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
+                                        ],
+                                        'type' => 'required' // Required attendee
+                                    ]
+                                ]
                             ];
+                        } else {
+                            $meetingPayload = [
+                                'start' => [
+                                    'dateTime' => $startTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'end' => [
+                                    'dateTime' => $endTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                'isOnlineMeeting' => true,
+                                'onlineMeetingProvider' => 'teamsForBusiness',
+                            ];
+                        }
 
-                            $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
+                        try {
+                            // Use the correct endpoint for app-only authentication
+                            $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
+                                ->attachBody($meetingPayload)
+                                ->setReturnType(Event::class)
+                                ->execute();
 
-                            $requiredAttendees = $demoAppointment->required_attendees ?? null;
+                            $appointment->update([
+                                'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
+                                'event_id' => $onlineMeeting->getId(),
+                            ]);
 
-                            // Parse attendees' emails if not null
-                            $attendeeEmails = [];
-                            if (!empty($requiredAttendees)) {
-                                $cleanedAttendees = str_replace('"', '', $requiredAttendees);
-                                $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
-                            }
+                            Notification::make()
+                                ->title('Teams Meeting Created Successfully')
+                                ->success()
+                                ->body('The meeting has been scheduled successfully.')
+                                ->send();
+                        } catch (\Exception $e) {
+                            Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+                                'request' => $meetingPayload, // Log the request payload for debugging
+                                'user' => $organizerEmail, // Log the user's email or ID
+                            ]);
 
-                            // Get Lead's Email (Primary recipient)
-                            $leadEmail = $lead->companyDetail->email ?? $lead->email;
+                            Notification::make()
+                                ->title('Failed to Create Teams Meeting')
+                                ->danger()
+                                ->body('Error: ' . $e->getMessage())
+                                ->send();
+                        }
 
-                            // Get Salesperson Email
-                            $salespersonId = $lead->salesperson;
-                            $salesperson = User::find($salespersonId);
-                            $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
-                            info($salespersonEmail);
+                        if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
+                            try {
+                                $viewName = 'emails.demo_notification';
+                                $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                            // Get Lead Owner Email
-                            $leadownerName = $lead->lead_owner;
-                            $leadowner = User::where('name', $leadownerName)->first();
-                            $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
+                                $emailContent = [
+                                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                    'lead' => [
+                                        'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
+                                        'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                        'salespersonName' => $salespersonUser->name ?? 'N/A',
+                                        'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
+                                        'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                        'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
+                                        'phone' =>$contactNo ?? 'N/A',
+                                        'pic' => $picName ?? 'N/A',
+                                        'email' => $email ?? 'N/A',
+                                        'date' => $formattedDate ?? 'N/A',
+                                        'startTime' => $startTime ?? 'N/A',
+                                        'endTime' => $endTime ?? 'N/A',
+                                        'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
+                                        'position' => $salespersonUser->position ?? 'N/A', // position
+                                        'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                        'demo_type' => $appointment->type,
+                                        'appointment_type' => $appointment->appointment_type
+                                    ],
+                                ];
 
-                            // Combine CC recipients
-                            $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
-                                return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
-                            });
+                                $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
 
-                            // Send email only if valid
-                            if (!empty($leadEmail)) {
-                                $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
+                                $requiredAttendees = $demoAppointment->required_attendees ?? null;
 
-                                if (!empty($ccEmails)) {
-                                    $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
+                                // Parse attendees' emails if not null
+                                $attendeeEmails = [];
+                                if (!empty($requiredAttendees)) {
+                                    $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                    $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
                                 }
 
-                                $mail->send(new DemoNotification($emailContent, $viewName));
+                                // Get Lead's Email (Primary recipient)
+                                $leadEmail = $lead->companyDetail->email ?? $lead->email;
 
-                                info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
-                            } else {
-                                Log::error("No valid lead email found for sending DemoNotification.");
+                                // Get Salesperson Email
+                                $salespersonId = $lead->salesperson;
+                                $salesperson = User::find($salespersonId);
+                                $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
+
+                                // Get Lead Owner Email
+                                $leadownerName = $lead->lead_owner;
+                                $leadowner = User::where('name', $leadownerName)->first();
+                                $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
+
+                                // Combine CC recipients
+                                $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
+                                    return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                                });
+
+                                // Send email only if valid
+                                if (!empty($leadEmail)) {
+                                    $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
+
+                                    if (!empty($ccEmails)) {
+                                        $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
+                                    }
+
+                                    $mail->send(new DemoNotification($emailContent, $viewName));
+
+                                    info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
+                                } else {
+                                    Log::error("No valid lead email found for sending DemoNotification.");
+                                }
+                            } catch (\Exception $e) {
+                                // Handle email sending failure
+                                Log::error("Email sending failed for salesperson: " . ($data['salesperson'] ?? auth()->user()->name) . ", Error: {$e->getMessage()}");
                             }
-                        } catch (\Exception $e) {
-                            // Handle email sending failure
-                            Log::error("Email sending failed for salesperson: " . ($data['salesperson'] ?? auth()->user()->name) . ", Error: {$e->getMessage()}");
                         }
                     }
 

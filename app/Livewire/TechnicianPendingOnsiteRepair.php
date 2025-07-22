@@ -875,7 +875,7 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
         // Now update the repair record
         $updateData = [
             'onsite_repair_remark' => $data['onsite_repair_remark'] ?? null,
-            'status' => 'Completed',
+            'status' => 'Completed Technician Repair',
             'completed_date' => now(),
         ];
 

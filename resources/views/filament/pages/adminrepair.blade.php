@@ -202,6 +202,9 @@
     }
 
     /* NEW COLOR CODING FOR STAT BOXES */
+    .stat-all-items { border-left: 4px solid #06b6d4; }
+    .stat-all-items .stat-count { color: #06b6d4; }
+
     .stat-new { border-left: 4px solid #2563eb; }
     .stat-new .stat-count { color: #2563eb; }
 
@@ -224,6 +227,7 @@
     .stat-completed-admin .stat-count { color: #059669; }
 
     /* Selected states for categories */
+    .stat-box.selected.stat-all-items { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.stat-new { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.stat-inactive { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
     .stat-box.selected.stat-accepted { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
@@ -367,13 +371,19 @@
         ->count();
 
     // Define queries for Completed (tech and admin)
-    $completedCount = app(\App\Livewire\AdminRepairCompletedTechnician::class)
+    $completedTechnicianCount = app(\App\Livewire\AdminRepairCompletedTechnician::class)
         ->getTableQuery()
         ->count();
 
+    $completedAdminCount = app(\App\Livewire\AdminRepairCompletedAdmin::class)
+        ->getTableQuery()
+        ->count();
+
+    $completedCount = $completedTechnicianCount + $completedAdminCount;
+
     // Calculate all tasks count
     $allTaskCount = $newCount + $inactiveCount + $acceptedCount + $pendingConfirmationCount +
-                    $pendingOnsiteCount + $completedCount;
+                    $pendingOnsiteCount + $completedTechnicianCount + $completedAdminCount;
 
     // Calculate pending status count
     $pendingStatusCount = $pendingConfirmationCount + $pendingOnsiteCount;
@@ -422,7 +432,8 @@
             <div class="group-container">
                 <!-- Group: All Items -->
                 <div class="group-box group-all-items"
-                     :class="{'selected': selectedGroup === 'all-items'}">
+                     :class="{'selected': selectedGroup === 'all-items'}"
+                     @click="setSelectedGroup('all-items')">
                     <div class="group-title">All Items</div>
                     <div class="group-count">{{ $allTaskCount }}</div>
                 </div>
@@ -462,6 +473,18 @@
         </div>
 
         <div class="content-column">
+            <!--All Tasks-->
+            <div class="category-container" x-show="selectedGroup === 'all-items'">
+                <div class="stat-box stat-all-items"
+                     :class="{'selected': selectedStat === 'all-items'}"
+                     @click="setSelectedStat('all-items')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Tasks</div>
+                    </div>
+                    <div class="stat-count">{{ $allTaskCount }}</div>
+                </div>
+            </div>
+
             <!-- New Task Categories -->
             <div class="category-container" x-show="selectedGroup === 'new-task'">
                 <div class="stat-box stat-new"
@@ -522,7 +545,7 @@
                     <div class="stat-info">
                         <div class="stat-label">Completed Technician Repair</div>
                     </div>
-                    <div class="stat-count">{{ $completedCount }}</div>
+                    <div class="stat-count">{{ $completedTechnicianCount }}</div>
                 </div>
                 <div class="stat-box stat-completed-admin"
                      :class="{'selected': selectedStat === 'completed-admin'}"
@@ -530,7 +553,7 @@
                     <div class="stat-info">
                         <div class="stat-label">Completed Admin Repair</div>
                     </div>
-                    <div class="stat-count">0</div>
+                    <div class="stat-count">{{ $completedAdminCount }}</div>
                 </div>
             </div>
 
@@ -544,7 +567,7 @@
 
                 <!-- All Items -->
                 <div x-show="selectedGroup === 'all-items'" x-transition>
-                    {{-- <livewire:admin-repair-all /> --}}
+                    <livewire:admin-repair-all />
                 </div>
 
                 <!-- New Task Tables -->
@@ -576,8 +599,7 @@
                 </div>
 
                 <div x-show="selectedStat === 'completed-admin'" x-transition>
-                    <div class="column-header">Completed Admin Repair</div>
-                    {{-- <livewire:admin-repair-completed-admin /> --}}
+                    <livewire:admin-repair-completed-admin />
                 </div>
             </div>
         </div>
