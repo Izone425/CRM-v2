@@ -55,8 +55,8 @@
                                     font-weight: bold;
                                     border: none;
                                     border-radius: 20px;
-                                    background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
-                                    color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                    background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
+                                    color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
                                     cursor: pointer;
                                     display: flex;
                                     align-items: center;
@@ -90,6 +90,22 @@
                                 left: 0;
                                 margin-top: 5px; /* Add a small gap */
                             ">
+                                <button
+                                    wire:click="toggleDashboard('MainAdminDashboard')"
+                                    style="
+                                        display: block;
+                                        width: 200px;
+                                        padding: 10px 16px;
+                                        text-align: left;
+                                        border: none;
+                                        background: {{ $currentDashboard === 'MainAdminDashboard' ? '#f3f3f3' : 'white' }};
+                                        cursor: pointer;
+                                        font-size: 14px;
+                                    "
+                                >
+                                    Admin Main Dashboard
+                                </button>
+
                                 <button
                                     wire:click="toggleDashboard('SoftwareAdmin')"
                                     style="
@@ -580,8 +596,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -615,6 +631,22 @@
                                         left: 0;
                                         margin-top: 5px; /* Add a small gap */
                                     ">
+                                        <button
+                                            wire:click="toggleDashboard('MainAdminDashboard')"
+                                            style="
+                                                display: block;
+                                                width: 200px;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'MainAdminDashboard' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin Main Dashboard
+                                        </button>
+
                                         <button
                                             wire:click="toggleDashboard('SoftwareAdmin')"
                                             style="
@@ -842,7 +874,7 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
                                         color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
@@ -877,6 +909,22 @@
                                     left: 0;
                                     margin-top: 5px; /* Add a small gap */
                                 ">
+                                    <button
+                                        wire:click="toggleDashboard('MainAdminDashboard')"
+                                        style="
+                                            display: block;
+                                            width: 200px;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'MainAdminDashboard' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin Main Dashboard
+                                    </button>
+
                                     <button
                                         wire:click="toggleDashboard('SoftwareAdmin')"
                                         style="
@@ -1058,6 +1106,8 @@
                         @include('filament.pages.salesperson')
                     @elseif ($currentDashboard === 'Manager')
                         @include('filament.pages.manager')
+                    @elseif ($currentDashboard === 'MainAdminDashboard')
+                        @include('filament.pages.admin-main-dashboard')
                     @elseif ($currentDashboard === 'SoftwareHandover')
                         @include('filament.pages.softwarehandover')
                     @elseif ($currentDashboard === 'HardwareHandover')

@@ -39,7 +39,6 @@
     .appointment-detail {
         margin-bottom: 16px;
         padding-bottom: 8px;
-        border-bottom: 1px solid #e5e7eb;
         font-size: 14px;
         line-height: 1.5;
     }
@@ -156,11 +155,21 @@
             @else
                 <div class="appointment-detail">
                     <div class="detail-label">COMPANY:</div>
-                    <div class="detail-value hover-text">
-                        <a target="_blank" rel="noopener noreferrer" href={{ $value['url'] ?? '#' }}>
-                            {{ $value['company_name'] ?? 'N/A' }}
-                        </a>
-                    </div>
+                    @foreach ($modalArray as $company)
+                        @if ($loop->first)
+                            <div class="detail-value hover-text" style="display: inline;">
+                                <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
+                                    {{ $company['company_name'] ?? 'N/A' }}
+                                </a>
+                            </div>
+                        @else
+                            <div style="margin-left: 75px; margin-top: 5px;" class="hover-text">
+                                <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
+                                    &nbsp;{{ $company['company_name'] ?? 'N/A' }}
+                                </a>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
 
                 <div class="appointment-detail">
@@ -173,27 +182,27 @@
                     <div class="detail-value">{{ $value['appointment_type'] ?? 'ONLINE' }}</div>
                 </div>
 
-                @if(isset($value['remarks']) && !empty($value['remarks']))
-                <div class="appointment-detail" x-data="{ showRemarks: false }">
-                    <div class="detail-label">REMARKS:</div>
-                    <div class="detail-value">
-                        <span class="view-remarks-link" @click="showRemarks = true">VIEW REMARK</span>
+                @if(isset($value['is_internal_task']) && $value['is_internal_task'])
+                    <div class="appointment-detail" x-data="{ showRemarks: false }">
+                        <div class="detail-label">REMARKS:</div>
+                        <div class="detail-value">
+                            <span class="view-remarks-link" @click="showRemarks = true">VIEW REMARK</span>
 
-                        <template x-if="showRemarks">
-                            <div class="remarks-modal" @click.self="showRemarks = false">
-                                <div class="remarks-content">
-                                    <h3 class="mb-4 text-lg font-bold">{{ $value['type'] }} Remarks</h3>
-                                    <div class="whitespace-pre-line">{!! nl2br(e($value['remarks'])) !!}</div>
-                                    <div class="mt-4 text-center">
-                                        <button @click="showRemarks = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                            Close
-                                        </button>
+                            <template x-if="showRemarks">
+                                <div class="remarks-modal" @click.self="showRemarks = false">
+                                    <div class="remarks-content">
+                                        <h3 class="mb-4 text-lg font-bold">{{ $value['type'] }} Remarks</h3>
+                                        <div class="whitespace-pre-line">{!! nl2br(e($value['remarks'])) !!}</div>
+                                        <div class="mt-4 text-center">
+                                            <button @click="showRemarks = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                Close
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </template>
+                            </template>
+                        </div>
                     </div>
-                </div>
                 @endif
 
                 <div class="appointment-detail">

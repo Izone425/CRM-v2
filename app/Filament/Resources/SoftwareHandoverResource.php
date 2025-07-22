@@ -380,7 +380,7 @@ class SoftwareHandoverResource extends Resource
                                         // Basic options always available
                                         $options = [
                                             'Open' => 'Open',
-                                            'Inactive' => 'Inactive',
+                                            'InActive' => 'InActive',
                                         ];
 
                                         // Only include 'Closed' option if go_live_date has been selected
@@ -764,7 +764,7 @@ class SoftwareHandoverResource extends Resource
                     ->options([
                         'Open' => 'Open',
                         'Delay' => 'Delay',
-                        'Inactive' => 'Inactive',
+                        'InActive' => 'InActive',
                         'Closed' => 'Closed',
                     ]),
 

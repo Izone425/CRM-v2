@@ -690,12 +690,58 @@
                     </div>
                 </form>
             </div>
-            @if(auth()->user()->role_id !== 2)
+            <div class="relative w-full">
+                <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                    @click.away="open = false"
+                    x-data="{ open: false }">
+
+                    <!-- Trigger Button -->
+                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                        <span class="truncate">{{ $salesFilter === 'timetec_hr' ? 'TimeTec HR Sales' : 'All Sales' }}</span>
+                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <!-- Dropdown List -->
+                    <div x-show="open" class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg" style="display: none;">
+                        <ul class="py-1">
+                            <li class="flex items-center px-3 py-2 hover:bg-gray-100 {{ $salesFilter === 'timetec_hr' ? 'bg-gray-100' : '' }}"
+                                wire:click="updateSalesFilter('timetec_hr')">
+                                <div class="flex items-center">
+                                    <span class="w-4 h-4 mr-2">
+                                        @if($salesFilter === 'timetec_hr')
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-indigo-600">
+                                                <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                                            </svg>
+                                        @endif
+                                    </span>
+                                    <span class="text-sm font-medium text-gray-700">TimeTec HR Sales</span>
+                                </div>
+                            </li>
+                            <li class="flex items-center px-3 py-2 hover:bg-gray-100 {{ $salesFilter === 'all_sales' ? 'bg-gray-100' : '' }}"
+                                wire:click="updateSalesFilter('all_sales')">
+                                <div class="flex items-center">
+                                    <span class="w-4 h-4 mr-2">
+                                        @if($salesFilter === 'all_sales')
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-indigo-600">
+                                                <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+                                            </svg>
+                                        @endif
+                                    </span>
+                                    <span class="text-sm font-medium text-gray-700">All Sales</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {{-- @if(auth()->user()->role_id !== 2)
                 <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
                         <input type="checkbox" wire:model.change="showDropdown">
                         <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
                 </div>
-            @endif
+            @endif --}}
         </div>
 
         <!-- Demo Columns -->
