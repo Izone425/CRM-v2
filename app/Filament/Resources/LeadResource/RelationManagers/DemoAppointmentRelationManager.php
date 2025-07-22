@@ -998,7 +998,7 @@ class DemoAppointmentRelationManager extends RelationManager
                     if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
                         if ($isChinese) {
                             // Use Chinese template for CN leads
-                            $templateSid = 'HXdcff7fa6fba635b272f4c2bed3a315f8';
+                            $templateSid = 'HXf85bfd84362e7fe7d9fe8ecb41c6ee17';
 
                             // For Chinese templates, exclude the recipient name
                             $variables = [
@@ -1011,7 +1011,7 @@ class DemoAppointmentRelationManager extends RelationManager
                             ];
                         } else {
                             // Use regular template for non-CN leads
-                            $templateSid = 'HX38ef28749e5a21f1725b67a424bc0b31';
+                            $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
 
                             // For regular templates, include the recipient name
                             $variables = [

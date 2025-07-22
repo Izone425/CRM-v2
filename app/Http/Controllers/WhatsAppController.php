@@ -207,7 +207,7 @@ class WhatsAppController extends Controller
                 *如您收到此消息，烦请回复确认。谢谢。*",
 
             //Send demo confirmation template
-            'HX38ef28749e5a21f1725b67a424bc0b31' =>
+            'HX23b2a24ea30108f54de52c467fdb9e54' =>
                 "Hi {{1}}, your demo session has been confirmed:
 
                 {{2}} ({{3}}) - {{4}}
@@ -216,9 +216,11 @@ class WhatsAppController extends Controller
 
                 The demo will take 1 hour, including a Q&A session. If you have any questions or things you'd like to clarify, feel free to jot them down and bring them up during the demo.
 
-                Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.",
+                Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.
 
-            'HXdcff7fa6fba635b272f4c2bed3a315f8' =>
+                *Please note that the demo will be attended by multiple companies.*",
+
+            'HXf85bfd84362e7fe7d9fe8ecb41c6ee17' =>
                 "您好！产品演示已为您安排好了，以下是演示的详情：
 
                 {{1}}，{{2}} - {{3}}
@@ -229,7 +231,9 @@ class WhatsAppController extends Controller
 
                 我们的销售同事会直接与您联系。如果在这之前您有任何疑问，也随时欢迎联系我们。
 
-                期待与您见面交流！",
+                期待与您见面交流！
+
+                *请留意，此次系统演示将会有其他公司一同参与，敬请理解。*",
 
             //Request company info template
             'HX04b20de70eaa3c6754846d1d5d94658e' =>
