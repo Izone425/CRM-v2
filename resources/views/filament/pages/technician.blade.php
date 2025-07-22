@@ -371,7 +371,7 @@
         ->count();
 
     // Define queries for Completed (tech and admin)
-    $completedTechnicianCount = app(\App\Livewire\AdminRepairCompletedTechnician::class)
+    $completedTechnicianCount = app(\App\Livewire\TechnicianCompletedTechnicianRepair::class)
         ->getTableQuery()
         ->count();
 
@@ -595,7 +595,7 @@
 
                 <!-- Completed Status Tables -->
                 <div x-show="selectedStat === 'completed-tech'" x-transition>
-                    <livewire:admin-repair-completed-technician />
+                    <livewire:technician-completed-technician-repair />
                 </div>
 
                 <div x-show="selectedStat === 'completed-admin'" x-transition>
