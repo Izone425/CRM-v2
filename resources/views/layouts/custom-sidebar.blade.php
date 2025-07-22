@@ -534,7 +534,7 @@
                                 </a>
                             </div>
                         </div>
-                        <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
+                        {{-- <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>Training Calendar</span>
                         </a>
@@ -542,7 +542,14 @@
                         <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>Training Details</span>
-                        </a>
+                        </a> --}}
+                        @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
+                            <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Appointment</span>
+                                <span></span>
+                            </a>
+                        @endif
                     @endif
                 </div>
             </div>

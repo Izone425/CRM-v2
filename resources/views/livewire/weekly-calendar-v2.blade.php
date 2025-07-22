@@ -1,7 +1,7 @@
 <div>
     <div style="display:flex; flex-direction: row;margin-bottom:1rem;margin-left:2rem">
-<button class="hover-button {{ $disablePrevWeek ? 'disabled' : '' }}" wire:click="prevWeek" style="margin-inline:1rem"
-            {{ $disablePrevWeek ? 'disabled' : '' }}><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="hover-button {{ $disablePrevWeek ? 'disabled' : '' }}" wire:click="prevWeek" style="margin-inline:1rem"
+                {{ $disablePrevWeek ? 'disabled' : '' }}><i class="fa-solid fa-chevron-left"></i></button>
         <button class="hover-button" wire:click="nextWeek" style="margin-inline:1rem"><i
                 class="fa-solid fa-chevron-right"></i></button>
         <div style="display:flex;margin-inline: 1rem">
@@ -20,11 +20,14 @@
         </div>
 
         <div style="display:flex;margin-inline: 1rem">
+            <div style="width: 30px;background-color:#3b82f6;margin-right:0.5rem"></div>
+            <div>INTERNAL SALES TASK</div>
+        </div>
+
+        <div style="display:flex;margin-inline: 1rem">
             <div style="width:30px;height:100%;background-color:grey;margin-right:0.5rem"></div>
             <div>ON LEAVE & PUBLIC HOLIDAY</div>
         </div>
-
-
     </div>
     <div class="small" style="display:flex; flex-direction:row;justify-content: space-around;">
         <div style="display:flex;width:45%;flex-direction:column;gap:2rem;">

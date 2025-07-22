@@ -126,21 +126,61 @@ class Calendar extends Component
     // Get Total Number of Demos for New, Webinar and others
     private function getNumberOfDemos($selectedSalesPeople = null)
     {
+        // Define internal sales task types
+        $internalSalesTaskTypes = [
+            'EXHIBITION',
+            'INTERNAL MEETING',
+            'SALES MEETING',
+            'PRODUCT MEETING',
+            'TOWNHALL SESSION',
+            'FOLLOW UP SESSION',
+            'BUSINESS TRIP'
+        ];
+
         if (!empty($selectedSalesPeople)) {
-            $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
+            $this->totalDemos = [
+                "ALL" => 0,
+                'NEW DEMO' => 0,
+                "WEBINAR DEMO" => 0,
+                "INTERNAL SALES TASK" => 0,  // New category
+                "OTHERS" => 0
+            ];
+
             $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["INTERNAL SALES TASK"] = DB::table('appointments')->whereIn("type", $internalSalesTaskTypes)->whereNot('status', 'Cancelled')->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')
+                ->whereNotIn("type", array_merge(["NEW DEMO", "WEBINAR DEMO"], $internalSalesTaskTypes))
+                ->whereNot('status', 'Cancelled')
+                ->whereIn("salesperson", $selectedSalesPeople)
+                ->whereBetween('date', [$this->startDate, $this->endDate])
+                ->count();
+
+            // Status counts remain the same
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereIn("salesperson", $selectedSalesPeople)->whereBetween('date', [$this->startDate, $this->endDate])->count();
         } else {
-            $this->totalDemos = ["ALL", 'NEW DEMO' => 0, "WEBINAR DEMO" => 0, "OTHERS" => 0];
+            $this->totalDemos = [
+                "ALL" => 0,
+                'NEW DEMO' => 0,
+                "WEBINAR DEMO" => 0,
+                "INTERNAL SALES TASK" => 0,  // New category
+                "OTHERS" => 0
+            ];
+
             $this->totalDemos["ALL"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["NEW DEMO"] = DB::table('appointments')->where("type", "NEW DEMO")->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["WEBINAR DEMO"] = DB::table('appointments')->where("type", "WEBINAR DEMO")->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
-            $this->totalDemos["OTHERS"] = DB::table('appointments')->whereNot('status', 'Cancelled')->whereNotIn("type", ["NEW DEMO", "WEBINAR DEMO"])->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["INTERNAL SALES TASK"] = DB::table('appointments')->whereIn("type", $internalSalesTaskTypes)->whereNot('status', 'Cancelled')->whereBetween('date', [$this->startDate, $this->endDate])->count();
+            $this->totalDemos["OTHERS"] = DB::table('appointments')
+                ->whereNotIn("type", array_merge(["NEW DEMO", "WEBINAR DEMO"], $internalSalesTaskTypes))
+                ->whereNot('status', 'Cancelled')
+                ->whereBetween('date', [$this->startDate, $this->endDate])
+                ->count();
+
+            // Status counts remain the same
             $this->totalDemos["NEW"] = DB::table('appointments')->where("status", "New")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["DONE"] = DB::table('appointments')->where("status", "Done")->whereBetween('date', [$this->startDate, $this->endDate])->count();
             $this->totalDemos["CANCELLED"] = DB::table('appointments')->where("status", "Cancelled")->whereBetween('date', [$this->startDate, $this->endDate])->count();
@@ -179,7 +219,7 @@ class Calendar extends Component
         //Retreive all appointments for each salesperson with company details between start and end date. If filter present, then filter
         $appointments = DB::table('appointments')
             ->join('users', 'users.id', '=', 'appointments.salesperson')
-            ->join('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'appointments.lead_id')
             ->select('users.name', "company_details.company_name", 'appointments.*')
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
@@ -226,6 +266,47 @@ class Calendar extends Component
             foreach ($salespersonAppointments as $appointment) {
                 $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
                 $dayField = "{$dayOfWeek}Appointments";
+
+                $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
+                $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
+
+                // Set a default company name for internal tasks or null lead_id
+                if (empty($appointment->company_name)) {
+                    // For internal tasks or appointments without company names
+                    if (in_array($appointment->type, [
+                        'EXHIBITION',
+                        'INTERNAL MEETING',
+                        'SALES MEETING',
+                        'PRODUCT MEETING',
+                        'TOWNHALL SESSION',
+                        'FOLLOW UP SESSION',
+                        'BUSINESS TRIP'
+                    ])) {
+                        // For internal tasks, use the type as the company name
+                        $appointment->company_name = $appointment->type;
+                        $appointment->is_internal_task = true;
+                        // Truncate remarks for display if they're too long
+                        $appointment->display_remarks = !empty($appointment->remarks)
+                            ? (strlen($appointment->remarks) > 30
+                                ? substr($appointment->remarks, 0, 30) . '...'
+                                : $appointment->remarks)
+                            : 'No remarks';
+                    } else {
+                        $appointment->company_name = 'INTERNAL TASK';
+                        $appointment->is_internal_task = false;
+                    }
+                } else {
+                    $appointment->is_internal_task = false;
+                }
+
+                // Set URL - handle null lead_id
+                if ($appointment->lead_id) {
+                    $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+                } else {
+                    // Provide a fallback URL for internal tasks without lead ID
+                    $appointment->url = '#';
+                }
+
                 // For new demo summary which shows no,1,2 new demo
                 if ($appointment->type === "NEW DEMO") {
                     if ($appointment->status !== "Cancelled") {

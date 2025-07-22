@@ -400,7 +400,7 @@
                     x-transition
                     @click.outside="deviceModalOpen = false"
                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                    <div class="relative w-full max-w-xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="deviceModalOpen = false">
+                    <div class="relative w-auto p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="deviceModalOpen = false">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-medium text-gray-900">Device Details</h3>
                             <button type="button" @click="deviceModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
@@ -415,8 +415,10 @@
                                     <tr class="bg-gray-100">
                                         <th class="px-4 py-2 text-left border border-gray-300">Device Model</th>
                                         <th class="px-4 py-2 text-left border border-gray-300">Serial Number</th>
-                                        <th class="px-4 py-2 text-left border border-gray-300">Warranty Status</th>
                                         <th class="px-4 py-2 text-left border border-gray-300">Invoice Date</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Warranty Status</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">CSO</th>
+                                        <th class="px-4 py-2 text-left border border-gray-300">Quotation</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -451,6 +453,27 @@
                                                     $hasWarranty = !empty($warrantyBySerial[$serial]);
                                                     $warrantyStatus = $hasWarranty ? ($warrantyBySerial[$serial]['warranty_status'] ?? null) : null;
                                                     $invoiceDate = $hasWarranty ? ($warrantyBySerial[$serial]['invoice_date'] ?? null) : null;
+
+                                                    // Get CSO file path if available
+                                                    $csoFile = $hasWarranty && isset($warrantyBySerial[$serial]['cso_file'])
+                                                        ? $warrantyBySerial[$serial]['cso_file']
+                                                        : null;
+
+                                                    // Get quotation file path or ID if available
+                                                    $quotationFile = null;
+                                                    $quotationId = null;
+
+                                                    if ($hasWarranty && $warrantyStatus === 'Out of Warranty') {
+                                                        // Check if quotation is stored directly
+                                                        if (isset($warrantyBySerial[$serial]['quotation_file'])) {
+                                                            $quotationFile = $warrantyBySerial[$serial]['quotation_file'];
+                                                        }
+
+                                                        // Check if quotation ID is stored
+                                                        if (isset($warrantyBySerial[$serial]['quotation_id'])) {
+                                                            $quotationId = $warrantyBySerial[$serial]['quotation_id'];
+                                                        }
+                                                    }
                                                 @endphp
                                                 <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-gray-50' }}">
                                                     <td class="px-4 py-2 border border-gray-300">{{ $device['device_model'] }}</td>
@@ -473,17 +496,75 @@
                                                             </span>
                                                         @endif
                                                     </td>
+                                                    <td class="px-4 py-2 border border-gray-300">
+                                                        @if($csoFile)
+                                                            <a href="{{ asset('storage/' . $csoFile) }}"
+                                                            target="_blank"
+                                                            class="flex items-center justify-center px-2 py-1 text-xs text-blue-600 border border-blue-200 rounded-md bg-blue-50 hover:bg-blue-100">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                </svg>
+                                                                View CSO
+                                                            </a>
+                                                        @else
+                                                            <span class="text-xs text-gray-500">Not available</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-4 py-2 border border-gray-300">
+                                                        @if($warrantyStatus == 'Out of Warranty')
+                                                            @if($quotationFile)
+                                                                <a href="{{ asset('storage/' . $quotationFile) }}"
+                                                                target="_blank"
+                                                                class="flex items-center justify-center px-2 py-1 text-xs text-green-600 border border-green-200 rounded-md bg-green-50 hover:bg-green-100">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                    </svg>
+                                                                    View Quotation
+                                                                </a>
+                                                            @elseif($quotationId && $quotationId != 'none')
+                                                                @php
+                                                                    // Try to load quotation details if we have just the ID
+                                                                    $quotation = \App\Models\Quotation::find($quotationId);
+
+                                                                    // Generate the quotation URL using the proper route
+                                                                    $quotationUrl = $quotation ? route('pdf.print-quotation-v2', $quotation) : null;
+
+                                                                    $quotationRef = $quotation ? ($quotation->quotation_reference_no ?? $quotation->quotation_no ?? "#{$quotationId}") : "#{$quotationId}";
+                                                                @endphp
+
+                                                                @if($quotation)
+                                                                    <a href="{{ $quotationUrl }}"
+                                                                    target="_blank"
+                                                                    class="flex items-center justify-center px-2 py-1 text-xs text-green-600 border border-green-200 rounded-md bg-green-50 hover:bg-green-100">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                        {{ $quotationRef }}
+                                                                    </a>
+                                                                @else
+                                                                    <span class="text-xs text-gray-500">Quotation {{ $quotationRef }}</span>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-xs text-gray-500">Not available</span>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-xs italic text-gray-400">Not required</span>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         @else
                                             <tr>
-                                                <td colspan="4" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
+                                                <td colspan="6" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
                                             </tr>
                                         @endif
                                     @elseif($record->device_model)
                                         <tr>
                                             <td class="px-4 py-2 border border-gray-300">{{ $record->device_model }}</td>
                                             <td class="px-4 py-2 border border-gray-300">{{ $record->device_serial }}</td>
+                                            <td class="px-4 py-2 border border-gray-300">
+                                                {{ $record->invoice_date ? date('d M Y', strtotime($record->invoice_date)) : 'N/A' }}
+                                            </td>
                                             <td class="px-4 py-2 border border-gray-300">
                                                 @if($record->warranty_status == 'In Warranty')
                                                     <span class="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
@@ -500,12 +581,15 @@
                                                 @endif
                                             </td>
                                             <td class="px-4 py-2 border border-gray-300">
-                                                {{ $record->invoice_date ? date('d M Y', strtotime($record->invoice_date)) : 'N/A' }}
+                                                <span class="text-xs text-gray-500">Not available</span>
+                                            </td>
+                                            <td class="px-4 py-2 border border-gray-300">
+                                                <span class="text-xs text-gray-500">Not available</span>
                                             </td>
                                         </tr>
                                     @else
                                         <tr>
-                                            <td colspan="4" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
+                                            <td colspan="6" class="px-4 py-2 text-center border border-gray-300">No device information available</td>
                                         </tr>
                                     @endif
                                 </tbody>
