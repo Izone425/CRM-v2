@@ -73,8 +73,6 @@ class TechnicianAppointment extends Page implements HasTable
                     }),
                 TextColumn::make('type')
                     ->label('Demo Type'),
-                TextColumn::make('appointment_type')
-                    ->label('Appointment Type'),
                 TextColumn::make('status')
                     ->label('Status'),
             ])
@@ -214,7 +212,7 @@ class TechnicianAppointment extends Page implements HasTable
             ])
             ->headerActions([
                 Action::make('create')
-                    ->label('Add FingerTec Appointment')
+                    ->label('Add Technician Appointment')
                     ->form($this->getFormSchema())
                     ->action(function (array $data): void {
                         RepairAppointment::create(array_merge($data, [

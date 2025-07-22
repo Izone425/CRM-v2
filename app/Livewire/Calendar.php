@@ -31,7 +31,7 @@ class Calendar extends Component
     public $newDemoCount;
 
     //Dropdown
-    public $showDropdown = false;
+    public $showDropdown = true;
 
     // Badge
     public $totalDemos;
@@ -55,18 +55,40 @@ class Calendar extends Component
 
     public $newDemoCompanySizeBreakdown = [];
 
+    public $salesFilter = 'timetec_hr'; // Default selected filter
+    public $timetecHrSalesIds = [10, 6, 7, 8, 9, 11, 12]; // TimeTec HR Sales user IDs
+
+    // Add this new function to update filter selection
+    public function updateSalesFilter($filter)
+    {
+        $this->salesFilter = $filter;
+
+        // Reset salesperson selection based on the filter
+        $this->selectedSalesPeople = [];
+        $this->allSalesPeopleSelected = false;
+
+        if ($filter === 'timetec_hr') {
+            // Auto-select TimeTec HR Sales team members
+            $this->selectedSalesPeople = $this->timetecHrSalesIds;
+        }
+        // For 'all_sales', we leave selectedSalesPeople empty which will show all
+    }
+
+    // Modify the mount method to set default filter
     public function mount()
     {
-
-        //Load all salespeople model
+        // Load all salespeople model
         $this->salesPeople = $this->getAllSalesPeople();
 
-        //Set Date to today
+        // Set Date to today
         $this->date = Carbon::now();
 
-        //If current user is a salesperson then only can access their own calendar
+        // If current user is a salesperson then only can access their own calendar
         if (auth()->user()->role_id == 2) {
             $this->selectedSalesPeople[] = auth()->user()->id;
+        } else {
+            // Default to TimeTec HR Sales for admin users
+            $this->updateSalesFilter('timetec_hr');
         }
     }
 
@@ -387,6 +409,10 @@ class Calendar extends Component
             $this->newDemoCount[$day]["noDemo"] = 0;
             $this->newDemoCount[$day]["oneDemo"] = 0;
             $this->newDemoCount[$day]["twoDemo"] = 0;
+        }
+
+        if ($this->salesFilter === 'timetec_hr' && empty($this->selectedSalesPeople)) {
+            $this->selectedSalesPeople = $this->timetecHrSalesIds;
         }
 
         // Load Total Demos

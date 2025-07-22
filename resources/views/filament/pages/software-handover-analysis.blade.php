@@ -61,13 +61,45 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 16px;
+            border: 2px solid #374151;
+            table-layout: fixed; /* Added for fixed column widths */
         }
 
         .implementer-table th,
         .implementer-table td {
             padding: 8px 12px;
-            text-align: left;
+            text-align: center;
             border: 1px solid #e5e7eb;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* First column (name column) */
+        .implementer-table th:first-child,
+        .implementer-table td:first-child {
+            width: 30%; /* Name column width */
+            text-align: left;
+        }
+
+        /* TOTAL column (2nd column) */
+        .implementer-table th:nth-child(2),
+        .implementer-table td:nth-child(2) {
+            width: 30%; /* Total column width */
+            text-align: center;
+        }
+
+        /* CLOSED column (3rd column) */
+        .implementer-table th:nth-child(3),
+        .implementer-table td:nth-child(3) {
+            width: 40%; /* Closed column width */
+            text-align: center;
+        }
+
+        /* Ensure the name column stays left aligned */
+        .name-column {
+            font-weight: 500;
+            text-align: left !important;
         }
 
         .implementer-table th {
@@ -102,6 +134,7 @@
 
         .name-column {
             font-weight: 500;
+            text-align: left !important; /* Ensure left alignment for names */
         }
 
         .total-row {
@@ -134,54 +167,29 @@
         .module-chart-8 .stat-card-header { background-color: #6b7280; }
         .module-chart-8 .stat-value { color: #6b7280; }
 
-        .module-pill {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-            margin-right: 4px;
-            margin-bottom: 4px;
+        /* Adding thick borders between column groups */
+        .border-right-thick {
+            border-right: 3px solid #374151 !important;
         }
 
-        .module-ta {
-            background-color: rgba(49, 130, 206, 0.2);
-            color: #3182ce;
+        .border-left-thick {
+            border-left: 2px solid #374151 !important;
         }
 
-        .module-tl {
-            background-color: rgba(79, 209, 197, 0.2);
-            color: #4fd1c5;
+        /* Override border for header cells */
+        .implementer-table thead th.status-header,
+        .implementer-table thead th.status-ongoing-header {
+            border: 1px solid #374151;
         }
 
-        .module-tc {
-            background-color: rgba(246, 173, 85, 0.2);
-            color: #f6ad55;
+        /* Group border styles */
+        .col-group-end {
+            border-right: 2px solid #374151 !important;
         }
 
-        .module-tp {
-            background-color: rgba(159, 122, 234, 0.2);
-            color: #9f7aea;
-        }
-
-        .module-tapp {
-            background-color: rgba(56, 178, 172, 0.2);
-            color: #38b2ac;
-        }
-
-        .module-thire {
-            background-color: rgba(240, 82, 82, 0.2);
-            color: #f05252;
-        }
-
-        .module-tacc {
-            background-color: rgba(59, 130, 246, 0.2);
-            color: #3b82f6;
-        }
-
-        .module-tpbi {
-            background-color: #f3f4f6;
-            color: #6b7280;
+        /* Style for column group headers */
+        .col-group-header {
+            font-weight: 700;
         }
     </style>
 
@@ -252,33 +260,30 @@
         <table class="implementer-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="status-header" style='background-color: #ffff00'>COUNT BY IMPLEMENTER</th>
-                    <th colspan="2" class="status-header" style='background-color: #f1a983'>STATUS</th>
+                    <th colspan="2" class="status-header col-group-end" style='background-color: #ffff00'>COUNT BY IMPLEMENTER</th>
+                    <th colspan="2" class="status-header col-group-end" style='background-color: #f1a983'>STATUS</th>
                     <th colspan="3" class="status-ongoing-header" style='background-color: #0f9ed5'>STATUS - ONGOING</th>
-                </tr>
-                <tr>
-                    <th style='background-color: #f2f25e'>FROM</th>
-                    <th style='background-color: #f2f25e'>TOTAL</th>
-                    <th style='background-color: #fbe2d5'>CLOSED</th>
-                    <th style='background-color: #fbe2d5'>ONGOING</th>
-                    <th style='background-color: #caedfb'>OPEN</th>
-                    <th style='background-color: #caedfb'>DELAY</th>
-                    <th style='background-color: #caedfb'>INACTIVE</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Tier 1 -->
                 <tr>
-                    <td colspan="8" class="tier-header">Active Implementer / Tier 1</td>
+                    <td class="tier-header">Active Implementer / Tier 1</td>
+                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
+                    <td style='background-color: #fbe2d5'>CLOSED</td>
+                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
+                    <td style='background-color: #caedfb'>OPEN</td>
+                    <td style='background-color: #caedfb'>DELAY</td>
+                    <td style='background-color: #caedfb'>INACTIVE</td>
                 </tr>
                 @foreach($this->getTier1Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
                             {{ $implementer }}
                         </td>
-                        <td>{{ $this->getImplementerTotal($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
-                        <td>{{ $this->getImplementerOngoingCount($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerOngoingCount($implementer) }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'OPEN') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'DELAY') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}</td>
@@ -287,16 +292,22 @@
 
                 <!-- Tier 2 -->
                 <tr>
-                    <td colspan="8" class="tier-header">Active Implementer / Tier 2</td>
+                    <td class="tier-header">Active Implementer / Tier 2</td>
+                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
+                    <td style='background-color: #fbe2d5'>CLOSED</td>
+                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
+                    <td style='background-color: #caedfb'>OPEN</td>
+                    <td style='background-color: #caedfb'>DELAY</td>
+                    <td style='background-color: #caedfb'>INACTIVE</td>
                 </tr>
                 @foreach($this->getTier2Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
                             {{ $implementer }}
                         </td>
-                        <td>{{ $this->getImplementerTotal($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
-                        <td>{{ $this->getImplementerOngoingCount($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerOngoingCount($implementer) }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'OPEN') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'DELAY') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}</td>
@@ -305,16 +316,22 @@
 
                 <!-- Tier 3 -->
                 <tr>
-                    <td colspan="8" class="tier-header">Active Implementer / Tier 3</td>
+                    <td class="tier-header">Active Implementer / Tier 3</td>
+                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
+                    <td style='background-color: #fbe2d5'>CLOSED</td>
+                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
+                    <td style='background-color: #caedfb'>OPEN</td>
+                    <td style='background-color: #caedfb'>DELAY</td>
+                    <td style='background-color: #caedfb'>INACTIVE</td>
                 </tr>
                 @foreach($this->getTier3Implementers() as $implementer)
                     <tr>
                         <td class="name-column">
                             {{ $implementer }}
                         </td>
-                        <td>{{ $this->getImplementerTotal($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerTotal($implementer) }}</td>
                         <td>{{ $this->getImplementerClosedCount($implementer) }}</td>
-                        <td>{{ $this->getImplementerOngoingCount($implementer) }}</td>
+                        <td class="col-group-end">{{ $this->getImplementerOngoingCount($implementer) }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'OPEN') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'DELAY') }}</td>
                         <td>{{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}</td>
@@ -323,7 +340,13 @@
 
                 <!-- Inactive -->
                 <tr>
-                    <td colspan="8" class="tier-header">Inactive Implementers</td>
+                    <td class="tier-header">Inactive Implementers</td>
+                    <th style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
+                    <td style='background-color: #fbe2d5'>CLOSED</td>
+                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
+                    <td style='background-color: #caedfb'>OPEN</td>
+                    <td style='background-color: #caedfb'>DELAY</td>
+                    <td style='background-color: #caedfb'>INACTIVE</td>
                 </tr>
                 @foreach($this->getInactiveImplementers() as $implementer)
                     <tr>
@@ -332,9 +355,9 @@
                                 {{ $implementer['name'] }}
                             </button>
                         </td>
-                        <td>{{ $implementer['total'] }}</td>
+                        <td class="col-group-end">{{ $implementer['total'] }}</td>
                         <td>{{ $implementer['closed'] }}</td>
-                        <td>{{ $implementer['ongoing'] }}</td>
+                        <td class="col-group-end">{{ $implementer['ongoing'] }}</td>
                         <td>{{ $implementer['open'] }}</td>
                         <td>{{ $implementer['delay'] }}</td>
                         <td>{{ $implementer['inactive'] }}</td>
@@ -344,9 +367,9 @@
                 <!-- Total Row -->
                 <tr class="total-row">
                     <td>TOTAL</td>
-                    <td>{{ $stats['total'] }}</td>
+                    <td class="col-group-end">{{ $stats['total'] }}</td>
                     <td>{{ $stats['closed'] }}</td>
-                    <td>{{ $stats['ongoing'] }}</td>
+                    <td class="col-group-end">{{ $stats['ongoing'] }}</td>
                     <td>{{ $stats['open'] }}</td>
                     <td>{{ $stats['delay'] }}</td>
                     <td>{{ $stats['inactive'] }}</td>
