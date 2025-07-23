@@ -909,6 +909,40 @@ class SalesAdminAnalysisV2 extends Page
         ], $leadStatusDataRawAfifah);
     }
 
+    private function groupLeadsByCompanySize($leads)
+    {
+        // Group leads by company size
+        $groupedLeads = $leads->groupBy(function ($lead) {
+            $size = $lead->company_size ?? 'Unknown';
+
+            // Standardize company size grouping
+            if ($size == '1-24') {
+                return '1-24';
+            } elseif ($size == '25-99') {
+                return '25-99';
+            } elseif ($size == '100-500') {
+                return '100-500';
+            } elseif ($size == '501 and Above' || $size == '500+') {
+                return '501 and Above';
+            } else {
+                return 'Unknown';
+            }
+        });
+
+        // Sort groups in a logical order
+        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortedGroups = collect();
+
+        foreach ($sortOrder as $size) {
+            if ($groupedLeads->has($size)) {
+                $sortedGroups[$size] = $groupedLeads[$size];
+            }
+        }
+
+        return $sortedGroups;
+    }
+
+    // Update all the slide-over methods using this function
     public function openLeadBreakdownSlideOver($label)
     {
         $query = Lead::query();
@@ -926,7 +960,7 @@ class SalesAdminAnalysisV2 extends Page
             $query->where('lead_owner', 'Nurul Najaa Nadiah');
         } elseif ($label === 'Backup Admin') {
             $query->whereIn('lead_owner', ['Siti Afifah', 'Fatimah Nurnabilah', 'Norhaiyati', 'Farah', 'Siti Shahilah']);
-        } elseif ($label === 'Sheena') { // Add this condition
+        } elseif ($label === 'Sheena') {
             $query->where('lead_owner', 'Sheena Liew');
         } else {
             $this->leadList = collect(); // empty
@@ -935,7 +969,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$label} Leads";
         $this->showSlideOver = true;
     }
@@ -971,7 +1006,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$category} Leads";
         $this->showSlideOver = true;
     }
@@ -1001,7 +1037,37 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        // Get leads with company details
+        $leads = $query->with('companyDetail')->get();
+
+        // Group leads by company size
+        $groupedLeads = $leads->groupBy(function ($lead) {
+            $size = $lead->company_size ?? 'Unknown';
+
+            // Standardize company size grouping
+            if ($size == '1-24') {
+                return '1-24';
+            } elseif ($size == '25-99') {
+                return '25-99';
+            } elseif ($size == '100-500') {
+                return '100-500';
+            } elseif ($size == '501 and Above' || $size == '500+') {
+                return '501 and Above';
+            } else {
+                return 'Unknown';
+            }
+        });
+
+        // Sort groups in a logical order
+        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortedGroups = collect();
+
+        foreach ($sortOrder as $size) {
+            if ($groupedLeads->has($size)) {
+                $sortedGroups[$size] = $groupedLeads[$size];
+            }
+        }
+        $this->leadList = $sortedGroups;
         $this->slideOverTitle = "Jaja - {$category} Leads";
         $this->showSlideOver = true;
     }
@@ -1033,7 +1099,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$category} Leads (Backup Admin)";
         $this->showSlideOver = true;
     }
@@ -1074,7 +1141,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Jaja - {$label}";
         $this->showSlideOver = true;
     }
@@ -1112,7 +1180,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$label} (Backup Admin)";
         $this->showSlideOver = true;
     }
@@ -1132,7 +1201,8 @@ class SalesAdminAnalysisV2 extends Page
             ->whereNotNull('salesperson')
             ->where('stage', $label);
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$label} Leads (Jaja)";
         $this->showSlideOver = true;
     }
@@ -1151,7 +1221,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Backup Admin - $stage Leads";
         $this->showSlideOver = true;
     }
@@ -1168,7 +1239,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Jaja - {$status} Leads";
         $this->showSlideOver = true;
     }
@@ -1185,7 +1257,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Backup Admin - {$status} Leads";
         $this->showSlideOver = true;
     }
@@ -1217,7 +1290,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$category} Leads (Sheena)";
         $this->showSlideOver = true;
     }
@@ -1255,7 +1329,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$label} (Sheena)";
         $this->showSlideOver = true;
     }
@@ -1274,7 +1349,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Sheena - $stage Leads";
         $this->showSlideOver = true;
     }
@@ -1291,7 +1367,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Sheena - {$status} Leads";
         $this->showSlideOver = true;
     }
@@ -1323,7 +1400,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$category} Leads (Shahilah)";
         $this->showSlideOver = true;
     }
@@ -1361,7 +1439,8 @@ class SalesAdminAnalysisV2 extends Page
             return;
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "{$label} (Shahilah)";
         $this->showSlideOver = true;
     }
@@ -1380,7 +1459,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Shahilah - $stage Leads";
         $this->showSlideOver = true;
     }
@@ -1397,7 +1477,8 @@ class SalesAdminAnalysisV2 extends Page
                 ->whereDate('created_at', '<=', $date->endOfMonth()->toDateString());
         }
 
-        $this->leadList = $query->with('companyDetail')->get();
+        $leads = $query->with('companyDetail')->get();
+        $this->leadList = $this->groupLeadsByCompanySize($leads);
         $this->slideOverTitle = "Shahilah - {$status} Leads";
         $this->showSlideOver = true;
     }

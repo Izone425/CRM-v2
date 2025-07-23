@@ -31,7 +31,7 @@ class Calendar extends Component
     public $newDemoCount;
 
     //Dropdown
-    public $showDropdown = true;
+    public $showDropdown = false;
 
     // Badge
     public $totalDemos;

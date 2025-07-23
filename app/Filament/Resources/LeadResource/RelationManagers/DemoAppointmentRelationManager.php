@@ -875,8 +875,8 @@ class DemoAppointmentRelationManager extends RelationManager
                                         'pic' => $picName ?? 'N/A',
                                         'email' => $email ?? 'N/A',
                                         'date' => $formattedDate ?? 'N/A',
-                                        'startTime' => $startTime ?? 'N/A',
-                                        'endTime' => $endTime ?? 'N/A',
+                                        'startTime' => Carbon::parse($demoAppointment->start_time) ?? 'N/A',
+                                        'endTime' => Carbon::parse($demoAppointment->end_time) ?? 'N/A',
                                         'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
                                         'position' => $salespersonUser->position ?? 'N/A', // position
                                         'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',

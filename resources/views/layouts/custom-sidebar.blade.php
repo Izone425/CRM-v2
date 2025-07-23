@@ -514,7 +514,7 @@
                         </div>
 
                         <!-- HRDF Section -->
-                        <div class="nested-dropdown">
+                        {{-- <div class="nested-dropdown">
                             <div class="sidebar-item nested-dropdown-trigger">
                                 <i class="bi bi-people-fill"></i>
                                 <span>HRDF</span>
@@ -533,7 +533,7 @@
                                     <span>Analysis</span>
                                 </a>
                             </div>
-                        </div>
+                        </div> --}}
                         {{-- <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>Training Calendar</span>
@@ -852,14 +852,14 @@
                             <span>Onsite Training</span>
                         </a>
 
-                        <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
+                        {{-- <a href="{{ route('filament.admin.pages.training-calendar') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
                             <span>HRDF Training Calendar</span>
                         </a>
 
                         <a href="{{ route('filament.admin.resources.training-bookings.index') }}" class="sidebar-item">
                             <i class="bi bi-dot"></i>
-                            <span>HRDF Training Details</span>
+                            <span>HRDF Training Details</span> --}}
                         </a>
                     </div>
                 </div>

@@ -151,7 +151,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -195,7 +212,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -237,7 +271,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -279,7 +330,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -321,7 +389,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -363,7 +448,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -405,7 +507,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#38b2ac' }};
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
@@ -449,7 +568,24 @@
                             <div class="data-block" style="
                                 background-color: {{ $ownerColors[$owner] ?? '#4ade80' }}; {{-- Green color for totals --}}
                             ">
-                                {{ \Illuminate\Support\Str::of($owner)->after(' ')->before(' ') }} - {{ $data['count'] }}
+                                @php
+                                    $displayName = $owner;
+
+                                    // Special case for Sheena Liew
+                                    if ($owner === "Sheena Liew") {
+                                        $displayName = "Sheena Liew";
+                                    }
+                                    // For other names, use the first name or middle name
+                                    else {
+                                        $displayName = \Illuminate\Support\Str::of($owner)->after(' ')->before(' ');
+
+                                        // If the result is empty (which can happen with single names), use the whole name
+                                        if (empty($displayName)) {
+                                            $displayName = \Illuminate\Support\Str::before($owner, ' ');
+                                        }
+                                    }
+                                @endphp
+                                {{ $displayName }} - {{ $data['count'] }}
                             </div>
 
                             <div class="hover-message">
