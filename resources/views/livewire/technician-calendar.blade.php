@@ -410,6 +410,17 @@
             border-bottom: 1px dashed #ccc;
             padding-bottom: 2px;
         }
+        .view-remarks-link {
+            cursor: pointer;
+            color: #3b82f6;
+            text-decoration: underline;
+            font-weight: bold;
+            transition: color 0.2s ease;
+        }
+
+        .view-remarks-link:hover {
+            color: #1d4ed8;
+        }
     </style>
 
 
@@ -665,12 +676,12 @@
             </form>
         </div>
 
-        @if(auth()->user()->role_id !== 9)
+        {{-- @if(auth()->user()->role_id !== 9)
             <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
                 <input type="checkbox" wire:model.change="showDropdown">
                 <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
             </div>
-        @endif
+        @endif --}}
     </div>
 
     <!-- Repair Breakdown -->
@@ -682,7 +693,13 @@
                 <h3 class="text-lg font-semibold">Repair Type</h3>
                 <p class="text-gray-600">Total Repairs: {{ $totalRepairs['ALL'] }}</p>
 
-                @foreach (['NEW INSTALLATION' => '#71eb71', 'REPAIR' => '#ffff5cbf', 'MAINTENANCE SERVICE' => '#f86f6f', 'FINGERTEC TASK' => '#60a5fa'] as $type => $color)
+                @foreach ([
+                    'NEW INSTALLATION' => '#71eb71',
+                    'REPAIR' => '#ffff5cbf',
+                    'MAINTENANCE SERVICE' => '#f86f6f',
+                    'SITE SURVEY' => '#ffa83c',
+                    'INTERNAL TECHNICIAN TASK' => '#60a5fa'
+                ] as $type => $color)
                     @php
                         $count = $repairBreakdown[$type] ?? 0;
                         $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
@@ -1049,26 +1066,70 @@
                         @foreach ($row[$day . 'Appointments'] as $appointment)
                             <div class="appointment-card"
                                 @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->status == 'New')
-                                    style="background-color: var(--bg-demo-yellow)"
-                                @else
-                                    style="background-color: var(--bg-demo-red)" @endif>
-                                <div class="appointment-card-bar"></div>
+                                @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                @else style="background-color: var(--bg-demo-red)" @endif>
+                                <div class="appointment-card-bar"
+                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                        style="background-color: #3b82f6"
+                                    @endif></div>
                                 <div class="appointment-card-info">
-                                    <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                    <div class="appointment-demo-type">
+                                        @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
+                                            {{ $appointment->type }}
+                                        @else
+                                            {{ $appointment->type }}
+                                        @endif
+                                    </div>
                                     <div class="appointment-appointment-type">
                                         {{ $appointment->appointment_type }} |
                                         <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                     </div>
-                                    @if($appointment->company_name && $appointment->company_name != "No Company")
+
+                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                        <!-- For internal tasks, show the view remarks button -->
+                                        <div class="appointment-company-name"
+                                            x-data="{ remarkModalOpen: false }"
+                                            @keydown.escape.window="remarkModalOpen = false">
+                                            <button
+                                                class="view-remarks-link"
+                                                @click="remarkModalOpen = true">
+                                                View Remarks
+                                            </button>
+
+                                            <!-- Remarks Modal (Alpine.js version) -->
+                                            <div x-show="remarkModalOpen"
+                                                x-transition
+                                                @click.outside="remarkModalOpen = false"
+                                                class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                                <div class="relative w-auto p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarkModalOpen = false">
+                                                    <div class="flex items-start justify-between mb-4">
+                                                        <h3 class="text-lg font-medium text-gray-900">{{ $appointment->type }} Remarks</h3>
+                                                        <button type="button" @click="remarkModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <div class="max-h-[60vh] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200" style='color:rgb(66, 66, 66);'>
+                                                        <div class="whitespace-pre-line">{!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}</div>
+                                                    </div>
+                                                    <div class="mt-4 text-center">
+                                                        <button @click="remarkModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                            Close
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <!-- For regular appointments, show company name with link -->
                                         <div class="appointment-company-name" title="{{ $appointment->company_name }}">
                                             <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
                                                 {{ $appointment->company_name }}
                                             </a>
                                         </div>
                                     @endif
-                                    <div class="appointment-time">{{ $appointment->start_time }} -
-                                        {{ $appointment->end_time }}</div>
+                                    <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
                                 </div>
                             </div>
                         @endforeach

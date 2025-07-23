@@ -420,6 +420,7 @@ class TechnicianAppointment extends Page implements HasTable
                     ]),
             Textarea::make('remarks')
                 ->label('REMARKS')
+                ->required()
                 ->rows(3)
                 ->autosize()
                 ->extraAttributes(['style' => 'text-transform: uppercase'])

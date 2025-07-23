@@ -381,6 +381,154 @@
                 transform: scale(1.02);
                 transition: all 0.2s;
             }
+
+            .slide-over-modal {
+                height: 100vh !important;
+                display: flex;
+                flex-direction: column;
+                background-color: white;
+                box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+                position: relative;
+                overflow: hidden;
+                margin-top: 55px; /* Add this to push modal down */
+                max-height: calc(100vh - 55px); /* Reduce maximum height */
+                border-radius: 12px 0 0 0; /* Round top-left corner */
+            }
+
+            .slide-over-header {
+                position: sticky;
+                top: 0;
+                background-color: white;
+                z-index: 50;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 1.25rem 1.5rem; /* Increase padding for better visibility */
+                min-height: 70px;
+                align-items: center;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-radius: 12px 0 0 0; /* Match the modal's border radius */
+            }
+
+            .slide-over-content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1.5rem;
+                height: calc(100vh - 64px); /* Calculate remaining height */
+                padding-bottom: 80px; /* Add bottom padding for scroll space */
+            }
+
+            /* Company item styles */
+            .company-item {
+                display: block;
+                padding: 0.75rem 1rem;
+                margin-bottom: 0.75rem;
+                background-color: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.375rem;
+                transition: all 0.2s;
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #2563eb;
+                text-decoration: none;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+
+            .company-item:hover {
+                transform: translateY(-2px);
+                background-color: #eff6ff;
+                border-color: #bfdbfe;
+                color: #1e40af;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+
+            /* Group header styles */
+            .group-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 1rem;
+                margin-top: 0.75rem;
+                background: linear-gradient(to right, #2563eb, #3b82f6);
+                border-radius: 0.375rem 0.375rem 0 0;
+                color: white;
+                font-weight: 500;
+                cursor: pointer;
+            }
+
+            .group-header:hover {
+                background: linear-gradient(to right, #1d4ed8, #3b82f6);
+            }
+
+            .group-badge {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.5rem;
+                height: 1.5rem;
+                background-color: white;
+                color: #2563eb;
+                font-weight: 600;
+                font-size: 0.75rem;
+                border-radius: 9999px;
+                margin-right: 0.5rem;
+            }
+
+            .group-content {
+                padding: 1rem;
+                background-color: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-top: none;
+                border-radius: 0 0 0.375rem 0.375rem;
+            }
+
+            /* Empty state styling */
+            .empty-state {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 3rem 1.5rem;
+                text-align: center;
+                background-color: #f9fafb;
+                border-radius: 0.5rem;
+                border: 1px dashed #d1d5db;
+                color: #6b7280;
+            }
+
+            .empty-state-icon {
+                width: 3rem;
+                height: 3rem;
+                color: #9ca3af;
+                margin-bottom: 1rem;
+            }
+
+            /* Debug information */
+            .debug-info {
+                margin-bottom: 1.5rem;
+                padding: 0.75rem;
+                background-color: #f3f4f6;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.375rem;
+                font-size: 0.75rem;
+                color: #4b5563;
+            }
+
+            /* Improved scrollbar styling */
+            .slide-over-content::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .slide-over-content::-webkit-scrollbar-track {
+                background: #f3f4f6;
+            }
+
+            .slide-over-content::-webkit-scrollbar-thumb {
+                background-color: #d1d5db;
+                border-radius: 3px;
+            }
+
+            .slide-over-content::-webkit-scrollbar-thumb:hover {
+                background-color: #9ca3af;
+            }
         </style>
     </head>
     <div class="flex flex-col items-center justify-between mb-6 md:flex-row">
@@ -1060,7 +1208,7 @@
 
     <!-- Slide-over Modal -->
     <div
-        x-data="{ open: @entangle('showSlideOver') }"
+        x-data="{ open: @entangle('showSlideOver'), expandedGroups: {} }"
         x-show="open"
         @keydown.window.escape="open = false"
         class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
@@ -1072,36 +1220,107 @@
         x-transition:leave-end="opacity-0"
     >
         <div
-            class="w-full h-full max-w-md p-6 overflow-y-auto bg-white shadow-xl"
+            class="w-full h-full max-w-md overflow-hidden slide-over-modal"
             @click.away="open = false"
         >
             <!-- Header -->
-            <br><br>
-            <div class="flex items-center justify-between p-4 border-b">
-                <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
-                <button @click="open = false" class="text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            <div class="slide-over-header">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                    <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+                </div>
             </div>
 
             <!-- Scrollable content -->
-            <div class="flex-1 p-4 space-y-2 overflow-y-auto">
-                @forelse ($leadList as $lead)
-                    @php
-                        $companyName = $lead->companyDetail->company_name ?? 'N/A';
-                        $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
-                        $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
-                    @endphp
+            <div class="slide-over-content">
+                @if ($leadList instanceof \Illuminate\Support\Collection && $leadList->isEmpty())
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
+                        </svg>
+                        <p>No data found for this selection.</p>
+                    </div>
+                @elseif ($leadList instanceof \Illuminate\Support\Collection && $leadList->first() instanceof \Illuminate\Support\Collection)
+                    <!-- Grouped display -->
+                    @foreach ($leadList as $companySize => $leads)
+                        <div class="mb-4">
+                            <!-- Group header -->
+                            <div
+                                class="group-header"
+                                x-on:click="expandedGroups['{{ $companySize }}'] = !expandedGroups['{{ $companySize }}']"
+                            >
+                                <div class="flex items-center">
+                                    <span class="group-badge">{{ $leads->count() }}</span>
+                                    <span>{{ $companySize }}</span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform"
+                                    :class="expandedGroups['{{ $companySize }}'] ? 'transform rotate-180' : ''"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
 
-                    <a
-                        href="{{ url('admin/leads/' . $encryptedId) }}"
-                        target="_blank"
-                        title="{{ $companyName }}"
-                        class="block px-4 py-2 text-sm font-medium text-blue-600 transition border rounded bg-gray-50 hover:bg-blue-50 hover:text-blue-800"
-                    >
-                        {{ $shortened }}
-                    </a>
-                @empty
-                    <div class="text-sm text-gray-500">No data found.</div>
-                @endforelse
+                            <!-- Group content (collapsible) -->
+                            <div class="group-content" x-show="expandedGroups['{{ $companySize }}']" x-collapse>
+                                @foreach ($leads as $lead)
+                                    @php
+                                        try {
+                                            $companyName = $lead->companyDetail->company_name ?? 'N/A';
+                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                                            $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+                                        } catch (\Exception $e) {
+                                            $shortened = 'Error loading company';
+                                            $encryptedId = '#';
+                                            $companyName = 'Error: ' . $e->getMessage();
+                                        }
+                                    @endphp
+
+                                    <a
+                                        href="{{ url('admin/leads/' . $encryptedId) }}"
+                                        target="_blank"
+                                        title="{{ $companyName }}"
+                                        class="company-item"
+                                    >
+                                        {{ $shortened }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <!-- Regular flat list -->
+                    @forelse ($leadList as $lead)
+                        @php
+                            try {
+                                $companyName = isset($lead->companyDetail) ? $lead->companyDetail->company_name : 'N/A';
+                                $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 20, '...'));
+                                $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+                            } catch (\Exception $e) {
+                                $shortened = 'Error loading company';
+                                $encryptedId = '#';
+                                $companyName = 'Error: ' . $e->getMessage();
+                            }
+                        @endphp
+
+                        <a
+                            href="{{ url('admin/leads/' . $encryptedId) }}"
+                            target="_blank"
+                            title="{{ $companyName }}"
+                            class="company-item"
+                        >
+                            {{ $shortened }}
+                        </a>
+                    @empty
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
+                            </svg>
+                            <p>No company data available.</p>
+                        </div>
+                    @endforelse
+                @endif
             </div>
         </div>
     </div>

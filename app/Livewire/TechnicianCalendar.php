@@ -47,7 +47,7 @@ class TechnicianCalendar extends Component
     public array $selectedTechnicians = [];
     public bool $allTechniciansSelected = true;
 
-    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "FINGERTEC TASK", "SITE SURVEY"];
+    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "SITE SURVEY", "FINGERTEC TASK", "TIMETEC HR TASK", "TIMETEC PARKING TASK", "TIMETEC PROPERTY TASK"];
     public array $selectedRepairType = [];
     public bool $allRepairTypeSelected = true;
 
@@ -156,11 +156,8 @@ class TechnicianCalendar extends Component
             "NEW INSTALLATION" => 0,
             "REPAIR" => 0,
             "MAINTENANCE SERVICE" => 0,
-            "FINGERTEC TASK" => 0, // Add FINGERTEC TASK counter
             "SITE SURVEY" => 0,
-            "NEW" => 0,
-            "DONE" => 0,
-            "CANCELLED" => 0
+            "INTERNAL TECHNICIAN TASK" => 0,
         ];
 
         // Count active appointments (not cancelled)
@@ -175,13 +172,11 @@ class TechnicianCalendar extends Component
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["SITE SURVEY"] = $query->clone()->where('type', 'SITE SURVEY')
             ->where('status', '!=', 'Cancelled')->count();
-        $this->totalRepairs["FINGERTEC TASK"] = $query->clone()->where('type', 'FINGERTEC TASK')
-            ->where('status', '!=', 'Cancelled')->count(); // Add FINGERTEC TASK count
 
-        // Count by status
-        $this->totalRepairs["NEW"] = $query->clone()->where('status', 'New')->count();
-        $this->totalRepairs["DONE"] = $query->clone()->where('status', 'Done')->count();
-        $this->totalRepairs["CANCELLED"] = $query->clone()->where('status', 'Cancelled')->count();
+        // Count combined "INTERNAL TECHNICIAN TASK" category
+        $this->totalRepairs["INTERNAL TECHNICIAN TASK"] = $query->clone()
+            ->whereIn('type', ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])
+            ->where('status', '!=', 'Cancelled')->count();
     }
 
     private function getWeekDateDays($date = null)
@@ -344,17 +339,35 @@ class TechnicianCalendar extends Component
                     ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
                     : '#';
 
+                // Map internal task types to the combined category for filtering purposes
+                $displayType = $appointment->type;
+                if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
+                    $displayType = 'INTERNAL TECHNICIAN TASK';
+                    $appointment->is_internal_task = true;
+
+                    // Truncate remarks for display if they're too long
+                    $appointment->display_remarks = !empty($appointment->remarks)
+                        ? (strlen($appointment->remarks) > 30
+                            ? substr($appointment->remarks, 0, 30) . '...'
+                            : $appointment->remarks)
+                        : 'No remarks';
+                } else {
+                    $appointment->is_internal_task = false;
+                }
+
                 // Apply filters
                 $includeRepairType = $this->allRepairTypeSelected ||
-                                     in_array($appointment->type, $this->selectedRepairType);
+                                    in_array($displayType, $this->selectedRepairType);
 
                 $includeAppointmentType = $this->allAppointmentTypeSelected ||
-                                         in_array($appointment->appointment_type, $this->selectedAppointmentType);
+                                        in_array($appointment->appointment_type, $this->selectedAppointmentType);
 
                 $includeStatus = $this->allStatusSelected ||
-                                 in_array(strtoupper($appointment->status), $this->selectedStatus);
+                                in_array(strtoupper($appointment->status), $this->selectedStatus);
 
                 if ($includeRepairType && $includeAppointmentType && $includeStatus) {
+                    // Store original type but add display type property for filtering
+                    $appointment->display_type = $displayType;
                     $data[$dayField][] = $appointment;
                 }
             }
@@ -596,12 +609,19 @@ class TechnicianCalendar extends Component
             'NEW INSTALLATION' => 0,
             'REPAIR' => 0,
             'MAINTENANCE SERVICE' => 0,
-            'FINGERTEC TASK' => 0, // Add FINGERTEC TASK to result array
+            'SITE SURVEY' => 0,
+            'INTERNAL TECHNICIAN TASK' => 0,
         ];
 
         foreach ($appointments as $appointment) {
             $type = $appointment->type ?? 'Unknown';
-            $result[$type] = ($result[$type] ?? 0) + 1;
+
+            // Group internal tasks
+            if (in_array($type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
+                $result['INTERNAL TECHNICIAN TASK']++;
+            } else {
+                $result[$type] = ($result[$type] ?? 0) + 1;
+            }
         }
 
         $this->repairBreakdown = $result;
