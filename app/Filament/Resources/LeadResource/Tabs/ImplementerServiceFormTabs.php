@@ -30,14 +30,18 @@ use Illuminate\View\View as IlluminateView;
 
 class ImplementerServiceFormTabs
 {
+    protected static ?int $indexDeviceCounter = 0;
+
     public static function getSchema(): array
     {
+        self::$indexDeviceCounter = 0;
+
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Additional Contacts')
-                        ->description('Add additional persons in charge for this lead')
-                        ->icon('heroicon-o-users')
+                    Section::make('Service Forms')
+                        ->description('Manage service forms for this lead')
+                        ->icon('heroicon-o-document-text')
                         ->schema([
                             // Display existing service forms
                             View::make('components.service-forms-list')
@@ -49,22 +53,41 @@ class ImplementerServiceFormTabs
                                 ->color('primary')
                                 ->icon('heroicon-o-paper-airplane')
                                 ->form([
-                                    FileUpload::make('filepath')
-                                        ->label('Service Form')
-                                        ->directory('service-forms')
-                                        ->acceptedFileTypes([
-                                            'application/pdf',
-                                            'image/*',
-                                            'application/msword',
-                                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                                        ])
-                                        ->required()
-                                        ->helperText('Upload your service form document (PDF, Word, or image)'),
+                                    Card::make()
+                                        ->schema([
+                                            Repeater::make('service_forms')
+                                            ->schema([
+                                                Grid::make(2)
+                                                    ->schema([
+                                                        Textarea::make('remarks')
+                                                            ->label('Service Form Email')
+                                                            ->placeholder('ENTER REMARKS HERE')
+                                                            ->rows(3)
+                                                            ->columnSpan(1),
 
-                                    Textarea::make('notes')
-                                        ->label('Notes')
-                                        ->placeholder('Enter additional notes about this service form')
-                                        ->rows(3),
+                                                        FileUpload::make('attachment')
+                                                            ->label('Service Form Attachment')
+                                                            ->directory('service-forms')
+                                                            ->acceptedFileTypes([
+                                                                'application/pdf',
+                                                                'image/*',
+                                                                'application/msword',
+                                                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                                                            ])
+                                                            ->helperText('Drag & Drop your files or Browse')
+                                                            ->columnSpan(1),
+                                                    ]),
+                                            ])
+                                            ->itemLabel(fn() => __('Service Form') . ' ' . ++self::$indexDeviceCounter)
+                                            ->hiddenLabel()
+                                            ->collapsible()
+                                            ->defaultItems(1)
+                                            ->minItems(1)
+                                            ->addActionLabel('Add Service Form')
+                                            ->reorderable(false)
+                                            ->columns(1)
+                                        ])
+                                        ->columnSpan(1),
                                 ])
                                 ->action(function (Lead $record, array $data) {
                                     if (!$record) {
@@ -77,21 +100,24 @@ class ImplementerServiceFormTabs
                                     }
 
                                     try {
-                                        // Create implementer form record
-                                        $implementerForm = new ImplementerForm();
-                                        $implementerForm->lead_id = $record->id;
-                                        $implementerForm->filepath = $data['filepath'];
-                                        $implementerForm->notes = $data['notes'] ?? null;
-                                        $implementerForm->save();
+                                        // Process each service form in the repeater
+                                        foreach ($data['service_forms'] as $formData) {
+                                            // Create implementer form record
+                                            $implementerForm = new ImplementerForm();
+                                            $implementerForm->lead_id = $record->id;
+                                            $implementerForm->filepath = $formData['attachment'] ?? null;
+                                            $implementerForm->notes = $formData['remarks'] ?? null;
+                                            $implementerForm->save();
+                                        }
 
                                         // Log activity
                                         activity()
                                             ->causedBy(auth()->user())
                                             ->performedOn($record)
-                                            ->log('Added new service form');
+                                            ->log('Added new service form(s)');
 
                                         Notification::make()
-                                            ->title('Service form submitted successfully')
+                                            ->title('Service form(s) submitted successfully')
                                             ->success()
                                             ->send();
 

@@ -250,6 +250,27 @@ class ImplementerProjectInactive extends Component implements HasForms, HasTable
                             return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
+                    Action::make('mark_as_open')
+                        ->label('Mark as Open')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Mark Project as Open')
+                        ->modalDescription('Are you sure you want to mark this project as open?')
+                        ->modalSubmitActionLabel('Yes, Mark as Open')
+                        ->action(function (SoftwareHandover $record) {
+                            $record->status_handover = 'Open';
+                            $record->save();
+
+                            // Send notification
+                            \Filament\Notifications\Notification::make()
+                                ->title('Project marked as Open')
+                                ->warning()
+                                ->send();
+
+                            // Refresh the table
+                            $this->refreshTable();
+                        }),
                 ])
                 ->button()
                 ->color('warning')

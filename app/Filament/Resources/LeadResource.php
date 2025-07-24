@@ -42,6 +42,7 @@ use App\Filament\Resources\LeadResource\Tabs\ImplementerNoteTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerPICTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerServiceFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
+use App\Filament\Resources\LeadResource\Tabs\OtherFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\QuotationTabs;
@@ -118,6 +119,10 @@ class LeadResource extends Resource
                 $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'ticketing'];
+            } elseif ($user->role_id === 5) { // Implementer
+                $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
+                    'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
+                    'data_file', 'implementer_service_form','other_form', 'ticketing'];
             } elseif ($user->role_id === 9) { // Technician
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
@@ -180,9 +185,19 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
+        if (in_array('data_file', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Data Files')
+                ->schema(DataFileTabs::getSchema());
+        }
+
         if (in_array('implementer_service_form', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Service Form')
                 ->schema(ImplementerServiceFormTabs::getSchema());
+        }
+
+        if (in_array('other_form', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Other Form')
+                ->schema(OtherFormTabs::getSchema());
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
@@ -223,11 +238,6 @@ class LeadResource extends Resource
         if (in_array('repair_appointment', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Repair Appointment')
                 ->schema(RepairAppointmentTabs::getSchema());
-        }
-
-        if (in_array('data_file', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Data Files')
-                ->schema(DataFileTabs::getSchema());
         }
 
         if (in_array('ticketing', $activeTabs)) {

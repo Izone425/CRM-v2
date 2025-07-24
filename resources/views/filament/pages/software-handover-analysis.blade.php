@@ -76,23 +76,38 @@
         }
 
         /* First column (name column) */
-        .implementer-table th:first-child,
         .implementer-table td:first-child {
-            width: 30%; /* Name column width */
-            text-align: left;
-        }
+    width: 40% !important; /* First column - Active Implementer */
+    text-align: left !important;
+}
 
-        /* TOTAL column (2nd column) */
-        .implementer-table th:nth-child(2),
-        .implementer-table td:nth-child(2) {
-            width: 30%; /* Total column width */
+/* TOTAL column */
+.implementer-table td:nth-child(2) {
+    width: 10% !important; /* Total column */
+    text-align: center !important;
+}
+
+/* All remaining columns - with !important to ensure they take effect */
+.implementer-table td:nth-child(3),
+.implementer-table td:nth-child(4),
+.implementer-table td:nth-child(5),
+.implementer-table td:nth-child(6),
+.implementer-table td:nth-child(7) {
+    width: 10% !important; /* Each status column (CLOSED, ONGOING, etc.) */
+    text-align: center !important;
+}
+
+.implementer-table th {
+    width: auto !important; /* Let header widths adjust to cell widths */
+}
+        /* Then handle the header separately */
+        .implementer-table th[colspan="2"] {
+            /* This targets the "COUNT BY IMPLEMENTER" header */
             text-align: center;
         }
 
-        /* CLOSED column (3rd column) */
-        .implementer-table th:nth-child(3),
-        .implementer-table td:nth-child(3) {
-            width: 40%; /* Closed column width */
+        .implementer-table th[colspan="3"] {
+            /* This targets the "STATUS - ONGOING" header */
             text-align: center;
         }
 

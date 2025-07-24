@@ -13,6 +13,7 @@ use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
+use App\Filament\Pages\ImplementerAuditList;
 use App\Filament\Pages\ImplementerCalendar;
 use App\Filament\Pages\ImplementerDataFile;
 use App\Filament\Pages\LeadAnalysis;
@@ -201,6 +202,7 @@ class AdminPanelProvider extends PanelProvider
                 DemoAnalysisTableForm::class,
                 TechnicianAppointment::class,
                 SalespersonAppointment::class,
+                ImplementerAuditList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
