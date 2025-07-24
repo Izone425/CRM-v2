@@ -121,12 +121,15 @@
                 </div>
                 <div class="stats-card">
                     <div class="stats-card__body">
-                        <h3 class="stats-label">Most Active Implementer</h3>
+                        <h3 class="stats-label">Latest Software Handover Assigned</h3>
                         <div class="flex-between">
-                            <p class="stats-value">{{ $statsData['overall']['mostActive'] ?? 'None' }}</p>
-                            <span class="badge badge--blue">
-                                {{ $statsData['overall']['mostActiveCount'] ?? 0 }} assignments
-                            </span>
+                            <div>
+                                <p class="stats-value">{{ $statsData['overall']['latestImplementer'] ?? 'None' }}</p>
+                                <p class="stats-subtitle">
+                                    ID: {{ $statsData['overall']['latestHandoverId'] ?? '-' }}<br>
+                                    Company: {{ $statsData['overall']['latestCompanyName'] ?? '-' }}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -136,7 +139,7 @@
             <div class="stats-grid">
                 @foreach($implementers as $implementer)
                     <div class="stats-card">
-                        <div class="stats-card__header" style="background-color: {{ $statsData[$implementer]['color'] }}10;">
+                        <div class="stats-card__header" style="background-color: rgba({{ implode(',', $statsData[$implementer]['color']) }},0.1);">
                             <div class="flex-between">
                                 <h3 class="font-medium">{{ $implementer }}</h3>
                                 <span class="badge">
