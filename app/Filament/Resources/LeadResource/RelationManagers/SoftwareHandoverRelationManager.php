@@ -55,6 +55,7 @@ use Filament\Forms\Components\View as ViewComponent;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Attributes\On;
@@ -613,6 +614,41 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $handover->save();
 
                     app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($handover);
+
+                    try {
+                        // Format handover ID
+                        $handoverId = 'SW_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
+
+                        // Get company name from CompanyDetail
+                        $companyDetail = \App\Models\CompanyDetail::where('lead_id', $handover->lead_id)->first();
+                        $companyName = $companyDetail ? $companyDetail->company_name : ($handover->company_name ?? 'Unknown Company');
+
+                        // Prepare email data
+                        $emailData = [
+                            'date' => now()->format('d M Y'),
+                            'sw_id' => $handoverId,
+                            'salesperson' => $handover->salesperson ?? '-',
+                            'company_name' => $companyName,
+                            'form_url' => $handover->handover_pdf ? url('storage/' . $handover->handover_pdf) : null,
+                        ];
+
+                        Mail::send('emails.handover_submitted_notification', [
+                            'date' => $emailData['date'],
+                            'sw_id' => $emailData['sw_id'],
+                            'salesperson' => $emailData['salesperson'],
+                            'company_name' => $emailData['company_name'],
+                            'form_url' => $emailData['form_url'],
+                        ], function ($message) use ($emailData) {
+                            $message->to(['faiz@timeteccloud.com', 'fazuliana@timeteccloud.com'])
+                                ->subject("NEW SOFTWARE HANDOVER ID {$emailData['sw_id']}");
+                        });
+
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Failed to send software handover notification email", [
+                            'error' => $e->getMessage(),
+                            'handover_id' => $handover->id ?? null
+                        ]);
+                    }
 
                     Notification::make()
                         ->title($handover->status === 'Draft' ? 'Saved as Draft' : 'Software Handover Created Successfully')

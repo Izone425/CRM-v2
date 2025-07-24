@@ -47,7 +47,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class ImplementerSequenceSmall extends Component implements HasForms, HasTable
+class ImplementerSequenceLarge extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -94,18 +94,18 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
     {
         // List of allowed implementers for small companies
         $allowedImplementers = [
-            'Ahmad Syamim',
-            'John Low',
+            'Amirul Ashraf',
+            'Nur Alia',
             'Zulhilmie',
-            'Muhamad Izzul Aiman',
-            'Nurul Shaqinur Ain'
+            'John Low',
+            'Muhamad Izzul Aiman'
         ];
 
         $query = SoftwareHandover::query()
             ->whereNotNull('lead_id')
             ->whereIn('implementer', $allowedImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->where('leads.company_size', '1-24')
+            ->where('leads.company_size', '100-500')
             ->select('software_handovers.*'); // Important to select only from software_handovers to avoid column conflicts
 
         // If a specific user is selected (for filtering)
@@ -152,9 +152,6 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('implementer')
-                    ->label('Implementer'),
-
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareHandover $record) {
@@ -264,6 +261,6 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer-sequence-small');
+        return view('livewire.implementer-sequence-large');
     }
 }
