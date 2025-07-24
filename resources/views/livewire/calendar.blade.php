@@ -1175,7 +1175,7 @@
                                             <button
                                                 class="view-remarks-link"
                                                 @click="remarkModalOpen = true">
-                                                View Remark
+                                                VIEW REMARK
                                             </button>
 
                                             <!-- Remarks Modal (Alpine.js version) -->

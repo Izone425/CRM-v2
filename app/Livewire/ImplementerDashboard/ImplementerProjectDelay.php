@@ -7,6 +7,7 @@ use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
 use App\Models\SoftwareHandover;
 use App\Models\User;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -249,6 +250,60 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
                             // Return the view with the record using $this->record pattern
                             return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
+                        }),
+                    Action::make('mark_as_closed')
+                        ->label('Mark as Closed')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->form([
+                            DatePicker::make('go_live_date')
+                                ->label('Go Live Date')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d M Y')
+                                ->default(now())
+                                ->helperText('Select the date when the project went live.')
+                                ->closeOnDateSelection(),
+                        ])
+                        ->requiresConfirmation()
+                        ->modalHeading('Mark Project as Closed')
+                        ->modalDescription('Are you sure you want to mark this project as closed? This will update the status and set the go-live date.')
+                        ->modalSubmitActionLabel('Yes, Close Project')
+                        ->action(function (array $data, SoftwareHandover $record) {
+                            $record->status_handover = 'Closed';
+                            $record->go_live_date = $data['go_live_date'];
+                            $record->save();
+
+                            // Send notification
+                            \Filament\Notifications\Notification::make()
+                                ->title('Project marked as Closed')
+                                ->success()
+                                ->send();
+
+                            // Refresh the table
+                            $this->refreshTable();
+                        }),
+
+                    Action::make('mark_as_inactive')
+                        ->label('Mark as InActive')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Mark Project as Inactive')
+                        ->modalDescription('Are you sure you want to mark this project as inactive?')
+                        ->modalSubmitActionLabel('Yes, Mark as Inactive')
+                        ->action(function (SoftwareHandover $record) {
+                            $record->status_handover = 'InActive';
+                            $record->save();
+
+                            // Send notification
+                            \Filament\Notifications\Notification::make()
+                                ->title('Project marked as InActive')
+                                ->warning()
+                                ->send();
+
+                            // Refresh the table
+                            $this->refreshTable();
                         }),
                 ])
                 ->button()

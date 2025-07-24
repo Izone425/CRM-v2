@@ -17,7 +17,8 @@ class Reseller extends Model
         'company_name'
     ];
 
-    public function lead() {
-        return $this->belongsTo(\App\Models\Lead::class);
+    public function leads()
+    {
+        return $this->hasMany(Lead::class, 'reseller_id');
     }
 }
