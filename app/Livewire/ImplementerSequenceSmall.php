@@ -138,15 +138,15 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
                     ->options(function () {
-                        return User::where('role_id', '2')
-                            ->whereNot('id',15) // Exclude Testing Account
+                        return User::whereIn('role_id', [4, 5])
+                            ->orderBy('name')
                             ->pluck('name', 'name')
                             ->toArray();
                     })
-                    ->placeholder('All Salesperson')
+                    ->placeholder('All Implementers')
                     ->multiple(),
 
                 SortFilter::make("sort_by"),
@@ -211,7 +211,7 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $company->company_name . '
+                                    ' . $shortened . '
                                 </a>');
                         }
 
