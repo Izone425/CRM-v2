@@ -189,7 +189,7 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
 
                 TextColumn::make('completed_at')
                     ->label('Completed At')
-                    ->dateTime()
+                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-')
                     ->sortable(),
 
                 TextColumn::make('company_name')
@@ -216,7 +216,7 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                         }
 
                         $shortened = strtoupper(Str::limit($state, 20, '...'));
-                        return "<span title='{$state}'>{$state}</span>";
+                        return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
             ])

@@ -39,7 +39,6 @@ class ImplementerAuditList extends Page
 
     public function calculateStats()
     {
-        $periodStart = $this->getPeriodStartDate();
         $this->statsData = [];
 
         // Calculate stats for each implementer
@@ -48,7 +47,6 @@ class ImplementerAuditList extends Page
             $smallAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('implementer', $implementer)
-                ->where('completed_at', '>=', $periodStart)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '1-24')
                 ->count();
@@ -57,7 +55,6 @@ class ImplementerAuditList extends Page
             $mediumAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('implementer', $implementer)
-                ->where('completed_at', '>=', $periodStart)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '25-99')
                 ->count();
@@ -88,58 +85,57 @@ class ImplementerAuditList extends Page
         }
 
         // Calculate overall stats
-        $this->calculateOverallStats($periodStart);
+        $this->calculateOverallStats();
     }
 
-    private function calculateOverallStats($periodStart)
+    private function calculateOverallStats()
     {
-        // Total assignments this period
+        // Total assignments (all time, small & medium only)
         $totalAssignments = SoftwareHandover::query()
             ->whereNotNull('completed_at')
             ->whereIn('implementer', $this->implementers)
-            ->where('completed_at', '>=', $periodStart)
+            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->whereIn('leads.company_size', ['1-24', '25-99'])
             ->count();
 
-        // Most active implementer
-        $implementerCounts = SoftwareHandover::query()
+        // Latest software handover assigned (small & medium only)
+        $latestHandover = SoftwareHandover::query()
             ->whereNotNull('completed_at')
             ->whereIn('implementer', $this->implementers)
-            ->where('completed_at', '>=', $periodStart)
-            ->select('implementer', DB::raw('count(*) as total'))
-            ->groupBy('implementer')
-            ->orderBy('total', 'desc')
+            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->whereIn('leads.company_size', ['1-24', '25-99'])
+            ->orderBy('software_handovers.completed_at', 'desc')
+            ->select('software_handovers.*', 'leads.company_size', 'leads.id as lead_id')
             ->first();
 
-        $mostActive = $implementerCounts ? $implementerCounts->implementer : 'None';
-        $mostActiveCount = $implementerCounts ? $implementerCounts->total : 0;
+        $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
+        $latestHandoverId = $latestHandover ? 'SW_' . $latestHandover->id : '-';
+
+        // Get company name from company_details using lead_id
+        $latestCompanyName = '-';
+        if ($latestHandover && $latestHandover->lead_id) {
+            $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
+            $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
+        }
 
         $this->statsData['overall'] = [
             'totalAssignments' => $totalAssignments,
-            'mostActive' => $mostActive,
-            'mostActiveCount' => $mostActiveCount,
-            'periodLabel' => $this->periods[$this->selectedPeriod]
+            'latestImplementer' => $latestImplementer,
+            'latestHandoverId' => $latestHandoverId,
+            'latestCompanyName' => $latestCompanyName,
+            'periodLabel' => 'All Time'
         ];
-    }
-
-    private function getPeriodStartDate()
-    {
-        return match($this->selectedPeriod) {
-            'week' => Carbon::now()->subWeek(),
-            'month' => Carbon::now()->subMonth(),
-            'quarter' => Carbon::now()->subMonths(3),
-            default => Carbon::now()->subWeek(),
-        };
     }
 
     private function getImplementerColor($implementer)
     {
         return match($implementer) {
-            'Ahmad Syamim' => 'rgb(59, 130, 246)', // Blue
-            'John Low' => 'rgb(16, 185, 129)', // Green
-            'Zulhilmie' => 'rgb(245, 158, 11)', // Amber
-            'Muhamad Izzul Aiman' => 'rgb(236, 72, 153)', // Pink
-            'Nurul Shaqinur Ain' => 'rgb(139, 92, 246)', // Purple
-            default => 'rgb(107, 114, 128)', // Gray
+            'Ahmad Syamim' => [59, 130, 246], // Blue
+            'John Low' => [16, 185, 129],     // Green
+            'Zulhilmie' => [245, 158, 11],    // Amber
+            'Muhamad Izzul Aiman' => [236, 72, 153], // Pink
+            'Nurul Shaqinur Ain' => [139, 92, 246],  // Purple
+            default => [107, 114, 128],       // Gray
         };
     }
 

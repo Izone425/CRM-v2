@@ -184,6 +184,11 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                             })
                     ),
 
+                TextColumn::make('completed_at')
+                    ->label('Completed At')
+                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-')
+                    ->sortable(),
+
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -208,19 +213,9 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                         }
 
                         $shortened = strtoupper(Str::limit($state, 20, '...'));
-                        return "<span title='{$state}'>{$state}</span>";
+                        return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
-                    }),
             ])
             ->actions([
                 ActionGroup::make([
