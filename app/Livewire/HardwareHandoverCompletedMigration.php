@@ -1069,8 +1069,8 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                         ['emailData' => $emailData],
                                         function ($message) use ($handoverId, $companyName, $senderEmail, $senderName) {
                                             $message->from($senderEmail, $senderName)
-                                                ->to('zilih.ng@timeteccloud.com')  // Replace with actual email
-                                                ->cc('zilih020906@gmail.com')   // Replace with actual email
+                                                ->to('admin.timetec.hr@timeteccloud.com')
+                                                ->cc('izzuddin@timeteccloud.com')
                                                 ->subject("HARDWARE HANDOVER ID {$handoverId} | {$companyName} | PENDING INSTALLATION");
                                         }
                                     );

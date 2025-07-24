@@ -54,7 +54,7 @@ class ImplementerCalendar extends Component
     public array $selectedImplementers = [];
     public bool $allImplementersSelected = true;
 
-    public array $appointmentTypes = ["KICK OFF MEETING SESSION", "IMPLEMENTATION SESSION 1", "IMPLEMENTATION SESSION 2", "IMPLEMENTATION SESSION 3", "IMPLEMENTATION SESSION 4", "IMPLEMENTATION SESSION 5"];
+    public array $appointmentTypes = ["KICK OFF MEETING SESSION", "IMPLEMENTATION REVIEW SESSION", "DATA MIGRATION SESSION", "SYSTEM SETTING SESSION", "WEEKLY FOLLOW UP SESSION"];
     public array $selectedAppointmentType = [];
     public bool $allAppointmentTypeSelected = true;
 
@@ -282,6 +282,7 @@ class ImplementerCalendar extends Component
         }
 
         $result = [];
+        $weekDays = $this->getWeekDateDays($date);
 
         // Process each implementer
         foreach ($allImplementers as $implementerId) {
@@ -321,11 +322,11 @@ class ImplementerCalendar extends Component
                 'wednesdayAppointments' => [],
                 'thursdayAppointments' => [],
                 'fridayAppointments' => [],
-                'mondaySessionSlots' => $this->getSessionSlots('monday'),
-                'tuesdaySessionSlots' => $this->getSessionSlots('tuesday'),
-                'wednesdaySessionSlots' => $this->getSessionSlots('wednesday'),
-                'thursdaySessionSlots' => $this->getSessionSlots('thursday'),
-                'fridaySessionSlots' => $this->getSessionSlots('friday'),
+                'mondaySessionSlots' => $this->getSessionSlots('monday', $weekDays[0]['carbonDate'], $user->id ?? null),
+                'tuesdaySessionSlots' => $this->getSessionSlots('tuesday', $weekDays[1]['carbonDate'], $user->id ?? null),
+                'wednesdaySessionSlots' => $this->getSessionSlots('wednesday', $weekDays[2]['carbonDate'], $user->id ?? null),
+                'thursdaySessionSlots' => $this->getSessionSlots('thursday', $weekDays[3]['carbonDate'], $user->id ?? null),
+                'fridaySessionSlots' => $this->getSessionSlots('friday', $weekDays[4]['carbonDate'], $user->id ?? null),
                 'newAppointment' => [
                     'monday' => 0,
                     'tuesday' => 0,
@@ -355,13 +356,13 @@ class ImplementerCalendar extends Component
 
                 // Apply filters
                 $includeAppointmentType = $this->allAppointmentTypeSelected ||
-                                         in_array($appointment->type, $this->selectedAppointmentType);
+                                        in_array($appointment->type, $this->selectedAppointmentType);
 
                 $includeSessionType = $this->allSessionTypeSelected ||
-                                     in_array($appointment->appointment_type, $this->selectedSessionType);
+                                    in_array($appointment->appointment_type, $this->selectedSessionType);
 
                 $includeStatus = $this->allStatusSelected ||
-                               in_array(strtoupper($appointment->status), $this->selectedStatus);
+                                in_array(strtoupper($appointment->status), $this->selectedStatus);
 
                 if ($includeAppointmentType && $includeSessionType && $includeStatus) {
                     $data[$dayField][] = $appointment;
@@ -375,6 +376,31 @@ class ImplementerCalendar extends Component
                         if ($appointmentStartTime == $sessionInfo['start_time']) {
                             $data[$daySessionSlots][$sessionName]['booked'] = true;
                             $data[$daySessionSlots][$sessionName]['appointment'] = $appointment;
+
+                            // Update the status based on the appointment type
+                            if ($appointment->status === 'Cancelled') {
+                                // For cancelled appointments, check if it should be shown based on time
+                                $currentTime = Carbon::now();
+                                $appointmentTime = Carbon::parse($appointment->date . ' ' . $appointmentStartTime);
+
+                                if ($currentTime->format('Y-m-d') > Carbon::parse($appointment->date)->format('Y-m-d')) {
+                                    // Past day - show as grey
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'past';
+                                } else if ($appointmentTime < $currentTime) {
+                                    // Same day but past time - show as grey
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'past';
+                                } else {
+                                    // Same day future time - show as available (green)
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'available';
+                                }
+                            } else if ($appointment->type === 'IMPLEMENTER REQUEST') {
+                                // Yellow for implementer requests
+                                $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
+                            } else {
+                                // Red for implementation sessions
+                                $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
+                            }
+
                             break;
                         }
                     }
@@ -761,7 +787,8 @@ class ImplementerCalendar extends Component
     {
         $this->showBookingModal = false;
     }
-    private function getSessionSlots($dayOfWeek)
+
+    private function getSessionSlots($dayOfWeek, $date = null, $implementerId = null)
     {
         // Define the standard session slots for Monday-Thursday
         $standardSessions = [
@@ -771,7 +798,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '9:30 AM',
                 'formatted_end' => '10:30 AM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'am' // AM session
             ],
             'SESSION 2' => [
                 'start_time' => '11:00:00',
@@ -779,7 +808,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '11:00 AM',
                 'formatted_end' => '12:30 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'am' // AM session
             ],
             'SESSION 3' => [
                 'start_time' => '14:00:00',
@@ -787,7 +818,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '2:00 PM',
                 'formatted_end' => '3:00 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'pm' // PM session
             ],
             'SESSION 4' => [
                 'start_time' => '15:30:00',
@@ -795,7 +828,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '3:30 PM',
                 'formatted_end' => '4:30 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'pm' // PM session
             ],
             'SESSION 5' => [
                 'start_time' => '17:00:00',
@@ -803,7 +838,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '5:00 PM',
                 'formatted_end' => '6:00 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'pm' // PM session
             ],
         ];
 
@@ -815,7 +852,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '9:30 AM',
                 'formatted_end' => '10:30 AM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'am' // AM session
             ];
 
             $standardSessions['SESSION 2'] = [
@@ -824,7 +863,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '11:00 AM',
                 'formatted_end' => '12:30 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'am' // AM session
             ];
 
             // Remove SESSION 3
@@ -837,7 +878,9 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '3:00 PM',
                 'formatted_end' => '4:00 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'pm' // PM session
             ];
 
             $standardSessions['SESSION 5'] = [
@@ -846,8 +889,93 @@ class ImplementerCalendar extends Component
                 'formatted_start' => '4:30 PM',
                 'formatted_end' => '5:30 PM',
                 'booked' => false,
-                'appointment' => null
+                'appointment' => null,
+                'status' => 'available', // Default status
+                'time_period' => 'pm' // PM session
             ];
+        }
+
+        // If a date is provided, we can check for public holidays and leaves
+        if ($date && $implementerId) {
+            $formattedDate = Carbon::parse($date)->format('Y-m-d');
+            $currentTime = Carbon::now();
+
+            // Check for public holidays (make session unavailable)
+            $isPublicHoliday = PublicHoliday::where('date', $formattedDate)->exists();
+            if ($isPublicHoliday) {
+                // If it's a public holiday, all sessions are unavailable
+                foreach ($standardSessions as $key => $session) {
+                    $standardSessions[$key]['status'] = 'holiday';
+                }
+                return $standardSessions;
+            }
+
+            // Check for leave applications
+            $user = User::find($implementerId);
+            if ($user) {
+                $leave = UserLeave::where('user_id', $implementerId)
+                    ->where('date', $formattedDate)
+                    ->where('status', 'Approved')
+                    ->first();
+
+                if ($leave) {
+                    if ($leave->session === 'full') {
+                        // Full day leave - all sessions unavailable
+                        foreach ($standardSessions as $key => $session) {
+                            $standardSessions[$key]['status'] = 'leave';
+                        }
+                    } elseif ($leave->session === 'am') {
+                        // AM leave - Remove morning sessions entirely
+                        foreach ($standardSessions as $key => $session) {
+                            if ($session['time_period'] === 'am') {
+                                unset($standardSessions[$key]);
+                            }
+                        }
+                    } elseif ($leave->session === 'pm') {
+                        // PM leave - Remove afternoon sessions entirely
+                        foreach ($standardSessions as $key => $session) {
+                            if ($session['time_period'] === 'pm') {
+                                unset($standardSessions[$key]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check if the session is in the past (before current time)
+            foreach ($standardSessions as $key => $session) {
+                $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+
+                // If session is in the past, mark it as past
+                if ($sessionStart < $currentTime) {
+                    $standardSessions[$key]['status'] = 'past';
+                }
+            }
+
+            // Process any cancelled appointments
+            // This will mark the session as cancelled but still display it in the calendar
+            if ($user) {
+                $cancelledAppointments = \App\Models\ImplementerAppointment::where('implementer', $user->name)
+                    ->where('date', $formattedDate)
+                    ->where('status', 'Cancelled')
+                    ->get();
+
+                foreach ($cancelledAppointments as $appointment) {
+                    $appointmentStartTime = Carbon::parse($appointment->start_time)->format('H:i:s');
+
+                    foreach ($standardSessions as $key => $session) {
+                        if ($session['start_time'] === $appointmentStartTime) {
+                            // If the current time is after 12 AM of the next day
+                            if (Carbon::now()->format('Y-m-d') > $formattedDate) {
+                                $standardSessions[$key]['status'] = 'past';
+                            } else {
+                                $standardSessions[$key]['status'] = 'cancelled';
+                                $standardSessions[$key]['appointment'] = $appointment;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         return $standardSessions;

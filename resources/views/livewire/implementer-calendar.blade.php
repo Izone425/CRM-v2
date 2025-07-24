@@ -614,6 +614,67 @@
             color: #9ca3af;
             pointer-events: none;
         }
+
+        .session-available {
+            background-color: #C6FEC3; /* Green for available */
+            cursor: pointer;
+        }
+
+        .session-implementation {
+            background-color: #FEE2E2; /* Red for implementation sessions */
+        }
+
+        .session-implementer-request {
+            background-color: #FEF9C3; /* Yellow for implementer requests */
+        }
+
+        .session-past {
+            background-color: #C2C2C2; /* Grey for past sessions */
+            cursor: not-allowed;
+        }
+
+        .session-leave {
+            background-color: #E9EBF0; /* Light grey for leave */
+        }
+
+        .session-holiday {
+            background-color: #C2C2C2; /* Grey for public holiday */
+        }
+
+        /* Half-day leave indicators */
+        .leave-am {
+            position: relative;
+        }
+
+        .leave-am::before {
+            content: "AM LEAVE";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(233, 235, 240, 0.9);
+            padding: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .leave-pm {
+            position: relative;
+        }
+
+        .leave-pm::after {
+            content: "PM LEAVE";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(233, 235, 240, 0.9);
+            padding: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 
 
@@ -869,12 +930,12 @@
             </form>
         </div>
 
-        @if(auth()->user()->role_id !== 4 && auth()->user()->role_id !== 5)
+        {{-- @if(auth()->user()->role_id !== 4 && auth()->user()->role_id !== 5)
             <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
                 <input type="checkbox" wire:model.change="showDropdown">
                 <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
             </div>
-        @endif
+        @endif --}}
     </div>
 
     <!-- Appointment Breakdown -->
@@ -1168,6 +1229,14 @@
 <div class="calendar-body">
     <div style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;"></div>
 
+    @for($day = 1; $day <= 5; $day++)
+        @if (isset($holidays[$day]))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc(({{ $day - 0.5 }}/5.5)*100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays[$day]['name'] }}</div>
+            </div>
+        @endif
+    @endfor
     <!-- Public Holidays -->
     @if (isset($holidays['1']))
         <div style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
@@ -1213,8 +1282,10 @@
         </div>
 
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="day">
-                @if (isset($row['leave'][$loop->iteration]))
+            <div class="day {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full' ? 'full-leave' : '' }}
+                    {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am' ? 'leave-am' : '' }}
+                    {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm' ? 'leave-pm' : '' }}">
+                @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full')
                     <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
                         <div style="flex:1; text-align: center;">
                             <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
@@ -1222,56 +1293,146 @@
                                 {{ $row['leave'][$loop->iteration]['leave_type'] }}
                             </div>
                             <div style="font-size: 0.8rem;">
-                                {{ $row['leave'][$loop->iteration]['status'] }} |
-                                @if ($row['leave'][$loop->iteration]['session'] === 'full')
-                                    Full Day
-                                @elseif($row['leave'][$loop->iteration]['session'] === 'am')
-                                    Half AM
-                                @else
-                                    Half PM
-                                @endif
+                                {{ $row['leave'][$loop->iteration]['status'] }} | Full Day
+                            </div>
+                        </div>
+                    </div>
+                @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am')
+                    <!-- AM Leave Notice -->
+                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                        <div style="flex:1; text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">AM Leave</div>
+                            <div style="font-size: 0.8rem;font-style: italic;">
+                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                            </div>
+                            <div style="font-size: 0.8rem;">
+                                {{ $row['leave'][$loop->iteration]['status'] }} | Half AM
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Display Session Slots (Only PM sessions will be shown) -->
+                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                    @if(isset($row[$daySessionSlots]))
+                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                            <!-- Standard session slot display code -->
+                            @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
+                        @endforeach
+                    @endif
+
+                @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
+                    <!-- Display Session Slots (Only AM sessions will be shown) -->
+                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                    @if(isset($row[$daySessionSlots]))
+                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                            <!-- Standard session slot display code -->
+                            @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
+                        @endforeach
+                    @endif
+
+                    <!-- PM Leave Notice -->
+                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                        <div style="flex:1; text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">PM Leave</div>
+                            <div style="font-size: 0.8rem;font-style: italic;">
+                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                            </div>
+                            <div style="font-size: 0.8rem;">
+                                {{ $row['leave'][$loop->iteration]['status'] }} | Half PM
                             </div>
                         </div>
                     </div>
                 @else
-                    <!-- Display Session Slots -->
+                    <!-- Display all Session Slots (no leave) -->
                     @php $daySessionSlots = $day . 'SessionSlots'; @endphp
                     @if(isset($row[$daySessionSlots]))
                         @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
-                            @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
-                                <!-- Display Booked Session -->
-                                <div class="appointment-card"
-                                    @if ($sessionDetails['appointment']->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                    @elseif ($sessionDetails['appointment']->status == 'New')
-                                        style="background-color: var(--bg-demo-yellow)"
-                                    @else
-                                        style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $sessionDetails['appointment']->appointment_type }} |
-                                            <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                            @if(isset($sessionDetails['status']))
+                                @php
+                                    // Determine card style based on session status
+                                    $cardStyle = '';
+                                    $isClickable = true;
+
+                                    if ($sessionDetails['status'] === 'past') {
+                                        $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
+                                        $isClickable = false;
+                                    } elseif ($sessionDetails['status'] === 'leave') {
+                                        $cardStyle = 'background-color: #E9EBF0;';
+                                        $isClickable = false;
+                                    } elseif ($sessionDetails['status'] === 'holiday') {
+                                        $cardStyle = 'background-color: #C2C2C2;';
+                                        $isClickable = false;
+                                    } elseif ($sessionDetails['status'] === 'available') {
+                                        $cardStyle = 'background-color: #C6FEC3;';
+                                    } elseif ($sessionDetails['status'] === 'implementation_session') {
+                                        $cardStyle = 'background-color: #FEE2E2;';
+                                    } elseif ($sessionDetails['status'] === 'implementer_request') {
+                                        $cardStyle = 'background-color: #FEF9C3;';
+                                    } elseif ($sessionDetails['status'] === 'cancelled') {
+                                        // For cancelled appointments after 12am, still show grey
+                                        if (Carbon\Carbon::now()->format('Y-m-d') > Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'])->format('Y-m-d')) {
+                                            $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
+                                            $isClickable = false;
+                                        } else {
+                                            // For same-day cancellations, check if current time is past the session time
+                                            $sessionStartTime = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'] . ' ' . $sessionDetails['start_time']);
+                                            if (Carbon\Carbon::now() > $sessionStartTime) {
+                                                $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
+                                                $isClickable = false;
+                                            } else {
+                                                // If it's still in the future, mark as available (green)
+                                                $cardStyle = 'background-color: #C6FEC3;';
+                                            }
+                                        }
+                                    }
+                                @endphp
+
+                                @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
+                                    <!-- Display Booked Session -->
+                                    <div class="appointment-card" style="{{ $cardStyle }}">
+                                        <div class="appointment-card-bar"></div>
+                                        <div class="appointment-card-info">
+                                            <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
+                                            <div class="appointment-appointment-type">
+                                                {{ $sessionDetails['appointment']->appointment_type }} |
+                                                <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                                            </div>
+                                            <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
+                                                <a target="_blank" rel="noopener noreferrer" href={{ $sessionDetails['appointment']->url }}>
+                                                    {{ $sessionDetails['appointment']->company_name }}
+                                                </a>
+                                            </div>
+                                            <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
+                                                {{ $sessionDetails['appointment']->end_time }}</div>
                                         </div>
-                                        <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
-                                            <a target="_blank" rel="noopener noreferrer" href={{ $sessionDetails['appointment']->url }}>
-                                                {{ $sessionDetails['appointment']->company_name }}
-                                            </a>
+                                    </div>
+                                @else
+                                    <!-- Display Available or Unavailable Session Slot -->
+                                    <div class="available-session-card" style="{{ $cardStyle }}"
+                                        @if($isClickable)
+                                            wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')"
+                                        @endif>
+                                        <div class="available-session-bar"></div>
+                                        <div class="available-session-info">
+                                            @if($sessionDetails['status'] === 'leave')
+                                                <div class="available-session-name">ON LEAVE</div>
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @elseif($sessionDetails['status'] === 'holiday')
+                                                <div class="available-session-name">PUBLIC HOLIDAY</div>
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @elseif($sessionDetails['status'] === 'past')
+                                                <div class="available-session-name">PAST SESSION</div>
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @elseif($sessionDetails['status'] === 'cancelled')
+                                                <div class="available-session-name">CANCELLED SESSION</div>
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @else
+                                                <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @endif
                                         </div>
-                                        <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
-                                            {{ $sessionDetails['appointment']->end_time }}</div>
                                     </div>
-                                </div>
-                            @else
-                                <!-- Display Available Session Slot -->
-                               <div class="available-session-card"
-                                    wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')">
-                                    <div class="available-session-bar"></div>
-                                    <div class="available-session-info">
-                                        <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
-                                        <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
-                                    </div>
-                                </div>
+                                @endif
                             @endif
                         @endforeach
                     @endif
