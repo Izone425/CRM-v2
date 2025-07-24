@@ -13,6 +13,8 @@ class ImplementerAuditList extends Page
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament.pages.implementer-audit-list';
+    protected static ?string $navigationLabel = 'Dashboard';
+    protected static ?string $title = '';
 
     public $implementers = [];
     public $statsData = [];
@@ -23,18 +25,28 @@ class ImplementerAuditList extends Page
         'quarter' => 'Past Quarter'
     ];
 
+    public $largeImplementers = [
+        'Amirul Ashraf',
+        'Nur Alia',
+        'Zulhilmie',
+        'John Low',
+        'Muhamad Izzul Aiman'
+    ];
+    public $largeStatsData = [];
+
     public function mount()
     {
         // List of allowed implementers for both small and medium companies
         $this->implementers = [
+            'Nurul Shaqinur Ain',
             'Ahmad Syamim',
-            'John Low',
             'Zulhilmie',
+            'John Low',
             'Muhamad Izzul Aiman',
-            'Nurul Shaqinur Ain'
         ];
 
         $this->calculateStats();
+        $this->calculateLargeStats();
     }
 
     public function calculateStats()
@@ -88,6 +100,98 @@ class ImplementerAuditList extends Page
         $this->calculateOverallStats();
     }
 
+    public function calculateLargeStats()
+    {
+        $this->largeStatsData = [];
+
+        foreach ($this->largeImplementers as $implementer) {
+            // Large companies (100-500)
+            $largeAssignments = SoftwareHandover::query()
+                ->whereNotNull('completed_at')
+                ->where('implementer', $implementer)
+                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+                ->where('leads.company_size', '100-500')
+                ->count();
+
+            // Enterprise companies (501 and Above)
+            $enterpriseAssignments = SoftwareHandover::query()
+                ->whereNotNull('completed_at')
+                ->where('implementer', $implementer)
+                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+                ->where('leads.company_size', '501 and Above')
+                ->count();
+
+            $totalAssignments = $largeAssignments + $enterpriseAssignments;
+            $percentLarge = $totalAssignments > 0 ? round(($largeAssignments / $totalAssignments) * 100) : 0;
+            $percentEnterprise = $totalAssignments > 0 ? round(($enterpriseAssignments / $totalAssignments) * 100) : 0;
+
+            $latestAssignment = SoftwareHandover::query()
+                ->whereNotNull('completed_at')
+                ->where('implementer', $implementer)
+                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+                ->whereIn('leads.company_size', ['100-500', '501 and Above'])
+                ->orderBy('completed_at', 'desc')
+                ->first();
+
+            $latestDate = $latestAssignment ? Carbon::parse($latestAssignment->completed_at)->format('M d, Y') : 'No assignments';
+
+            $this->largeStatsData[$implementer] = [
+                'large' => $largeAssignments,
+                'enterprise' => $enterpriseAssignments,
+                'total' => $totalAssignments,
+                'percentLarge' => $percentLarge,
+                'percentEnterprise' => $percentEnterprise,
+                'latestAssignment' => $latestDate,
+                'color' => $this->getImplementerColor($implementer),
+            ];
+        }
+
+        // Overall stats for large/enterprise
+        $totalLarge = SoftwareHandover::query()
+            ->whereNotNull('completed_at')
+            ->whereIn('implementer', $this->largeImplementers)
+            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->where('leads.company_size', '100-500')
+            ->count();
+
+        $totalEnterprise = SoftwareHandover::query()
+            ->whereNotNull('completed_at')
+            ->whereIn('implementer', $this->largeImplementers)
+            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->where('leads.company_size', '501 and Above')
+            ->count();
+
+        $totalAssignments = $totalLarge + $totalEnterprise;
+
+        $latestHandover = SoftwareHandover::query()
+            ->whereNotNull('completed_at')
+            ->whereIn('implementer', $this->largeImplementers)
+            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->whereIn('leads.company_size', ['100-500', '501 and Above'])
+            ->orderBy('software_handovers.completed_at', 'desc')
+            ->select('software_handovers.*', 'leads.company_size', 'leads.id as lead_id')
+            ->first();
+
+        $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
+        $latestHandoverId = $latestHandover ? 'SW_' . $latestHandover->id : '-';
+
+        $latestCompanyName = '-';
+        if ($latestHandover && $latestHandover->lead_id) {
+            $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
+            $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
+        }
+
+        $this->largeStatsData['overall'] = [
+            'totalLarge' => $totalLarge,
+            'totalEnterprise' => $totalEnterprise,
+            'totalAssignments' => $totalAssignments,
+            'latestImplementer' => $latestImplementer,
+            'latestHandoverId' => $latestHandoverId,
+            'latestCompanyName' => $latestCompanyName,
+            'periodLabel' => 'All Time'
+        ];
+    }
+
     private function calculateOverallStats()
     {
         // Total assignments (all time, small & medium only)
@@ -130,12 +234,14 @@ class ImplementerAuditList extends Page
     private function getImplementerColor($implementer)
     {
         return match($implementer) {
-            'Ahmad Syamim' => [59, 130, 246], // Blue
-            'John Low' => [16, 185, 129],     // Green
-            'Zulhilmie' => [245, 158, 11],    // Amber
-            'Muhamad Izzul Aiman' => [236, 72, 153], // Pink
-            'Nurul Shaqinur Ain' => [139, 92, 246],  // Purple
-            default => [107, 114, 128],       // Gray
+            'Ahmad Syamim' => [59, 130, 246],
+            'John Low' => [16, 185, 129],
+            'Zulhilmie' => [245, 158, 11],
+            'Muhamad Izzul Aiman' => [236, 72, 153],
+            'Nurul Shaqinur Ain' => [139, 92, 246],
+            'Amirul Ashraf' => [239, 68, 68],
+            'Nur Alia' => [34, 197, 94],
+            default => [107, 114, 128],
         };
     }
 
@@ -149,6 +255,8 @@ class ImplementerAuditList extends Page
         return [
             'implementers' => $this->implementers,
             'statsData' => $this->statsData,
+            'largeImplementers' => $this->largeImplementers,
+            'largeStatsData' => $this->largeStatsData,
             'selectedPeriod' => $this->selectedPeriod,
             'periods' => $this->periods,
         ];
