@@ -1046,6 +1046,21 @@
                         </div>
                     </div>
 
+                    <div class="nested-dropdown">
+                        <div class="sidebar-item nested-dropdown-trigger">
+                            <i class="bi bi-list-ol"></i>
+                            <span>Implementer Audit List</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Project Sequence</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
                         <i class="bi bi-dot"></i>
                         <span>Implementer Calendar</span>
