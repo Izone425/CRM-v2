@@ -753,6 +753,42 @@ class CompanyTabs
                                     ->body('This lead has been assigned to ' . $resellerName)
                                     ->send();
                             }),
+                        Action::make('reset_reseller')
+                            ->label('Reset')
+                            ->icon('heroicon-o-x-mark')
+                            ->color('danger')
+                            ->visible(fn (Lead $lead) => !is_null($lead->reseller_id)) // Only show when there's a reseller assigned
+                            ->modalHeading('Remove Assigned Reseller')
+                            ->modalDescription('Are you sure you want to remove the assigned reseller from this lead?')
+                            ->modalSubmitActionLabel('Reset')
+                            ->requiresConfirmation() // Add confirmation step
+                            ->action(function (Lead $lead) {
+                                // Get reseller name for activity log before removing it
+                                $resellerName = 'Unknown Reseller';
+                                if ($lead->reseller_id) {
+                                    $reseller = \App\Models\Reseller::find($lead->reseller_id);
+                                    if ($reseller) {
+                                        $resellerName = $reseller->company_name;
+                                    }
+                                }
+
+                                // Update the lead to remove reseller information
+                                $lead->updateQuietly([
+                                    'reseller_id' => null,
+                                ]);
+
+                                // Log this action
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Removed reseller: ' . $resellerName);
+
+                                Notification::make()
+                                    ->title('Reseller Removed')
+                                    ->success()
+                                    ->body('The reseller has been removed from this lead')
+                                    ->send();
+                            }),
                     ])
         ];
     }

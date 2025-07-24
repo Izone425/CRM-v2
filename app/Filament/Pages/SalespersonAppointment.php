@@ -258,20 +258,31 @@ class SalespersonAppointment extends Page implements HasTable
             ])
             ->headerActions([
                 Action::make('create')
-                    ->label('Add Salesperson Appointment')
-                    ->form($this->getFormSchema())
-                    ->action(function (array $data): void {
+                ->label('Add Salesperson Appointment')
+                ->form($this->getFormSchema())
+                ->action(function (array $data): void {
+                    // Extract the salespeople array and remove it from data
+                    $salespeople = $data['salespeople'];
+                    unset($data['salespeople']);
+
+                    $createdCount = 0;
+
+                    // Create a separate appointment for each selected salesperson
+                    foreach ($salespeople as $salespersonId) {
                         Appointment::create(array_merge($data, [
                             'causer_id' => Auth::id(),
                             'status' => 'New',
+                            'salesperson' => $salespersonId, // Set the individual salesperson ID
                         ]));
+                        $createdCount++;
+                    }
 
-                        Notification::make()
-                            ->success()
-                            ->title('Request Created')
-                            ->body('The salesperson request has been successfully created.')
-                            ->send();
-                    })
+                    Notification::make()
+                        ->success()
+                        ->title('Appointments Created')
+                        ->body("Successfully created {$createdCount} salesperson appointment(s).")
+                        ->send();
+                })
             ]);
     }
 
@@ -361,17 +372,18 @@ class SalespersonAppointment extends Page implements HasTable
                         ->default('ONSITE')
                         ->label('APPOINTMENT TYPE'),
 
-                    Select::make('salesperson')
-                        ->label('SALESPERSON')
+                    Select::make('salespeople')
+                        ->label('SALESPEOPLE')
                         ->options(function () {
                             return User::where('role_id', 2)
                                 ->orderBy('name')
                                 ->pluck('name', 'id')
                                 ->toArray();
                         })
+                        ->multiple()
                         ->searchable()
                         ->required()
-                        ->placeholder('Select a salesperson')
+                        ->placeholder('Select salespeople'),
                     ]),
             Textarea::make('remarks')
                 ->label('REMARKS')
