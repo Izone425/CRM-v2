@@ -29,6 +29,7 @@ use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SalespersonAppointment;
+use App\Filament\Pages\SalespersonAuditList;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\TechnicianAppointment;
@@ -203,6 +204,7 @@ class AdminPanelProvider extends PanelProvider
                 TechnicianAppointment::class,
                 SalespersonAppointment::class,
                 ImplementerAuditList::class,
+                SalespersonAuditList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

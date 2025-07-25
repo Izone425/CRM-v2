@@ -62,7 +62,6 @@
             border-collapse: collapse;
             margin-bottom: 16px;
             border: 2px solid #374151;
-            table-layout: fixed; /* Added for fixed column widths */
         }
 
         .implementer-table th,
@@ -75,32 +74,6 @@
             white-space: nowrap;
         }
 
-        /* First column (name column) */
-        .implementer-table td:first-child {
-    width: 40% !important; /* First column - Active Implementer */
-    text-align: left !important;
-}
-
-/* TOTAL column */
-.implementer-table td:nth-child(2) {
-    width: 10% !important; /* Total column */
-    text-align: center !important;
-}
-
-/* All remaining columns - with !important to ensure they take effect */
-.implementer-table td:nth-child(3),
-.implementer-table td:nth-child(4),
-.implementer-table td:nth-child(5),
-.implementer-table td:nth-child(6),
-.implementer-table td:nth-child(7) {
-    width: 10% !important; /* Each status column (CLOSED, ONGOING, etc.) */
-    text-align: center !important;
-}
-
-.implementer-table th {
-    width: auto !important; /* Let header widths adjust to cell widths */
-}
-        /* Then handle the header separately */
         .implementer-table th[colspan="2"] {
             /* This targets the "COUNT BY IMPLEMENTER" header */
             text-align: center;
@@ -279,18 +252,17 @@
                     <th colspan="2" class="status-header col-group-end" style='background-color: #f1a983'>STATUS</th>
                     <th colspan="3" class="status-ongoing-header" style='background-color: #0f9ed5'>STATUS - ONGOING</th>
                 </tr>
+                <tr>
+                    <td class="tier-header" style="width:28%;">Active Implementer / Tier 1</td>
+                    <td style="width:12%; background-color: #f2f25e" class="col-group-end">TOTAL</td>
+                    <td style="width:12%; background-color: #fbe2d5">CLOSED</td>
+                    <td style="width:12%; background-color: #fbe2d5" class="col-group-end">ONGOING</td>
+                    <td style="width:12%; background-color: #caedfb">OPEN</td>
+                    <td style="width:12%; background-color: #caedfb">DELAY</td>
+                    <td style="width:12%; background-color: #caedfb">INACTIVE</td>
+                </tr>
             </thead>
             <tbody>
-                <!-- Tier 1 -->
-                <tr>
-                    <td class="tier-header">Active Implementer / Tier 1</td>
-                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
-                    <td style='background-color: #fbe2d5'>CLOSED</td>
-                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
-                    <td style='background-color: #caedfb'>OPEN</td>
-                    <td style='background-color: #caedfb'>DELAY</td>
-                    <td style='background-color: #caedfb'>INACTIVE</td>
-                </tr>
                 @foreach($this->getTier1Implementers() as $implementer)
                     <tr>
                         <td class="name-column">

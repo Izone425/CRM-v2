@@ -646,7 +646,7 @@
             position: relative;
         }
 
-        .leave-am::before {
+        /* .leave-am::before {
             content: "AM LEAVE";
             position: absolute;
             top: 0;
@@ -657,13 +657,13 @@
             font-size: 12px;
             font-weight: bold;
             text-align: center;
-        }
+        } */
 
         .leave-pm {
             position: relative;
         }
 
-        .leave-pm::after {
+        /* .leave-pm::after {
             content: "PM LEAVE";
             position: absolute;
             bottom: 0;
@@ -674,7 +674,7 @@
             font-size: 12px;
             font-weight: bold;
             text-align: center;
-        }
+        } */
     </style>
 
 

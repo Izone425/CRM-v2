@@ -639,7 +639,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                             'company_name' => $emailData['company_name'],
                             'form_url' => $emailData['form_url'],
                         ], function ($message) use ($emailData) {
-                            $message->to(['faiz@timeteccloud.com', 'fazuliana@timeteccloud.com'])
+                            $message->to(['faiz@timeteccloud.com', 'fazuliana.mohdarsad@timeteccloud.com'])
                                 ->subject("NEW SOFTWARE HANDOVER ID {$emailData['sw_id']}");
                         });
 
