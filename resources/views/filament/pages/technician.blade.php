@@ -291,6 +291,37 @@
         margin-bottom: 4px;
     }
 
+    .calendar-button-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+
+    .calendar-btn {
+        background-color: #2563eb;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    .calendar-btn:hover {
+        background-color: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    .calendar-btn i {
+        font-size: 1.25rem;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 1024px) {
         .dashboard-layout {
@@ -563,6 +594,22 @@
                 <div class="hint-message" x-show="selectedGroup === null || selectedStat === null" x-transition>
                     <h3 x-text="selectedGroup === null ? 'Select a group to continue' : 'Select a category to view repairs'"></h3>
                     <p x-text="selectedGroup === null ? 'Click on any of the group boxes to see categories' : 'Click on any of the category boxes to display the corresponding information'"></p>
+
+                    <div class="calendar-button-container" style="margin-top: 1.5rem;">
+                        <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="calendar-button">
+                            <button type="button" class="calendar-btn">
+                                <i class="bi bi-calendar3"></i>
+                                View Technician Calendar
+                            </button>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a href="{{ route('filament.admin.pages.technician-appointment') }}?open_create_modal=true" class="calendar-button">
+                            <button type="button" class="calendar-btn" style="background-color: #10b981;">
+                                <i class="bi bi-plus-circle"></i>
+                                Add Appointment
+                            </button>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- All Items -->

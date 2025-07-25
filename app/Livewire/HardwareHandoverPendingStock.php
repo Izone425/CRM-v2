@@ -250,7 +250,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc10_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;
@@ -265,7 +268,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->face_id5_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;
@@ -280,7 +286,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->time_beacon_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;
@@ -294,7 +303,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->tc20_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;
@@ -308,7 +320,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->face_id6_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;
@@ -322,7 +337,10 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0)
+                                        ->default(function (HardwareHandover $record) {
+                                            return $record->nfc_tag_quantity ?? 0;
+                                        })
+                                        ->disabled()
                                         ->live(debounce: 500)
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $quantity = (int)$state;

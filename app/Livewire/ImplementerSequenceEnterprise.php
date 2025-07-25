@@ -106,7 +106,7 @@ class ImplementerSequenceEnterprise extends Component implements HasForms, HasTa
             ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $allowedImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->where('leads.company_size', '100-500')
+            ->where('leads.company_size', '501 and Above')
             ->select('software_handovers.*'); // Important to select only from software_handovers to avoid column conflicts
 
         // If a specific user is selected (for filtering)

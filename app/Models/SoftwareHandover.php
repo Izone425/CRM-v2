@@ -74,6 +74,7 @@ class SoftwareHandover extends Model
 
         // Section 9: Status & Remarks
         'reject_reason',
+        'inactive_reason',
         'remarks',
         'submitted_at',
         'completed_at',

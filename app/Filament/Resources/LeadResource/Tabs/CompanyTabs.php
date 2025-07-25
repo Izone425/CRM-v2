@@ -39,7 +39,10 @@ class CompanyTabs
                                 Action::make('edit_company_detail')
                                     ->label('Edit') // Button label
                                     ->modalHeading('Edit Information') // Modal heading
-                                    ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    ->visible(fn (Lead $lead) =>
+                                        !in_array(auth()->user()->role_id, [4, 5]) &&
+                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    )
                                     ->modalSubmitActionLabel('Save Changes') // Modal button text
                                     ->form([ // Define the form fields to show in the modal
                                         TextInput::make('company_name')
@@ -153,7 +156,10 @@ class CompanyTabs
                                 ->headerActions([
                                     Action::make('edit_person_in_charge')
                                         ->label('Edit') // Button label
-                                        ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        ->visible(fn (Lead $lead) =>
+                                            !in_array(auth()->user()->role_id, [4, 5]) &&
+                                            (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        )
                                         ->modalHeading('Edit on Person In-Charge') // Modal heading
                                         ->modalSubmitActionLabel('Save Changes') // Modal button text
                                         ->form([ // Define the form fields to show in the modal
@@ -214,7 +220,10 @@ class CompanyTabs
                                 ->headerActions([
                                     Action::make('archive')
                                         ->label(__('Edit'))
-                                        ->visible(fn(Lead $record) => !empty($record->salesperson) || !empty($record->lead_owner))
+                                        ->visible(fn (Lead $lead) =>
+                                            !in_array(auth()->user()->role_id, [4, 5]) &&
+                                            (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        )
                                         ->modalHeading('Mark Lead as Inactive')
                                         ->form([
                                             Placeholder::make('')
