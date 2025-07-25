@@ -578,11 +578,21 @@
                             <span>Training Details</span>
                         </a> --}}
                         @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
-                            <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Appointment</span>
-                                <span></span>
-                            </a>
+                            <div class="nested-dropdown">
+                                <div class="sidebar-item nested-dropdown-trigger">
+                                    <i class="bi bi-diagram-3-fill"></i>
+                                    <span>Salesperson Request</span>
+                                    <i class="bi bi-chevron-down ms-auto"></i>
+                                </div>
+
+                                <div class="nested-dropdown-content">
+                                    <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="sidebar-item">
+                                        <i class="bi bi-dot"></i>
+                                        <span>Internal Task Request</span>
+                                        <span></span>
+                                    </a>
+                                </div>
+                            </div>
                         @endif
                     @endif
                 </div>

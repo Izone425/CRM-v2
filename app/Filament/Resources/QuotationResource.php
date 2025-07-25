@@ -130,7 +130,20 @@ class QuotationResource extends Resource
                             ])
                             ->default('MYR')
                             ->required()
-                            ->live(onBlur:true),
+                            ->live()  // Make sure it's marked as live to react immediately
+                            ->afterStateUpdated(function (string $state, Forms\Get $get, Forms\Set $set) {
+                                // When USD is selected, set SST rate to 0
+                                if ($state === 'USD') {
+                                    $set('sst_rate', 0);
+                                } else {
+                                    // Reset to default SST rate from settings when MYR is selected
+                                    $set('sst_rate', Setting::where('name', 'sst_rate')->first()->value);
+                                }
+
+                                // Recalculate all totals after changing the SST rate
+                                self::recalculateAllRowsFromParent($get, $set);
+                            }),
+
                         Select::make('quotation_type')
                             ->label('Type')
                             ->required()
@@ -198,47 +211,45 @@ class QuotationResource extends Resource
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
                             }),
-                        // Select::make('status')
-                        //     ->label('Status')
-                        //     ->options([
-                        //         'new' => 'New',
-                        //         'email_sent' => 'Email Sent',
-                        //         'accepted' => 'Accepted',
-                        //         // 'rejected' => 'Rejected',
-                        //     ])
-                        //     ->default('new')
-                        //     ->hidden(fn (Page $livewire): bool => $livewire instanceof CreateRecord),
-                        // TextInput::make('subscription_period')
-                        //     ->label('Subscription Period')
-                        //     ->numeric()
-                        //     ->required()
-                        //     ->live(onBlur:true)
-                        //     ->afterStateUpdated(
-                        //         function(Forms\Get $get, Forms\Set $set, $state) {
-                        //             $set('base_subscription', $state);
-                        //             self::recalculateAllRowsFromParent($get,  $set);
-                        //             // info("Base Subscription (atas): {$state}");
-                        //             // self::updateSubscriptionPeriodInAllRows($get, $set, $state);
-                        //         }
-                        //     )
-                        //     // ->readOnlyOn('edit')
-                        //     ->hidden(function(Forms\Get $get) {
-                        //         if ($get('quotation_type') == 'product') {
-                        //             return false;
-                        //         }
-                        //         return true;
-                        //     }),
-                        // For 'product' type
-                        // TextInput::make('headcount')
-                        //     ->label('Headcount')
-                        //     ->numeric()
-                        //     ->required()
-                        //     ->live(onBlur:true)
-                        //     ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set, $state) {
-                        //         $set('headcount', $state);
-                        //         QuotationResource::recalculateAllRowsFromParent($get, $set);
-                        //     })
-                        //     ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'product'),
+                        Select::make('taxation_category')
+                            ->label('Taxation Category')
+                            ->options([
+                                'default' => 'Default Setting',
+                                'all_taxable' => 'All Items are Taxable',
+                                'all_non_taxable' => 'All Items are Non-Taxable',
+                            ])
+                            ->default('default')
+                            ->required()
+                            ->visible(fn (Forms\Get $get) => $get('currency') === 'MYR')
+                            ->live()
+                            ->afterStateUpdated(function (string $state, Forms\Get $get, Forms\Set $set) {
+                                $items = $get('items') ?? [];
+
+                                // Apply taxation setting to all items
+                                foreach ($items as $index => $item) {
+                                    if (empty($item['product_id'])) {
+                                        continue;
+                                    }
+
+                                    $product = Product::find($item['product_id']);
+                                    if (!$product) {
+                                        continue;
+                                    }
+
+                                    // Set the product taxability based on the selected category
+                                    $isTaxable = match ($state) {
+                                        'default' => $product->taxable, // Use product's default setting
+                                        'all_taxable' => true,          // Make all items taxable
+                                        'all_non_taxable' => false,     // Make all items non-taxable
+                                    };
+
+                                    // Store temporary taxability state for this item
+                                    $set("items.{$index}.override_taxable", $isTaxable);
+                                }
+
+                                // Recalculate all totals
+                                self::recalculateAllRowsFromParent($get, $set);
+                            }),
 
                         // For 'hrdf' type
                         TextInput::make('num_of_participant')
@@ -1045,6 +1056,8 @@ class QuotationResource extends Resource
     public static function recalculateAllRows($get, $set, $field = null, $state = null): void
     {
         $items = $get('../../items');
+        $taxationCategory = $get('../../taxation_category');
+        $currency = $get('../../currency');
 
         $subtotal = 0;
         $grandTotal = 0;
@@ -1128,10 +1141,20 @@ class QuotationResource extends Resource
 
             // Tax
             $taxAmount = 0;
-            if ($product?->taxable) {
-                $sstRate = $get('../../sst_rate');
-                $taxAmount = $totalBeforeTax * ($sstRate / 100);
-                $totalTax += $taxAmount;
+            if ($currency === 'MYR') {
+                // Determine if this item should be taxed
+                $shouldTax = match ($taxationCategory) {
+                    'default' => $product?->taxable,
+                    'all_taxable' => true,
+                    'all_non_taxable' => false,
+                    default => $product?->taxable,
+                };
+
+                if ($shouldTax) {
+                    $sstRate = $get('../../sst_rate');
+                    $taxAmount = $totalBeforeTax * ($sstRate / 100);
+                    $totalTax += $taxAmount;
+                }
             }
 
             // Preserve manually edited descriptions
@@ -1292,6 +1315,8 @@ class QuotationResource extends Resource
     public static function recalculateAllRowsFromParent($get, $set): void
     {
         $items = $get('items');
+        $taxationCategory = $get('taxation_category');
+        $currency = $get('currency');
 
         $subtotal = 0;
         $grandTotal = 0;
@@ -1337,10 +1362,20 @@ class QuotationResource extends Resource
             $subtotal += $total_before_tax;
             // Calculate taxation amount
             $taxation_amount = 0;
-            if ($product?->taxable) {
-                $sstRate = $get('sst_rate');
-                $taxation_amount = $total_before_tax * ($sstRate / 100);
-                $totalTax += $taxation_amount;
+            if ($currency === 'MYR') {
+                // Determine if this item should be taxed
+                $shouldTax = match ($taxationCategory) {
+                    'default' => $product?->taxable,
+                    'all_taxable' => true,
+                    'all_non_taxable' => false,
+                    default => $product?->taxable,
+                };
+
+                if ($shouldTax) {
+                    $sstRate = $get('sst_rate');
+                    $taxation_amount = $total_before_tax * ($sstRate / 100);
+                    $totalTax += $taxation_amount;
+                }
             }
 
             $currentDescription = $get("items.{$index}.description") ?? '';

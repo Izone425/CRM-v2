@@ -147,6 +147,22 @@ class AdminPanelProvider extends PanelProvider
                     return '';
                 }
             )
+            ->renderHook(
+                'panels::styles.after',
+                fn (): string => <<<'HTML'
+                <style>
+                    /* Multi-line tabs styling */
+                    .multiline-tabs .fi-tabs {
+                        flex-wrap: wrap;
+                        max-height: none !important;
+                    }
+
+                    .multiline-tabs .fi-tabs-item {
+                        margin-bottom: 0.5rem;
+                    }
+                </style>
+                HTML
+            )
             ->navigation(false)
             ->darkMode(false)
             ->sidebarCollapsibleOnDesktop()

@@ -372,41 +372,54 @@ class SoftwareHandoverResource extends Resource
                                     ->maxLength(50),
                             ]),
                         Section::make('Handover Status')
-                            ->columnSpan(1)
-                            ->schema([
-                                Select::make('status_handover')
-                                    ->label('Project Status')
-                                    ->options(function (callable $get) {
-                                        // Basic options always available
-                                        $options = [
-                                            'Open' => 'Open',
-                                            'InActive' => 'InActive',
-                                        ];
+                        ->columnSpan(1)
+                        ->schema([
+                            Select::make('status_handover')
+                                ->label('Project Status')
+                                ->options(function (callable $get) {
+                                    // Basic options always available
+                                    $options = [
+                                        'Open' => 'Open',
+                                        'InActive' => 'InActive',
+                                        'Delay' => 'Delay',
+                                    ];
 
-                                        // Only include 'Closed' option if go_live_date has been selected
-                                        if (!empty($get('go_live_date'))) {
-                                            $options['Closed'] = 'Closed';
-                                        }
+                                    // Only include 'Closed' option if go_live_date has been selected
+                                    if (!empty($get('go_live_date'))) {
+                                        $options['Closed'] = 'Closed';
+                                    }
 
-                                        return $options;
-                                    })
-                                        ->default(function (callable $get, SoftwareHandover $record) {
-                                            // If go_live_date is set, default to Closed
-                                            if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
-                                                return 'Closed';
-                                            }
+                                    return $options;
+                                })
+                                ->default(function (callable $get, SoftwareHandover $record) {
+                                    // If go_live_date is set, default to Closed
+                                    if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
+                                        return 'Closed';
+                                    }
 
-                                            // Otherwise use existing status or fall back to Open
-                                            // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
-                                            $currentStatus = $record->status_handover ?? 'Open';
-                                            return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
-                                                ? 'Open'
-                                                : $currentStatus;
-                                        })
-                                    ->live() // Make it react to changes
-                                    ->required()
-                            ]),
+                                    // Otherwise use existing status or fall back to Open
+                                    // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
+                                    $currentStatus = $record->status_handover ?? 'Open';
+                                    return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
+                                        ? 'Open'
+                                        : $currentStatus;
+                                })
+                                ->live() // Make it react to changes
+                                ->required(),
+
+                            Textarea::make('inactive_reason')
+                                ->label('Inactive Reason')
+                                ->placeholder('Please explain why this project is inactive')
+                                ->rows(3)
+                                ->maxLength(500)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->hidden(fn (callable $get): bool => $get('status_handover') !== 'InActive')
+                                ->requiredIf('status_handover', 'InActive')
+                        ]),
                     ]),
+
             ]);
     }
 

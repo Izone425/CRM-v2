@@ -18,6 +18,14 @@ class ListSpareParts extends ListRecords
         ];
     }
 
+    // Add this method to provide custom view data
+    protected function getViewData(): array
+    {
+        return [
+            'tabsContainerClass' => 'multiline-tabs',
+        ];
+    }
+
     public function getTabs(): array
     {
         return [

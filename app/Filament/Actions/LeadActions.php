@@ -2484,4 +2484,102 @@ class LeadActions
                     ->send();
             });
     }
+
+    public static function getRequestChangeLeadOwnerAction(): Action
+    {
+        return Action::make('request_change_lead_owner')
+            ->label('Request Change Lead Owner')
+            ->icon('heroicon-o-paper-airplane')
+            ->visible(fn () => auth()->user()?->role_id == 1) // Only visible to non-manager roles
+            ->form([
+                \Filament\Forms\Components\Select::make('requested_owner_id')
+                    ->label('New Lead Owner')
+                    ->searchable()
+                    ->required()
+                    ->options(
+                        \App\Models\User::where('role_id', 1)->pluck('name', 'id') // Assuming lead owners are role_id = 1
+                    ),
+                \Filament\Forms\Components\Textarea::make('reason')
+                    ->label('Reason for Request')
+                    ->rows(3)
+                    ->autosize()
+                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                    ->required(),
+            ])
+            ->action(function (Lead $record, array $data) {
+                $manager = \App\Models\User::where('role_id', 3)->first();
+
+                // Create the request
+                \App\Models\Request::create([
+                    'lead_id' => $record->id,
+                    'requested_by' => auth()->id(),
+                    'current_owner_id' => \App\Models\User::where('name', $record->lead_owner)->value('id'),
+                    'requested_owner_id' => $data['requested_owner_id'],
+                    'reason' => $data['reason'],
+                    'status' => 'pending',
+                ]);
+
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($record)
+                    ->withProperties([
+                        'lead_id' => $record->id,
+                        'requested_by' => auth()->user()->name,
+                        'requested_owner_id' => \App\Models\User::find($data['requested_owner_id'])?->name,
+                        'reason' => $data['reason'],
+                    ])
+                    ->log('Requested lead owner change');
+
+                Notification::make()
+                    ->title('Request Submitted')
+                    ->body('Your request to change the lead owner has been submitted to the manager.')
+                    ->success()
+                    ->send();
+
+                if ($manager) {
+                    Notification::make()
+                        ->title('New Lead Owner Change Request')
+                        ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id)
+                        ->sendToDatabase($manager);
+                }
+
+                try {
+                    $lead = $record;
+                    $viewName = 'emails.change_lead_owner';
+
+                    // Set fixed recipient
+                    $recipients = collect([
+                        (object)[
+                            'email' => 'faiz@timeteccloud.com', // ✅ Your desired recipient
+                            'name' => 'Faiz'
+                        ]
+                    ]);
+
+                    foreach ($recipients as $recipient) {
+                        $emailContent = [
+                            'leadOwnerName' => $recipient->name ?? 'Unknown Person',
+                            'lead' => [
+                                'lead_code' => 'Website',
+                                'lastName' => $lead->name ?? 'N/A',
+                                'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                'companySize' => $lead->company_size ?? 'N/A',
+                                'phone' => $lead->phone ?? 'N/A',
+                                'email' => $lead->email ?? 'N/A',
+                                'country' => $lead->country ?? 'N/A',
+                                'products' => $lead->products ?? 'N/A',
+                            ],
+                            'remark' => $lead->remark ?? 'No remarks provided',
+                            'formatted_products' => is_array($lead->formatted_products)
+                                ? implode(', ', $lead->formatted_products)
+                                : ($lead->formatted_products ?? 'N/A'),
+                        ];
+
+                        Mail::to($recipient->email)
+                            ->send(new \App\Mail\ChangeLeadOwnerNotification($emailContent, $viewName));
+                    }
+                } catch (\Exception $e) {
+                    Log::error("New Lead Email Error: {$e->getMessage()}");
+                }
+            });
+    }
 }

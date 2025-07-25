@@ -119,6 +119,9 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                     ->placeholder('Select Lead Owner'),
             ])
             ->columns([
+                TextColumn::make('lead_owner')
+                    ->label('Lead Owner')
+                    ->sortable(),
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
@@ -172,6 +175,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getViewAction(),
                     LeadActions::getViewRemark(),
                     LeadActions::getTransferCallAttempt(),
+                    LeadActions::getRequestChangeLeadOwnerAction(),
                 ])
                 ->button()
                 ->color(fn (Lead $record) => $record->follow_up_needed ? 'primary' : 'danger')

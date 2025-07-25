@@ -88,7 +88,7 @@
         /* Layout styles */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5 columns per row */
+            grid-template-columns: repeat(4, 1fr); /* 5 columns per row */
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
@@ -420,12 +420,12 @@
                             </div>
                             <template x-if="selectedType === 'small'">
                                 <div>
-                                    <livewire:implementer-sequence-small />
+                                    <livewire:salesperson-sequence-small />
                                 </div>
                             </template>
                             <template x-if="selectedType === 'medium'">
                                 <div>
-                                    <livewire:implementer-sequence-medium />
+                                    <livewire:salesperson-sequence-medium />
                                 </div>
                             </template>
                         </div>

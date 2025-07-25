@@ -23,6 +23,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class TechnicianAppointment extends Page implements HasTable
 {
@@ -32,6 +33,25 @@ class TechnicianAppointment extends Page implements HasTable
     protected static ?string $navigationLabel = 'Technician Appointments';
     protected static string $view = 'filament.pages.technician-appointment';
     protected static ?int $navigationSort = 80;
+
+    public bool $openCreateModal = false;
+
+    public function mount(): void
+    {
+        // Check if we should auto-open the create modal
+        if (request()->has('open_create_modal')) {
+            $this->openCreateModal = true;
+        }
+    }
+
+    // Add the View return type hint
+    public function render(): View
+    {
+        return parent::render()
+            ->with([
+                'openCreateModal' => $this->openCreateModal,
+            ]);
+    }
 
     public function table(Table $table): Table
     {

@@ -154,22 +154,34 @@
                 </div>
             @else
                 <div class="appointment-detail">
-                    <div class="detail-label">COMPANY:</div>
-                    @foreach ($modalArray as $company)
-                        @if ($loop->first)
-                            <div class="detail-value hover-text" style="display: inline;">
-                                <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
-                                    {{ $company['company_name'] ?? 'N/A' }}
-                                </a>
-                            </div>
-                        @else
-                            <div style="margin-left: 75px; margin-top: 5px;" class="hover-text">
-                                <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
-                                    &nbsp;{{ $company['company_name'] ?? 'N/A' }}
-                                </a>
-                            </div>
-                        @endif
-                    @endforeach
+                    @if(count($modalArray) == 1)
+                        <!-- Only one company - show "COMPANY:" label -->
+                        <div class="detail-label">COMPANY:</div>
+                        <div class="detail-value hover-text" style="display: inline;">
+                            <a target="_blank" rel="noopener noreferrer" href={{ $modalArray[0]['url'] ?? '#' }}>
+                                {{ $modalArray[0]['company_name'] ?? 'N/A' }}
+                            </a>
+                        </div>
+                    @else
+                        <!-- Multiple companies - use numbered companies -->
+                        @foreach ($modalArray as $index => $company)
+                            @if ($loop->first)
+                                <div class="detail-value hover-text" style="display: inline;">
+                                    <span style="color: #374151; font-weight: bold;">COMPANY 1:</span>
+                                    <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
+                                        {{ $company['company_name'] ?? 'N/A' }}
+                                    </a>
+                                </div>
+                            @else
+                                <div style="margin-left: 0px; margin-top: 5px;" class="hover-text">
+                                    <span style="color: #374151; font-weight: bold;">COMPANY {{ $loop->iteration }}:</span>
+                                    <a target="_blank" rel="noopener noreferrer" href={{ $company['url'] ?? '#' }}>
+                                        {{ $company['company_name'] ?? 'N/A' }}
+                                    </a>
+                                </div>
+                            @endif
+                        @endforeach
+                    @endif
                 </div>
 
                 <div class="appointment-detail">
