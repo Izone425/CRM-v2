@@ -39,6 +39,14 @@
             background-color: #10b981;
         }
 
+        .progress-bar--large {
+            background-color:rgb(218, 231, 36);
+        }
+
+        .progress-bar--enterprise {
+            background-color:rgb(209, 59, 32);
+        }
+
         /* Text styles */
         .stats-title {
             font-size: 1.125rem;

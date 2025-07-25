@@ -26,7 +26,7 @@ class ImplementerAuditList extends Page
     ];
 
     public $largeImplementers = [
-        'Amirul Ashraf',
+        'Mohd Amirul Ashraf',
         'Nur Alia',
         'Zulhilmie',
         'John Low',
@@ -239,7 +239,7 @@ class ImplementerAuditList extends Page
             'Zulhilmie' => [245, 158, 11],
             'Muhamad Izzul Aiman' => [236, 72, 153],
             'Nurul Shaqinur Ain' => [139, 92, 246],
-            'Amirul Ashraf' => [239, 68, 68],
+            'Mohd Amirul Ashraf' => [239, 68, 68],
             'Nur Alia' => [34, 197, 94],
             default => [107, 114, 128],
         };
