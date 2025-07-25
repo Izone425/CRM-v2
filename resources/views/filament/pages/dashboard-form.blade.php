@@ -103,7 +103,7 @@
                                         font-size: 14px;
                                     "
                                 >
-                                    Admin Main Dashboard
+                                    Admin - Dashboard
                                 </button>
 
                                 <button
@@ -644,7 +644,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin Main Dashboard
+                                            Admin - Dashboard
                                         </button>
 
                                         <button
@@ -922,7 +922,7 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin Main Dashboard
+                                        Admin - Dashboard
                                     </button>
 
                                     <button
