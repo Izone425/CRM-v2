@@ -156,7 +156,7 @@ class SalesForecastTable extends Component implements HasForms, HasTable
             ->defaultSort('lead_status')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
-            ->paginated([10, 25, 50, 100])
+            ->paginated([10, 25, 50, 100, 'all'])
             ->filters([
                 SelectFilter::make('lead_status')
                     ->label('Lead Status')
@@ -171,6 +171,9 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->rowIndex(),
+                TextColumn::make('salesperson')
+                    ->label('Salesperson')
+                    ->getStateUsing(fn (Lead $record) => \App\Models\User::find($record->salesperson)?->name ?? '-'),
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()

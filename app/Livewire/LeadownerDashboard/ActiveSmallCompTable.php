@@ -140,6 +140,9 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
+                TextColumn::make('lead_code')
+                    ->label('Lead Source')
+                    ->sortable(),
                 TextColumn::make('company_size_label')
                     ->label('Company Size')
                     ->sortable(query: function ($query, $direction) {
