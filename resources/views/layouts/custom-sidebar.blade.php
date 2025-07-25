@@ -461,10 +461,10 @@
                                     <span>Analysis</span>
                                 </a>
 
-                                <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
+                                {{-- <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Attachment</span>
-                                </a>
+                                </a> --}}
                             </div>
                         </div>
 
@@ -498,10 +498,10 @@
                                     <span>Analysis</span>
                                 </a>
 
-                                <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                                {{-- <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Attachment</span>
-                                </a>
+                                </a> --}}
                             </div>
                         </div>
 
@@ -638,11 +638,6 @@
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
                             </a>
-
-                            <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
-                            </a>
                         </div>
                     </div>
 
@@ -674,11 +669,6 @@
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
                             </a>
                         </div>
                     </div>
@@ -947,10 +937,10 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
+                            {{-- <a href="{{ route('filament.admin.resources.software-attachments.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
-                            </a>
+                            </a> --}}
                         </div>
                     </div>
 
@@ -983,10 +973,10 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                            {{-- <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
-                            </a>
+                            </a> --}}
                         </div>
                     </div>
 
@@ -1004,6 +994,9 @@
                                 <span>Dashboard</span>
                             </a>
 
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Technician Calendar</span>
                             </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
@@ -1011,10 +1004,10 @@
                                 <span>Analysis</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                            {{-- <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Attachment</span>
-                            </a>
+                            </a> --}}
                         </div>
                     </div>
 
@@ -1108,11 +1101,6 @@
                     <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
                         <i class="bi bi-dot"></i>
                         <span>Implementer Calendar</span>
-                    </a>
-
-                    <a href="{{ route('filament.admin.pages.implementer-data-file') }}" class="sidebar-item">
-                        <i class="bi bi-dot"></i>
-                        <span>Implementer Data File</span>
                     </a>
                 </div>
             </div>
@@ -1233,16 +1221,14 @@
                                 <span>Dashboard</span>
                             </a>
 
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Technician Calendar</span>
                             </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
                             </a>
                         </div>
                     </div>
@@ -1278,25 +1264,22 @@
                                 <span>Dashboard</span>
                             </a>
 
+                            <a href="{{ route('filament.admin.pages.technician-appointment') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Technician Appointment</span>
+                            </a>
+
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Analysis</span>
                             </a>
 
-                            {{-- <a href="{{ route('filament.admin.resources.admin-repairs.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
-                            </a> --}}
+                                <span>Technician Calendar</span>
+                            </a>
                         </div>
                     </div>
-                    <a href="{{ route('filament.admin.pages.technician-appointment') }}" class="sidebar-item">
-                        <i class="bi bi-dot"></i>
-                        <span>Technician Appointment</span>
-                    </a>
-                    <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="sidebar-item">
-                        <i class="bi bi-dot"></i>
-                        <span>Technician Calendar</span>
-                    </a>
                 </div>
             </div>
             @endif

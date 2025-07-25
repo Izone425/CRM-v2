@@ -344,748 +344,780 @@ class LeadActions
                 ->icon('heroicon-o-calendar-days')
                 ->color('success')
                 ->label('Add Demo')
-                ->modalHeading('Add Demo')
-                ->hidden(fn (Lead $record) => is_null($record->lead_owner)) // Use $record instead of getOwnerRecord()
-                ->form(fn (?Lead $record) => $record ? [ // Ensure record exists before running form logic
-                    // Schedule
-                    ToggleButtons::make('mode')
-                        ->label('')
-                        ->options([
-                            'auto' => 'Auto',
-                            'custom' => 'Custom',
-                        ]) // Define custom options
-                        ->reactive()
-                        ->inline()
-                        ->grouped()
-                        ->default('auto')
-                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                            if ($state === 'custom') {
-                                $set('date', null);
-                                $set('start_time', null);
-                                $set('end_time', null);
-                            }else{
-                                $set('date', Carbon::today()->toDateString());
-                                $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
-                                $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
-                            }
-                        }),
+                ->modalSubmitAction(false)  // Hide default submit action
+                ->modalCancelAction(false)  // Hide default cancel action
+                ->modalHeading('Add Demo Confirmation')
+                ->modalContent(fn () => view('verification-notification'))
+                ->extraModalFooterActions([
+                    Action::make('add_demo')
+                        ->icon('heroicon-o-calendar-days')
+                        ->color('success')
+                        ->label('Add Demo')
+                        ->modalHeading('Add Demo')
+                        ->hidden(fn (Lead $record) => is_null($record->lead_owner)) // Use $record instead of getOwnerRecord()
+                        ->form(fn (?Lead $record) => $record ? [ // Ensure record exists before running form logic
+                            // Schedule
+                            ToggleButtons::make('mode')
+                                ->label('')
+                                ->options([
+                                    'auto' => 'Auto',
+                                    'custom' => 'Custom',
+                                ]) // Define custom options
+                                ->reactive()
+                                ->inline()
+                                ->grouped()
+                                ->default('auto')
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === 'custom') {
+                                        $set('date', null);
+                                        $set('start_time', null);
+                                        $set('end_time', null);
+                                    }else{
+                                        $set('date', Carbon::today()->toDateString());
+                                        $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                        $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                                    }
+                                }),
 
-                    Grid::make(3) // 3 columns for Date, Start Time, End Time
-                    ->schema([
-                        DatePicker::make('date')
-                            ->required()
-                            ->label('DATE')
-                            ->default(Carbon::today()->toDateString()),
+                            Grid::make(3) // 3 columns for Date, Start Time, End Time
+                            ->schema([
+                                DatePicker::make('date')
+                                    ->required()
+                                    ->label('DATE')
+                                    ->default(Carbon::today()->toDateString()),
 
-                            TimePicker::make('start_time')
-                            ->label('START TIME')
-                            ->required()
-                            ->seconds(false)
-                            ->reactive()
-                            ->default(function () {
-                                // Round up to the next 30-minute interval
-                                $now = Carbon::now();
-                                return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
-                            })
-                            ->datalist(function (callable $get) {
-                                $user = Auth::user();
-                                $date = $get('date');
+                                    TimePicker::make('start_time')
+                                    ->label('START TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->reactive()
+                                    ->default(function () {
+                                        // Round up to the next 30-minute interval
+                                        $now = Carbon::now();
+                                        return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        $user = Auth::user();
+                                        $date = $get('date');
 
-                                if ($get('mode') === 'custom') {
-                                    return [];
-                                }
-
-                                $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
-
-                                if ($user && $user->role_id == 2 && $date) {
-                                    // Fetch all booked appointments as full models
-                                    $appointments = Appointment::where('salesperson', $user->id)
-                                        ->whereDate('date', $date)
-                                        ->whereIn('status', ['New', 'Done'])
-                                        ->get(['start_time', 'end_time']);
-
-                                    for ($i = 0; $i < 48; $i++) {
-                                        $slotStart = $startTime->copy();
-                                        $slotEnd = $startTime->copy()->addMinutes(30);
-                                        $formattedTime = $slotStart->format('H:i');
-
-                                        $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
-                                            $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
-                                            $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
-
-                                            // Check if the slot overlaps with the appointment
-                                            return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
-                                        });
-
-                                        if (!$isBooked) {
-                                            $times[] = $formattedTime;
+                                        if ($get('mode') === 'custom') {
+                                            return [];
                                         }
 
-                                        $startTime->addMinutes(30);
-                                    }
-                                } else {
-                                    for ($i = 0; $i < 48; $i++) {
-                                        $times[] = $startTime->format('H:i');
-                                        $startTime->addMinutes(30);
-                                    }
-                                }
+                                        $times = [];
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
 
-                                return $times;
-                            })
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                if ($get('mode') === 'auto' && $state) {
-                                    $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
-                                }
-                            }),
+                                        if ($user && $user->role_id == 2 && $date) {
+                                            // Fetch all booked appointments as full models
+                                            $appointments = Appointment::where('salesperson', $user->id)
+                                                ->whereDate('date', $date)
+                                                ->whereIn('status', ['New', 'Done'])
+                                                ->get(['start_time', 'end_time']);
 
-                        TimePicker::make('end_time')
-                            ->label('END TIME')
-                            ->required()
-                            ->seconds(false)
-                            ->reactive()
-                            ->default(function (callable $get) {
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
-                                return $startTime->addHour()->format('H:i');
-                            })
-                            ->datalist(function (callable $get) {
-                                $user = Auth::user();
-                                $date = $get('date');
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $slotStart = $startTime->copy();
+                                                $slotEnd = $startTime->copy()->addMinutes(30);
+                                                $formattedTime = $slotStart->format('H:i');
 
-                                if ($get('mode') === 'custom') {
-                                    return []; // Custom mode: empty list
-                                }
+                                                $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
+                                                    $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
+                                                    $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
 
-                                $times = [];
-                                $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                                    // Check if the slot overlaps with the appointment
+                                                    return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
+                                                });
 
-                                if ($user && $user->role_id == 2 && $date) {
-                                    // Fetch booked time slots for this salesperson on the selected date
-                                    $bookedAppointments = Appointment::where('salesperson', $user->id)
-                                        ->whereDate('date', $date)
-                                        ->pluck('end_time', 'start_time') // Start as key, End as value
-                                        ->toArray();
+                                                if (!$isBooked) {
+                                                    $times[] = $formattedTime;
+                                                }
 
-                                    for ($i = 0; $i < 48; $i++) {
-                                        $formattedTime = $startTime->format('H:i');
-
-                                        // Check if time is booked
-                                        $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
-                                            return $formattedTime >= $start && $formattedTime <= $end;
-                                        });
-
-                                        if (!$isBooked) {
-                                            $times[] = $formattedTime;
+                                                $startTime->addMinutes(30);
+                                            }
+                                        } else {
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $times[] = $startTime->format('H:i');
+                                                $startTime->addMinutes(30);
+                                            }
                                         }
 
-                                        $startTime->addMinutes(30);
-                                    }
-                                } else {
-                                    // Default available slots
-                                    for ($i = 0; $i < 48; $i++) {
-                                        $times[] = $startTime->format('H:i');
-                                        $startTime->addMinutes(30);
-                                    }
+                                        return $times;
+                                    })
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        if ($get('mode') === 'auto' && $state) {
+                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                        }
+                                    }),
+
+                                TimePicker::make('end_time')
+                                    ->label('END TIME')
+                                    ->required()
+                                    ->seconds(false)
+                                    ->reactive()
+                                    ->default(function (callable $get) {
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                        return $startTime->addHour()->format('H:i');
+                                    })
+                                    ->datalist(function (callable $get) {
+                                        $user = Auth::user();
+                                        $date = $get('date');
+
+                                        if ($get('mode') === 'custom') {
+                                            return []; // Custom mode: empty list
+                                        }
+
+                                        $times = [];
+                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+
+                                        if ($user && $user->role_id == 2 && $date) {
+                                            // Fetch booked time slots for this salesperson on the selected date
+                                            $bookedAppointments = Appointment::where('salesperson', $user->id)
+                                                ->whereDate('date', $date)
+                                                ->pluck('end_time', 'start_time') // Start as key, End as value
+                                                ->toArray();
+
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $formattedTime = $startTime->format('H:i');
+
+                                                // Check if time is booked
+                                                $isBooked = collect($bookedAppointments)->contains(function ($end, $start) use ($formattedTime) {
+                                                    return $formattedTime >= $start && $formattedTime <= $end;
+                                                });
+
+                                                if (!$isBooked) {
+                                                    $times[] = $formattedTime;
+                                                }
+
+                                                $startTime->addMinutes(30);
+                                            }
+                                        } else {
+                                            // Default available slots
+                                            for ($i = 0; $i < 48; $i++) {
+                                                $times[] = $startTime->format('H:i');
+                                                $startTime->addMinutes(30);
+                                            }
+                                        }
+
+                                        return $times;
+                                    }),
+                            ]),
+
+                            Grid::make(3) // 3 columns for 3 Select fields
+                            ->schema([
+                                Select::make('type')
+                                ->options(function () use ($record) {
+                                    // Check if the lead has an appointment with 'new' or 'done' status
+                                        $leadHasNewAppointment = Appointment::where('lead_id', $record->id)
+                                            ->whereIn('status', ['New', 'Done'])
+                                            ->exists();
+
+                                        // Dynamically set options
+                                        $options = [
+                                            'NEW DEMO' => 'NEW DEMO',
+                                            'WEBINAR DEMO' => 'WEBINAR DEMO',
+                                        ];
+
+                                        if ($leadHasNewAppointment) {
+                                            $options = [
+                                                'HRMS DEMO' => 'HRMS DEMO',
+                                                'HRDF DISCUSSION' => 'HRDF DISCUSSION',
+                                                'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
+                                            ];
+                                        }
+
+                                        return $options;
+                                    })
+                                    ->default('NEW DEMO')
+                                    ->required()
+                                    ->label('DEMO TYPE')
+                                    ->reactive(),
+
+                                Select::make('appointment_type')
+                                    ->options([
+                                        'ONLINE' => 'ONLINE',
+                                        'ONSITE' => 'ONSITE',
+                                        'INHOUSE' => 'INHOUSE'
+                                    ])
+                                    ->required()
+                                    ->default('ONLINE')
+                                    ->label('APPOINTMENT TYPE'),
+
+                                Select::make('salesperson')
+                                    ->label('SALESPERSON')
+                                    ->options(function () {
+                                        // if ($lead->salesperson) {
+                                        //     $salesperson = User::where('id', $lead->salesperson)->first();
+                                        //     return [
+                                        //         $lead->salesperson => $salesperson->name,
+                                        //     ];
+                                        // }
+
+                                        if (auth()->user()->role_id == 3) {
+                                            return \App\Models\User::query()
+                                                ->where('role_id', 2)
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        } else {
+                                            return \App\Models\User::query()
+                                                ->where('role_id', 2)
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        }
+                                    })
+                                    ->disableOptionWhen(function ($value, $get) {
+                                        $date = $get('date');
+                                        $startTime = $get('start_time');
+                                        $endTime = $get('end_time');
+                                        $demo_type = $get('type');
+
+                                        // If the demo type is 'WEBINAR DEMO', do not disable any options
+                                        if ($demo_type === 'WEBINAR DEMO') {
+                                            return false; // Allow selection without restrictions
+                                        }
+
+                                        $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
+                                        $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
+                                        $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                                        $hasOverlap = Appointment::where('salesperson', $value)
+                                            ->where('status', 'New')
+                                            ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
+                                            ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                                    ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                                    ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                        $query->where('start_time', '<', $parsedStartTime)
+                                                                ->where('end_time', '>', $parsedEndTime);
+                                                    });
+                                            })
+                                            ->exists();
+
+                                            if ($hasOverlap) {
+                                                return true;
+                                            }
+                                    })
+                                    ->required()
+                                    ->hidden(fn () => auth()->user()->role_id === 2)
+                                    ->placeholder('Select a salesperson'),
+                                ]),
+
+                            Toggle::make('skip_notifications')
+                                ->label('Skip Email & Teams Meeting')
+                                ->helperText('Check this to create appointment without sending emails or creating a Teams meeting')
+                                ->default(false)
+                                ->inline(false),
+
+                            Textarea::make('remarks')
+                                ->label('REMARKS')
+                                ->rows(3)
+                                ->autosize()
+                                ->reactive()
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                            TextInput::make('required_attendees')
+                                ->label('Required Attendees')
+                                ->helperText('Separate each email and name pair with a semicolon (e.g., email1;email2;email3).'),
+                                // ->rules([
+                                //     'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
+                                // ]),
+                        ] : []) // Return empty form if no record is found
+                        ->action(function (array $data, Lead $lead) {
+                            // Create a new Appointment and store the form data in the appointments table
+                            $appointment = new \App\Models\Appointment();
+                            $appointment->fill([
+                                'lead_id' => $lead->id,
+                                'type' => $data['type'],
+                                'appointment_type' => $data['appointment_type'],
+                                'date' => $data['date'],
+                                'start_time' => $data['start_time'],
+                                'end_time' => $data['end_time'],
+                                'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                                'causer_id' => auth()->user()->id,
+                                'remarks' => $data['remarks'],
+                                'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
+                                'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
+                                'salesperson_assigned_date' => now(),
+
+                            ]);
+                            $appointment->save();
+
+                            if (!($data['skip_notifications'] ?? false)) {
+                                // Retrieve the related Lead model from ActivityLog
+                                $accessToken = MicrosoftGraphService::getAccessToken(); // Implement your token generation method
+
+                                $graph = new Graph();
+                                $graph->setAccessToken($accessToken);
+
+                                // $startTime = $data['date'] . 'T' . $data['start_time'] . 'Z'; // Format as ISO 8601
+                                $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                                // $endTime = $data['date'] . 'T' . $data['end_time'] . 'Z';
+                                $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+                                // Retrieve the organizer's email dynamically
+                                $salespersonId = $appointment->salesperson; // Assuming `salesperson` holds the user ID
+                                $salesperson = User::find($salespersonId); // Find the user in the User table
+
+                                if (!$salesperson || !$salesperson->email) {
+                                    Notification::make()
+                                        ->title('Salesperson Not Found')
+                                        ->danger()
+                                        ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
+                                        ->send();
+                                    return; // Exit if no valid email is found
                                 }
 
-                                return $times;
-                            }),
-                    ]),
+                                $organizerEmail = $salesperson->email;
 
-                    Grid::make(3) // 3 columns for 3 Select fields
-                    ->schema([
-                        Select::make('type')
-                        ->options(function () use ($record) {
-                            // Check if the lead has an appointment with 'new' or 'done' status
-                                $leadHasNewAppointment = Appointment::where('lead_id', $record->id)
-                                    ->whereIn('status', ['New', 'Done'])
-                                    ->exists();
+                                if ($appointment->type !== 'WEBINAR DEMO') {
+                                    $meetingPayload = [
+                                        'start' => [
+                                            'dateTime' => $startTime,
+                                            'timeZone' => 'Asia/Kuala_Lumpur'
+                                        ],
+                                        'end' => [
+                                            'dateTime' => $endTime,
+                                            'timeZone' => 'Asia/Kuala_Lumpur'
+                                        ],
+                                        'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                        'isOnlineMeeting' => true,
+                                        'onlineMeetingProvider' => 'teamsForBusiness',
 
-                                // Dynamically set options
-                                $options = [
-                                    'NEW DEMO' => 'NEW DEMO',
-                                    'WEBINAR DEMO' => 'WEBINAR DEMO',
-                                ];
-
-                                if ($leadHasNewAppointment) {
-                                    $options = [
-                                        'HRMS DEMO' => 'HRMS DEMO',
-                                        'HRDF DISCUSSION' => 'HRDF DISCUSSION',
-                                        'SYSTEM DISCUSSION' => 'SYSTEM DISCUSSION',
+                                        // ✅ Add attendees only if it's NOT a WEBINAR DEMO
+                                        'attendees' => [
+                                            [
+                                                'emailAddress' => [
+                                                    'address' => $lead->email, // Lead's email as required attendee
+                                                    'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
+                                                ],
+                                                'type' => 'required' // Required attendee
+                                            ]
+                                        ]
+                                    ];
+                                } else {
+                                    $meetingPayload = [
+                                        'start' => [
+                                            'dateTime' => $startTime,
+                                            'timeZone' => 'Asia/Kuala_Lumpur'
+                                        ],
+                                        'end' => [
+                                            'dateTime' => $endTime,
+                                            'timeZone' => 'Asia/Kuala_Lumpur'
+                                        ],
+                                        'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
+                                        'isOnlineMeeting' => true,
+                                        'onlineMeetingProvider' => 'teamsForBusiness',
                                     ];
                                 }
 
-                                return $options;
-                            })
-                            ->default('NEW DEMO')
-                            ->required()
-                            ->label('DEMO TYPE')
-                            ->reactive(),
+                                try {
+                                    // Use the correct endpoint for app-only authentication
+                                    $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
+                                        ->attachBody($meetingPayload)
+                                        ->setReturnType(Event::class)
+                                        ->execute();
 
-                        Select::make('appointment_type')
-                            ->options([
-                                'ONLINE' => 'ONLINE',
-                                'ONSITE' => 'ONSITE',
-                                'INHOUSE' => 'INHOUSE'
-                            ])
-                            ->required()
-                            ->default('ONLINE')
-                            ->label('APPOINTMENT TYPE'),
+                                    $appointment->update([
+                                        'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
+                                        'event_id' => $onlineMeeting->getId(),
+                                    ]);
 
-                        Select::make('salesperson')
-                            ->label('SALESPERSON')
-                            ->options(function () {
-                                // if ($lead->salesperson) {
-                                //     $salesperson = User::where('id', $lead->salesperson)->first();
-                                //     return [
-                                //         $lead->salesperson => $salesperson->name,
-                                //     ];
-                                // }
+                                    Notification::make()
+                                        ->title('Teams Meeting Created Successfully')
+                                        ->success()
+                                        ->body('The meeting has been scheduled successfully.')
+                                        ->send();
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+                                        'request' => $meetingPayload, // Log the request payload for debugging
+                                        'user' => $organizerEmail, // Log the user's email or ID
+                                    ]);
 
-                                if (auth()->user()->role_id == 3) {
-                                    return \App\Models\User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                } else {
-                                    return \App\Models\User::query()
-                                        ->where('role_id', 2)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                }
-                            })
-                            ->disableOptionWhen(function ($value, $get) {
-                                $date = $get('date');
-                                $startTime = $get('start_time');
-                                $endTime = $get('end_time');
-                                $demo_type = $get('type');
-
-                                // If the demo type is 'WEBINAR DEMO', do not disable any options
-                                if ($demo_type === 'WEBINAR DEMO') {
-                                    return false; // Allow selection without restrictions
+                                    Notification::make()
+                                        ->title('Failed to Create Teams Meeting')
+                                        ->danger()
+                                        ->body('Error: ' . $e->getMessage())
+                                        ->send();
                                 }
 
-                                $parsedDate = Carbon::parse($date)->format('Y-m-d'); // Ensure it's properly formatted
-                                $parsedStartTime = Carbon::parse($startTime)->format('H:i:s'); // Ensure proper time format
-                                $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+                                $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
+                                $demoAppointment = $lead->demoAppointment()->latest('created_at')->first();
+                                $startTime = Carbon::parse($demoAppointment->start_time);
+                                $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
+                                $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
+                                $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
+                                $picName = optional($lead->companyDetail)->name ?? $lead->name;
+                                $email = optional($lead->companyDetail)->email ?? $lead->email;
 
-                                $hasOverlap = Appointment::where('salesperson', $value)
-                                    ->where('status', 'New')
-                                    ->whereDate('date', $parsedDate) // Ensure date is formatted correctly
-                                    ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                        $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
-                                            ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
-                                                $query->where('start_time', '<', $parsedStartTime)
-                                                        ->where('end_time', '>', $parsedEndTime);
-                                            });
-                                    })
-                                    ->exists();
+                                if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
+                                    try {
+                                        $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
+                                        $templateSelector = new TemplateSelector();
 
-                                    if ($hasOverlap) {
-                                        return true;
+                                        if ($lead->lead_code && (
+                                            str_contains($lead->lead_code, '(CN)') ||
+                                            str_contains($lead->lead_code, 'CN')
+                                        )) {
+                                            // Use CN templates
+                                            $template = $templateSelector->getTemplateByLeadSource('CN', 0);
+                                        } else {
+                                            // Use regular templates based on UTM campaign
+                                            $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
+                                        }
+
+                                        $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
+                                        $leadowner = User::where('name', $lead->lead_owner)->first();
+
+                                        $emailContent = [
+                                            'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
+                                            'leadOwnerEMail' => $leadowmer->email ?? 'Unknown Email', // Lead Owner/Manager Name
+                                            'lead' => [
+                                                'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
+                                                'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
+                                                'salespersonName' => $salespersonUser->name ?? 'N/A',
+                                                'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
+                                                'salespersonEmail' => $salespersonUser->email ?? 'N/A',
+                                                'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
+                                                'phone' =>$contactNo ?? 'N/A',
+                                                'pic' => $picName ?? 'N/A',
+                                                'email' => $email ?? 'N/A',
+                                                'date' => $formattedDate ?? 'N/A',
+                                                'startTime' => $startTime ?? 'N/A',
+                                                'endTime' => $endTime ?? 'N/A',
+                                                'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
+                                                'position' => $salespersonUser->position ?? 'N/A', // position
+                                                'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                                'demo_type' => $appointment->type,
+                                                'appointment_type' => $appointment->appointment_type
+                                            ],
+                                        ];
+
+                                        $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
+
+                                        $requiredAttendees = $demoAppointment->required_attendees ?? null;
+
+                                        // Parse attendees' emails if not null
+                                        $attendeeEmails = [];
+                                        if (!empty($requiredAttendees)) {
+                                            $cleanedAttendees = str_replace('"', '', $requiredAttendees);
+                                            $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
+                                        }
+
+                                        // Get Lead's Email (Primary recipient)
+                                        $leadEmail = $lead->companyDetail->email ?? $lead->email;
+
+                                        // Get Salesperson Email
+                                        $salespersonId = $lead->salesperson;
+                                        $salesperson = User::find($salespersonId);
+                                        $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
+                                        info($salespersonEmail);
+
+                                        // Get Lead Owner Email
+                                        $leadownerName = $lead->lead_owner;
+                                        $leadowner = User::where('name', $leadownerName)->first();
+                                        $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
+
+                                        // Combine CC recipients
+                                        $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
+                                            return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
+                                        });
+
+                                        // Send email only if valid
+                                        if (!empty($leadEmail)) {
+                                            $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
+
+                                            if (!empty($ccEmails)) {
+                                                $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
+                                            }
+
+                                            $mail->send(new DemoNotification($emailContent, $viewName));
+
+                                            info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
+                                        } else {
+                                            Log::error("No valid lead email found for sending DemoNotification.");
+                                        }
+                                    } catch (\Exception $e) {
+                                        // Handle email sending failure
+                                        Log::error("Email sending failed for salesperson: " . ($data['salesperson'] ?? auth()->user()->name) . ", Error: {$e->getMessage()}");
                                     }
-                            })
-                            ->required()
-                            ->hidden(fn () => auth()->user()->role_id === 2)
-                            ->placeholder('Select a salesperson'),
-                        ]),
-
-                    Toggle::make('skip_notifications')
-                        ->label('Skip Email & Teams Meeting')
-                        ->helperText('Check this to create appointment without sending emails or creating a Teams meeting')
-                        ->default(false)
-                        ->inline(false),
-
-                    Textarea::make('remarks')
-                        ->label('REMARKS')
-                        ->rows(3)
-                        ->autosize()
-                        ->reactive()
-                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-
-                    TextInput::make('required_attendees')
-                        ->label('Required Attendees')
-                        ->helperText('Separate each email and name pair with a semicolon (e.g., email1;email2;email3).'),
-                        // ->rules([
-                        //     'regex:/^([^;]+;[^;]+;)*([^;]+;[^;]+)$/', // Validates the email-name pairs separated by semicolons
-                        // ]),
-                ] : []) // Return empty form if no record is found
-                ->action(function (array $data, Lead $lead) {
-                    // Create a new Appointment and store the form data in the appointments table
-                    $appointment = new \App\Models\Appointment();
-                    $appointment->fill([
-                        'lead_id' => $lead->id,
-                        'type' => $data['type'],
-                        'appointment_type' => $data['appointment_type'],
-                        'date' => $data['date'],
-                        'start_time' => $data['start_time'],
-                        'end_time' => $data['end_time'],
-                        'salesperson' => $data['salesperson'] ?? auth()->user()->id,
-                        'causer_id' => auth()->user()->id,
-                        'remarks' => $data['remarks'],
-                        'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
-                        'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
-                        'salesperson_assigned_date' => now(),
-
-                    ]);
-                    $appointment->save();
-
-                    if (!($data['skip_notifications'] ?? false)) {
-                        // Retrieve the related Lead model from ActivityLog
-                        $accessToken = MicrosoftGraphService::getAccessToken(); // Implement your token generation method
-
-                        $graph = new Graph();
-                        $graph->setAccessToken($accessToken);
-
-                        // $startTime = $data['date'] . 'T' . $data['start_time'] . 'Z'; // Format as ISO 8601
-                        $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-                        // $endTime = $data['date'] . 'T' . $data['end_time'] . 'Z';
-                        $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-
-                        // Retrieve the organizer's email dynamically
-                        $salespersonId = $appointment->salesperson; // Assuming `salesperson` holds the user ID
-                        $salesperson = User::find($salespersonId); // Find the user in the User table
-
-                        if (!$salesperson || !$salesperson->email) {
-                            Notification::make()
-                                ->title('Salesperson Not Found')
-                                ->danger()
-                                ->body('The salesperson assigned to this appointment could not be found or does not have an email address.')
-                                ->send();
-                            return; // Exit if no valid email is found
-                        }
-
-                        $organizerEmail = $salesperson->email;
-
-                        if ($appointment->type !== 'WEBINAR DEMO') {
-                            $meetingPayload = [
-                                'start' => [
-                                    'dateTime' => $startTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'end' => [
-                                    'dateTime' => $endTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                                'isOnlineMeeting' => true,
-                                'onlineMeetingProvider' => 'teamsForBusiness',
-
-                                // ✅ Add attendees only if it's NOT a WEBINAR DEMO
-                                'attendees' => [
-                                    [
-                                        'emailAddress' => [
-                                            'address' => $lead->email, // Lead's email as required attendee
-                                            'name' => $lead->name ?? 'Lead Attendee' // Fallback in case name is null
-                                        ],
-                                        'type' => 'required' // Required attendee
-                                    ]
-                                ]
-                            ];
-                        } else {
-                            $meetingPayload = [
-                                'start' => [
-                                    'dateTime' => $startTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'end' => [
-                                    'dateTime' => $endTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'subject' => 'TIMETEC HRMS | ' . $lead->companyDetail->company_name,
-                                'isOnlineMeeting' => true,
-                                'onlineMeetingProvider' => 'teamsForBusiness',
-                            ];
-                        }
-
-                        try {
-                            // Use the correct endpoint for app-only authentication
-                            $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
-                                ->attachBody($meetingPayload)
-                                ->setReturnType(Event::class)
-                                ->execute();
-
-                            $appointment->update([
-                                'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
-                                'event_id' => $onlineMeeting->getId(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Teams Meeting Created Successfully')
-                                ->success()
-                                ->body('The meeting has been scheduled successfully.')
-                                ->send();
-                        } catch (\Exception $e) {
-                            Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
-                                'request' => $meetingPayload, // Log the request payload for debugging
-                                'user' => $organizerEmail, // Log the user's email or ID
-                            ]);
-
-                            Notification::make()
-                                ->title('Failed to Create Teams Meeting')
-                                ->danger()
-                                ->body('Error: ' . $e->getMessage())
-                                ->send();
-                        }
-
-                        $salespersonUser = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id);
-                        $demoAppointment = $lead->demoAppointment()->latest('created_at')->first();
-                        $startTime = Carbon::parse($demoAppointment->start_time);
-                        $endTime = Carbon::parse($demoAppointment->end_time); // Assuming you have an end_time field
-                        $formattedDate = Carbon::parse($demoAppointment->date)->format('d/m/Y');
-                        $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
-                        $picName = optional($lead->companyDetail)->name ?? $lead->name;
-                        $email = optional($lead->companyDetail)->email ?? $lead->email;
-
-                        if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
-                            try {
-                                $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
-                                $templateSelector = new TemplateSelector();
-
-                                if ($lead->lead_code && (
-                                    str_contains($lead->lead_code, '(CN)') ||
-                                    str_contains($lead->lead_code, 'CN')
-                                )) {
-                                    // Use CN templates
-                                    $template = $templateSelector->getTemplateByLeadSource('CN', 0);
-                                } else {
-                                    // Use regular templates based on UTM campaign
-                                    $template = $templateSelector->getTemplate($utmCampaign, 0); // 0 = demo
                                 }
-
-                                $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
-                                $leadowner = User::where('name', $lead->lead_owner)->first();
-
-                                $emailContent = [
-                                    'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
-                                    'leadOwnerEMail' => $leadowmer->email ?? 'Unknown Email', // Lead Owner/Manager Name
-                                    'lead' => [
-                                        'lastName' => $lead->companyDetail->name ?? $lead->name, // Lead's Last Name
-                                        'company' => $lead->companyDetail->company_name ?? 'N/A', // Lead's Company
-                                        'salespersonName' => $salespersonUser->name ?? 'N/A',
-                                        'salespersonPhone' => $salespersonUser->mobile_number ?? 'N/A',
-                                        'salespersonEmail' => $salespersonUser->email ?? 'N/A',
-                                        'salespersonMeetingLink' => $salespersonUser->msteam_link ?? 'N/A',
-                                        'phone' =>$contactNo ?? 'N/A',
-                                        'pic' => $picName ?? 'N/A',
-                                        'email' => $email ?? 'N/A',
-                                        'date' => $formattedDate ?? 'N/A',
-                                        'startTime' => $startTime ?? 'N/A',
-                                        'endTime' => $endTime ?? 'N/A',
-                                        'meetingLink' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? 'N/A',
-                                        'position' => $salespersonUser->position ?? 'N/A', // position
-                                        'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                        'demo_type' => $appointment->type,
-                                        'appointment_type' => $appointment->appointment_type
-                                    ],
-                                ];
-
-                                $demoAppointment = $lead->demoAppointment()->latest()->first(); // Adjust based on your relationship type
-
-                                $requiredAttendees = $demoAppointment->required_attendees ?? null;
-
-                                // Parse attendees' emails if not null
-                                $attendeeEmails = [];
-                                if (!empty($requiredAttendees)) {
-                                    $cleanedAttendees = str_replace('"', '', $requiredAttendees);
-                                    $attendeeEmails = array_filter(array_map('trim', explode(';', $cleanedAttendees))); // Ensure no empty spaces
-                                }
-
-                                // Get Lead's Email (Primary recipient)
-                                $leadEmail = $lead->companyDetail->email ?? $lead->email;
-
-                                // Get Salesperson Email
-                                $salespersonId = $lead->salesperson;
-                                $salesperson = User::find($salespersonId);
-                                $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
-                                info($salespersonEmail);
-
-                                // Get Lead Owner Email
-                                $leadownerName = $lead->lead_owner;
-                                $leadowner = User::where('name', $leadownerName)->first();
-                                $leadOwnerEmail = $leadowner->email ?? null; // Prevent null errors
-
-                                // Combine CC recipients
-                                $ccEmails = array_filter(array_merge([$salespersonEmail, $leadOwnerEmail], $attendeeEmails), function ($email) {
-                                    return filter_var($email, FILTER_VALIDATE_EMAIL); // Validate email format
-                                });
-
-                                // Send email only if valid
-                                if (!empty($leadEmail)) {
-                                    $mail = Mail::to($leadEmail); // ✅ Lead is the main recipient
-
-                                    if (!empty($ccEmails)) {
-                                        $mail->cc($ccEmails); // ✅ Others are in CC, so they can see each other
-                                    }
-
-                                    $mail->send(new DemoNotification($emailContent, $viewName));
-
-                                    info("Email sent successfully to: " . $leadEmail . " and CC to: " . implode(', ', $ccEmails));
-                                } else {
-                                    Log::error("No valid lead email found for sending DemoNotification.");
-                                }
-                            } catch (\Exception $e) {
-                                // Handle email sending failure
-                                Log::error("Email sending failed for salesperson: " . ($data['salesperson'] ?? auth()->user()->name) . ", Error: {$e->getMessage()}");
                             }
-                        }
-                    }
 
-                    $lead->update([
-                        'categories' => 'Active',
-                        'stage' => 'Demo',
-                        'lead_status' => 'Demo-Assigned',
-                        'follow_up_date' => $data['date'],
-                        'demo_appointment' => $appointment->id,
-                        'remark' => $data['remarks'],
-                        'salesperson' => $data['salesperson'] ?? auth()->user()->id,
-                        'salesperson_assigned_date' => now(),
-                        'follow_up_counter' => true,
-                        'follow_up_needed' => false,
-                    ]);
-
-                    $appointment = $lead->demoAppointment()->latest()->first(); // Assuming a relation exists
-                    if ($appointment) {
-                        $appointment->update([
-                            'status' => 'New',
-                        ]);
-                    }
-
-                    $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                            ->orderByDesc('created_at')
-                            ->first();
-
-                    if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Salesperson: ' .($data['salesperson'] ?? auth()->user()->name).'. RFQ only') {
-                        $salespersonName = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id)?->name ?? 'Unknown Salesperson';
-
-                        $latestActivityLog->update([
-                            'description' => 'Demo created. New Demo Online - ' . $data['date'] . ' - ' . $salespersonName
-                        ]);
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($lead);
-                    }
-
-                    $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
-                    $recipientName = $lead->companyDetail->name ?? $lead->name;
-                    $date = Carbon::parse($demoAppointment->date)->format('j F Y');
-                    $day = Carbon::parse($demoAppointment->date)->format('l');
-                    $time = Carbon::parse($demoAppointment->start_time)->format('h:i A') . ' - ' .
-                            Carbon::parse($demoAppointment->end_time)->format('h:i A');
-                    $demoType = $appointment->appointment_type; // ONLINE/ONSITE/WEBINAR
-                    $salespersonName = $salespersonUser->name ?? 'N/A';
-                    $salespersonContact = $salespersonUser->mobile_number ?? 'N/A';
-
-                    $isChinese = $lead->lead_code && (
-                        str_contains($lead->lead_code, '(CN)') ||
-                        str_contains($lead->lead_code, 'CN')
-                    );
-
-                    if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
-                        if ($isChinese) {
-                            // Use Chinese template for CN leads
-                            $templateSid = 'HXf85bfd84362e7fe7d9fe8ecb41c6ee17';
-
-                            // For Chinese templates, exclude the recipient name
-                            $variables = [
-                                $date,
-                                $day,
-                                $time,
-                                $demoType,
-                                $salespersonName,
-                                $salespersonContact
-                            ];
-                        } else {
-                            // Use regular template for non-CN leads
-                            $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
-
-                            // For regular templates, include the recipient name
-                            $variables = [
-                                $recipientName,
-                                $date,
-                                $day,
-                                $time,
-                                $demoType,
-                                $salespersonName,
-                                $salespersonContact
-                            ];
-                        }
-
-                        // Send the WhatsApp template message
-                        try {
-                            $whatsappController = new \App\Http\Controllers\WhatsAppController();
-                            $whatsappController->sendWhatsAppTemplate($phoneNumber, $templateSid, $variables);
-
-                            // Log successful WhatsApp notification
-                            Log::info("WhatsApp template sent to {$recipientName} at {$phoneNumber} for demo appointment");
-                        } catch (\Exception $e) {
-                            // Log error if WhatsApp sending fails
-                            Log::error("Failed to send WhatsApp template: " . $e->getMessage(), [
-                                'phone' => $phoneNumber,
-                                'lead_id' => $lead->id,
+                            $lead->update([
+                                'categories' => 'Active',
+                                'stage' => 'Demo',
+                                'lead_status' => 'Demo-Assigned',
+                                'follow_up_date' => $data['date'],
+                                'demo_appointment' => $appointment->id,
+                                'remark' => $data['remarks'],
+                                'salesperson' => $data['salesperson'] ?? auth()->user()->id,
+                                'salesperson_assigned_date' => now(),
+                                'follow_up_counter' => true,
+                                'follow_up_needed' => false,
                             ]);
-                        }
-                    }
 
-                    Notification::make()
-                        ->title('Demo Added Successfully')
-                        ->success()
-                        ->send();
-                });
+                            $appointment = $lead->demoAppointment()->latest()->first(); // Assuming a relation exists
+                            if ($appointment) {
+                                $appointment->update([
+                                    'status' => 'New',
+                                ]);
+                            }
+
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                    ->orderByDesc('created_at')
+                                    ->first();
+
+                            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Salesperson: ' .($data['salesperson'] ?? auth()->user()->name).'. RFQ only') {
+                                $salespersonName = \App\Models\User::find($data['salesperson'] ?? auth()->user()->id)?->name ?? 'Unknown Salesperson';
+
+                                $latestActivityLog->update([
+                                    'description' => 'Demo created. New Demo Online - ' . $data['date'] . ' - ' . $salespersonName
+                                ]);
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead);
+                            }
+
+                            $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+                            $recipientName = $lead->companyDetail->name ?? $lead->name;
+                            $date = Carbon::parse($demoAppointment->date)->format('j F Y');
+                            $day = Carbon::parse($demoAppointment->date)->format('l');
+                            $time = Carbon::parse($demoAppointment->start_time)->format('h:i A') . ' - ' .
+                                    Carbon::parse($demoAppointment->end_time)->format('h:i A');
+                            $demoType = $appointment->appointment_type; // ONLINE/ONSITE/WEBINAR
+                            $salespersonName = $salespersonUser->name ?? 'N/A';
+                            $salespersonContact = $salespersonUser->mobile_number ?? 'N/A';
+
+                            $isChinese = $lead->lead_code && (
+                                str_contains($lead->lead_code, '(CN)') ||
+                                str_contains($lead->lead_code, 'CN')
+                            );
+
+                            if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
+                                if ($isChinese) {
+                                    // Use Chinese template for CN leads
+                                    $templateSid = 'HXf85bfd84362e7fe7d9fe8ecb41c6ee17';
+
+                                    // For Chinese templates, exclude the recipient name
+                                    $variables = [
+                                        $date,
+                                        $day,
+                                        $time,
+                                        $demoType,
+                                        $salespersonName,
+                                        $salespersonContact
+                                    ];
+                                } else {
+                                    // Use regular template for non-CN leads
+                                    $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
+
+                                    // For regular templates, include the recipient name
+                                    $variables = [
+                                        $recipientName,
+                                        $date,
+                                        $day,
+                                        $time,
+                                        $demoType,
+                                        $salespersonName,
+                                        $salespersonContact
+                                    ];
+                                }
+
+                                // Send the WhatsApp template message
+                                try {
+                                    $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                    $whatsappController->sendWhatsAppTemplate($phoneNumber, $templateSid, $variables);
+
+                                    // Log successful WhatsApp notification
+                                    Log::info("WhatsApp template sent to {$recipientName} at {$phoneNumber} for demo appointment");
+                                } catch (\Exception $e) {
+                                    // Log error if WhatsApp sending fails
+                                    Log::error("Failed to send WhatsApp template: " . $e->getMessage(), [
+                                        'phone' => $phoneNumber,
+                                        'lead_id' => $lead->id,
+                                    ]);
+                                }
+                            }
+
+                            Notification::make()
+                                ->title('Demo Added Successfully')
+                                ->success()
+                                ->send();
+                        }),
+                    Action::make('cancel')
+                        ->label('Cancel')
+                        ->color('gray')
+                        ->icon('heroicon-o-x-mark')
+                        ->action(fn () => null)  // Do nothing when clicked
+                        ->cancelParentActions()
+                ]);
     }
 
     public static function getAddRFQ(): Action
     {
-        return Action::make('addRFQ')
-            ->label(__('Add RFQ'))
-            ->visible(function (Lead $record) { // Change from ActivityLog to Lead
-                // Decode properties once and retrieve relevant attributes
-                $leadStatus = $record->lead_status;
-                $category = $record->categories;
-                $stage = $record->stage;
-
-                // Define invalid lead statuses and stages
-                $invalidLeadStatuses = [
-                    LeadStatusEnum::RFQ_TRANSFER->value,
-                    LeadStatusEnum::DEMO_CANCELLED->value,
-                    LeadStatusEnum::RFQ_FOLLOW_UP->value,
-                    LeadStatusEnum::PENDING_DEMO->value,
-                    LeadStatusEnum::HOT->value,
-                    LeadStatusEnum::WARM->value,
-                    LeadStatusEnum::COLD->value,
-                ];
-
-                $invalidStages = [
-                    LeadStageEnum::DEMO->value,
-                    LeadStageEnum::FOLLOW_UP->value,
-                ];
-
-                return !in_array($leadStatus, $invalidLeadStatuses) &&
-                    $category !== LeadCategoriesEnum::INACTIVE->value &&
-                    !in_array($stage, $invalidStages);
-            })
-            ->form([
-                Placeholder::make('')
-                    ->content(__('You are marking this lead as "RFQ" and assigning it to a salesperson. Confirm?')),
-
-                Select::make('salesperson')
-                    ->label('Salesperson')
-                    ->options(function () {
-                        if (auth()->user()->role_id == 3) {
-                            return User::query()
-                                ->where('role_id', 2)
-                                ->pluck('name', 'id')
-                                ->toArray();
-                        } else {
-                            return User::query()
-                                ->where('role_id', 2)
-                                ->pluck('name', 'id')
-                                ->toArray();
-                        }
-                    })
-                    ->required()
-                    ->placeholder('Select a salesperson'),
-
-                Textarea::make('remark')
-                    ->label('Remarks')
-                    ->rows(4)
-                    ->autosize()
-                    ->required()
-                    ->placeholder('Enter remarks here...')
-                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-            ])
-            ->color('success')
+        return Action::make('add_rfq')
             ->icon('heroicon-o-pencil-square')
-            ->action(function (Lead $record, array $data) { // Change from ActivityLog to Lead
-                // Update the Lead model
-                $record->update([
-                    'stage' => 'Transfer',
-                    'lead_status' => 'RFQ-Transfer',
-                    'remark' => $data['remark'],
-                    'salesperson' => $data['salesperson'],
-                    'salesperson_assigned_date' => now(),
-                    'follow_up_date' => today(),
-                    'rfq_transfer_at' => now(),
-                    'follow_up_counter' => true,
-                    'follow_up_needed' => false,
-                ]);
+            ->color('success')
+            ->label('Add RFQ')
+            ->modalSubmitAction(false)  // Hide default submit action
+            ->modalCancelAction(false)  // Hide default cancel action
+            ->modalHeading('Add RFQ')
+            ->modalContent(fn () => view('verification-notification'))
+            ->extraModalFooterActions([
+                Action::make('addRFQ')
+                ->label(__('Add RFQ'))
+                ->visible(function (Lead $record) { // Change from ActivityLog to Lead
+                    // Decode properties once and retrieve relevant attributes
+                    $leadStatus = $record->lead_status;
+                    $category = $record->categories;
+                    $stage = $record->stage;
 
-                // Fetch the salesperson's name
-                $salespersonName = User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+                    // Define invalid lead statuses and stages
+                    $invalidLeadStatuses = [
+                        LeadStatusEnum::RFQ_TRANSFER->value,
+                        LeadStatusEnum::DEMO_CANCELLED->value,
+                        LeadStatusEnum::RFQ_FOLLOW_UP->value,
+                        LeadStatusEnum::PENDING_DEMO->value,
+                        LeadStatusEnum::HOT->value,
+                        LeadStatusEnum::WARM->value,
+                        LeadStatusEnum::COLD->value,
+                    ];
 
-                $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                ->orderByDesc('created_at')
-                ->first();
+                    $invalidStages = [
+                        LeadStageEnum::DEMO->value,
+                        LeadStageEnum::FOLLOW_UP->value,
+                    ];
 
-                if ($latestActivityLog) {
-                    // Fetch the salesperson's name based on $data['salesperson']
-                    $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+                    return !in_array($leadStatus, $invalidLeadStatuses) &&
+                        $category !== LeadCategoriesEnum::INACTIVE->value &&
+                        !in_array($stage, $invalidStages);
+                })
+                ->form([
+                    Placeholder::make('')
+                        ->content(__('You are marking this lead as "RFQ" and assigning it to a salesperson. Confirm?')),
 
-                    // Check if the latest activity log description needs updating
-                    if ($latestActivityLog->description !== 'Lead assigned to Salesperson: ' . $salespersonName . '. RFQ only') {
-                        $latestActivityLog->update([
-                            'description' => 'Lead assigned to Salesperson: ' . $salespersonName . '. RFQ only', // New description
-                        ]);
+                    Select::make('salesperson')
+                        ->label('Salesperson')
+                        ->options(function () {
+                            if (auth()->user()->role_id == 3) {
+                                return User::query()
+                                    ->where('role_id', 2)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            } else {
+                                return User::query()
+                                    ->where('role_id', 2)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            }
+                        })
+                        ->required()
+                        ->placeholder('Select a salesperson'),
 
-                        // Log the activity for auditing
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($record);
-                    }
-                }
+                    Textarea::make('remark')
+                        ->label('Remarks')
+                        ->rows(4)
+                        ->autosize()
+                        ->required()
+                        ->placeholder('Enter remarks here...')
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                ])
+                ->color('success')
+                ->icon('heroicon-o-pencil-square')
+                ->action(function (Lead $record, array $data) { // Change from ActivityLog to Lead
+                    // Update the Lead model
+                    $record->update([
+                        'stage' => 'Transfer',
+                        'lead_status' => 'RFQ-Transfer',
+                        'remark' => $data['remark'],
+                        'salesperson' => $data['salesperson'],
+                        'salesperson_assigned_date' => now(),
+                        'follow_up_date' => today(),
+                        'rfq_transfer_at' => now(),
+                        'follow_up_counter' => true,
+                        'follow_up_needed' => false,
+                    ]);
 
-                // Fetch lead owner details
-                $leadOwner = User::where('name', $record->lead_owner)->first();
-                $salespersonUser = User::find($data['salesperson']);
-                if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
-                    try {
-                        // Get logged-in user details
-                        $currentUser = auth()->user();
-                        if (!$currentUser) {
-                            throw new Exception('User not logged in');
+                    // Fetch the salesperson's name
+                    $salespersonName = User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+
+                    $latestActivityLog = ActivityLog::where('subject_id', $record->id)
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                    if ($latestActivityLog) {
+                        // Fetch the salesperson's name based on $data['salesperson']
+                        $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+
+                        // Check if the latest activity log description needs updating
+                        if ($latestActivityLog->description !== 'Lead assigned to Salesperson: ' . $salespersonName . '. RFQ only') {
+                            $latestActivityLog->update([
+                                'description' => 'Lead assigned to Salesperson: ' . $salespersonName . '. RFQ only', // New description
+                            ]);
+
+                            // Log the activity for auditing
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($record);
                         }
-
-                        // Set email sender details
-                        $fromEmail = $currentUser->email;
-                        $fromName = $currentUser->name ?? 'CRM User';
-
-                        $emailContent = [
-                            'salespersonName' => $salespersonUser->name,
-                            'leadOwnerName' => $record->lead_owner ?? 'Unknown Manager',
-                            'lead' => [
-                                'lead_code' => isset($record->lead_code) ? 'https://crm.timeteccloud.com:8082/demo-request/' . $record->lead_code : 'N/A',
-                                'lastName' => $record->companyDetail->name ?? $record->name,
-                                'company' => $record->companyDetail->company_name ?? 'N/A',
-                                'companySize' => $record->company_size ?? 'N/A',
-                                'phone' => $record->companyDetail->phone ?? $record->phone,
-                                'email' => $record->companyDetail->email ?? $record->email,
-                                'country' => $record->country ?? 'N/A',
-                                'products' => $record->products ?? 'N/A',
-                            ],
-                            'remark' => $data['remark'] ?? 'No remarks provided',
-                            'formatted_products' => $record->formatted_products,
-                        ];
-
-                        // Send email notification
-                        Mail::to([$salespersonUser->email, $leadOwner->email])
-                            ->send(new SalespersonNotification($emailContent, $fromEmail, $fromName, 'emails.salesperson_notification2'));
-
-                        // Success notification
-                        Notification::make()
-                            ->title('RFQ Added Successfully')
-                            ->success()
-                            ->send();
-                    } catch (\Exception $e) {
-                        Log::error("Email sending failed for salesperson: {$data['salesperson']}, Error: {$e->getMessage()}");
-
-                        Notification::make()
-                            ->title('Error: Failed to send email')
-                            ->danger()
-                            ->send();
                     }
-                }
-            });
+
+                    // Fetch lead owner details
+                    $leadOwner = User::where('name', $record->lead_owner)->first();
+                    $salespersonUser = User::find($data['salesperson']);
+                    if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
+                        try {
+                            // Get logged-in user details
+                            $currentUser = auth()->user();
+                            if (!$currentUser) {
+                                throw new Exception('User not logged in');
+                            }
+
+                            // Set email sender details
+                            $fromEmail = $currentUser->email;
+                            $fromName = $currentUser->name ?? 'CRM User';
+
+                            $emailContent = [
+                                'salespersonName' => $salespersonUser->name,
+                                'leadOwnerName' => $record->lead_owner ?? 'Unknown Manager',
+                                'lead' => [
+                                    'lead_code' => isset($record->lead_code) ? 'https://crm.timeteccloud.com:8082/demo-request/' . $record->lead_code : 'N/A',
+                                    'lastName' => $record->companyDetail->name ?? $record->name,
+                                    'company' => $record->companyDetail->company_name ?? 'N/A',
+                                    'companySize' => $record->company_size ?? 'N/A',
+                                    'phone' => $record->companyDetail->phone ?? $record->phone,
+                                    'email' => $record->companyDetail->email ?? $record->email,
+                                    'country' => $record->country ?? 'N/A',
+                                    'products' => $record->products ?? 'N/A',
+                                ],
+                                'remark' => $data['remark'] ?? 'No remarks provided',
+                                'formatted_products' => $record->formatted_products,
+                            ];
+
+                            // Send email notification
+                            Mail::to([$salespersonUser->email, $leadOwner->email])
+                                ->send(new SalespersonNotification($emailContent, $fromEmail, $fromName, 'emails.salesperson_notification2'));
+
+                            // Success notification
+                            Notification::make()
+                                ->title('RFQ Added Successfully')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Log::error("Email sending failed for salesperson: {$data['salesperson']}, Error: {$e->getMessage()}");
+
+                            Notification::make()
+                                ->title('Error: Failed to send email')
+                                ->danger()
+                                ->send();
+                        }
+                    }
+                }),
+                Action::make('cancel')
+                        ->label('Cancel')
+                        ->color('gray')
+                        ->icon('heroicon-o-x-mark')
+                        ->action(fn () => null)  // Do nothing when clicked
+                        ->cancelParentActions()
+            ]);
     }
 
     public static function getAddFollowUp(): Action
