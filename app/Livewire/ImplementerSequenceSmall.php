@@ -103,6 +103,7 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
 
         $query = SoftwareHandover::query()
             ->whereNotNull('lead_id')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $allowedImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->where('leads.company_size', '1-24')

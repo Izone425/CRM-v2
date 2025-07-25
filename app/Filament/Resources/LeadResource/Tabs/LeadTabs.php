@@ -48,6 +48,7 @@ class LeadTabs
                                     Select::make('lead_code')
                                         ->label('Lead Source')
                                         ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
+                                        ->visible(fn () => in_array(auth()->user()->id, [1, 14]))
                                         ->searchable(),
                                     Select::make('customer_type')
                                         ->label('Customer Type')

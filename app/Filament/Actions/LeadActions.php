@@ -1145,7 +1145,7 @@ class LeadActions
                 ])
         ])
         ->color('success')
-        ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
+        // ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
         ->icon('heroicon-o-bell-alert')
         ->action(function (Lead $lead, array $data) {
             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday

@@ -13,7 +13,7 @@ class ImplementerAuditList extends Page
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament.pages.implementer-audit-list';
-    protected static ?string $navigationLabel = 'Dashboard';
+    protected static ?string $navigationLabel = 'Implementer Audit List';
     protected static ?string $title = '';
 
     public $implementers = [];
@@ -58,6 +58,7 @@ class ImplementerAuditList extends Page
             // Get small company assignments (1-24)
             $smallAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '1-24')
@@ -66,6 +67,7 @@ class ImplementerAuditList extends Page
             // Get medium company assignments (25-99)
             $mediumAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '25-99')
@@ -74,6 +76,7 @@ class ImplementerAuditList extends Page
             // Get latest assignment
             $latestAssignment = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->orderBy('completed_at', 'desc')
                 ->first();
@@ -108,6 +111,7 @@ class ImplementerAuditList extends Page
             // Large companies (100-500)
             $largeAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '100-500')
@@ -116,6 +120,7 @@ class ImplementerAuditList extends Page
             // Enterprise companies (501 and Above)
             $enterpriseAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->where('leads.company_size', '501 and Above')
@@ -127,6 +132,7 @@ class ImplementerAuditList extends Page
 
             $latestAssignment = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
+                ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
                 ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
                 ->whereIn('leads.company_size', ['100-500', '501 and Above'])
@@ -149,6 +155,7 @@ class ImplementerAuditList extends Page
         // Overall stats for large/enterprise
         $totalLarge = SoftwareHandover::query()
             ->whereNotNull('completed_at')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->where('leads.company_size', '100-500')
@@ -156,6 +163,7 @@ class ImplementerAuditList extends Page
 
         $totalEnterprise = SoftwareHandover::query()
             ->whereNotNull('completed_at')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->where('leads.company_size', '501 and Above')
@@ -165,6 +173,7 @@ class ImplementerAuditList extends Page
 
         $latestHandover = SoftwareHandover::query()
             ->whereNotNull('completed_at')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->whereIn('leads.company_size', ['100-500', '501 and Above'])
@@ -197,6 +206,7 @@ class ImplementerAuditList extends Page
         // Total assignments (all time, small & medium only)
         $totalAssignments = SoftwareHandover::query()
             ->whereNotNull('completed_at')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->implementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->whereIn('leads.company_size', ['1-24', '25-99'])
@@ -205,6 +215,7 @@ class ImplementerAuditList extends Page
         // Latest software handover assigned (small & medium only)
         $latestHandover = SoftwareHandover::query()
             ->whereNotNull('completed_at')
+            ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->implementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
             ->whereIn('leads.company_size', ['1-24', '25-99'])

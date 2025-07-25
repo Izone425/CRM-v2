@@ -272,7 +272,26 @@
                     </div>
                     @endif
 
-                    <div class="nested-dropdown">
+                    @php
+                        $showSalespersonAuditList = auth()->check() && auth()->user()->id == 14;
+                    @endphp
+
+                    @if($showSalespersonAuditList)
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-list-ol"></i>
+                                <span>Salesperson Audit List</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.salesperson-audit-list') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Project Sequence</span>
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                    <!-- <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-list-ol"></i>
                             <span>Salesperson Audit List</span>
@@ -285,7 +304,7 @@
                                 <span>Project Sequence</span>
                             </a>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
             @endif
