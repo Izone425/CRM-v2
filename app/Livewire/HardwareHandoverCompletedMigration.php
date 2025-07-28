@@ -1127,6 +1127,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                                     'courier' => 'Courier',
                                                     'internal_installation' => 'Internal Installation',
                                                     'external_installation' => 'External Installation',
+                                                    'self_pick_up' => 'Self Pick-up',
                                                     default => 'Not Selected'
                                                 };
 

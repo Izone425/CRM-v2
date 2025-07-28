@@ -530,12 +530,26 @@ class CreateLead extends CreateRecord
 
             Select::make('lead_code')
                 ->label('Lead Source')
-                ->default(function () {
-                    $roleId = Auth::user()->role_id;
-                    return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                ->options(function () {
+                    $user = auth()->user();
+
+                    // Get all lead sources
+                    $query = LeadSource::query();
+
+                    // Apply role-based filtering
+                    if ($user->role_id === 1) { // Lead Owner
+                        $query->where('accessible_by_lead_owners', true);
+                    } elseif ($user->role_id === 2) { // Salesperson
+                        if ($user->is_timetec_hr) {
+                            $query->where('accessible_by_timetec_hr_salespeople', true);
+                        } else {
+                            $query->where('accessible_by_non_timetec_hr_salespeople', true);
+                        }
+                    }
+                    // Managers (role_id 3) can see all options
+
+                    return $query->pluck('lead_code', 'lead_code');
                 })
-                ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
-                ->searchable()
                 ->required(),
 
             Select::make('products')

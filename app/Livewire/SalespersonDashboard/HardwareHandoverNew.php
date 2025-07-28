@@ -1127,7 +1127,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 ];
 
                                 // Initialize recipients array with admin email
-                                $recipients = ['']; // Always include admin
+                                $recipients = []; // Always include admin
 
                                 // Add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1508,9 +1508,17 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 $data['sales_order_file'] = json_encode($allFiles);
                             }
 
-                            $implementerId = null;
-                            $implementerName = 'Unknown';
-                            $implementerEmail = null;
+                            if ($record->implementer) {
+                                $implementerName = $record->implementer;
+                                // Try to find the user by name to get their ID and email
+                                $implementerUser = \App\Models\User::where('name', $implementerName)->first();
+                                if ($implementerUser) {
+                                    $implementerId = $implementerUser->id;
+                                    $implementerEmail = $implementerUser->email;
+                                }
+                            } else {
+                                $implementerName = 'Unknown';
+                            }
 
                             // Check if implementer is selected from the form (when field is enabled)
                             if (isset($data['implementer']) && !empty($data['implementer'])) {
@@ -2097,9 +2105,17 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 $data['sales_order_file'] = json_encode($allFiles);
                             }
 
-                            $implementerId = null;
-                            $implementerName = 'Unknown';
-                            $implementerEmail = null;
+                            if ($record->implementer) {
+                                $implementerName = $record->implementer;
+                                // Try to find the user by name to get their ID and email
+                                $implementerUser = \App\Models\User::where('name', $implementerName)->first();
+                                if ($implementerUser) {
+                                    $implementerId = $implementerUser->id;
+                                    $implementerEmail = $implementerUser->email;
+                                }
+                            } else {
+                                $implementerName = 'Unknown';
+                            }
 
                             // Check if implementer is selected from the form (when field is enabled)
                             if (isset($data['implementer']) && !empty($data['implementer'])) {

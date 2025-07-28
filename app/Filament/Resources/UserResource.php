@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\UserResource\RelationManagers;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Toggle;
 
 class UserResource extends Resource
 {
@@ -93,15 +94,23 @@ class UserResource extends Resource
                     ->schema([
                         Grid::make(5)
                             ->schema([
-                                FileUpload::make("avatar_path")
-                                    ->label('Profile Pic')         // Removes the label text
-                                    ->placeholder('')
-                                    ->disk('public')
-                                    ->directory('uploads/photos')
-                                    ->image()
-                                    ->avatar()
-                                    ->imageEditor()
-                                    ->extraAttributes(['class' => 'mx-auto'])
+                                Grid::make(1)
+                                    ->schema([
+                                        FileUpload::make("avatar_path")
+                                            ->label('Profile Pic')
+                                            ->placeholder('')
+                                            ->disk('public')
+                                            ->directory('uploads/photos')
+                                            ->image()
+                                            ->avatar()
+                                            ->imageEditor()
+                                            ->extraAttributes(['class' => 'mx-auto']),
+
+                                        Toggle::make('is_timetec_hr')
+                                            ->label('Is TimeTec HR')
+                                            ->helperText('Is this user part of the TimeTec HR sales team?')
+                                            ->default(false),
+                                    ])
                                     ->columnSpan(1),
                                 Grid::make(1)
                                 ->schema([

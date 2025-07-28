@@ -6,6 +6,7 @@ use App\Filament\Resources\LeadSourceResource\Pages;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\User;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
@@ -42,6 +43,26 @@ class LeadSourceResource extends Resource
             TextInput::make('lead_code')
                 ->required()
                 ->maxLength(255),
+
+            Section::make('Access Permissions')
+                ->description('Control which user roles can select this lead source')
+                ->schema([
+                    Toggle::make('accessible_by_lead_owners')
+                        ->label('Lead Owners')
+                        ->helperText('Can Lead Owners select this lead source?')
+                        ->default(true),
+
+                    Toggle::make('accessible_by_timetec_hr_salespeople')
+                        ->label('TimeTec HR Salespeople')
+                        ->helperText('Can TimeTec HR Salespeople select this lead source?')
+                        ->default(true),
+
+                    Toggle::make('accessible_by_non_timetec_hr_salespeople')
+                        ->label('Non-TimeTec HR Salespeople')
+                        ->helperText('Can Non-TimeTec HR Salespeople select this lead source?')
+                        ->default(true),
+                ])
+                ->columns(3),
         ]);
     }
 
@@ -50,13 +71,28 @@ class LeadSourceResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('lead_code')->sortable()->searchable(),
+
+                ToggleColumn::make('accessible_by_lead_owners')
+                    ->label('Lead Owners')
+                    ->disabled()
+                    ->sortable(),
+
+                ToggleColumn::make('accessible_by_timetec_hr_salespeople')
+                    ->label('HR Sales')
+                    ->disabled()
+                    ->sortable(),
+
+                ToggleColumn::make('accessible_by_non_timetec_hr_salespeople')
+                    ->label('Non-HR Sales')
+                    ->disabled()
+                    ->sortable(),
             ])
             ->actions([
                 EditAction::make()
-                    ->closeModalByClickingAway(false)
-                    ->hidden(function (LeadSource $record): bool {
-                        return Lead::where('lead_code', $record->lead_code)->exists();
-                    }),
+                    ->closeModalByClickingAway(false),
+                    // ->hidden(function (LeadSource $record): bool {
+                    //     return Lead::where('lead_code', $record->lead_code)->exists();
+                    // }),
                 DeleteAction::make()
                     ->closeModalByClickingAway(false)
                     ->hidden(function (LeadSource $record): bool {
