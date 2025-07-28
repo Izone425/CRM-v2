@@ -34,7 +34,7 @@ class HardwareDashboardAll extends Page implements HasTable
     public function getTableQuery(): Builder
     {
         $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration'])
+            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration'])
             ->orderBy('created_at', 'desc');
 
         // if (auth()->user()->role_id === 2) {
@@ -50,7 +50,7 @@ class HardwareDashboardAll extends Page implements HasTable
     public function getDeviceCount(string $columnName): int
     {
         $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration']);
+            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration']);
 
         // Apply salesperson filter for sales users
         // if (auth()->user()->role_id === 2) {
@@ -105,7 +105,7 @@ class HardwareDashboardAll extends Page implements HasTable
         return $table
             ->query(
                 HardwareHandover::query()
-                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier'])
+                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration'])
                     // ->when(auth()->user()->role_id === 2, function ($query) {
                     //     $userId = auth()->id();
                     //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
