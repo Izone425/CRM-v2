@@ -1029,7 +1029,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn(HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))
+                        // ->visible(fn(HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))
                         ->modalContent(function (HardwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern

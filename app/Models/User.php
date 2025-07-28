@@ -48,6 +48,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'msteam_link',
         'additional_role',
         'api_user_id',
+        'is_timetec_hr',
     ];
 
 

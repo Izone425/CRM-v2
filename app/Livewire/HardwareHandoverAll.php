@@ -623,7 +623,7 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                     ];
 
                                     // Initialize recipients array with admin email
-                                    $recipients = ['']; // Always include admin
+                                    $recipients = []; // Always include admin
 
                                     // Add implementer email if valid
                                     if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
@@ -1004,9 +1004,17 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                     $data['sales_order_file'] = json_encode($allFiles);
                                 }
 
-                                $implementerId = null;
-                                $implementerName = 'Unknown';
-                                $implementerEmail = null;
+                                if ($record->implementer) {
+                                    $implementerName = $record->implementer;
+                                    // Try to find the user by name to get their ID and email
+                                    $implementerUser = \App\Models\User::where('name', $implementerName)->first();
+                                    if ($implementerUser) {
+                                        $implementerId = $implementerUser->id;
+                                        $implementerEmail = $implementerUser->email;
+                                    }
+                                } else {
+                                    $implementerName = 'Unknown';
+                                }
 
                                 // Check if implementer is selected from the form (when field is enabled)
                                 if (isset($data['implementer']) && !empty($data['implementer'])) {
@@ -1593,9 +1601,17 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                     $data['sales_order_file'] = json_encode($allFiles);
                                 }
 
-                                $implementerId = null;
-                                $implementerName = 'Unknown';
-                                $implementerEmail = null;
+                                if ($record->implementer) {
+                                    $implementerName = $record->implementer;
+                                    // Try to find the user by name to get their ID and email
+                                    $implementerUser = \App\Models\User::where('name', $implementerName)->first();
+                                    if ($implementerUser) {
+                                        $implementerId = $implementerUser->id;
+                                        $implementerEmail = $implementerUser->email;
+                                    }
+                                } else {
+                                    $implementerName = 'Unknown';
+                                }
 
                                 // Check if implementer is selected from the form (when field is enabled)
                                 if (isset($data['implementer']) && !empty($data['implementer'])) {
@@ -2037,7 +2053,7 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                     }
 
                                     // Set up email recipients for appointment notification
-                                    $recipients = ['']; // Admin email
+                                    $recipients = []; // Admin email
 
                                     // Add required attendees if they have valid emails
                                     foreach ($attendeeEmails as $email) {
@@ -2151,6 +2167,7 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                         'courier' => 'Courier',
                                                         'internal_installation' => 'Internal Installation',
                                                         'external_installation' => 'External Installation',
+                                                        'self_pick_up' => 'Self Pick-up',
                                                         default => 'Not Selected'
                                                     };
 

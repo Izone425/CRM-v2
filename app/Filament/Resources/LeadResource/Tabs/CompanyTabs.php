@@ -44,26 +44,39 @@ class CompanyTabs
                                         (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                     )
                                     ->modalSubmitActionLabel('Save Changes') // Modal button text
-                                    ->form([ // Define the form fields to show in the modal
-                                        TextInput::make('company_name')
+                                    ->form(function (Lead $record) {
+                                        // Check if the lead was created more than 30 days ago
+                                        $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;
+                                        $isAdmin = auth()->user()->role_id === 1;
+
+                                        $schema = [];
+
+                                        // Add company_name field with appropriate disabled state
+                                        $schema[] = TextInput::make('company_name')
                                             ->label('Company Name')
-                                            ->default(fn ($record) => strtoupper($record->companyDetail->company_name ?? '-'))
-                                            ->extraAlpineAttributes(['@input' => ' $el.value = $el.value.toUpperCase()']),
-                                        TextInput::make('company_address1')
+                                            ->default(strtoupper($record->companyDetail->company_name ?? '-'))
+                                            ->disabled($isOlderThan30Days && !$isAdmin) // Disable if older than 30 days and not admin
+                                            ->helperText($isOlderThan30Days && !$isAdmin ? 'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+
+                                        // Add the rest of the fields that don't have the restriction
+                                        $schema[] = TextInput::make('company_address1')
                                             ->label('Company Address 1')
                                             ->maxLength(40)
-                                            ->default(fn ($record) => $record->companyDetail->company_address1 ?? '-')
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                        TextInput::make('company_address2')
+                                            ->default($record->companyDetail->company_address1 ?? '-')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+
+                                        $schema[] = TextInput::make('company_address2')
                                             ->label('Company Address 2')
                                             ->maxLength(40)
-                                            ->default(fn ($record) => $record->companyDetail->company_address2 ?? '-')
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
-                                        Grid::make(3) // Create a 3-column grid
+                                            ->default($record->companyDetail->company_address2 ?? '-')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+
+                                        $schema[] = Grid::make(3) // Create a 3-column grid
                                             ->schema([
                                                 TextInput::make('postcode')
                                                     ->label('Postcode')
-                                                    ->default(fn ($record) => $record->companyDetail->postcode ?? '-'),
+                                                    ->default($record->companyDetail->postcode ?? '-'),
 
                                                 Select::make('state')
                                                     ->label('State')
@@ -99,50 +112,76 @@ class CompanyTabs
 
                                                         return $state; // Fallback to the original state if mapping fails
                                                     })
-                                                    ->default(fn ($record) => $record->companyDetail->state ?? null)
+                                                    ->default($record->companyDetail->state ?? null)
                                                     ->searchable()
                                                     ->preload(),
 
                                                 Select::make('industry')
                                                     ->label('Industry')
                                                     ->placeholder('Select an industry')
-                                                    ->default(fn ($record) => $record->companyDetail->industry ?? 'None')
+                                                    ->default($record->companyDetail->industry ?? 'None')
                                                     ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
                                                     ->searchable()
                                                     ->required()
+                                            ]);
 
-                                            ]),
-                                        Grid::make(2) // Create a 3-column grid
+                                        $schema[] = Grid::make(2)
                                             ->schema([
                                                 TextInput::make('reg_no_new')
                                                     ->label('New Registration No.')
-                                                    ->default(fn ($record) => $record->companyDetail->reg_no_new ?? '-'),
-                                                    // Remove Old Register Number
-                                                // TextInput::make('reg_no_old')
-                                                //     ->label('Old Registration No.')
-                                                //     ->default(fn ($record) => $record->companyDetail->reg_no_old ?? '-'),
-                                            ]),
-                                    ])
+                                                    ->default($record->companyDetail->reg_no_new ?? '-'),
+                                            ]);
+
+                                        return $schema;
+                                    })
                                     ->action(function (Lead $lead, array $data) {
+                                        $isOlderThan30Days = $lead->created_at->diffInDays(now()) > 30;
+                                        $isAdmin = auth()->user()->role_id === 1;
+
+                                        // If trying to update company name and it's older than 30 days but not admin
+                                        if (isset($data['company_name']) && $isOlderThan30Days && !$isAdmin) {
+                                            // Remove company_name from the data if user shouldn't be able to update it
+                                            $originalCompanyName = $lead->companyDetail->company_name ?? '-';
+
+                                            // If they somehow attempted to change the value despite the disabled field
+                                            if ($data['company_name'] !== $originalCompanyName) {
+                                                Notification::make()
+                                                    ->title('Permission Denied')
+                                                    ->danger()
+                                                    ->body('You are not authorized to change the company name after 30 days.')
+                                                    ->send();
+
+                                                return;
+                                            }
+                                        }
+
                                         $record = $lead->companyDetail;
                                         if ($record) {
-                                            // Update the existing SystemQuestion record
+                                            // Update the existing CompanyDetail record
                                             $record->update($data);
 
                                             Notification::make()
                                                 ->title('Updated Successfully')
                                                 ->success()
                                                 ->send();
+
+                                            // Log if admin changed company name on an old record
+                                            if ($isOlderThan30Days && $isAdmin && isset($data['company_name']) && $data['company_name'] !== $record->getOriginal('company_name')) {
+                                                activity()
+                                                    ->causedBy(auth()->user())
+                                                    ->performedOn($lead)
+                                                    ->log('Admin modified company name on a lead older than 30 days');
+                                            }
                                         } else {
-                                            // Create a new SystemQuestion record via the relation
-                                            $lead->bankDetail()->create($data);
+                                            // Create a new CompanyDetail record via the relation
+                                            $lead->companyDetail()->create($data);
 
                                             Notification::make()
                                                 ->title('Created Successfully')
                                                 ->success()
                                                 ->send();
                                         }
-                                    }),
+                                    })
                             ])
                             ->schema([
                                 View::make('components.company-detail')
