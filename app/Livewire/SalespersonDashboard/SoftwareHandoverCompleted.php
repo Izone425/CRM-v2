@@ -101,20 +101,14 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                 });
             }
         } else {
-            if (auth()->user()->role_id === 2) {
-                // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
+            // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
+            $query->whereIn('status', ['Completed']);
 
-                // But only THEIR OWN records
-                $userId = auth()->id();
-                $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                    $leadQuery->where('salesperson', $userId);
-                });
-            } else {
-                // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
-                // But they can see ALL records
-            }
+            // But only THEIR OWN records
+            $userId = auth()->id();
+            $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                $leadQuery->where('salesperson', $userId);
+            });
         }
 
         $query->orderByRaw("CASE

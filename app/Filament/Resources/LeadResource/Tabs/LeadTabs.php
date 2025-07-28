@@ -81,10 +81,10 @@ class LeadTabs
 
                                     Select::make('lead_code')
                                         ->label('Lead Source')
-                                        ->default(function () {
-                                            $roleId = Auth::user()->role_id;
-                                            return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
-                                        })
+                                        // ->default(function () {
+                                        //     $roleId = Auth::user()->role_id;
+                                        //     return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                                        // })
                                         ->options(function () {
                                             $user = Auth::user();
 

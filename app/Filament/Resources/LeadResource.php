@@ -702,6 +702,93 @@ class LeadResource extends Resource
                             ->body(count($records) . ' leads updated with new Lead Owner.')
                             ->send();
                     }),
+
+                \Filament\Tables\Actions\BulkAction::make('changeSalesperson')
+                    ->label('Change Salesperson')
+                    ->icon('heroicon-o-user-group')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('salesperson')
+                            ->label('New Salesperson')
+                            ->options(
+                                \App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray()
+                            )
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                        $salespersonId = $data['salesperson'];
+                        $salespersonName = \App\Models\User::find($salespersonId)?->name ?? 'Unknown';
+
+                        foreach ($records as $lead) {
+                            // Store old salesperson for logging
+                            $oldSalespersonId = $lead->salesperson;
+                            $oldSalespersonName = \App\Models\User::find($oldSalespersonId)?->name ?? 'None';
+
+                            // Update the salesperson and assigned date
+                            $lead->update([
+                                'salesperson' => $salespersonId,
+                                'salesperson_assigned_date' => now(),
+                            ]);
+
+                            // Optional: Create activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk changed salesperson from ' . $oldSalespersonName . ' to ' . $salespersonName);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Salesperson Updated')
+                            ->success()
+                            ->body(count($records) . ' leads updated with new Salesperson: ' . $salespersonName)
+                            ->send();
+                    }),
+
+                \Filament\Tables\Actions\BulkAction::make('changeLeadSource')
+                    ->label('Change Lead Source')
+                    ->icon('heroicon-o-tag')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('lead_code')
+                            ->label('New Lead Source')
+                            ->options(function () {
+                                // Get all unique lead_code values from the database
+                                $leadCodes = \App\Models\Lead::select('lead_code')
+                                    ->distinct()
+                                    ->whereNotNull('lead_code')
+                                    ->pluck('lead_code')
+                                    ->toArray();
+
+                                // Create options from the unique codes
+                                return array_combine($leadCodes, $leadCodes);
+                            })
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                        $newLeadCode = $data['lead_code'];
+
+                        foreach ($records as $lead) {
+                            $oldLeadCode = $lead->lead_code ?? 'None';
+
+                            $lead->update([
+                                'lead_code' => $newLeadCode,
+                            ]);
+
+                            // Optional: Create activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk changed lead source from "' . $oldLeadCode . '" to "' . $newLeadCode . '"');
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Lead Source Updated')
+                            ->success()
+                            ->body(count($records) . ' leads updated with new Lead Source: ' . $newLeadCode)
+                            ->send();
+                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -739,6 +826,8 @@ class LeadResource extends Resource
                             && !is_null($record->lead_owner)
                         ),
                     LeadActions::getChangeLeadOwnerAction(),
+
+                    LeadActions::getRequestChangeLeadOwnerAction(),
 
                     Tables\Actions\Action::make('resetLead')
                         ->label(__('Reset Lead'))

@@ -137,7 +137,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     $leadQuery->whereIn('salesperson', $salespersonIds);
                 });
                 // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['New', 'Approved', 'No Stock', 'Pending Migration', 'Pending Stock']);
+                $query->whereIn('status', ['New', 'Approved', 'No Stock']);
                 // But they can see ALL records
             }
         }
