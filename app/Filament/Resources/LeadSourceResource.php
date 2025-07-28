@@ -7,14 +7,13 @@ use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\User;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Repeater;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,25 +43,37 @@ class LeadSourceResource extends Resource
                 ->required()
                 ->maxLength(255),
 
-            Section::make('Access Permissions')
-                ->description('Control which user roles can select this lead source')
-                ->schema([
-                    Toggle::make('accessible_by_lead_owners')
-                        ->label('Lead Owners')
-                        ->helperText('Can Lead Owners select this lead source?')
-                        ->default(true),
+            Select::make('allowed_users')
+                ->multiple()
+                ->label('Users with access')
+                ->options(function () {
+                    // Only show users with role_id of 1, 2, or 3
+                    return User::whereIn('role_id', [1, 2, 3])
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray();
+                })
+                ->afterStateHydrated(function (Select $component, $state, ?LeadSource $record) {
+                    if ($record && $record->allowed_users) {
+                        // Get the allowed_users array - it should already be decoded thanks to the cast
+                        $allowedUsers = is_array($record->allowed_users) ? $record->allowed_users : json_decode($record->allowed_users, true);
 
-                    Toggle::make('accessible_by_timetec_hr_salespeople')
-                        ->label('TimeTec HR Salespeople')
-                        ->helperText('Can TimeTec HR Salespeople select this lead source?')
-                        ->default(true),
-
-                    Toggle::make('accessible_by_non_timetec_hr_salespeople')
-                        ->label('Non-TimeTec HR Salespeople')
-                        ->helperText('Can Non-TimeTec HR Salespeople select this lead source?')
-                        ->default(true),
-                ])
-                ->columns(3),
+                        // Convert string IDs to integers for the select component
+                        if (is_array($allowedUsers)) {
+                            $allowedUsers = array_map('intval', $allowedUsers);
+                            $component->state($allowedUsers);
+                        }
+                    }
+                })
+                ->dehydrateStateUsing(function ($state) {
+                    // Convert integer IDs back to strings for storage
+                    if (is_array($state)) {
+                        return array_map('strval', $state);
+                    }
+                    return $state;
+                })
+                ->preload()
+                ->searchable()
         ]);
     }
 
@@ -70,29 +81,38 @@ class LeadSourceResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('lead_code')->sortable()->searchable(),
+                TextColumn::make('lead_code')
+                    ->sortable()
+                    ->searchable(),
 
-                ToggleColumn::make('accessible_by_lead_owners')
-                    ->label('Lead Owners')
-                    ->disabled()
-                    ->sortable(),
+                TextColumn::make('allowed_users')
+                    ->label('Authorized Users')
+                    ->formatStateUsing(function ($state) {
+                        // Handle if the state is null
+                        if (!$state) {
+                            return 'No users';
+                        }
 
-                ToggleColumn::make('accessible_by_timetec_hr_salespeople')
-                    ->label('HR Sales')
-                    ->disabled()
-                    ->sortable(),
+                        // Get user names for the selected IDs
+                        $userIds = is_array($state) ? $state : json_decode($state, true);
+                        $users = User::whereIn('id', $userIds)->pluck('name')->toArray();
 
-                ToggleColumn::make('accessible_by_non_timetec_hr_salespeople')
-                    ->label('Non-HR Sales')
-                    ->disabled()
-                    ->sortable(),
+                        return implode(', ', $users);
+                    }),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
                 EditAction::make()
                     ->closeModalByClickingAway(false),
-                    // ->hidden(function (LeadSource $record): bool {
-                    //     return Lead::where('lead_code', $record->lead_code)->exists();
-                    // }),
                 DeleteAction::make()
                     ->closeModalByClickingAway(false)
                     ->hidden(function (LeadSource $record): bool {

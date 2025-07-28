@@ -101,10 +101,10 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
             $query->whereIn('status', ['Rejected','Draft', 'New', 'Approved', 'Pending Migration', 'Pending Stock']);
 
             // Keep as is - show all salespersons' handovers
-            // $salespersonIds = User::where('role_id', 2)->pluck('id');
-            // $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-            //     $leadQuery->whereIn('salesperson', $salespersonIds);
-            // });
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
@@ -132,8 +132,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     $leadQuery->where('salesperson', $userId);
                 });
             } else {
+                $salespersonIds = User::where('role_id', 2)->pluck('id');
+                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                    $leadQuery->whereIn('salesperson', $salespersonIds);
+                });
                 // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['New', 'Approved', 'No Stock']);
+                $query->whereIn('status', ['New', 'Approved', 'No Stock', 'Pending Migration', 'Pending Stock']);
                 // But they can see ALL records
             }
         }

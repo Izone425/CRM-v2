@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 class LeadTabs
 {
@@ -45,29 +46,70 @@ class LeadTabs
                                         ])
                                         ->required()
                                         ->default(fn ($record) => $record?->company_size ?? 'Unknown'),
+                                    // Select::make('lead_code')
+                                    //     ->label('Lead Source')
+                                    //     ->options(function () {
+                                    //         $user = auth()->user();
+
+                                    //         // Get all lead sources
+                                    //         $query = LeadSource::query();
+
+                                    //         // Apply role-based filtering
+                                    //         if ($user->role_id === 1) { // Lead Owner
+                                    //             $query->where('accessible_by_lead_owners', true);
+                                    //         } elseif ($user->role_id === 2) { // Salesperson
+                                    //             if ($user->is_timetec_hr) {
+                                    //                 $query->where('accessible_by_timetec_hr_salespeople', true);
+                                    //             } else {
+                                    //                 $query->where('accessible_by_non_timetec_hr_salespeople', true);
+                                    //             }
+                                    //         }
+                                    //         // Managers (role_id 3) can see all options
+
+                                    //         return $query->pluck('lead_code', 'lead_code');
+                                    //     })
+                                    //     ->required(),
+                                    // Select::make('lead_code')
+                                    //     ->label('Lead Source')
+                                    //     ->default(function () {
+                                    //         $roleId = Auth::user()->role_id;
+                                    //         return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                                    //     })
+                                    //     ->options(fn () => LeadSource::pluck('lead_code', 'lead_code')->toArray())
+                                    //     ->searchable()
+                                    //     ->required(),
+
                                     Select::make('lead_code')
                                         ->label('Lead Source')
-                                        ->options(function () {
-                                            $user = auth()->user();
-
-                                            // Get all lead sources
-                                            $query = LeadSource::query();
-
-                                            // Apply role-based filtering
-                                            if ($user->role_id === 1) { // Lead Owner
-                                                $query->where('accessible_by_lead_owners', true);
-                                            } elseif ($user->role_id === 2) { // Salesperson
-                                                if ($user->is_timetec_hr) {
-                                                    $query->where('accessible_by_timetec_hr_salespeople', true);
-                                                } else {
-                                                    $query->where('accessible_by_non_timetec_hr_salespeople', true);
-                                                }
-                                            }
-                                            // Managers (role_id 3) can see all options
-
-                                            return $query->pluck('lead_code', 'lead_code');
+                                        ->default(function () {
+                                            $roleId = Auth::user()->role_id;
+                                            return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
                                         })
+                                        ->options(function () {
+                                            $user = Auth::user();
+
+                                            // For other users, get only the lead sources they have access to
+                                            $leadSources = LeadSource::all();
+
+                                            $accessibleLeadSources = $leadSources->filter(function($leadSource) use ($user) {
+                                                // If allowed_users is not set or empty, everyone can access
+                                                if (empty($leadSource->allowed_users)) {
+                                                    return false;  // Change to true if you want unassigned lead sources to be available to everyone
+                                                }
+
+                                                // Check if user ID is in the allowed_users array
+                                                $allowedUsers = is_array($leadSource->allowed_users)
+                                                    ? $leadSource->allowed_users
+                                                    : json_decode($leadSource->allowed_users, true);
+
+                                                return in_array($user->id, $allowedUsers);
+                                            });
+
+                                            return $accessibleLeadSources->pluck('lead_code', 'lead_code')->toArray();
+                                        })
+                                        ->searchable()
                                         ->required(),
+
                                     Select::make('customer_type')
                                         ->label('Customer Type')
                                         ->options([

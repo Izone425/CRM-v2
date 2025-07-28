@@ -69,7 +69,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed: Installation', 'Completed: Courier']);
+            ->whereIn('status', ['Completed: Installation', 'Completed: Courier', 'Completed Migration']);
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
@@ -100,6 +100,11 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 $query->whereHas('lead', function ($leadQuery) use ($userId) {
                     $leadQuery->where('salesperson', $userId);
                 });
+            } else{
+                $salespersonIds = User::where('role_id', 2)->pluck('id');
+                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                    $leadQuery->whereIn('salesperson', $salespersonIds);
+                });
             }
             // Other users (admin, managers) can see all records - no additional filter needed
         }
@@ -124,11 +129,9 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
-                        'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Completed Migration' => 'Completed Migration',
+                        'Completed: Installation' => 'Completed: Installation',
+                        'Completed: Courier' => 'Completed: Courier',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),

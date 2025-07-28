@@ -13,9 +13,11 @@ class LeadSource extends Model
 
     protected $fillable = [
         'lead_code',
-        'accessible_by_lead_owners',
-        'accessible_by_timetec_hr_salespeople',
-        'accessible_by_non_timetec_hr_salespeople',
+        'allowed_users',
+    ];
+
+    protected $casts = [
+        'allowed_users' => 'array',
     ];
 
     public function lead(): HasMany
@@ -23,29 +25,20 @@ class LeadSource extends Model
         return $this->hasMany(Lead::class, 'lead_code', 'lead_code');
     }
 
-    public function isAccessibleByUser(User $user): bool
+    public function getAllowedUsersAttribute($value)
     {
-        // Managers can access all lead sources
-        if ($user->role_id === 3) {
-            return true;
+        // Return the raw JSON value if needed
+        return $value;
+    }
+
+    public function allowedUsers()
+    {
+        // If allowed_users is null, return empty collection
+        if (!$this->allowed_users) {
+            return collect();
         }
 
-        // Lead Owner
-        if ($user->role_id === 1) {
-            return $this->accessible_by_lead_owners;
-        }
-
-        // Salesperson
-        if ($user->role_id === 2) {
-            // Check if user is TimeTec HR or Non-TimeTec HR
-            // You'll need to add a field to identify TimeTec HR salespeople
-            if ($user->is_timetec_hr) {
-                return $this->accessible_by_timetec_hr_salespeople;
-            } else {
-                return $this->accessible_by_non_timetec_hr_salespeople;
-            }
-        }
-
-        return false;
+        // Get user models based on IDs in allowed_users
+        return User::whereIn('id', $this->allowed_users)->get();
     }
 }
