@@ -496,68 +496,12 @@ class CreateLead extends CreateRecord
                     return $state; // Fallback to the original state if mapping fails
                 }),
 
-            // Select::make('lead_code')
-            //     ->label('Lead Source')
-            //     ->default('CRM')
-            //     ->options(fn () => LeadSource::pluck('salesperson')->toArray()) // Fetch existing lead sources
-            //     ->searchable()
-            //     ->createOptionForm([
-            //         TextInput::make('lead_code')
-            //             ->label('Lead Code')
-            //             ->required()
-            //             ->unique(\App\Models\LeadSource::class, 'lead_code')
-            //             ->rules(['required', 'string', 'max:255', 'unique:lead_sources,lead_code']),
-
-            //         TextInput::make('salesperson')
-            //             ->label('Salesperson')
-            //             ->required(),
-
-            //         TextInput::make('platform')
-            //         ->label('Platform')
-            //         ->required(),
-            //     ])
-            //     ->createOptionUsing(function (array $data) {
-            //         // Validate again before saving
-            //         $validatedData = validator($data, [
-            //             'code' => 'required|string|max:255|unique:lead_sources,code',
-            //             'name' => 'required|string|max:255',
-            //         ])->validate();
-
-            //         // Create new lead source if validation passes
-            //         $leadSource = \App\Models\LeadSource::create($validatedData);
-            //         return $leadSource->code; // Return newly created option
-            //     }),
-
-            // Select::make('lead_code')
-            //     ->label('Lead Source')
-            //     ->options(function () {
-            //         $user = auth()->user();
-
-            //         // Get all lead sources
-            //         $query = LeadSource::query();
-
-            //         // Apply role-based filtering
-            //         if ($user->role_id === 1) { // Lead Owner
-            //             $query->where('accessible_by_lead_owners', true);
-            //         } elseif ($user->role_id === 2) { // Salesperson
-            //             if ($user->is_timetec_hr) {
-            //                 $query->where('accessible_by_timetec_hr_salespeople', true);
-            //             } else {
-            //                 $query->where('accessible_by_non_timetec_hr_salespeople', true);
-            //             }
-            //         }
-            //         // Managers (role_id 3) can see all options
-
-            //         return $query->pluck('lead_code', 'lead_code');
-            //     })
-            //     ->required(),
-
             Select::make('lead_code')
                 ->label('Lead Source')
-                ->default(function () {
-                    $roleId = Auth::user()->role_id;
-                    return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
-                })
+                // ->default(function () {
+                //     $roleId = Auth::user()->role_id;
+                //     return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                // })
                 ->options(function () {
                     $user = Auth::user();
 

@@ -47,11 +47,47 @@ class LeadSourceResource extends Resource
                 ->multiple()
                 ->label('Users with access')
                 ->options(function () {
-                    // Only show users with role_id of 1, 2, or 3
-                    return User::whereIn('role_id', [1, 2, 3])
+                    // Create option groups with headers
+                    $options = [];
+
+                    // Add Managers (role_id 3)
+                    $managers = User::where('role_id', 3)
                         ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray();
+                        ->get();
+
+                    if ($managers->count() > 0) {
+                        $options['Managers'] = $managers->pluck('name', 'id')->toArray();
+                    }
+
+                    // Add HR Sales (specific user IDs)
+                    $hrSales = User::whereIn('id', [6, 7, 8, 9, 10, 11, 12])
+                        ->orderBy('name')
+                        ->get();
+
+                    if ($hrSales->count() > 0) {
+                        $options['HR Sales'] = $hrSales->pluck('name', 'id')->toArray();
+                    }
+
+                    // Add Other Salespeople (role_id 2, excluding HR sales IDs)
+                    $otherSales = User::where('role_id', 2)
+                        ->whereNotIn('id', [6, 7, 8, 9, 10, 11, 12])
+                        ->orderBy('name')
+                        ->get();
+
+                    if ($otherSales->count() > 0) {
+                        $options['Other Sales'] = $otherSales->pluck('name', 'id')->toArray();
+                    }
+
+                    // Add Lead Owners (role_id 1)
+                    $leadOwners = User::where('role_id', 1)
+                        ->orderBy('name')
+                        ->get();
+
+                    if ($leadOwners->count() > 0) {
+                        $options['Lead Owners'] = $leadOwners->pluck('name', 'id')->toArray();
+                    }
+
+                    return $options;
                 })
                 ->afterStateHydrated(function (Select $component, $state, ?LeadSource $record) {
                     if ($record && $record->allowed_users) {
@@ -80,25 +116,26 @@ class LeadSourceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('lead_code') // Add this line to sort by lead_code alphabetically (A to Z)
             ->columns([
                 TextColumn::make('lead_code')
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('allowed_users')
-                    ->label('Authorized Users')
-                    ->formatStateUsing(function ($state) {
-                        // Handle if the state is null
-                        if (!$state) {
-                            return 'No users';
-                        }
+                // TextColumn::make('allowed_users')
+                //     ->label('Authorized Users')
+                //     ->formatStateUsing(function ($state) {
+                //         // Handle if the state is null
+                //         if (!$state) {
+                //             return 'No users';
+                //         }
 
-                        // Get user names for the selected IDs
-                        $userIds = is_array($state) ? $state : json_decode($state, true);
-                        $users = User::whereIn('id', $userIds)->pluck('name')->toArray();
+                //         // Get user names for the selected IDs
+                //         $userIds = is_array($state) ? $state : json_decode($state, true);
+                //         $users = User::whereIn('id', $userIds)->pluck('name')->toArray();
 
-                        return implode(', ', $users);
-                    }),
+                //         return implode(', ', $users);
+                //     }),
 
                 TextColumn::make('created_at')
                     ->dateTime()

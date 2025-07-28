@@ -107,8 +107,8 @@ class UserResource extends Resource
                                             ->extraAttributes(['class' => 'mx-auto']),
 
                                         Toggle::make('is_timetec_hr')
-                                            ->label('Is TimeTec HR')
-                                            ->helperText('Is this user part of the TimeTec HR sales team?')
+                                            ->label('TimeTec HR')
+                                            ->helperText('Activate it if this user part of the TimeTec HR sales team')
                                             ->default(false),
                                     ])
                                     ->columnSpan(1),

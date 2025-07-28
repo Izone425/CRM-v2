@@ -94,19 +94,11 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 });
             }
         } else {
-            if (auth()->user()->role_id === 2) {
-                // Salespersons (role_id 2) can only see their own records
-                $userId = auth()->id();
-                $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                    $leadQuery->where('salesperson', $userId);
-                });
-            } else{
-                $salespersonIds = User::where('role_id', 2)->pluck('id');
-                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                    $leadQuery->whereIn('salesperson', $salespersonIds);
-                });
-            }
-            // Other users (admin, managers) can see all records - no additional filter needed
+            // Salespersons (role_id 2) can only see their own records
+            $userId = auth()->id();
+            $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                $leadQuery->where('salesperson', $userId);
+            });
         }
 
         $query->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
