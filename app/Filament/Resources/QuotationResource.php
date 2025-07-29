@@ -219,7 +219,6 @@ class QuotationResource extends Resource
                                 'all_non_taxable' => 'All Items are Non-Taxable',
                             ])
                             ->default('default')
-                            ->required()
                             ->visible(fn (Forms\Get $get) => $get('currency') === 'MYR')
                             ->live()
                             ->afterStateUpdated(function (string $state, Forms\Get $get, Forms\Set $set) {
