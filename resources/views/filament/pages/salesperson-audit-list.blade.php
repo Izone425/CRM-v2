@@ -158,6 +158,8 @@
         }
         .group-small { border-top-color: #2563eb; }
         .group-medium { border-top-color: #10b981; }
+        .group-large { border-top-color: #dae724; }
+        .group-enterprise { border-top-color: #D13B20; }
         .group-box.selected {
             background-color: #f9fafb;
             transform: translateY(-5px);
@@ -338,6 +340,50 @@
         }
     </style>
 
+    @php
+        // Small Companies Counts
+        $smallDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallDemo::class)
+            ->getTableQuery()
+            ->count();
+
+        $smallRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallRfq::class)
+            ->getTableQuery()
+            ->count();
+
+        // Medium Companies Counts
+        $mediumDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumDemo::class)
+            ->getTableQuery()
+            ->count();
+
+        $mediumRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumRfq::class)
+            ->getTableQuery()
+            ->count();
+
+        // Large Companies Counts
+        $largeDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeDemo::class)
+            ->getTableQuery()
+            ->count();
+
+        $largeRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeRfq::class)
+            ->getTableQuery()
+            ->count();
+
+        // Enterprise Companies Counts
+        $enterpriseDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseDemo::class)
+            ->getTableQuery()
+            ->count();
+
+        $enterpriseRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseRfq::class)
+            ->getTableQuery()
+            ->count();
+
+        // Total counts for each company size
+        $smallTotalCount = $smallDemoCount + $smallRfqCount;
+        $mediumTotalCount = $mediumDemoCount + $mediumRfqCount;
+        $largeTotalCount = $largeDemoCount + $largeRfqCount;
+        $enterpriseTotalCount = $enterpriseDemoCount + $enterpriseRfqCount;
+    @endphp
+
     <div x-data="{ selectedRank: 'rank1' }">
         <div class="flex items-center mb-6">
             <h2 class="mr-4 text-xl font-bold">Salesperson Audit</h2>
@@ -485,24 +531,43 @@
                         <!-- Left sidebar with type selection -->
                         <div class="group-column">
                             <div class="group-container">
-                                <div
-                                    class="group-box group-small"
+                                <div class="group-box group-small"
                                     :class="{ 'selected': selectedType === 'small' }"
                                     @click="setSelectedType('small')"
                                 >
                                     <div class="group-title">Small Companies</div>
                                     <div class="group-count">
-                                        1
+                                        {{ $smallTotalCount }}
                                     </div>
                                 </div>
-                                <div
-                                    class="group-box group-medium"
+
+                                <div class="group-box group-medium"
                                     :class="{ 'selected': selectedType === 'medium' }"
                                     @click="setSelectedType('medium')"
                                 >
                                     <div class="group-title">Medium Companies</div>
                                     <div class="group-count">
-                                        23
+                                        {{ $mediumTotalCount }}
+                                    </div>
+                                </div>
+
+                                <div class="group-box group-large"
+                                    :class="{ 'selected': selectedType === 'large' }"
+                                    @click="setSelectedType('large')"
+                                >
+                                    <div class="group-title">Large Companies</div>
+                                    <div class="group-count">
+                                        {{ $largeTotalCount }}
+                                    </div>
+                                </div>
+
+                                <div class="group-box group-enterprise"
+                                    :class="{ 'selected': selectedType === 'enterprise' }"
+                                    @click="setSelectedType('enterprise')"
+                                >
+                                    <div class="group-title">Enterprise Companies</div>
+                                    <div class="group-count">
+                                        {{ $enterpriseTotalCount }}
                                     </div>
                                 </div>
                             </div>
@@ -541,10 +606,130 @@
 
                                             <!-- Table content below the tabs -->
                                             <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-sequence-small-demo />
+                                                <livewire:salesperson-audit.salesperson-sequence-small-demo />
                                             </div>
                                             <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                {{-- <livewire:salesperson-sequence-small-demo /> --}}
+                                                <livewire:salesperson-audit.salesperson-sequence-small-rfq />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="selectedType === 'medium'">
+                                <div>
+                                    <div class="category-container">
+                                        <div x-data="{ selectedStat: 'demo' }" class="w-full">
+                                            <!-- Tabs in a single row at the top -->
+                                            <div class="flex w-full gap-3 mb-4">
+                                                <div class="flex-1 stat-box demo-today"
+                                                    :class="{'selected': selectedStat === 'demo'}"
+                                                    @click="selectedStat = 'demo'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">Demo</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $mediumDemoCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex-1 stat-box follow-up-lead"
+                                                    :class="{'selected': selectedStat === 'rfq'}"
+                                                    @click="selectedStat = 'rfq'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">RFQ</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $mediumRfqCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Table content below the tabs -->
+                                            <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-medium-demo />
+                                            </div>
+                                            <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-medium-rfq />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="selectedType === 'large'">
+                                <div>
+                                    <div class="category-container">
+                                        <div x-data="{ selectedStat: 'demo' }" class="w-full">
+                                            <!-- Tabs in a single row at the top -->
+                                            <div class="flex w-full gap-3 mb-4">
+                                                <div class="flex-1 stat-box demo-today"
+                                                    :class="{'selected': selectedStat === 'demo'}"
+                                                    @click="selectedStat = 'demo'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">Demo</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $largeDemoCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex-1 stat-box follow-up-lead"
+                                                    :class="{'selected': selectedStat === 'rfq'}"
+                                                    @click="selectedStat = 'rfq'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">RFQ</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $largeRfqCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Table content below the tabs -->
+                                            <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-large-demo />
+                                            </div>
+                                            <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-large-rfq />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="selectedType === 'enterprise'">
+                                <div>
+                                    <div class="category-container">
+                                        <div x-data="{ selectedStat: 'demo' }" class="w-full">
+                                            <!-- Tabs in a single row at the top -->
+                                            <div class="flex w-full gap-3 mb-4">
+                                                <div class="flex-1 stat-box demo-today"
+                                                    :class="{'selected': selectedStat === 'demo'}"
+                                                    @click="selectedStat = 'demo'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">Demo</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $enterpriseDemoCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex-1 stat-box follow-up-lead"
+                                                    :class="{'selected': selectedStat === 'rfq'}"
+                                                    @click="selectedStat = 'rfq'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">RFQ</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $enterpriseRfqCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Table content below the tabs -->
+                                            <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-demo />
+                                            </div>
+                                            <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-rfq />
                                             </div>
                                         </div>
                                     </div>
