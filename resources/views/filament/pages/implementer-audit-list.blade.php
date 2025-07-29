@@ -440,14 +440,14 @@
                                             <span class="stats-label">{{ $largeStatsData[$implementer]['large'] }}</span>
                                         </div>
                                         <div class="progress-container">
-                                            <div class="progress-bar progress-bar--medium" style="width: {{ $largeStatsData[$implementer]['percentLarge'] }}%"></div>
+                                            <div class="progress-bar progress-bar--large" style="width: {{ $largeStatsData[$implementer]['percentLarge'] }}%"></div>
                                         </div>
                                         <div class="mt-3 mb-1 flex-between">
                                             <span class="stats-label">Enterprise Companies</span>
                                             <span class="stats-label">{{ $largeStatsData[$implementer]['enterprise'] }}</span>
                                         </div>
                                         <div class="progress-container">
-                                            <div class="progress-bar progress-bar--medium" style="width: {{ $largeStatsData[$implementer]['percentEnterprise'] }}%"></div>
+                                            <div class="progress-bar progress-bar--enterprise" style="width: {{ $largeStatsData[$implementer]['percentEnterprise'] }}%"></div>
                                         </div>
                                         <div class="stats-footer">
                                             Latest assignment: {{ $largeStatsData[$implementer]['latestAssignment'] }}

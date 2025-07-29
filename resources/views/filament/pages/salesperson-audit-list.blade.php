@@ -240,6 +240,102 @@
             background: #2563eb;
             color: #fff;
         }
+
+        .stat-box {
+            background-color: white;
+            width: 100%;
+            min-height: 65px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+        }
+
+        .stat-box:hover {
+            background-color: #f9fafb;
+            transform: translateX(3px);
+        }
+
+        .stat-box.selected {
+            background-color: #f9fafb;
+            transform: translateX(5px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .stat-count {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* Color coding for stat boxes */
+        .demo-today { border-left: 4px solid #2563eb; }
+        .demo-today .stat-count { color: #2563eb; }
+
+        .follow-up-lead { border-left: 4px solid #d946ef; }
+        .follow-up-lead .stat-count { color: #d946ef; }
+
+        /* Selected states */
+        .stat-box.selected.demo-today { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
+        .stat-box.selected.follow-up-lead { background-color: rgba(217, 70, 239, 0.05); border-left-width: 6px; }
+
+        /* Content area */
+        .content-area {
+            min-height: 600px;
+            background: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+        }
+
+        /* Transition animations */
+        [x-transition:enter] {
+            transition: all 0.2s ease-out;
+        }
+        [x-transition:enter-start] {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        [x-transition:enter-end] {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Category container */
+        .category-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .category-container {
+                flex-direction: column;
+            }
+        }
     </style>
 
     <div x-data="{ selectedRank: 'rank1' }">
@@ -414,18 +510,44 @@
 
                         <!-- Right content area -->
                         <div class="content-column">
-                            <div class="hint-message" x-show="!selectedType" x-transition>
-                                <h3>Select company type to view data</h3>
-                                <p>Click on Small or Medium to display the assignments table</p>
-                            </div>
                             <template x-if="selectedType === 'small'">
                                 <div>
-                                    <livewire:salesperson-sequence-small />
-                                </div>
-                            </template>
-                            <template x-if="selectedType === 'medium'">
-                                <div>
-                                    <livewire:salesperson-sequence-medium />
+                                    <div class="category-container">
+                                        <div x-data="{ selectedStat: 'demo' }" class="w-full">
+                                            <!-- Tabs in a single row at the top -->
+                                            <div class="flex w-full gap-3 mb-4">
+                                                <div class="flex-1 stat-box demo-today"
+                                                    :class="{'selected': selectedStat === 'demo'}"
+                                                    @click="selectedStat = 'demo'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">Demo</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $smallDemoCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex-1 stat-box follow-up-lead"
+                                                    :class="{'selected': selectedStat === 'rfq'}"
+                                                    @click="selectedStat = 'rfq'">
+                                                    <div class="stat-info">
+                                                        <div class="stat-label">RFQ</div>
+                                                    </div>
+                                                    <div class="stat-count">
+                                                        <div class="stat-count">{{ $smallRfqCount ?? 0 }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Table content below the tabs -->
+                                            <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                <livewire:salesperson-sequence-small-demo />
+                                            </div>
+                                            <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                                                {{-- <livewire:salesperson-sequence-small-demo /> --}}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
                         </div>

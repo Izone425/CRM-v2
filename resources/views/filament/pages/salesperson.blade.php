@@ -387,9 +387,9 @@
         ->getNewSoftwareHandovers()
         ->count();
 
-    $hardwareHandoverNew = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
-        ->getNewHardwareHandovers()
-        ->count();
+    $hardwareHandoverNew = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class, [
+        'currentDashboard' => 'Salesperson'
+    ])->getHardwareHandoverCount();
 
     $hardwareHandoverCompleted = app(\App\Livewire\SalespersonDashboard\HardwareHandoverCompleted::class)
         ->getOverdueHardwareHandovers()
@@ -717,7 +717,9 @@
 
                 <!-- Hardware Handover -->
                 <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
-                    <livewire:salesperson-dashboard.hardware-handover-new />
+                    <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
+                        <livewire:salesperson-dashboard.hardware-handover-new :currentDashboard="'Salesperson'" />
+                    </div>
                 </div>
                 <div x-show="selectedStat === 'hardware-handover-completed'" x-transition>
                     <livewire:salesperson-dashboard.hardware-handover-completed />

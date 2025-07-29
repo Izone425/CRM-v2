@@ -74,10 +74,10 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
             // Keep as is - show all salespersons' handovers
-            $salespersonIds = User::where('role_id', 2)->pluck('id');
-            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                $leadQuery->whereIn('salesperson', $salespersonIds);
-            });
+            // $salespersonIds = User::where('role_id', 2)->pluck('id');
+            // $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+            //     $leadQuery->whereIn('salesperson', $salespersonIds);
+            // });
         } elseif (is_numeric($this->selectedUser)) {
             // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
@@ -94,11 +94,15 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 });
             }
         } else {
-            // Salespersons (role_id 2) can only see their own records
-            $userId = auth()->id();
-            $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                $leadQuery->where('salesperson', $userId);
-            });
+            if (auth()->user()->role_id === 2) {
+                // Salespersons (role_id 2) can only see their own records
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            } else {
+
+            }
         }
 
         $query->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
