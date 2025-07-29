@@ -102,6 +102,9 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
             ->orWhere('license_activated', false);
         });
 
+        // Add this condition to only include records with license_certification_id not null
+        $query->whereNotNull('license_certification_id');
+
         $query->orderBy('updated_at', 'desc');
         $query->where(function ($q) {
             $q->where('id', '>=', 556);

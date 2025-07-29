@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\SalespersonAudit;
 
-use App\Models\Appointment;
-use App\Models\User;
 use App\Models\Lead;
+use App\Models\User;
 use Carbon\Carbon;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -24,38 +23,28 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
-class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTable
+class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public $selectedStat = 'demo';
     public $lastRefreshTime;
-    public $demoCount = 0;
     public $rfqCount = 0;
 
-    // Company sizes considered "small"
-    protected $smallCompanySizes = ['1-24'];
+    // Company sizes considered "enterprise"
+    protected $enterpriseCompanySizes = ['501 and Above'];
 
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-        $this->loadCounts();
+        $this->loadCount();
     }
 
-    public function loadCounts()
+    public function loadCount()
     {
-        // Count demos for small companies
-        $this->demoCount = Appointment::query()
-            ->whereIn('status', ['New', 'Done'])
-            ->whereHas('lead', function ($query) {
-                $query->whereIn('company_size', $this->smallCompanySizes);
-            })
-            ->count();
-
-        // Count RFQs for small companies
+        // Count RFQs for enterprise companies
         $this->rfqCount = Lead::query()
-            ->whereIn('company_size', $this->smallCompanySizes)
+            ->whereIn('company_size', $this->enterpriseCompanySizes)
             ->whereHas('activities', function ($q) {
                 $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%']);
             })
@@ -65,7 +54,7 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
     public function refreshTable()
     {
         $this->resetTable();
-        $this->loadCounts();
+        $this->loadCount();
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         Notification::make()
@@ -74,47 +63,11 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
             ->send();
     }
 
-    #[On('updateSelectedTab')]
-    public function updateSelectedTab($tab)
-    {
-        $this->selectedStat = $tab;
-        $this->resetTable();
-    }
-
     public function getTableQuery()
     {
-        $query = Appointment::query()
-                ->whereIn('status', ['New', 'Done'])
-                ->whereHas('lead', function ($query) {
-                    $query->whereIn('company_size', $this->smallCompanySizes);
-                })
-                ->whereIn('causer_id', function($query) {
-                    $query->select('id')
-                        ->from('users')
-                        ->where('role_id', 1);
-                })
-                ->with(['lead', 'lead.companyDetail']);
-
-        return $query;
-    }
-
-    private function getDemoQuery()
-    {
-        $query = Appointment::query()
-            ->whereIn('status', ['New', 'Done'])
-            ->whereHas('lead', function ($query) {
-                $query->whereIn('company_size', $this->smallCompanySizes);
-            })
-            ->with(['lead', 'lead.companyDetail']);
-
-        return $query;
-    }
-
-    private function getRfqQuery()
-    {
-        // For RFQs, we need to use a more complex approach since they're in activity logs
+        // For RFQs, we need to look at activity logs
         $query = Lead::query()
-            ->whereIn('company_size', $this->smallCompanySizes)
+            ->whereIn('company_size', $this->enterpriseCompanySizes)
             ->whereHas('activities', function ($q) {
                 $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%']);
             })
@@ -123,12 +76,22 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
                   ->latest();
             }]);
 
+        // Filter only leads where RFQ was added by a user with role_id 1
+        $query->whereHas('activities', function ($q) {
+            $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
+              ->whereIn('causer_id', function($subquery) {
+                  $subquery->select('id')
+                      ->from('users')
+                      ->where('role_id', 1);
+              });
+        });
+
         return $query;
     }
 
     public function table(Table $table): Table
     {
-        $tableBuilder = $table
+        return $table
             ->poll('300s')
             ->query($this->getTableQuery())
             ->defaultSort('created_at', 'desc')
@@ -157,87 +120,25 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
                         return $query
                             ->when(
                                 $data['from_date'] ?? null,
-                                fn (Builder $q, $date): Builder => $q->whereDate(
-                                    $this->selectedStat === 'demo' ? 'date' : 'created_at',
-                                    '>=',
-                                    $date
+                                fn (Builder $q, $date): Builder => $q->whereHas(
+                                    'activities',
+                                    fn ($actQuery) => $actQuery->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
+                                        ->whereDate('created_at', '>=', $date)
                                 ),
                             )
                             ->when(
                                 $data['to_date'] ?? null,
-                                fn (Builder $q, $date): Builder => $q->whereDate(
-                                    $this->selectedStat === 'demo' ? 'date' : 'created_at',
-                                    '<=',
-                                    $date
+                                fn (Builder $q, $date): Builder => $q->whereHas(
+                                    'activities',
+                                    fn ($actQuery) => $actQuery->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
+                                        ->whereDate('created_at', '<=', $date)
                                 ),
                             );
                     }),
 
                 SortFilter::make("sort_by"),
-            ]);
-
-        if ($this->selectedStat === 'demo') {
-            // Set up columns for Demo table
-            $tableBuilder->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
-
-                TextColumn::make('date')
-                    ->label('Demo Date')
-                    ->formatStateUsing(fn($state) => $state ? Carbon::parse($state)->format('d M Y') : '-')
-                    ->sortable(),
-
-                TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company Name')
-                    ->searchable()
-                    ->formatStateUsing(function ($state, $record) {
-                        if ($record->lead && $record->lead->companyDetail) {
-                            $shortened = strtoupper(Str::limit($record->lead->companyDetail->company_name, 20, '...'));
-                            $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id);
-
-                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
-                                    target="_blank"
-                                    title="' . e($record->lead->companyDetail->company_name) . '"
-                                    class="inline-block"
-                                    style="color:#338cf0;">
-                                    ' . $shortened . '
-                                </a>');
-                        }
-                        return "-";
-                    })
-                    ->html(),
-
-                TextColumn::make('lead.company_size')
-                    ->label('Company Size')
-                    ->badge()
-                    ->color('success'),
-
-                TextColumn::make('salesperson')
-                    ->label('Salesperson')
-                    ->formatStateUsing(function ($state) {
-                        return User::find($state)?->name ?? $state;
-                    }),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'Done' => 'success',
-                        'New' => 'primary',
-                        'Cancelled' => 'danger',
-                        default => 'secondary',
-                    }),
-
-                TextColumn::make('causer_id')
-                    ->label('Created By')
-                    ->formatStateUsing(function ($state) {
-                        return User::find($state)?->name ?? '-';
-                    }),
-            ]);
-        } else {
-            // Set up columns for RFQ table
-            $tableBuilder->columns([
+            ])
+            ->columns([
                 TextColumn::make('id')
                     ->label('ID')
                     ->sortable(),
@@ -293,13 +194,10 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
                         return $activity ? User::find($activity->causer_id)?->name ?? '-' : '-';
                     }),
             ]);
-        }
-
-        return $tableBuilder;
     }
 
     public function render()
     {
-        return view('livewire.salesperson-sequence-small-demo');
+        return view('livewire.salesperson_audit.salesperson-sequence-enterprise-rfq');
     }
 }
