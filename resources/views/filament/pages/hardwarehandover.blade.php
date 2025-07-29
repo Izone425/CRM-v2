@@ -531,7 +531,7 @@
 
                 <!-- New Task -->
                 <div x-show="selectedStat === 'new-task'" x-transition>
-                    <livewire:salesperson-dashboard.hardware-handover-new />
+                    <livewire:salesperson-dashboard.hardware-handover-new :currentDashboard="$currentDashboard" />
                 </div>
 
                 <!-- Rejected -->

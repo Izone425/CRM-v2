@@ -291,7 +291,7 @@
                             </div>
                         </div>
                     @endif
-                    <!-- <div class="nested-dropdown">
+                    <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-list-ol"></i>
                             <span>Salesperson Audit List</span>
@@ -304,7 +304,7 @@
                                 <span>Project Sequence</span>
                             </a>
                         </div>
-                    </div> -->
+                    </div>
                 </div>
             </div>
             @endif
@@ -478,6 +478,15 @@
 
                             <!-- Level 3 dropdown content -->
                             <div class="nested-dropdown-content">
+                                <div class="dropdown-subcategory-heading collapsible">
+                                    <i class="bi bi-dot"></i>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
+                                <div class="subcategory-content">
+                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                        <i class="bi bi-dot"></i>
+                                        <span>Device Purchase Information</span>
+                                    </a>
+                                </div>
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard - All</span>
@@ -486,11 +495,6 @@
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard - Pending Stock</span>
-                                </a>
-
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                    <i class="bi bi-dot"></i>
-                                    <span>Dashboard - Inventory</span>
                                 </a>
 
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
@@ -594,6 +598,56 @@
                                 </div>
                             </div>
                         @endif
+
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-coin"></i>
+                                <span>Sales Pricing</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                               <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Software</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Hardware</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Door Access Accessories</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Others</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-info-circle-fill"></i>
+                                <span>Sales Information</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                               <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Sales Policy</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Hardware Handover Flow</span>
+                                </a>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -651,6 +705,15 @@
 
                         <!-- Level 3 dropdown content -->
                         <div class="nested-dropdown-content">
+                            <div class="dropdown-subcategory-heading collapsible">
+                                <i class="bi bi-dot"></i>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
+                            <div class="subcategory-content">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Device Purchase Information</span>
+                                </a>
+                            </div>
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - All</span>
@@ -659,11 +722,6 @@
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - Pending Stock</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard - Inventory</span>
                             </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
@@ -953,6 +1011,15 @@
                         </div>
 
                         <div class="nested-dropdown-content">
+                            <div class="dropdown-subcategory-heading collapsible">
+                                <i class="bi bi-dot"></i>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
+                            <div class="subcategory-content">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Device Purchase Information</span>
+                                </a>
+                            </div>
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - All</span>
@@ -961,11 +1028,6 @@
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - Pending Stock</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard - Inventory</span>
                             </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">

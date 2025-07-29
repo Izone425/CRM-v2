@@ -58,10 +58,12 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
 
     public $selectedUser;
     public $lastRefreshTime;
+    public $currentDashboard;
 
-    public function mount()
+    public function mount($currentDashboard = null)
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+        $this->currentDashboard = $currentDashboard; // Store the passed parameter
     }
 
     public function refreshTable()
@@ -132,13 +134,13 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     $leadQuery->where('salesperson', $userId);
                 });
             } else {
-                $salespersonIds = User::where('role_id', 2)->pluck('id');
-                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                    $leadQuery->whereIn('salesperson', $salespersonIds);
-                });
-                // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['New', 'Approved', 'No Stock']);
-                // But they can see ALL records
+                if($this->currentDashboard === 'Salesperson') {
+                    // If the current dashboard is Salesperson, show all statuses
+                    $query->whereIn('status', ['Rejected', 'Draft', 'New', 'Pending Migration', 'Pending Stock']);
+                } else {
+                    // For other dashboards, show only New, Approved, and No Stock
+                    $query->whereIn('status', ['New']);
+                }
             }
         }
 
@@ -153,6 +155,39 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
         ->orderBy('created_at', 'desc');
 
         return $query;
+    }
+
+    public function getHardwareHandoverCount()
+    {
+        $query = HardwareHandover::query();
+
+        if (auth()->user()->role_id === 2) {
+            // For salesperson role
+            $userId = auth()->id();
+            $query->whereIn('status', ['New', 'Pending Migration', 'Pending Stock'])
+                ->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+        } else {
+            // For admin/other roles
+            if ($this->selectedUser === 'all-salespersons') {
+                $query->whereIn('status', ['New', 'Pending Migration', 'Pending Stock']);
+                $salespersonIds = User::where('role_id', 2)->pluck('id');
+                $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                    $leadQuery->whereIn('salesperson', $salespersonIds);
+                });
+            } elseif (is_numeric($this->selectedUser)) {
+                $query->whereIn('status', ['New', 'Pending Migration', 'Pending Stock']);
+                $selectedUser = $this->selectedUser;
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
+                });
+            } else {
+                $query->whereIn('status', ['New', 'Pending Migration', 'Pending Stock']);
+            }
+        }
+
+        return $query->count();
     }
 
     public function table(Table $table): Table
@@ -255,7 +290,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 30, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
@@ -263,7 +298,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
+                                    ' . $shortened . '
                                 </a>';
                     })
                     ->html(),

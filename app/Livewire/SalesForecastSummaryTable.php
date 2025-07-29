@@ -149,26 +149,32 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                                 ->sum('amount');
 
                             // Add special handling for Admin Renewal
-                            $components[] = \Filament\Forms\Components\Grid::make(3)
+                            $components[] = \Filament\Forms\Components\Grid::make(7)
                                 ->schema([
+                                    Placeholder::make("salesperson_name_{$salesperson->id}")
+                                        ->hiddenLabel()
+                                        ->content('Admin Renewal')
+                                        ->columnSpan(1),
+
                                     TextInput::make("targets.{$salesperson->id}")
-                                        ->label('ADMIN RENEWAL Target')
+                                        ->hiddenLabel()
                                         ->numeric()
                                         ->placeholder($latestAmount
                                             ? 'Latest: RM ' . number_format($latestAmount, 2) . " ({$latestMonth}/{$latestYear})"
-                                            : 'No previous target set'),
+                                            : 'No previous target set')
+                                        ->columnSpan(2),
 
                                     TextInput::make("invoice_amount.{$salesperson->id}")
-                                        ->label('ADMIN RENEWAL Invoice')
+                                        ->hiddenLabel()
                                         ->numeric()
-                                        ->placeholder('Manual invoice amount')
-                                        ->helperText('Current: RM ' . number_format($invoiceAmount, 2)),
+                                        ->placeholder('Invoice amount')
+                                        ->columnSpan(2),
 
                                     TextInput::make("forecast_hot.{$salesperson->id}")
-                                        ->label('ADMIN RENEWAL Forecast Hot')
+                                        ->hiddenLabel()
                                         ->numeric()
                                         ->placeholder('Manual forecast hot value')
-                                        ->helperText('Enter additional forecast amount')
+                                        ->columnSpan(2),
                                 ]);
                         } else {
                             // For regular salespeople
@@ -178,20 +184,26 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                                 ->sum('amount');
 
                             // Add target and invoice amount fields for regular salespeople
-                            $components[] = \Filament\Forms\Components\Grid::make(2)
+                            $components[] = \Filament\Forms\Components\Grid::make(7)
                                 ->schema([
+                                    Placeholder::make("salesperson_name_{$salesperson->id}")
+                                        ->hiddenLabel()
+                                        ->content($salesperson->name)
+                                        ->columnSpan(1),
+
                                     TextInput::make("targets.{$salesperson->id}")
-                                        ->label($salesperson->name . ' Target')
+                                        ->hiddenLabel()
                                         ->numeric()
                                         ->placeholder($latestAmount
                                             ? 'Latest: RM ' . number_format($latestAmount, 2) . " ({$latestMonth}/{$latestYear})"
-                                            : 'No previous target set'),
+                                            : 'No previous target set')
+                                        ->columnSpan(3),
 
                                     TextInput::make("invoice_amount.{$salesperson->id}")
-                                        ->label($salesperson->name . ' Invoice')
+                                        ->hiddenLabel()
                                         ->numeric()
-                                        ->placeholder('Manual invoice amount')
-                                        ->helperText('Current: RM ' . number_format($invoiceAmount, 2))
+                                        ->placeholder('Invoice amount')
+                                        ->columnSpan(3),
                                 ]);
                         }
                     }
@@ -268,7 +280,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                     ->sortable()
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
-                        return $record->id === $this->adminRenewalId ? 'ADMIN RENEWAL' : $state;
+                        return $record->id === $this->adminRenewalId ? 'Admin Renewal' : $state;
                     }),
 
                 TextColumn::make('invoice')
@@ -282,16 +294,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 TextColumn::make('forecast_hot')
                     ->label('FORECAST - HOT')
                     ->getStateUsing(function ($record) {
-                        if ($record->id === $this->adminRenewalId) {
-                            // For Admin Renewal, get hot leads owned by specified people with null salesperson
-                            $total = Lead::whereIn('lead_owner', $this->adminLeadOwners)
-                                ->whereNull('salesperson')
-                                ->where('lead_status', 'Hot')
-                                ->sum('deal_amount');
-                        } else {
-                            // For regular salespeople
-                            $total = $this->getForecastHot($record);
-                        }
+                        $total = $this->getForecastHot($record);
                         return 'RM ' . number_format($total, 2);
                     }),
 
