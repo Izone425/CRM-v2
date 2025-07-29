@@ -30,6 +30,7 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
 
     public $lastRefreshTime;
     public $rfqCount = 0;
+    public $rank1 = [];
 
     // Company sizes considered "enterprise"
     protected $enterpriseCompanySizes = ['501 and Above'];
@@ -37,24 +38,14 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-        $this->loadCount();
-    }
 
-    public function loadCount()
-    {
-        // Count RFQs for enterprise companies
-        $this->rfqCount = Lead::query()
-            ->whereIn('company_size', $this->enterpriseCompanySizes)
-            ->whereHas('activities', function ($q) {
-                $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%']);
-            })
-            ->count();
+        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho'];
+        $this->rank1 = User::whereIn('name', $rank1Names)->pluck('id')->toArray();
     }
 
     public function refreshTable()
     {
         $this->resetTable();
-        $this->loadCount();
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         Notification::make()
@@ -65,28 +56,16 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
 
     public function getTableQuery()
     {
-        // For RFQs, we need to look at activity logs
-        $query = Lead::query()
-            ->whereIn('company_size', $this->enterpriseCompanySizes)
-            ->whereHas('activities', function ($q) {
-                $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%']);
+        // Make sure you're querying the Spatie Activity model
+        return \Spatie\Activitylog\Models\Activity::query()
+            ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
+            ->whereIn('properties->attributes->salesperson', $this->rank1 ?? [12, 6, 9])
+            ->where(function($query) {
+                foreach ($this->enterpriseCompanySizes as $size) {
+                    $query->orWhere('properties->attributes->company_size', $size);
+                }
             })
-            ->with(['companyDetail', 'activities' => function ($q) {
-                $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-                  ->latest();
-            }]);
-
-        // Filter only leads where RFQ was added by a user with role_id 1
-        $query->whereHas('activities', function ($q) {
-            $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-              ->whereIn('causer_id', function($subquery) {
-                  $subquery->select('id')
-                      ->from('users')
-                      ->where('role_id', 1);
-              });
-        });
-
-        return $query;
+            ->with(['subject', 'causer']);  // Load both relationships
     }
 
     public function table(Table $table): Table
@@ -96,7 +75,8 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
             ->query($this->getTableQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 15])
             ->filters([
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
@@ -141,58 +121,95 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->rowIndex()
                     ->sortable(),
 
-                TextColumn::make('activities.0.created_at')
+                TextColumn::make('created_at')
                     ->label('RFQ Date')
-                    ->formatStateUsing(function ($state, $record) {
-                        $activity = $record->activities->first();
-                        return $activity ? Carbon::parse($activity->created_at)->format('d M Y') : '-';
-                    })
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->orderBy(
-                            DB::raw("(SELECT MAX(created_at) FROM activity_log WHERE subject_id = leads.id AND description LIKE '%rfq only%')"),
-                            $direction
-                        );
-                    }),
+                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d M Y'))
+                    ->sortable(),
 
-                TextColumn::make('companyDetail.company_name')
+                TextColumn::make('subject_id')
                     ->label('Company Name')
                     ->searchable()
-                    ->formatStateUsing(function ($state, $record) {
-                        if ($record->companyDetail) {
-                            $shortened = strtoupper(Str::limit($record->companyDetail->company_name, 20, '...'));
-                            $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
+                    ->formatStateUsing(function ($state, $record) {  // Changed $leadId to $state for consistency
+                        if ($state) {  // This is the subject_id value
+                            // Get company details directly using subject_id (which is the lead ID)
+                            $companyDetail = \App\Models\CompanyDetail::where('lead_id', $state)->first();
 
-                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                            if ($companyDetail) {
+                                $shortened = strtoupper(Str::limit($companyDetail->company_name, 20, '...'));
+                                $encryptedId = \App\Classes\Encryptor::encrypt($state);
+
+                                return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($record->companyDetail->company_name) . '"
+                                    title="' . e($companyDetail->company_name) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
                                     ' . $shortened . '
                                 </a>');
+                            }
                         }
+
+                        // Fallback: try to get from properties if subject_id approach failed
+                        $properties = $record->properties;
+                        if ($properties) {
+                            $properties = is_string($properties) ? json_decode($properties, true) : $properties;
+                            $leadId = $properties['attributes']['id'] ?? null;
+
+                            if ($leadId) {
+                                $companyDetail = \App\Models\CompanyDetail::where('lead_id', $leadId)->first();
+                                if ($companyDetail) {
+                                    $shortened = strtoupper(Str::limit($companyDetail->company_name, 20, '...'));
+                                    $encryptedId = \App\Classes\Encryptor::encrypt($leadId);
+
+                                    return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                        target="_blank"
+                                        title="' . e($companyDetail->company_name) . '"
+                                        class="inline-block"
+                                        style="color:#338cf0;">
+                                        ' . $shortened . '
+                                    </a>');
+                                }
+                            }
+                        }
+
                         return "-";
                     })
                     ->html(),
 
-                TextColumn::make('company_size')
-                    ->label('Company Size')
-                    ->badge()
-                    ->color('success'),
-
-                TextColumn::make('salesperson')
+                TextColumn::make('properties')
                     ->label('Salesperson')
-                    ->formatStateUsing(function ($state) {
-                        return User::find($state)?->name ?? $state;
+                    ->formatStateUsing(function ($state, $record) {
+                        // First try to get from properties
+                        $properties = is_string($state) ? json_decode($state, true) : $state;
+                        $spId = $properties['attributes']['salesperson'] ?? null;
+                        info($properties);
+                        if ($spId) {
+                            $user = User::find($spId);
+                            if ($user) {
+                                return $user->name;
+                            }
+                        }
+
+                        // If no salesperson in properties, try to get from the lead
+                        if ($record->subject_id) {
+                            $lead = Lead::find($record->subject_id);
+                            if ($lead && $lead->salesperson) {
+                                $user = User::find($lead->salesperson);
+                                if ($user) {
+                                    return $user->name;
+                                }
+                                return $lead->salesperson;
+                            }
+                        }
+
+                        return '-';
                     }),
 
-                TextColumn::make('activities.0.causer_id')
+                TextColumn::make('causer_id')
                     ->label('Created By')
-                    ->formatStateUsing(function ($state, $record) {
-                        $activity = $record->activities->first();
-                        return $activity ? User::find($activity->causer_id)?->name ?? '-' : '-';
-                    }),
+                    ->formatStateUsing(fn ($state) => User::find($state)?->name ?? '-'),
             ]);
     }
 

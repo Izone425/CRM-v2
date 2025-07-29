@@ -40,13 +40,11 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-        $this->loadCounts();
     }
 
     public function refreshTable()
     {
         $this->resetTable();
-        $this->loadCounts();
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         Notification::make()
@@ -116,7 +114,8 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
             ->query($this->getTableQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 15])
             ->filters([
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
@@ -164,6 +163,7 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
             $tableBuilder->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->rowIndex()
                     ->sortable(),
 
                 TextColumn::make('date')
@@ -223,6 +223,7 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
             $tableBuilder->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->rowIndex()
                     ->sortable(),
 
                 TextColumn::make('activities.0.created_at')

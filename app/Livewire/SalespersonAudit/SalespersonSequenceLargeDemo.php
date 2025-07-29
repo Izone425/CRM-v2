@@ -79,6 +79,8 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
             ->whereIn('status', ['New', 'Done'])
             ->whereHas('lead', function ($query) {
                 $query->whereIn('company_size', $this->largeCompanySizes);
+
+                $query->whereIn('salesperson', [12, 6, 9]);
             })
             ->whereIn('causer_id', function($query) {
                 $query->select('id')
@@ -97,7 +99,8 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
             ->query($this->getTableQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 15])
             ->filters([
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
@@ -145,6 +148,7 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
             $tableBuilder->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->rowIndex()
                     ->sortable(),
 
                 TextColumn::make('date')

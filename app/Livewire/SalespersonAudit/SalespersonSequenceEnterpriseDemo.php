@@ -40,24 +40,11 @@ class SalespersonSequenceEnterpriseDemo extends Component implements HasForms, H
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-        $this->loadCounts();
-    }
-
-    public function loadCounts()
-    {
-        // Count demos for small companies
-        $this->demoCount = Appointment::query()
-            ->whereIn('status', ['New', 'Done'])
-            ->whereHas('lead', function ($query) {
-                $query->whereIn('company_size', $this->enterpriseCompanySizes);
-            })
-            ->count();
     }
 
     public function refreshTable()
     {
         $this->resetTable();
-        $this->loadCounts();
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         Notification::make()
@@ -79,6 +66,8 @@ class SalespersonSequenceEnterpriseDemo extends Component implements HasForms, H
                 ->whereIn('status', ['New', 'Done'])
                 ->whereHas('lead', function ($query) {
                     $query->whereIn('company_size', $this->enterpriseCompanySizes);
+
+                    $query->whereIn('salesperson', [12, 6, 9]);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')
@@ -97,7 +86,8 @@ class SalespersonSequenceEnterpriseDemo extends Component implements HasForms, H
             ->query($this->getTableQuery())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5, 10, 15])
             ->filters([
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
@@ -145,6 +135,7 @@ class SalespersonSequenceEnterpriseDemo extends Component implements HasForms, H
             $tableBuilder->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->rowIndex()
                     ->sortable(),
 
                 TextColumn::make('date')
