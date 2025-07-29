@@ -257,6 +257,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                         ->label('Create License Duration')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->visible(false)
                         ->form([
                             \Filament\Forms\Components\Grid::make(3)
                             ->schema([
@@ -472,8 +473,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     $recipients[] = $salespersonEmail;
                                 }
 
-                                // Always include adminx
-                                $recipients[] = 'admin.timetec.hr@timeteccloud.com';
+                                // // Always include adminx
+                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();
