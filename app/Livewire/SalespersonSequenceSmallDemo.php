@@ -83,11 +83,19 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
 
     public function getTableQuery()
     {
-        if ($this->selectedStat === 'demo') {
-            return $this->getDemoQuery();
-        } else {
-            return $this->getRfqQuery();
-        }
+        $query = Appointment::query()
+                ->whereIn('status', ['New', 'Done'])
+                ->whereHas('lead', function ($query) {
+                    $query->whereIn('company_size', $this->smallCompanySizes);
+                })
+                ->whereIn('causer_id', function($query) {
+                    $query->select('id')
+                        ->from('users')
+                        ->where('role_id', 1);
+                })
+                ->with(['lead', 'lead.companyDetail']);
+
+        return $query;
     }
 
     private function getDemoQuery()
