@@ -31,6 +31,7 @@ class SalespersonSequenceMediumRfqRank2 extends Component implements HasForms, H
     public $lastRefreshTime;
     public $rfqCount = 0;
     public $rank1 = [];
+    public $rankUsers = [];
 
     // Company sizes considered "medium"
     protected $mediumCompanySizes = ['25-99'];
@@ -57,10 +58,13 @@ class SalespersonSequenceMediumRfqRank2 extends Component implements HasForms, H
 
     public function getTableQuery()
     {
+        // Use rankUsers property which will contain either the passed rank or the default rank1
+        $userIds = !empty($this->rankUsers) ? $this->rankUsers : [11, 10, 7, 8]; // Fallback IDs
+
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->whereIn('properties->attributes->salesperson', $this->rank1 ?? [11, 10, 7, 8])
+            ->whereIn('properties->attributes->salesperson', $userIds)
             ->where(function($query) {
                 foreach ($this->mediumCompanySizes as $size) {
                     $query->orWhere('properties->attributes->company_size', $size);
