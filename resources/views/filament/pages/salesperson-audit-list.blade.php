@@ -341,6 +341,7 @@
     </style>
 
     @php
+        //Rank1
         // Small Companies Counts
         $smallDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallDemo::class)
             ->getTableQuery()
@@ -382,6 +383,49 @@
         $mediumTotalCount = $mediumDemoCount + $mediumRfqCount;
         $largeTotalCount = $largeDemoCount + $largeRfqCount;
         $enterpriseTotalCount = $enterpriseDemoCount + $enterpriseRfqCount;
+
+        //Rank2
+        // Small Companies Counts
+        $smallDemoCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallDemoRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        $smallRfqCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallRfqRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        // Medium Companies Counts
+        $mediumDemoCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumDemoRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        $mediumRfqCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumRfqRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        // Large Companies Counts
+        $largeDemoCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeDemoRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        $largeRfqCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeRfqRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        // Enterprise Companies Counts
+        $enterpriseDemoCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseDemoRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        $enterpriseRfqCountR2 = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseRfqRank2::class)
+            ->getTableQuery()
+            ->count();
+
+        // Total counts for each company size
+        $smallTotalCountR2 = $smallDemoCountR2 + $smallRfqCountR2;
+        $mediumTotalCountR2 = $mediumDemoCountR2 + $mediumRfqCountR2;
+        $largeTotalCountR2 = $largeDemoCountR2 + $largeRfqCountR2;
+        $enterpriseTotalCountR2 = $enterpriseDemoCountR2 + $enterpriseRfqCountR2;
     @endphp
 
     <div x-data="{ selectedRank: 'rank1' }">
@@ -884,7 +928,7 @@
                                 >
                                     <div class="group-title">Small Companies</div>
                                     <div class="group-count">
-                                        {{ $smallTotalCount }}
+                                        {{ $smallTotalCountR2 }}
                                     </div>
                                 </div>
 
@@ -894,7 +938,7 @@
                                 >
                                     <div class="group-title">Medium Companies</div>
                                     <div class="group-count">
-                                        {{ $mediumTotalCount }}
+                                        {{ $mediumTotalCountR2 }}
                                     </div>
                                 </div>
 
@@ -904,7 +948,7 @@
                                 >
                                     <div class="group-title">Large Companies</div>
                                     <div class="group-count">
-                                        {{ $largeTotalCount }}
+                                        {{ $largeTotalCountR2 }}
                                     </div>
                                 </div>
 
@@ -914,7 +958,7 @@
                                 >
                                     <div class="group-title">Enterprise Companies</div>
                                     <div class="group-count">
-                                        {{ $enterpriseTotalCount }}
+                                        {{ $enterpriseTotalCountR2 }}
                                     </div>
                                 </div>
                             </div>
@@ -935,7 +979,7 @@
                                                         <div class="stat-label">Demo</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $smallDemoCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $smallDemoCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
 
@@ -946,7 +990,7 @@
                                                         <div class="stat-label">RFQ</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $smallRfqCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $smallRfqCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -975,7 +1019,7 @@
                                                         <div class="stat-label">Demo</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $mediumDemoCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $mediumDemoCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
 
@@ -986,17 +1030,17 @@
                                                         <div class="stat-label">RFQ</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $mediumRfqCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $mediumRfqCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <!-- Table content below the tabs -->
                                             <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-medium-demo />
+                                                <livewire:salesperson-audit.salesperson-sequence-medium-demo-rank2 />
                                             </div>
                                             <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-medium-rfq />
+                                                <livewire:salesperson-audit.salesperson-sequence-medium-rfq-rank2 />
                                             </div>
                                         </div>
                                     </div>
@@ -1015,7 +1059,7 @@
                                                         <div class="stat-label">Demo</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $largeDemoCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $largeDemoCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
 
@@ -1026,17 +1070,17 @@
                                                         <div class="stat-label">RFQ</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $largeRfqCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $largeRfqCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <!-- Table content below the tabs -->
                                             <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-large-demo />
+                                                <livewire:salesperson-audit.salesperson-sequence-large-demo-rank2 />
                                             </div>
                                             <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-large-rfq />
+                                                <livewire:salesperson-audit.salesperson-sequence-large-rfq-rank2 />
                                             </div>
                                         </div>
                                     </div>
@@ -1055,7 +1099,7 @@
                                                         <div class="stat-label">Demo</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $enterpriseDemoCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $enterpriseDemoCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
 
@@ -1066,17 +1110,17 @@
                                                         <div class="stat-label">RFQ</div>
                                                     </div>
                                                     <div class="stat-count">
-                                                        <div class="stat-count">{{ $enterpriseRfqCount ?? 0 }}</div>
+                                                        <div class="stat-count">{{ $enterpriseRfqCountR2 ?? 0 }}</div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <!-- Table content below the tabs -->
                                             <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-demo />
+                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-demo-rank2 />
                                             </div>
                                             <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-rfq />
+                                                <livewire:salesperson-audit.salesperson-sequence-enterprise-rfq-rank2 />
                                             </div>
                                         </div>
                                     </div>
