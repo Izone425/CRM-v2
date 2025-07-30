@@ -23,25 +23,23 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
-class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTable
+class SalespersonSequenceEnterpriseRfqRank2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
     public $lastRefreshTime;
     public $rfqCount = 0;
-    public $rank1 = []; // Uncomment this line
-    public $rankUsers = [];
+    public $rank1 = [];
 
-    // Company sizes considered "small"
-    protected $smallCompanySizes = ['1-24'];
+    // Company sizes considered "enterprise"
+    protected $enterpriseCompanySizes = ['501 and Above'];
 
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
-        // Define rank1 by name (as in SalespersonAuditList)
-        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho'];
+        $rank1Names = ['Muhammad Khoirul Bariah', 'Abdul Aziz', 'Yasmin', 'Farhanah Jamil'];
         $this->rank1 = User::whereIn('name', $rank1Names)->pluck('id')->toArray();
     }
 
@@ -58,15 +56,12 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
 
     public function getTableQuery()
     {
-        // Use rankUsers property which will contain either the passed rank or the default rank1
-        $userIds = !empty($this->rankUsers) ? $this->rankUsers : [12, 6, 9]; // Fallback IDs
-
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->whereIn('properties->attributes->salesperson', $userIds)
+            ->whereIn('properties->attributes->salesperson', $this->rank1 ?? [11, 10, 7, 8])
             ->where(function($query) {
-                foreach ($this->smallCompanySizes as $size) {
+                foreach ($this->enterpriseCompanySizes as $size) {
                     $query->orWhere('properties->attributes->company_size', $size);
                 }
             })
@@ -220,6 +215,6 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
 
     public function render()
     {
-        return view('livewire.salesperson_audit.salesperson-sequence-small-rfq');
+        return view('livewire.salesperson_audit.salesperson-sequence-enterprise-rfq-rank2');
     }
 }

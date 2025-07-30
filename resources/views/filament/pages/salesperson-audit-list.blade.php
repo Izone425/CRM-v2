@@ -953,10 +953,10 @@
 
                                             <!-- Table content below the tabs -->
                                             <div x-show="selectedStat === 'demo'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-small-demo />
+                                                <livewire:salesperson-audit.salesperson-sequence-small-demo-rank2 />
                                             </div>
                                             <div x-show="selectedStat === 'rfq'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                                                <livewire:salesperson-audit.salesperson-sequence-small-rfq />
+                                                <livewire:salesperson-audit.salesperson-sequence-small-rfq-rank2 />
                                             </div>
                                         </div>
                                     </div>
