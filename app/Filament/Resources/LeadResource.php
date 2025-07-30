@@ -271,101 +271,101 @@ class LeadResource extends Resource
             ->filters([
                 // Filter for Lead Owner
                 SelectFilter::make('lead_owner')
-                ->label('')
-                ->multiple()
-                ->options([
-                    'none' => 'None',
-                    ...\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray(),
-                ])
-                ->placeholder('Select Lead Owner')
-                ->query(function ($query, $data) {
-                    $values = collect($data)->flatten()->filter()->values();
+                    ->label('')
+                    ->multiple()
+                    ->options([
+                        'none' => 'None',
+                        ...\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray(),
+                    ])
+                    ->placeholder('Select Lead Owner')
+                    ->query(function ($query, $data) {
+                        $values = collect($data)->flatten()->filter()->values();
 
-                    if ($values->isEmpty()) {
-                        return; // ✅ Don't filter if nothing selected
-                    }
+                        if ($values->isEmpty()) {
+                            return; // ✅ Don't filter if nothing selected
+                        }
 
-                    if ($values->contains('none')) {
-                        $query->where(function ($q) use ($values) {
-                            $q->whereNull('lead_owner');
+                        if ($values->contains('none')) {
+                            $query->where(function ($q) use ($values) {
+                                $q->whereNull('lead_owner');
 
-                            $filtered = $values->reject(fn ($val) => $val === 'none');
-                            if ($filtered->isNotEmpty()) {
-                                $q->orWhereIn('lead_owner', $filtered->all());
-                            }
-                        });
-                    } else {
-                        $query->whereIn('lead_owner', $values->all());
-                    }
-                }),
+                                $filtered = $values->reject(fn ($val) => $val === 'none');
+                                if ($filtered->isNotEmpty()) {
+                                    $q->orWhereIn('lead_owner', $filtered->all());
+                                }
+                            });
+                        } else {
+                            $query->whereIn('lead_owner', $values->all());
+                        }
+                    }),
 
                 // Filter for Salesperson
                 SelectFilter::make('salesperson')
-                ->label('')
-                ->multiple()
-                ->options([
-                    'none' => 'None',
-                    6 => 'Wan Amirul Muim',
-                    7 => 'Yasmin',
-                    8 => 'Farhanah Jamil',
-                    9 => 'Joshua Ho',
-                    10 => 'Abdul Aziz',
-                    11 => 'Muhammad Khoirul Bariah',
-                    12 => 'Vince Leong',
-                    18 => 'Jonathan',
-                ])
-                ->placeholder('Select Salesperson')
-                ->query(function ($query, $data) {
-                    $values = collect($data)->flatten()->filter()->values();
+                    ->label('')
+                    ->multiple()
+                    ->options([
+                        'none' => 'None',
+                        6 => 'Wan Amirul Muim',
+                        7 => 'Yasmin',
+                        8 => 'Farhanah Jamil',
+                        9 => 'Joshua Ho',
+                        10 => 'Abdul Aziz',
+                        11 => 'Muhammad Khoirul Bariah',
+                        12 => 'Vince Leong',
+                        18 => 'Jonathan',
+                    ])
+                    ->placeholder('Select Salesperson')
+                    ->query(function ($query, $data) {
+                        $values = collect($data)->flatten()->filter()->values();
 
-                    if ($values->isEmpty()) {
-                        return; // ✅ Don't filter if nothing selected
-                    }
+                        if ($values->isEmpty()) {
+                            return; // ✅ Don't filter if nothing selected
+                        }
 
-                    if ($values->contains('none')) {
-                        $query->where(function ($q) use ($values) {
-                            $q->whereNull('salesperson');
+                        if ($values->contains('none')) {
+                            $query->where(function ($q) use ($values) {
+                                $q->whereNull('salesperson');
 
-                            $filtered = $values->reject(fn ($val) => $val === 'none');
-                            if ($filtered->isNotEmpty()) {
-                                $q->orWhereIn('salesperson', $filtered->all());
-                            }
-                        });
-                    } else {
-                        $query->whereIn('salesperson', $values->all());
-                    }
-                }),
+                                $filtered = $values->reject(fn ($val) => $val === 'none');
+                                if ($filtered->isNotEmpty()) {
+                                    $q->orWhereIn('salesperson', $filtered->all());
+                                }
+                            });
+                        } else {
+                            $query->whereIn('salesperson', $values->all());
+                        }
+                    }),
 
                 //Filter for Created At
                 Filter::make('created_at')
-                ->form([
-                    DateRangePicker::make('date_range')
-                        ->label('')
-                        ->placeholder('Select date range'),
-                ])
-                ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                    if (!empty($data['date_range'])) {
-                        // Parse the date range from the "start - end" format
-                        [$start, $end] = explode(' - ', $data['date_range']);
+                    ->form([
+                        DateRangePicker::make('date_range')
+                            ->label('')
+                            ->placeholder('Select date range'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range from the "start - end" format
+                            [$start, $end] = explode(' - ', $data['date_range']);
 
-                        // Ensure valid dates
-                        $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
-                        $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+                            // Ensure valid dates
+                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
 
-                        // Apply the filter
-                        $query->whereBetween('created_at', [$startDate, $endDate]);
-                    }
-                })
-                ->indicateUsing(function (array $data) {
-                    if (!empty($data['date_range'])) {
-                        // Parse the date range for display
-                        [$start, $end] = explode(' - ', $data['date_range']);
+                            // Apply the filter
+                            $query->whereBetween('created_at', [$startDate, $endDate]);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range for display
+                            [$start, $end] = explode(' - ', $data['date_range']);
 
-                        return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
-                            ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
-                    }
-                    return null;
-                }),
+                            return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
+                                ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                        }
+                        return null;
+                    }),
                 // Filter for Categories
                 SelectFilter::make('categories')
                     ->label('')
@@ -542,6 +542,70 @@ class LeadResource extends Resource
                             }
                         });
                     }),
+                Filter::make('deal_amount')
+                    ->form([
+                        Grid::make(3)
+                            ->schema([
+                                \Filament\Forms\Components\Select::make('type')
+                                    ->hiddenLabel()
+                                    ->options([
+                                        'above' => 'Above Amount',
+                                        'below' => 'Below Amount',
+                                        'between' => 'Between Amounts',
+                                    ])
+                                    ->required()
+                                    ->reactive()
+                                    ->default('above')
+                                    ->afterStateUpdated(fn ($state, callable $set) => $set('max_amount', $state !== 'between' ? null : 10000)),
+
+                                \Filament\Forms\Components\TextInput::make('min_amount')
+                                    ->hiddenLabel()
+                                    ->numeric()
+                                    ->required()
+                                    ->placeholder('Enter minimum amount in RM'),
+
+                                \Filament\Forms\Components\TextInput::make('max_amount')
+                                    ->hiddenLabel()
+                                    ->numeric()
+                                    ->required()
+                                    ->placeholder('Enter maximum amount in RM')
+                                    ->visible(fn (callable $get) => $get('type') === 'between'),
+                            ]),
+
+                    ])
+                    ->columnSpan(3)
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['type']) || empty($data['min_amount'])) {
+                            return $query;
+                        }
+
+                        return match ($data['type']) {
+                            'above' => $query->where('deal_amount', '>=', $data['min_amount']),
+                            'below' => $query->where(function ($query) use ($data) {
+                                $query->where('deal_amount', '<=', $data['min_amount'])
+                                    ->orWhereNull('deal_amount');
+                            }),
+                            'between' => $query->whereBetween('deal_amount', [
+                                $data['min_amount'],
+                                $data['max_amount'] ?? $data['min_amount']
+                            ]),
+                            default => $query,
+                        };
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['type']) || empty($data['min_amount'])) {
+                            return null;
+                        }
+
+                        return match ($data['type']) {
+                            'above' => 'Deal amount ≥ RM ' . number_format($data['min_amount'], 2),
+                            'below' => 'Deal amount ≤ RM ' . number_format($data['min_amount'], 2),
+                            'between' => 'Deal amount between RM ' . number_format($data['min_amount'], 2) .
+                                        ' and RM ' . number_format($data['max_amount'] ?? $data['min_amount'], 2),
+                            default => null,
+                        };
+                    })
+                    ->hidden(fn ($livewire) => $livewire->activeTab === 'demo'),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
                 ->columns([

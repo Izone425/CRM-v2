@@ -159,105 +159,12 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->follow_up_date->diffInDays(now()) . ' days')
-                    ->color(fn ($record) => $record->follow_up_date->diffInDays(now()) == 0 ? 'draft' : 'danger'),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
             ])
             ->actions([
                 ActionGroup::make([
-                    // LeadActions::getAddQuotationAction()
-                    //     ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' || $lead->lead_status === 'RFQ-Follow Up')),
-                    // LeadActions::getAddDemoAction()
-                    //     ->visible(fn (?Lead $lead) => $lead && ($lead->lead_status === 'RFQ-Transfer' ||
-                    //     $lead->lead_status === 'Demo Cancelled' || $lead->lead_status === 'Pending Demo')),
-
-                    // LeadActions::getDoneDemoAction()
-                    //     ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
-                    // LeadActions::getCancelDemoAction()
-                    //     ->visible(fn (?Lead $lead) => $lead && $lead->lead_status === 'Demo-Assigned'),
-                    // LeadActions::getQuotationFollowUpAction()
-                    //     ->visible(function (Lead $lead) {
-                    //         $latestActivityLog = $lead->activityLogs()->latest()->first();
-
-                    //         if (!$latestActivityLog) {
-                    //             return false;
-                    //         }
-
-                    //         $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
-
-                    //         $leadStatus = data_get($attributes, 'lead_status');
-
-                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    //             ->orderByDesc('created_at')
-                    //             ->first();
-
-                    //         if($leadStatus == LeadStatusEnum::PENDING_DEMO->value){
-                    //             return false;
-                    //         }
-
-                    //         if(str_contains($latestActivityLog->description, 'Quotation Sent.')){
-                    //             return true;
-                    //         }
-
-                    //         return ($leadStatus === LeadStatusEnum::HOT->value ||
-                    //             $leadStatus === LeadStatusEnum::WARM->value ||
-                    //             $leadStatus === LeadStatusEnum::COLD->value) &&
-                    //             $latestActivityLog->description !== '4th Quotation Transfer Follow Up' &&
-                    //             $latestActivityLog->description !== 'Order Uploaded. Pending Approval to close lead.';
-                    //     }),
-                    // LeadActions::getNoResponseAction()
-                    //     ->visible(function (Lead $lead) {
-                    //         $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                    //             ->orderByDesc('created_at')
-                    //             ->first();
-
-                    //         if ($latestActivityLog) {
-                    //             // Check if the latest activity log description needs updating
-                    //             if ($lead->call_attempt >= 4 || $latestActivityLog->description == '4th Lead Owner Follow Up (Auto Follow Up Stop)'||
-                    //                 $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
-                    //                 $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
-                    //                 $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
-                    //                 return true; // Show button
-                    //             }
-                    //         }
-
-                    //         return false; // Default: Hide button
-                    //     }),
                     LeadActions::getAddFollowUp(),
-                        // ->visible(function (Lead $lead) {
-                        //     $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                        //         ->orderByDesc('created_at')
-                        //         ->first();
-
-                        //     if ($latestActivityLog) {
-                        //         // Check if the latest activity log description needs updating
-                        //         if ($lead->call_attempt >= 4 || $lead->lead_status =='Hot' || $lead->lead_status =='Warm' ||
-                        //             $lead->lead_status =='Cold' || $lead->lead_status =='RFQ-Transfer' || $lead->lead_status =='RFQ-Follow Up' ||
-                        //             $latestActivityLog->description == '4th Salesperson Transfer Follow Up' ||
-                        //             $latestActivityLog->description == 'Demo Cancelled. 4th Demo Cancelled Follow Up' ||
-                        //             $latestActivityLog->description == '4th Quotation Transfer Follow Up') {
-                        //             return false; // Show button
-                        //         }
-                        //     }
-
-                        //     return true; // Default: Hide button
-                        // }),
-                    // LeadActions::getConfirmOrderAction()
-                    //     ->visible(function (Lead $lead) {
-                    //         $latestActivityLog = $lead->activityLogs()->latest()->first();
-
-                    //         if (!$latestActivityLog) {
-                    //             return false;
-                    //         }
-
-                    //         $description = $latestActivityLog->description;
-                    //         $attributes = json_decode($latestActivityLog->properties, true)['attributes'] ?? [];
-                    //         $leadStatus = data_get($attributes, 'lead_status');
-
-                    //         return (
-                    //             (str_contains($description, 'Quotation Sent.') && $leadStatus !== LeadStatusEnum::PENDING_DEMO->value)
-                    //             || str_contains($description, 'Quotation Transfer')
-                    //         );
-                    //     }),
                     LeadActions::getLeadDetailAction(),
                     LeadActions::getViewAction(),
                     LeadActions::getViewRemark(),
@@ -270,5 +177,21 @@ class PROverdueSalespersonTable extends Component implements HasForms, HasTable
     public function render()
     {
         return view('livewire.salesperson_dashboard.pr-overdue-salesperson-table');
+    }
+
+    private function getWeekdayCount($startDate, $endDate)
+    {
+        $weekdayCount = 0;
+        $currentDate = Carbon::parse($startDate);
+        $endDate = Carbon::parse($endDate);
+
+        while ($currentDate->lte($endDate)) {
+            if (!$currentDate->isWeekend()) {
+                $weekdayCount++;
+            }
+            $currentDate->addDay();
+        }
+
+        return $weekdayCount;
     }
 }

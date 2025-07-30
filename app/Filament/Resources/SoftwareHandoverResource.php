@@ -161,37 +161,37 @@ class SoftwareHandoverResource extends Resource
                                         DatePicker::make('kick_off_meeting')
                                             ->label('Online Kick Off Meeting')
                                             ->disabled()
-                                            ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                            ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                            ->native(false)
+                                            ->displayFormat('d M Y'),
                                     ]),
 
                                 Grid::make(2)
                                     ->schema([
                                         DatePicker::make('webinar_training')
                                             ->label('Online Webinar Training')
-                                            ->format('Y-m-d')  // Change from d/m/Y to Y-m-d
-                                            ->displayFormat('d/m/Y'),  // Keep display format as d/m/Y
+                                            ->native(false)
+                                            ->displayFormat('d M Y'),
 
-                                    DatePicker::make('go_live_date')
-                                        ->label('System Go Live')
-                                        ->format('Y-m-d')
-                                        ->displayFormat('d/m/Y')
-                                        ->live() // Make it react to changes
-                                        ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
-                                            // If a go_live_date is set (not null or empty), set status to Closed
-                                            if (!empty($state)) {
-                                                $set('status_handover', 'Closed');
-                                            }
-                                        })
-                                        ->disabled(function () {
-                                            // Disable this field if the user has role_id 2 (salesperson)
-                                            return auth()->user()->role_id === 2;
-                                        })
-                                        ->dehydrated(function () {
-                                            // Even if disabled, we still want to save any existing value
-                                            // This ensures the field value is still submitted when the form is saved
-                                            return true;
-                                        }),
+                                        DatePicker::make('go_live_date')
+                                            ->label('System Go Live')
+                                            ->native(false)
+                                            ->displayFormat('d M Y')
+                                            ->live() // Make it react to changes
+                                            ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
+                                                // If a go_live_date is set (not null or empty), set status to Closed
+                                                if (!empty($state)) {
+                                                    $set('status_handover', 'Closed');
+                                                }
+                                            })
+                                            ->disabled(function () {
+                                                // Disable this field if the user has role_id 2 (salesperson)
+                                                return auth()->user()->role_id === 2;
+                                            })
+                                            ->dehydrated(function () {
+                                                // Even if disabled, we still want to save any existing value
+                                                // This ensures the field value is still submitted when the form is saved
+                                                return true;
+                                            }),
                                     ]),
                             ]),
 
@@ -307,7 +307,7 @@ class SoftwareHandoverResource extends Resource
                                                     ];
 
                                                     // Initialize recipients array with admin email
-                                                    $recipients = ['faiz@timeteccloud.com']; // UNCOMMENTED - Always include admin
+                                                    // $recipients = ['faiz@timeteccloud.com']; // UNCOMMENTED - Always include admin
 
                                                     // Add new implementer email if valid
                                                     if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
@@ -988,7 +988,7 @@ class SoftwareHandoverResource extends Resource
                         if ($count > 0) {
                             try {
                                 // Initialize recipients for the batch email
-                                $recipients = ['faiz@timeteccloud.com']; // Always include admin
+                                // $recipients = ['faiz@timeteccloud.com']; // Always include admin
 
                                 // Add new implementer email if valid
                                 if ($newImplementerUser->email && filter_var($newImplementerUser->email, FILTER_VALIDATE_EMAIL)) {

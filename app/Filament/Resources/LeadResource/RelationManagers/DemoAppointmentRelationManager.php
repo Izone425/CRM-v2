@@ -500,9 +500,32 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->seconds(false)
                                 ->reactive()
                                 ->default(function () {
-                                    // Round up to the next 30-minute interval
+                                    // Get current time
                                     $now = Carbon::now();
-                                    return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+
+                                    // Define business hours
+                                    $businessStart = Carbon::today()->setHour(9)->setMinute(0)->setSecond(0);
+                                    $businessEnd = Carbon::today()->setHour(18)->setMinute(0)->setSecond(0);
+
+                                    // If before business hours, return 9am
+                                    if ($now->lt($businessStart)) {
+                                        return '08:00';
+                                    }
+
+                                    // If after business hours, return 8am
+                                    if ($now->gt($businessEnd)) {
+                                        return '08:00';
+                                    }
+
+                                    // Otherwise round to next 30 min interval within business hours
+                                    $rounded = $now->copy()->addMinutes(30 - ($now->minute % 30))->setSecond(0);
+
+                                    // If rounded time is after business hours, return 8am next day
+                                    if ($rounded->gt($businessEnd)) {
+                                        return '08:00';
+                                    }
+
+                                    return $rounded->format('H:i');
                                 })
                                 ->datalist(function (callable $get) {
                                     $user = Auth::user();
@@ -512,47 +535,93 @@ class DemoAppointmentRelationManager extends RelationManager
                                         return [];
                                     }
 
-                                    $times = [];
-                                    $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+                                    // Get current time for reference
+                                    $currentTime = Carbon::now();
+                                    $currentTimeString = $currentTime->format('H:i');
+
+                                    // Generate all possible time slots in business hours (9am-6pm)
+                                    $allTimes = [];
 
                                     if ($user && $user->role_id == 2 && $date) {
-                                        // Fetch all booked appointments as full models
+                                        // Fetch all booked appointments
                                         $appointments = Appointment::where('salesperson', $user->id)
                                             ->whereDate('date', $date)
                                             ->whereIn('status', ['New', 'Done'])
                                             ->get(['start_time', 'end_time']);
 
-                                        for ($i = 0; $i < 48; $i++) {
+                                        // Generate all possible time slots
+                                        $startTime = Carbon::createFromTime(9, 0, 0);
+                                        $endTime = Carbon::createFromTime(18, 0, 0);
+
+                                        // Generate time slots from 9am to 6pm
+                                        while ($startTime < $endTime) {
                                             $slotStart = $startTime->copy();
                                             $slotEnd = $startTime->copy()->addMinutes(30);
                                             $formattedTime = $slotStart->format('H:i');
 
+                                            // Check if slot is already booked
                                             $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
                                                 $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
                                                 $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
 
-                                                // Check if the slot overlaps with the appointment
                                                 return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
                                             });
 
                                             if (!$isBooked) {
-                                                $times[] = $formattedTime;
+                                                $allTimes[] = $formattedTime;
                                             }
 
                                             $startTime->addMinutes(30);
                                         }
                                     } else {
-                                        for ($i = 0; $i < 48; $i++) {
-                                            $times[] = $startTime->format('H:i');
+                                        // Generate all possible time slots without checking for booked slots
+                                        $startTime = Carbon::createFromTime(8, 0, 0);
+                                        $endTime = Carbon::createFromTime(18, 0, 0);
+
+                                        while ($startTime < $endTime) {
+                                            $allTimes[] = $startTime->format('H:i');
                                             $startTime->addMinutes(30);
                                         }
                                     }
 
-                                    return $times;
+                                    // Sort times based on proximity to current time in a circular manner
+                                    usort($allTimes, function($a, $b) use ($currentTimeString) {
+                                        $aTime = Carbon::createFromFormat('H:i', $a);
+                                        $bTime = Carbon::createFromFormat('H:i', $b);
+                                        $currentTime = Carbon::createFromFormat('H:i', $currentTimeString);
+
+                                        // If current time is after business hours, consider 9am as the reference
+                                        if ($currentTime->format('H') >= 18) {
+                                            return $aTime <=> $bTime; // Just sort by normal time order starting from 9am
+                                        }
+
+                                        // For times after current time, they come first and are sorted by proximity to current
+                                        if ($aTime >= $currentTime && $bTime >= $currentTime) {
+                                            return $aTime <=> $bTime;
+                                        }
+
+                                        // For times before current time, they come after times that are after current
+                                        if ($aTime < $currentTime && $bTime < $currentTime) {
+                                            return $aTime <=> $bTime;
+                                        }
+
+                                        // If one is after and one is before current time, the after one comes first
+                                        return $bTime >= $currentTime ? 1 : -1;
+                                    });
+
+                                    return $allTimes;
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     if ($get('mode') === 'auto' && $state) {
-                                        $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                        $endTime = Carbon::parse($state)->addHour();
+
+                                        // Cap end time at 6pm
+                                        $maxEndTime = Carbon::createFromTime(18, 0, 0);
+                                        if ($endTime->gt($maxEndTime)) {
+                                            $endTime = $maxEndTime;
+                                        }
+
+                                        $set('end_time', $endTime->format('H:i'));
                                     }
                                 }),
 

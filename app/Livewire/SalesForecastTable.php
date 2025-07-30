@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Tables\Actions\Action as ActionsAction;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Str;
 use Filament\Tables\Filters\SelectFilter;
 
@@ -166,6 +167,64 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                         'Warm' => 'Warm',
                         'Cold' => 'Cold',
                     ]),
+                Filter::make('deal_amount')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('type')
+                            ->label('Filter Type')
+                            ->options([
+                                'above' => 'Above Amount',
+                                'below' => 'Below Amount',
+                                'between' => 'Between Amounts',
+                            ])
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(fn ($state, callable $set) => $set('max_amount', $state !== 'between' ? null : 10000)),
+
+                        \Filament\Forms\Components\TextInput::make('min_amount')
+                            ->label(fn (callable $get) => $get('type') === 'below' ? 'Maximum Amount' : 'Minimum Amount')
+                            ->numeric()
+                            ->required()
+                            ->placeholder('Enter amount in RM')
+                            ->default(10000),
+
+                        \Filament\Forms\Components\TextInput::make('max_amount')
+                            ->label('Maximum Amount')
+                            ->numeric()
+                            ->required()
+                            ->placeholder('Enter amount in RM')
+                            ->visible(fn (callable $get) => $get('type') === 'between'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['type']) || empty($data['min_amount'])) {
+                            return $query;
+                        }
+
+                        return match ($data['type']) {
+                            'above' => $query->where('deal_amount', '>=', $data['min_amount']),
+                            'below' => $query->where(function ($query) use ($data) {
+                                $query->where('deal_amount', '<=', $data['min_amount'])
+                                    ->orWhereNull('deal_amount');
+                            }),
+                            'between' => $query->whereBetween('deal_amount', [
+                                $data['min_amount'],
+                                $data['max_amount'] ?? $data['min_amount']
+                            ]),
+                            default => $query,
+                        };
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['type']) || empty($data['min_amount'])) {
+                            return null;
+                        }
+
+                        return match ($data['type']) {
+                            'above' => 'Deal amount ≥ RM ' . number_format($data['min_amount'], 2),
+                            'below' => 'Deal amount ≤ RM ' . number_format($data['min_amount'], 2),
+                            'between' => 'Deal amount between RM ' . number_format($data['min_amount'], 2) .
+                                        ' and RM ' . number_format($data['max_amount'] ?? $data['min_amount'], 2),
+                            default => null,
+                        };
+                    }),
             ])
             ->columns([
                 TextColumn::make('id')

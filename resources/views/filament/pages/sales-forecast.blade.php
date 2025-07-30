@@ -45,7 +45,7 @@
         </div>
 
         <!-- Right-Side Card (Fixed width of 300px) -->
-        <div class="w-[300px] rounded-lg" style="height: fit-content; background-color: #e6e6fa4d; border: dashed 2px #cdcbeb; border-radius: 10px;">
+        {{-- <div class="w-[300px] rounded-lg" style="height: fit-content; background-color: #e6e6fa4d; border: dashed 2px #cdcbeb; border-radius: 10px;">
             <div class="p-4 rounded-lg shadow-md">
                 <h2 class="mb-2 text-lg font-bold text-gray-800">Sales Summary</h2>
 
@@ -81,6 +81,6 @@
                     </p>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 </x-filament::page>
