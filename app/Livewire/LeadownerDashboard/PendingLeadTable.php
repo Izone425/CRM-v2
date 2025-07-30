@@ -201,6 +201,7 @@ class PendingLeadTable extends Component implements HasForms, HasTable
                     LeadActions::getAddAutomation(),
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
+                    LeadActions::getViewReferralDetailsAction(),
                 ])
                 ->button()
                 ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),

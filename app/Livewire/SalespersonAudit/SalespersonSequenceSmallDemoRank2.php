@@ -64,10 +64,9 @@ class SalespersonSequenceSmallDemoRank2 extends Component implements HasForms, H
     {
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
+                ->whereIn('salesperson', [11, 10, 7, 8])
                 ->whereHas('lead', function ($query) {
                     $query->whereIn('company_size', $this->smallCompanySizes);
-                    // Filter by specific salesperson IDs
-                    $query->whereIn('salesperson', [11, 10, 7, 8]);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')

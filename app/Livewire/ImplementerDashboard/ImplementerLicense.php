@@ -389,7 +389,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $certificate = \App\Models\LicenseCertificate::create([
                                 'company_name' => $companyName,
                                 'software_handover_id' => $record->id, // Fixed from is_dir to id
-                                'kick_off_date' => $record->kick_off_meeting ?? now(),
+                                'kick_off_date' => $kickOffDate ?? $record->kick_off_meeting ?? now(),
                                 'buffer_license_start' => $kickOffDate,
                                 'buffer_license_end' => $bufferEndDate,
                                 'buffer_months' => $totalBufferMonths, // Store total buffer months

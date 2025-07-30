@@ -6,6 +6,10 @@
         ol {
             padding-left:14px;
         }
+
+        ol, li {
+            text-align: justify;
+        }
     </style>
     <div class="page-break-before"></div>
     <!-- -->

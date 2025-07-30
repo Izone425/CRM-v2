@@ -53,7 +53,8 @@ class Lead extends Model
         'reseller_id',
         'visible_in_repairs',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'closed_by',
     ];
 
     public function getActivitylogOptions(): LogOptions

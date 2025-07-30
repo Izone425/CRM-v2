@@ -829,6 +829,8 @@ class LeadResource extends Resource
 
                     LeadActions::getRequestChangeLeadOwnerAction(),
 
+                    LeadActions::getViewReferralDetailsAction(),
+
                     Tables\Actions\Action::make('resetLead')
                         ->label(__('Reset Lead'))
                         ->color('danger')

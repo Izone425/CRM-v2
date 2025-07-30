@@ -65,7 +65,7 @@ class SalespersonSequenceLargeRfqRank2 extends Component implements HasForms, Ha
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
             ->whereIn('properties->attributes->salesperson', $userIds)
             ->where(function($query) {
-                foreach ($this->mediumCompanySizes as $size) {
+                foreach ($this->largeCompanySizes as $size) {
                     $query->orWhere('properties->attributes->company_size', $size);
                 }
             })

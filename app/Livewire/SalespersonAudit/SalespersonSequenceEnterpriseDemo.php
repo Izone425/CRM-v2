@@ -64,10 +64,9 @@ class SalespersonSequenceEnterpriseDemo extends Component implements HasForms, H
     {
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
+                ->whereIn('salesperson', [12, 6, 9])
                 ->whereHas('lead', function ($query) {
                     $query->whereIn('company_size', $this->enterpriseCompanySizes);
-
-                    $query->whereIn('salesperson', [12, 6, 9]);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')

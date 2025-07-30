@@ -1,9 +1,12 @@
 @php
     $referral = $this->record?->referralDetail;
 
+    $closedByUser = \App\Models\User::find($this->record->closed_by);
+
     $referralDetails = [
         ['label' => 'COMPANY', 'value' => $referral?->company ?? '-'],
         ['label' => 'NAME', 'value' => $referral?->name ?? '-'],
+        ['label' => 'CLOSED BY', 'value' => $closedByUser ? $closedByUser->name : '-'],
         ['label' => 'EMAIL ADDRESS', 'value' => $referral?->email ?? '-'],
         ['label' => 'CONTACT NO.', 'value' => $referral?->contact_no ?? '-'],
         ['label' => 'REMARK', 'value' => $referral?->remark ?? '-'],
