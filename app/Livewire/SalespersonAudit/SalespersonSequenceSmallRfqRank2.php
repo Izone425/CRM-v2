@@ -23,7 +23,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
-class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTable
+class SalespersonSequenceSmallRfqRank2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -41,7 +41,7 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
         // Define rank1 by name (as in SalespersonAuditList)
-        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho'];
+        $rank1Names = ['Muhammad Khoirul Bariah', 'Abdul Aziz', 'Yasmin', 'Farhanah Jamil'];
         $this->rank1 = User::whereIn('name', $rank1Names)->pluck('id')->toArray();
     }
 
@@ -59,7 +59,7 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
     public function getTableQuery()
     {
         // Use rankUsers property which will contain either the passed rank or the default rank1
-        $userIds = !empty($this->rankUsers) ? $this->rankUsers : [12, 6, 9]; // Fallback IDs
+        $userIds = !empty($this->rankUsers) ? $this->rankUsers : [11, 10, 7, 8]; // Fallback IDs
 
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
@@ -220,6 +220,6 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
 
     public function render()
     {
-        return view('livewire.salesperson_audit.salesperson-sequence-small-rfq');
+        return view('livewire.salesperson_audit.salesperson-sequence-small-rfq-rank2');
     }
 }
