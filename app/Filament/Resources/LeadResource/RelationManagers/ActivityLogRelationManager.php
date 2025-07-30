@@ -129,68 +129,66 @@ class ActivityLogRelationManager extends RelationManager
             ->modifyQueryUsing(function ($query) {
                 return $query->orderBy('updated_at', 'desc'); // Sort by created_at in descending order
             })
-            // ->groups([
-            //     Group::make('causer_id')
-            //         ->label('')
-            //         ->orderQueryUsing(fn (Builder $query, string $direction) => $query->orderBy('causer_id', $direction))
-            //         ->getTitleFromRecordUsing(function ($record) {
-            //             // Get the causer (user who created the activity)
-            //             $causer = \App\Models\User::find($record->causer_id);
+            ->filters([
+                // Add the salesperson filter
+                Tables\Filters\SelectFilter::make('salesperson_activities')
+                ->label('Filter by Role')
+                ->options([
+                    'salesperson' => 'Salesperson Activities',
+                    'lead_owner' => 'Lead Owner Activities',
+                    'manager' => 'Manager Activities',
+                    'system' => 'System Actions',
+                    'all' => 'All Activities',
+                ])
+                ->placeholder('All Activities')
+                ->default('salesperson')
+                ->query(function (Builder $query, array $data) {
+                    // If no filter is selected, return the original query
+                    if (empty($data['value'])) {
+                        return $query;
+                    }
 
-            //             if (!$causer) {
-            //                 return 'System Generated';
-            //             }
+                    // Filter based on the selected option
+                    return match ($data['value']) {
+                        'salesperson' => $query->whereIn('causer_id', function($subQuery) {
+                            $subQuery->select('id')
+                                    ->from('users')
+                                    ->where('role_id', 2);
+                        }),
+                        'lead_owner' => $query->whereIn('causer_id', function($subQuery) {
+                            $subQuery->select('id')
+                                    ->from('users')
+                                    ->where('role_id', 1);
+                        }),
+                        'manager' => $query->whereIn('causer_id', function($subQuery) {
+                            $subQuery->select('id')
+                                    ->from('users')
+                                    ->where('role_id', 3);
+                        }),
+                        'system' => $query->where(function ($q) {
+                            $q->whereNull('causer_id')
+                            ->orWhere('causer_id', 0);
+                        }),
+                        'all' => $query,
+                        default => $query,
+                    };
+                })
+                ->indicateUsing(function (array $data): ?string {
+                    if (empty($data['value'])) {
+                        return null;
+                    }
 
-            //             // Determine group title based on user role
-            //             if ($causer->role_id === 2) {
-            //                 return 'Salesperson Activities';
-            //             } else if ($causer->role_id === 1 && $causer->additional_role == 1) {
-            //                 return 'Postsales Activities';
-            //             } else if ($causer->role_id === 1) {
-            //                 return 'Lead Owner Activities';
-            //             } else if ($causer->role_id === 3) {
-            //                 return 'Manager Activities';
-            //             } else {
-            //                 return "Activities by {$causer->name}";
-            //             }
-            //         })
-            //         ->collapsible()
-            // ])
-            // ->defaultGroup('causer_id')
-            // ->groupingSettingsHidden()
-            // ->modifyQueryUsing(function ($query) {
-            //     $user = auth()->user();
+                    $labels = [
+                        'salesperson' => 'Salesperson Activities',
+                        'lead_owner' => 'Lead Owner Activities',
+                        'manager' => 'Manager Activities',
+                        'system' => 'System Actions',
+                        'all' => 'All Activities',
+                    ];
 
-            //     // Managers (role_id 3) can see all activity logs without restrictions
-            //     if ($user->role_id === 3) {
-            //         return $query->orderBy('updated_at', 'desc');
-            //     }
-
-            //     // Presales/Salespersons (role_id 2) can see their own activities,
-            //     // lead owner activities (role_id 1), and system activities
-            //     if ($user->role_id === 2 || $user->role_id === 1) {
-            //         return $query->where(function($q) use ($user) {
-            //             $q->where('causer_id', $user->id)
-            //               ->orWhereNull('causer_id')
-            //               ->orWhereIn('causer_id', function($subQuery) {
-            //                   $subQuery->select('id')
-            //                           ->from('users')
-            //                           ->whereIn('role_id', [1, 2]);
-            //               });
-            //         })->orderBy('updated_at', 'desc');
-            //     }
-
-            //     // // Lead Owners (role_id 1) can only see their own activities and system activities
-            //     // if ($user->role_id === 1) {
-            //     //     return $query->where(function($q) use ($user) {
-            //     //         $q->where('causer_id', $user->id)
-            //     //           ->orWhereNull('causer_id');
-            //     //     })->orderBy('updated_at', 'desc');
-            //     // }
-
-            //     // Default sorting for any other roles
-            //     return $query->orderBy('updated_at', 'desc');
-            // })
+                    return 'Role: ' . ($labels[$data['value']] ?? 'Unknown');
+                })
+            ])
             ->columns([
                 TextColumn::make('index')
                     ->label('NO.')

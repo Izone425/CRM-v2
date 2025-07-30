@@ -1797,6 +1797,60 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'reject_reason' => $data['reject_reason']
                             ]);
 
+                            // Get salesperson information
+                            $salespersonName = null;
+                            $salespersonEmail = null;
+
+                            // Try to get salesperson info from lead
+                            if ($record->lead && $record->lead->salesperson) {
+                                $salesperson = \App\Models\User::find($record->lead->salesperson);
+                                if ($salesperson) {
+                                    $salespersonName = $salesperson->name;
+                                    $salespersonEmail = $salesperson->email;
+                                }
+                            }
+
+                            // If no salesperson found via lead, try other methods
+                            if (!$salespersonName) {
+                                $salespersonName = 'Unknown Salesperson';
+                            }
+
+                            // Get rejecter information (current authenticated user)
+                            $rejecter = auth()->user();
+                            $rejecterName = $rejecter->name ?? 'System';
+                            $rejecterEmail = $rejecter->email;
+
+                            // Format handover ID with prefix and padding
+                            $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                            // Send email notification if we have salesperson email
+                            if ($salespersonEmail) {
+                                try {
+                                    $rejectedDate = now()->format('d F Y');
+                                    $rejectReason = $data['reject_reason'];
+
+                                    \Illuminate\Support\Facades\Mail::send('emails.hardware_handover_rejection', [
+                                        'rejecterName' => $rejecterName,
+                                        'rejectedDate' => $rejectedDate,
+                                        'handoverId' => $handoverId,
+                                        'salespersonName' => $salespersonName,
+                                        'rejectReason' => $rejectReason
+                                    ], function ($message) use ($salespersonEmail, $handoverId, $rejecterEmail, $rejecterName) {
+                                        $message->to($salespersonEmail)
+                                            ->from($rejecterEmail, $rejecterName) // Set the rejecter as the sender
+                                            ->subject("REJECTED | HARDWARE HANDOVER ID {$handoverId}");
+                                    });
+
+                                    // Log successful email sending
+                                    \Illuminate\Support\Facades\Log::info("Rejection email sent to {$salespersonEmail} for hardware handover {$handoverId}");
+                                } catch (\Exception $e) {
+                                    // Log email sending failure
+                                    \Illuminate\Support\Facades\Log::error("Failed to send rejection email: {$e->getMessage()}");
+                                }
+                            } else {
+                                \Illuminate\Support\Facades\Log::warning("Cannot send rejection email - no email address found for salesperson: {$salespersonName}");
+                            }
+
                             Notification::make()
                                 ->title('Hardware Handover marked as rejected')
                                 ->body('Rejection reason: ' . $data['reject_reason'])

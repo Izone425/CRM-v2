@@ -831,23 +831,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->modalCancelAction(false)
                         ->modalWidth('3xl')
                         ->color('warning'),
-                    // Action::make('mark_approved')
-                    //     ->label('Approve')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->action(function (SoftwareHandover $record): void {
-                    //         $record->update(['status' => 'Approved']);
-
-                    //         Notification::make()
-                    //             ->title('Software Handover marked as approved')
-                    //             ->success()
-                    //             ->send();
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->hidden(
-                    //         fn(SoftwareHandover $record): bool =>
-                    //         $record->status !== 'New' || auth()->user()->role_id === 2
-                    //     ),
                     Action::make('mark_rejected')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
@@ -873,8 +856,60 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 'reject_reason' => $data['reject_reason']
                             ]);
 
+                            $salespersonName = $record->salesperson;
+                            $salesperson = null;
+
+                            if ($salespersonName) {
+                                $salesperson = \App\Models\User::where('name', $salespersonName)
+                                    ->where('role_id', 2)
+                                    ->first();
+                            }
+
+                            if (!$salesperson && $record->lead_id) {
+                                $lead = \App\Models\Lead::find($record->lead_id);
+                                if ($lead && $lead->salesperson) {
+                                    $salesperson = \App\Models\User::find($lead->salesperson);
+                                }
+                            }
+
+                            $salespersonEmail = $salesperson ? $salesperson->email : null;
+                            $salespersonName = $salesperson ? $salesperson->name : ($record->salesperson ?? 'Unknown Salesperson');
+
+                            $rejecter = auth()->user();
+                            $rejecterName = $rejecter->name ?? 'System';
+                            $rejecterEmail = $rejecter->email;
+
+                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                            if ($salespersonEmail) {
+                                try {
+                                    $rejectedDate = now()->format('d F Y');
+                                    $rejectReason = $data['reject_reason'];
+
+                                    \Illuminate\Support\Facades\Mail::send('emails.software_handover_rejection', [
+                                        'rejecterName' => $rejecterName,
+                                        'rejectedDate' => $rejectedDate,
+                                        'handoverId' => $handoverId,
+                                        'salespersonName' => $salespersonName,
+                                        'rejectReason' => $rejectReason
+                                    ], function ($message) use ($salespersonEmail, $handoverId, $rejecterEmail, $rejecterName) {
+                                        $message->to($salespersonEmail)
+                                            ->from($rejecterEmail, $rejecterName) // Set the rejecter as the sender
+                                            ->subject("REJECTED | SOFTWARE HANDOVER ID {$handoverId}");
+                                    });
+
+                                    // Log successful email sending
+                                    \Illuminate\Support\Facades\Log::info("Rejection email sent to {$salespersonEmail} for handover {$handoverId}");
+                                } catch (\Exception $e) {
+                                    // Log email sending failure
+                                    \Illuminate\Support\Facades\Log::error("Failed to send rejection email: {$e->getMessage()}");
+                                }
+                            } else {
+                                \Illuminate\Support\Facades\Log::warning("Cannot send rejection email - no email address found for salesperson: {$salespersonName}");
+                            }
+
                             Notification::make()
-                                ->title('Hardware Handover marked as rejected')
+                                ->title('Software Handover marked as rejected')
                                 ->body('Rejection reason: ' . $data['reject_reason'])
                                 ->danger()
                                 ->send();

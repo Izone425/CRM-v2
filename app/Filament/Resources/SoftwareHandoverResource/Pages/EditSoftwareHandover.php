@@ -17,4 +17,9 @@ class EditSoftwareHandover extends EditRecord
 
         return "Edit Software Handover {$formattedId}";
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
