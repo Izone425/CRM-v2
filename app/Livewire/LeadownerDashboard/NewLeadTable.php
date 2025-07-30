@@ -183,6 +183,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     LeadActions::getViewAction(),
                     LeadActions::getAssignToMeAction(),
                     LeadActions::getAssignLeadAction(),
+                    LeadActions::getViewReferralDetailsAction(),
                 ])
                 ->button()
                 ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),

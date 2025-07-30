@@ -77,10 +77,9 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
     {
         $query = Appointment::query()
             ->whereIn('status', ['New', 'Done'])
+            ->whereIn('salesperson', [12, 6, 9])
             ->whereHas('lead', function ($query) {
                 $query->whereIn('company_size', $this->largeCompanySizes);
-
-                $query->whereIn('salesperson', [12, 6, 9]);
             })
             ->whereIn('causer_id', function($query) {
                 $query->select('id')

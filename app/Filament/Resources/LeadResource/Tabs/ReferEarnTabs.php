@@ -38,6 +38,49 @@ class ReferEarnTabs
                                 ->columnSpan(1)
                                 ->extraAttributes([
                                     'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                ])
+                                ->headerActions([
+                                    Action::make('update_closed_by')
+                                        ->label('Update Closed By')
+                                        ->icon('heroicon-o-user-circle')
+                                        ->color('primary')
+                                        ->visible(fn () => in_array(auth()->user()->role_id, [1, 3])) // Only for Admin (1) and Manager (3)
+                                        ->modalHeading('Edit Referral Closed By')
+                                        ->modalSubmitActionLabel('Save')
+                                        ->form([
+                                            Select::make('closed_by')
+                                                ->label('Closed By')
+                                                ->options(function () {
+                                                    return \App\Models\User::where('role_id', 2)
+                                                        ->where('is_timetec_hr', true)
+                                                        ->orderBy('name')
+                                                        ->pluck('name', 'id')
+                                                        ->toArray();
+                                                })
+                                                ->searchable()
+                                                ->required()
+                                                ->preload()
+                                                ->default(function ($record) {
+                                                    return $record->referralDetail?->closed_by ?? null;
+                                                })
+                                        ])
+                                        ->action(function (Lead $record, array $data) {
+                                            $record->update([
+                                                'closed_by' => $data['closed_by'],
+                                            ]);
+
+                                            // Log the activity
+                                            activity()
+                                                ->performedOn($record)
+                                                ->causedBy(auth()->user())
+                                                ->withProperties(['closed_by' => $data['closed_by']])
+                                                ->log('Updated referral closed by information');
+
+                                            Notification::make()
+                                                ->title('Referral Closed By Updated')
+                                                ->success()
+                                                ->send();
+                                        })
                                 ]),
 
                             Section::make('Refer to')

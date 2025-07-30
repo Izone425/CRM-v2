@@ -347,7 +347,7 @@ class LeadActions
                 ->modalSubmitAction(false)  // Hide default submit action
                 ->modalCancelAction(false)  // Hide default cancel action
                 ->modalHeading('Add Demo Confirmation')
-                ->modalContent(fn () => view('verification-notification'))
+                ->modalContent(fn (Lead $record) => view('verification-notification', ['record' => $record]))
                 ->extraModalFooterActions([
                     Action::make('add_demo')
                         ->icon('heroicon-o-calendar-days')
@@ -960,7 +960,7 @@ class LeadActions
             ->modalSubmitAction(false)  // Hide default submit action
             ->modalCancelAction(false)  // Hide default cancel action
             ->modalHeading('Add RFQ')
-            ->modalContent(fn () => view('verification-notification'))
+            ->modalContent(fn (Lead $record) => view('verification-notification', ['record' => $record]))
             ->extraModalFooterActions([
                 Action::make('addRFQ')
                 ->label(__('Add RFQ'))
@@ -2612,6 +2612,24 @@ class LeadActions
                 } catch (\Exception $e) {
                     Log::error("New Lead Email Error: {$e->getMessage()}");
                 }
+            });
+    }
+
+    public static function getViewReferralDetailsAction(): Action
+    {
+        return Action::make('view_referral_details')
+            ->label('View Referral Details')
+            ->icon('heroicon-o-document-text')
+            ->color('success')
+            ->visible(fn (Lead $record) => $record->lead_code === 'Refer & Earn')
+            ->modalHeading('Referral Details')
+            ->modalSubmitAction(false)
+            ->modalCancelAction(false)
+            ->modalWidth('6xl')
+            ->modalContent(function (Lead $record) {
+                return view('filament.modals.referral-details', [
+                    'record' => $record,
+                ]);
             });
     }
 }

@@ -8,6 +8,10 @@
             padding-left:16px;
         }
 
+        ol, li {
+            text-align: justify;
+        }
+
         @counter-style paren-decimal {
             system: extends decimal;
             /* prefix: "("; */
