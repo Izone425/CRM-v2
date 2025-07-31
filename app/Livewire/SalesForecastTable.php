@@ -20,6 +20,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Str;
 use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Support\Facades\DB;
 
 class SalesForecastTable extends Component implements HasForms, HasTable
 {
@@ -223,6 +224,33 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                             'between' => 'Deal amount between RM ' . number_format($data['min_amount'], 2) .
                                         ' and RM ' . number_format($data['max_amount'] ?? $data['min_amount'], 2),
                             default => null,
+                        };
+                    }),
+                SelectFilter::make('has_quotation')
+                    ->label('Quotation Status')
+                    ->options([
+                        'has_quotation' => 'Has Quotation',
+                        'no_quotation' => 'No Quotation',
+                    ])
+                    ->placeholder('All')
+                    ->default(null)
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['value']) {
+                            return $query; // Return all results if no filter is selected
+                        }
+
+                        return match ($data['value']) {
+                            'has_quotation' => $query->whereExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('quotations')
+                                    ->whereColumn('quotations.lead_id', 'leads.id');
+                            }),
+                            'no_quotation' => $query->whereNotExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('quotations')
+                                    ->whereColumn('quotations.lead_id', 'leads.id');
+                            }),
+                            default => $query,
                         };
                     }),
             ])

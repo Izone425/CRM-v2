@@ -119,15 +119,15 @@
                     </tr>
                     <tr>
                         <td>Account No:</td>
-                        <td>2253081440</td>
+                        <td>3593672619</td>
                     </tr>
                     <tr>
                         <td>Bank:</td>
-                        <td>United Overseas Bank (M) Bhd</td>
+                        <td>Public Bank Berhad</td>
                     </tr>
                     <tr>
                         <td>Bank Swift Code:</td>
-                        <td>UOVBMYKL</td>
+                        <td>PBBEMYKL</td>
                     </tr>
                 </table>
             </li>

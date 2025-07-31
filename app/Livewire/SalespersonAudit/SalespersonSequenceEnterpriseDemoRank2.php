@@ -62,7 +62,7 @@ class SalespersonSequenceEnterpriseDemoRank2 extends Component implements HasFor
 
     public function getTableQuery()
     {
-        $startDate = Carbon::parse('2025-07-28');
+        $startDate = Carbon::parse('2025-06-30');
 
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
@@ -174,16 +174,6 @@ class SalespersonSequenceEnterpriseDemoRank2 extends Component implements HasFor
                     ->label('Salesperson')
                     ->formatStateUsing(function ($state) {
                         return User::find($state)?->name ?? $state;
-                    }),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'Done' => 'success',
-                        'New' => 'primary',
-                        'Cancelled' => 'danger',
-                        default => 'secondary',
                     }),
 
                 TextColumn::make('causer_id')

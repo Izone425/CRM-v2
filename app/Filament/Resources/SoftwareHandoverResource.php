@@ -369,7 +369,9 @@ class SoftwareHandoverResource extends Resource
                                     }),
                                 TextInput::make('payroll_code')
                                     ->label('Payroll Code')
-                                    ->maxLength(50),
+                                    ->maxLength(50)
+                                    ->disabled(fn() => auth()->user()->role_id !== 3)
+                                    ->dehydrated(true),
                             ]),
                         Section::make('Handover Status')
                         ->columnSpan(1)
@@ -377,19 +379,20 @@ class SoftwareHandoverResource extends Resource
                             Select::make('status_handover')
                                 ->label('Project Status')
                                 ->options(function (callable $get) {
-                                    // Basic options always available
-                                    $options = [
-                                        'Open' => 'Open',
-                                        'InActive' => 'InActive',
-                                        'Delay' => 'Delay',
-                                    ];
-
-                                    // Only include 'Closed' option if go_live_date has been selected
+                                    // First check if go_live_date has been selected
                                     if (!empty($get('go_live_date'))) {
-                                        $options['Closed'] = 'Closed';
+                                        // If go_live_date exists, include Closed option
+                                        return [
+                                            'Closed' => 'Closed',
+                                        ];
+                                    } else {
+                                        // If no go_live_date, don't include Closed option
+                                        return [
+                                            'Open' => 'Open',
+                                            'InActive' => 'InActive',
+                                            'Delay' => 'Delay',
+                                        ];
                                     }
-
-                                    return $options;
                                 })
                                 ->default(function (callable $get, SoftwareHandover $record) {
                                     // If go_live_date is set, default to Closed
