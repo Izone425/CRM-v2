@@ -44,13 +44,19 @@ class SalespersonAuditList extends Page
         $allIds = array_merge($this->rank1, $this->rank2);
         $this->salespersonNames = User::whereIn('id', $allIds)->pluck('name', 'id')->toArray();
 
-        $this->fetchDemoStats();
-        $this->fetchRfqStats();
+        // Define the start date
+        $startDate = Carbon::parse('2025-07-28');
 
-        // Latest Demo
+        $this->fetchDemoStats($startDate);
+        $this->fetchRfqStats($startDate);
+
+        // Latest Demo for Rank 1
         $latestDemoRank1 = \App\Models\Appointment::query()
             ->whereIn('salesperson', $this->rank1)
             ->whereIn('status', ['New', 'Done'])
+            ->whereHas('lead', function($q) use ($startDate) {
+                $q->where('created_at', '>=', $startDate);
+            })
             ->latest('date')
             ->first();
 
@@ -68,6 +74,9 @@ class SalespersonAuditList extends Page
         $latestDemoRank2 = \App\Models\Appointment::query()
             ->whereIn('salesperson', $this->rank2)
             ->whereIn('status', ['New', 'Done'])
+            ->whereHas('lead', function($q) use ($startDate) {
+                $q->where('created_at', '>=', $startDate);
+            })
             ->latest('date')
             ->first();
 
@@ -85,6 +94,10 @@ class SalespersonAuditList extends Page
         $latestRfqLogRank1 = \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
             ->whereIn('properties->attributes->salesperson', $this->rank1)
+            ->whereHas('subject', function($q) use ($startDate) {
+                // Assuming subject is the Lead model
+                $q->where('created_at', '>=', $startDate);
+            })
             ->latest('created_at')
             ->first();
 
@@ -111,6 +124,10 @@ class SalespersonAuditList extends Page
         $latestRfqLogRank2 = \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
             ->whereIn('properties->attributes->salesperson', $this->rank2)
+            ->whereHas('subject', function($q) use ($startDate) {
+                // Assuming subject is the Lead model
+                $q->where('created_at', '>=', $startDate);
+            })
             ->latest('created_at')
             ->first();
 
@@ -134,7 +151,7 @@ class SalespersonAuditList extends Page
         }
     }
 
-    private function fetchDemoStats()
+    private function fetchDemoStats($startDate)
     {
         // Get all user IDs with role_id 1
         $causerIds = \App\Models\User::where('role_id', 1)->pluck('id')->toArray();
@@ -147,8 +164,9 @@ class SalespersonAuditList extends Page
                     $count = Appointment::query()
                         ->whereIn('status', ['New', 'Done'])
                         ->where('salesperson', $spId)
-                        ->whereHas('lead', function($q) use ($size) {
-                            $q->where('company_size', $size);
+                        ->whereHas('lead', function($q) use ($size, $startDate) {
+                            $q->where('company_size', $size)
+                            ->where('created_at', '>=', $startDate);
                         })
                         ->whereIn('causer_id', $causerIds)
                         ->count();
@@ -159,14 +177,26 @@ class SalespersonAuditList extends Page
         }
     }
 
-    private function fetchRfqStats()
+    private function fetchRfqStats($startDate)
     {
         foreach (['rank1', 'rank2'] as $rank) {
             $salespersons = $this->$rank;
             $stats = [];
+
+            // First, get all leads created on or after the start date
+            $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
+                ->pluck('id')
+                ->toArray();
+
+            // Then get RFQ logs for those leads only
             $logs = ActivityLog::query()
                 ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
+                ->where(function($query) use ($eligibleLeadIds) {
+                    $query->whereIn('subject_id', $eligibleLeadIds)
+                        ->where('subject_type', 'App\\Models\\Lead');
+                })
                 ->get();
+
             foreach ($salespersons as $spId) {
                 foreach ($this->sizes as $size) {
                     $count = $logs->filter(function($log) use ($spId, $size) {

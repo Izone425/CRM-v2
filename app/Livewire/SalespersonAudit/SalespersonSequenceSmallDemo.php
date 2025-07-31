@@ -62,11 +62,14 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
 
     public function getTableQuery()
     {
+        $startDate = Carbon::parse('2025-07-28');
+
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
                 ->whereIn('salesperson', [12, 6, 9])
-                ->whereHas('lead', function ($query) {
-                    $query->whereIn('company_size', $this->smallCompanySizes);
+                ->whereHas('lead', function ($query) use ($startDate) {
+                    $query->whereIn('company_size', $this->smallCompanySizes)
+                        ->where('created_at', '>=', $startDate);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')

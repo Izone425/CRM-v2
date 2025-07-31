@@ -272,25 +272,6 @@
                     </div>
                     @endif
 
-                    @php
-                        $showSalespersonAuditList = auth()->check() && auth()->user()->id == 14;
-                    @endphp
-
-                    @if($showSalespersonAuditList)
-                        <div class="nested-dropdown">
-                            <div class="sidebar-item nested-dropdown-trigger">
-                                <i class="bi bi-list-ol"></i>
-                                <span>Salesperson Audit List</span>
-                                <i class="bi bi-chevron-down ms-auto"></i>
-                            </div>
-                            <div class="nested-dropdown-content">
-                                <a href="{{ route('filament.admin.pages.salesperson-audit-list') }}" class="sidebar-item">
-                                    <i class="bi bi-dot"></i>
-                                    <span>Project Sequence</span>
-                                </a>
-                            </div>
-                        </div>
-                    @endif
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-list-ol"></i>
@@ -301,7 +282,7 @@
                         <div class="nested-dropdown-content">
                             <a href="{{ route('filament.admin.pages.salesperson-audit-list') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
-                                <span>Project Sequence</span>
+                                <span>Lead Sequence</span>
                             </a>
                         </div>
                     </div>
@@ -478,15 +459,6 @@
 
                             <!-- Level 3 dropdown content -->
                             <div class="nested-dropdown-content">
-                                <div class="dropdown-subcategory-heading collapsible">
-                                    <i class="bi bi-dot"></i>
-                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
-                                <div class="subcategory-content">
-                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                        <i class="bi bi-dot"></i>
-                                        <span>Device Purchase Information</span>
-                                    </a>
-                                </div>
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Dashboard - All</span>
@@ -499,13 +471,18 @@
 
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
-                                    <span>Analysis</span>
+                                    <span>Device Stock Information</span>
                                 </a>
 
-                                {{-- <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
-                                    <span>Attachment</span>
-                                </a> --}}
+                                    <span>Device Purchase Information</span>
+                                </a>
+
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Analysis</span>
+                                </a>
                             </div>
                         </div>
 
@@ -705,15 +682,6 @@
 
                         <!-- Level 3 dropdown content -->
                         <div class="nested-dropdown-content">
-                            <div class="dropdown-subcategory-heading collapsible">
-                                <i class="bi bi-dot"></i>
-                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
-                            <div class="subcategory-content">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                    <i class="bi bi-dot"></i>
-                                    <span>Device Purchase Information</span>
-                                </a>
-                            </div>
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - All</span>
@@ -722,6 +690,16 @@
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - Pending Stock</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Device Stock Information</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Device Purchase Information</span>
                             </a>
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
@@ -1011,15 +989,6 @@
                         </div>
 
                         <div class="nested-dropdown-content">
-                            <div class="dropdown-subcategory-heading collapsible">
-                                <i class="bi bi-dot"></i>
-                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inventory Information</div>
-                            <div class="subcategory-content">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                    <i class="bi bi-dot"></i>
-                                    <span>Device Purchase Information</span>
-                                </a>
-                            </div>
                             <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Dashboard - All</span>
@@ -1032,13 +1001,18 @@
 
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
-                                <span>Analysis</span>
+                                <span>Device Stock Information</span>
                             </a>
 
-                            {{-- <a href="{{ route('filament.admin.resources.hardware-attachments.index') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
-                                <span>Attachment</span>
-                            </a> --}}
+                                <span>Device Purchase Information</span>
+                            </a>
+
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Analysis</span>
+                            </a>
                         </div>
                     </div>
 

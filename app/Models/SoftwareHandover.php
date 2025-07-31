@@ -179,6 +179,17 @@ class SoftwareHandover extends Model
     }
 
     /**
+     * Set the payroll_code attribute to uppercase.
+     *
+     * @param string|null $value
+     * @return void
+     */
+    public function setPayrollCodeAttribute($value)
+    {
+        $this->attributes['payroll_code'] = is_string($value) ? strtoupper($value) : $value;
+    }
+
+    /**
      * Check if a string is valid JSON
      *
      * @param string $string

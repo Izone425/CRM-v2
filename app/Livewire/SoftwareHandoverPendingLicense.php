@@ -231,14 +231,24 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                         ->label('Activate License')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->form([
+                            TextInput::make('payroll_code')
+                                ->label('Payroll Code')
+                                ->required()
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->placeholder('Enter the payroll code')
+                        ])
                         ->requiresConfirmation()
                         ->modalHeading(fn(SoftwareHandover $record) => "Activate License for {$record->company_name}")
-                        ->modalDescription('Are you sure you want to mark this license as activated? This action cannot be undone.')
+                        ->modalDescription('Enter the payroll code and confirm license activation. This action cannot be undone.')
                         ->modalSubmitActionLabel('Yes, Activate License')
                         ->modalCancelActionLabel('No, Cancel')
-                        ->action(function (SoftwareHandover $record): void {
+                        ->action(function (SoftwareHandover $record, array $data): void {
                             $record->update([
-                                'license_activated' => true
+                                'license_activated' => true,
+                                'payroll_code' => $data['payroll_code'],
                             ]);
 
                             Notification::make()

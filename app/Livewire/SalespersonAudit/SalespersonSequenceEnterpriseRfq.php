@@ -59,6 +59,12 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
     {
         // Use rankUsers property which will contain either the passed rank or the default rank1
         $userIds = !empty($this->rankUsers) ? $this->rankUsers : [12, 6, 9]; // Fallback IDs
+        $startDate = Carbon::parse('2025-07-28');
+
+        // First get all eligible lead IDs created on or after the start date
+        $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
+            ->pluck('id')
+            ->toArray();
 
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
@@ -68,6 +74,11 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
                 foreach ($this->enterpriseCompanySizes as $size) {
                     $query->orWhere('properties->attributes->company_size', $size);
                 }
+            })
+            // Add filter for leads created on or after July 28, 2025
+            ->where(function($query) use ($eligibleLeadIds) {
+                $query->whereIn('subject_id', $eligibleLeadIds)
+                    ->where('subject_type', 'App\\Models\\Lead');
             })
             ->with(['subject', 'causer']);  // Load both relationships
     }

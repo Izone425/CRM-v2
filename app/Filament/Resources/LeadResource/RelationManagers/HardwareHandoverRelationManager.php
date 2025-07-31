@@ -1188,6 +1188,19 @@ class HardwareHandoverRelationManager extends RelationManager
             }
         }
 
+        // Special check for reg_no_new - must exist and have exactly 12 digits
+        if (empty($companyDetail->reg_no_new)) {
+            return true;
+        }
+
+        // Convert to string and remove any non-digit characters
+        $regNoValue = preg_replace('/[^0-9]/', '', $companyDetail->reg_no_new);
+
+        // Check if the resulting string has exactly 12 digits
+        if (strlen($regNoValue) !== 12) {
+            return true;
+        }
+
         return false;
     }
 
