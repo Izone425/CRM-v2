@@ -62,7 +62,7 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
 
     public function getTableQuery()
     {
-        $startDate = Carbon::parse('2025-07-28');
+        $startDate = Carbon::parse('2025-06-30');
 
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
@@ -202,16 +202,6 @@ class SalespersonSequenceSmallDemo extends Component implements HasForms, HasTab
                     ->label('Salesperson')
                     ->formatStateUsing(function ($state) {
                         return User::find($state)?->name ?? $state;
-                    }),
-
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'Done' => 'success',
-                        'New' => 'primary',
-                        'Cancelled' => 'danger',
-                        default => 'secondary',
                     }),
 
                 TextColumn::make('causer_id')

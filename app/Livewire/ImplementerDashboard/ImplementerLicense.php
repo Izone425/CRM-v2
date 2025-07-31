@@ -314,24 +314,61 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     ])
                                     ->defaultItems(1)  // Set to 1 to show one default item
                                     ->minItems(0)
-                                    ->maxItems(5)
+                                    ->maxItems(10)  // Increased to accommodate more emails
                                     ->columnSpanFull()
                                     ->default(function (SoftwareHandover $record = null) {
                                         if (!$record) {
                                             return [];
                                         }
 
+                                        $recipients = [];
+
                                         // Get company email from the record
                                         $companyEmail = $record->lead->companyDetail->email ?? $record->lead->email ?? null;
 
-                                        // If there's a valid company email, return it as the first item
+                                        // If there's a valid company email, add it
                                         if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
-                                            return [
-                                                ['email' => $companyEmail]
-                                            ];
+                                            $recipients[] = ['email' => $companyEmail];
                                         }
 
-                                        return [];
+                                        // Process implementation_pics if available
+                                        if ($record->implementation_pics) {
+                                            try {
+                                                // If already an array, use it directly; if string, decode it
+                                                $implementationPics = is_array($record->implementation_pics)
+                                                    ? $record->implementation_pics
+                                                    : json_decode($record->implementation_pics, true);
+
+                                                if (is_array($implementationPics)) {
+                                                    foreach ($implementationPics as $pic) {
+                                                        // Extract email from pic_email_impl field
+                                                        if (isset($pic['pic_email_impl']) &&
+                                                            !empty($pic['pic_email_impl']) &&
+                                                            filter_var($pic['pic_email_impl'], FILTER_VALIDATE_EMAIL)) {
+
+                                                            // Check for duplicate emails
+                                                            $emailExists = false;
+                                                            foreach ($recipients as $recipient) {
+                                                                if ($recipient['email'] === $pic['pic_email_impl']) {
+                                                                    $emailExists = true;
+                                                                    break;
+                                                                }
+                                                            }
+
+                                                            // Only add if not a duplicate
+                                                            if (!$emailExists) {
+                                                                $recipients[] = ['email' => $pic['pic_email_impl']];
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                // Log the error but continue
+                                                \Illuminate\Support\Facades\Log::error("Error parsing implementation_pics: " . $e->getMessage());
+                                            }
+                                        }
+
+                                        return empty($recipients) ? [['email' => '']] : $recipients;
                                     }),
                             ]),
                         ])

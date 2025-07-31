@@ -55,7 +55,14 @@ class CompanyTabs
                                         $schema[] = TextInput::make('company_name')
                                             ->label('Company Name')
                                             ->default(strtoupper($record->companyDetail->company_name ?? '-'))
-                                            ->disabled($isOlderThan30Days && !$isAdmin) // Disable if older than 30 days and not admin
+                                            ->disabled(function () use ($isOlderThan30Days, $isAdmin) {
+                                                // If user has role_id 3, never disable the field regardless of lead age
+                                                if (auth()->user()->role_id === 3) {
+                                                    return false;
+                                                }
+                                                // For other users, apply the original condition
+                                                return $isOlderThan30Days && !$isAdmin;
+                                            })
                                             ->helperText($isOlderThan30Days && !$isAdmin ? 'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '')
                                             ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
 

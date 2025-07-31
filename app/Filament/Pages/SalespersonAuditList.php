@@ -34,18 +34,25 @@ class SalespersonAuditList extends Page
     public function mount()
     {
         // Find user IDs for rank1 and rank2 by name
-        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho'];
-        $rank2Names = ['Muhammad Khoirul Bariah', 'Abdul Aziz', 'Yasmin', 'Farhanah Jamil'];
+        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho']; // Already in correct order
+        $rank2Names = ['Muhammad Khoirul Bariah', 'Abdul Aziz', 'Yasmin', 'Farhanah Jamil']; // Already in correct order
 
-        $this->rank1 = User::whereIn('name', $rank1Names)->pluck('id')->toArray();
-        $this->rank2 = User::whereIn('name', $rank2Names)->pluck('id')->toArray();
+        $this->rank1 = User::whereIn('name', $rank1Names)
+            ->orderByRaw("FIELD(name, 'Vince Leong', 'Wan Amirul Muim', 'Joshua Ho')")
+            ->pluck('id')
+            ->toArray();
+
+        $this->rank2 = User::whereIn('name', $rank2Names)
+            ->orderByRaw("FIELD(name, 'Muhammad Khoirul Bariah', 'Abdul Aziz', 'Yasmin', 'Farhanah Jamil')")
+            ->pluck('id')
+            ->toArray();
 
         // Map user IDs to names for display
         $allIds = array_merge($this->rank1, $this->rank2);
         $this->salespersonNames = User::whereIn('id', $allIds)->pluck('name', 'id')->toArray();
 
         // Define the start date
-        $startDate = Carbon::parse('2025-07-28');
+        $startDate = Carbon::parse('2025-06-30');
 
         $this->fetchDemoStats($startDate);
         $this->fetchRfqStats($startDate);

@@ -183,7 +183,11 @@
     </table>
     <div class="page-break"></div>
     @if($quotation->quotation_type == 'product')
-        @include('pdf.product_tnc')
+        @if($quotation->currency == 'USD')
+            @include('pdf.product_tnc_usd')
+        @else
+            @include('pdf.product_tnc')
+        @endif
     @else
         @include('pdf.hrdf_tnc')
     @endif
