@@ -55,15 +55,35 @@ class CompanyTabs
                                         $schema[] = TextInput::make('company_name')
                                             ->label('Company Name')
                                             ->default(strtoupper($record->companyDetail->company_name ?? '-'))
-                                            ->disabled(function () use ($isOlderThan30Days, $isAdmin) {
-                                                // If user has role_id 3, never disable the field regardless of lead age
+                                            ->disabled(function () use ($isOlderThan30Days, $isAdmin, $record) {
+                                                // Rule 1: If user has role_id 3, never disable the field regardless of lead age
                                                 if (auth()->user()->role_id === 3) {
                                                     return false;
                                                 }
-                                                // For other users, apply the original condition
+
+                                                // Rule 2: If lead has a salesperson assigned and current user is role_id 1, disable the field
+                                                if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
+                                                    return true;
+                                                }
+
+                                                // Rule 3: Original condition - disable if older than 30 days and not admin
                                                 return $isOlderThan30Days && !$isAdmin;
                                             })
-                                            ->helperText($isOlderThan30Days && !$isAdmin ? 'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '')
+                                            ->helperText(function () use ($isOlderThan30Days, $isAdmin, $record) {
+                                                // If user has role_id 3, no helper text needed
+                                                if (auth()->user()->role_id === 3) {
+                                                    return '';
+                                                }
+
+                                                // If lead has a salesperson assigned and current user is role_id 1
+                                                if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
+                                                    return 'Company name cannot be edited when a salesperson is assigned.';
+                                                }
+
+                                                // Original helper text
+                                                return $isOlderThan30Days && !$isAdmin ?
+                                                    'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '';
+                                            })
                                             ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
 
                                         // Add the rest of the fields that don't have the restriction

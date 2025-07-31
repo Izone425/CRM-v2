@@ -231,25 +231,45 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                         ->label('Activate License')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->form([
-                            TextInput::make('payroll_code')
-                                ->label('Payroll Code')
-                                ->required()
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->placeholder('Enter the payroll code')
-                        ])
+                        ->form(function (SoftwareHandover $record) {
+                            // Only show payroll code field if tp is true
+                            if ($record->tp) {
+                                return [
+                                    TextInput::make('payroll_code')
+                                        ->label('Payroll Code')
+                                        ->required()
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->placeholder('Enter the payroll code')
+                                ];
+                            }
+
+                            // If tp is false, return empty form (just confirmation)
+                            return [];
+                        })
                         ->requiresConfirmation()
                         ->modalHeading(fn(SoftwareHandover $record) => "Activate License for {$record->company_name}")
-                        ->modalDescription('Enter the payroll code and confirm license activation. This action cannot be undone.')
+                        ->modalDescription(function (SoftwareHandover $record) {
+                            if ($record->tp) {
+                                return 'Enter the payroll code and confirm license activation. This action is to make sure you have activated the license.';
+                            }
+                            return 'Confirm license activation. This action is to make sure you have activated the license.';
+                        })
                         ->modalSubmitActionLabel('Yes, Activate License')
                         ->modalCancelActionLabel('No, Cancel')
                         ->action(function (SoftwareHandover $record, array $data): void {
-                            $record->update([
+                            // Update data based on tp field
+                            $updateData = [
                                 'license_activated' => true,
-                                'payroll_code' => $data['payroll_code'],
-                            ]);
+                            ];
+
+                            // Only add payroll_code to update if tp is true and payroll_code was provided
+                            if ($record->tp && isset($data['payroll_code'])) {
+                                $updateData['payroll_code'] = $data['payroll_code'];
+                            }
+
+                            $record->update($updateData);
 
                             Notification::make()
                                 ->title('License has been activated successfully')

@@ -132,62 +132,70 @@ class ActivityLogRelationManager extends RelationManager
             ->filters([
                 // Add the salesperson filter
                 Tables\Filters\SelectFilter::make('salesperson_activities')
-                ->label('Filter by Role')
-                ->options([
-                    'salesperson' => 'Salesperson Activities',
-                    'lead_owner' => 'Lead Owner Activities',
-                    'manager' => 'Manager Activities',
-                    'system' => 'System Actions',
-                    'all' => 'All Activities',
-                ])
-                ->placeholder('All Activities')
-                ->default('salesperson')
-                ->query(function (Builder $query, array $data) {
-                    // If no filter is selected, return the original query
-                    if (empty($data['value'])) {
-                        return $query;
-                    }
-
-                    // Filter based on the selected option
-                    return match ($data['value']) {
-                        'salesperson' => $query->whereIn('causer_id', function($subQuery) {
-                            $subQuery->select('id')
-                                    ->from('users')
-                                    ->where('role_id', 2);
-                        }),
-                        'lead_owner' => $query->whereIn('causer_id', function($subQuery) {
-                            $subQuery->select('id')
-                                    ->from('users')
-                                    ->where('role_id', 1);
-                        }),
-                        'manager' => $query->whereIn('causer_id', function($subQuery) {
-                            $subQuery->select('id')
-                                    ->from('users')
-                                    ->where('role_id', 3);
-                        }),
-                        'system' => $query->where(function ($q) {
-                            $q->whereNull('causer_id')
-                            ->orWhere('causer_id', 0);
-                        }),
-                        'all' => $query,
-                        default => $query,
-                    };
-                })
-                ->indicateUsing(function (array $data): ?string {
-                    if (empty($data['value'])) {
-                        return null;
-                    }
-
-                    $labels = [
+                    ->label('Filter by Role')
+                    ->options([
                         'salesperson' => 'Salesperson Activities',
                         'lead_owner' => 'Lead Owner Activities',
                         'manager' => 'Manager Activities',
                         'system' => 'System Actions',
                         'all' => 'All Activities',
-                    ];
+                    ])
+                    ->placeholder('All Activities')
+                    ->default(function() {
+                        // Set default filter based on user role
+                        return match(auth()->user()->role_id) {
+                            1 => 'all', // Lead owner sees all activities
+                            2 => 'salesperson', // Salesperson sees only salesperson activities
+                            3 => 'salesperson', // Manager sees only salesperson activities
+                            default => 'all',
+                        };
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        // If no filter is selected, return the original query
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
 
-                    return 'Role: ' . ($labels[$data['value']] ?? 'Unknown');
-                })
+                        // Filter based on the selected option
+                        return match ($data['value']) {
+                            'salesperson' => $query->whereIn('causer_id', function($subQuery) {
+                                $subQuery->select('id')
+                                        ->from('users')
+                                        ->where('role_id', 2);
+                            }),
+                            'lead_owner' => $query->whereIn('causer_id', function($subQuery) {
+                                $subQuery->select('id')
+                                        ->from('users')
+                                        ->where('role_id', 1);
+                            }),
+                            'manager' => $query->whereIn('causer_id', function($subQuery) {
+                                $subQuery->select('id')
+                                        ->from('users')
+                                        ->where('role_id', 3);
+                            }),
+                            'system' => $query->where(function ($q) {
+                                $q->whereNull('causer_id')
+                                ->orWhere('causer_id', 0);
+                            }),
+                            'all' => $query,
+                            default => $query,
+                        };
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['value'])) {
+                            return null;
+                        }
+
+                        $labels = [
+                            'salesperson' => 'Salesperson Activities',
+                            'lead_owner' => 'Lead Owner Activities',
+                            'manager' => 'Manager Activities',
+                            'system' => 'System Actions',
+                            'all' => 'All Activities',
+                        ];
+
+                        return 'Role: ' . ($labels[$data['value']] ?? 'Unknown');
+                    })
             ])
             ->columns([
                 TextColumn::make('index')

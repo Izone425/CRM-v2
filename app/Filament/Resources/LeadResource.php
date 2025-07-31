@@ -45,6 +45,7 @@ use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\OtherFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectFollowUpTabs;
+use App\Filament\Resources\LeadResource\Tabs\ProspectPICTabs;
 use App\Filament\Resources\LeadResource\Tabs\QuotationTabs;
 use App\Filament\Resources\LeadResource\Tabs\ReferEarnTabs;
 use App\Filament\Resources\LeadResource\Tabs\RepairAppointmentTabs;
@@ -107,7 +108,7 @@ class LeadResource extends Resource
                         'company', 'quotation', 'repair_appointment'
                     ];
                 } else {
-                    $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                    $activeTabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
                 }
@@ -127,7 +128,7 @@ class LeadResource extends Resource
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
-                    'lead', 'company', 'system', 'refer_earn', 'appointment',
+                    'lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'
                 ];
@@ -143,6 +144,11 @@ class LeadResource extends Resource
         if (in_array('company', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Company')
                 ->schema(CompanyTabs::getSchema());
+        }
+
+        if (in_array('prospect_pic_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Prospect PICs')
+                ->schema(ProspectPICTabs::getSchema());
         }
 
         if (in_array('system', $activeTabs)) {
