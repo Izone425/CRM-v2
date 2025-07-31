@@ -22,6 +22,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Illuminate\Support\Facades\DB;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
@@ -289,14 +290,31 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         // Use the getInvoiceTotal method for all salespeople
                         $total = $this->getInvoiceTotal($record);
                         return 'RM ' . number_format($total, 2);
-                    }),
+                    })
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('')
+                            ->using(function () {
+                                $totals = $this->calculateColumnTotals();
+                                return 'RM ' . number_format($totals['invoice'], 2);
+                            }),
+                    ]),
 
                 TextColumn::make('forecast_hot')
                     ->label('FORECAST - HOT')
                     ->getStateUsing(function ($record) {
                         $total = $this->getForecastHot($record);
                         return 'RM ' . number_format($total, 2);
-                    }),
+                    })
+                    ->summarize([
+                        // Use a custom summarizer with the correct method
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('')
+                            ->using(function () {
+                                $totals = $this->calculateColumnTotals();
+                                return 'RM ' . number_format($totals['forecast_hot'], 2);
+                            }),
+                    ]),
 
                 TextColumn::make('grand_total')
                     ->label('GRAND TOTAL')
@@ -310,7 +328,15 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
                         $total = $invoiceTotal + $forecastTotal;
                         return 'RM ' . number_format($total, 2);
-                    }),
+                    })
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('')
+                            ->using(function () {
+                                $totals = $this->calculateColumnTotals();
+                                return 'RM ' . number_format($totals['grand_total'], 2);
+                            }),
+                    ]),
 
                 TextColumn::make('sales_target')
                     ->label('SALES TARGET')
@@ -325,7 +351,15 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                             ->value('target_amount') ?? 0;
 
                         return 'RM ' . number_format($target, 2);
-                    }),
+                    })
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('')
+                            ->using(function () {
+                                $totals = $this->calculateColumnTotals();
+                                return 'RM ' . number_format($totals['sales_target'], 2);
+                            }),
+                    ]),
 
                 TextColumn::make('difference')
                     ->label('DIFFERENCE')
@@ -358,6 +392,14 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
                         return $actualTotal >= $target ? 'success' : 'danger';
                     })
+                    ->summarize([
+                        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('')
+                            ->using(function () {
+                                $totals = $this->calculateColumnTotals();
+                                return 'RM ' . number_format($totals['difference'], 2);
+                            })
+                    ])
             ]);
     }
 
@@ -437,6 +479,46 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->where('month', $month)
             ->where('year', $year)
             ->value('target_amount') ?? 0;
+    }
+
+    private function calculateColumnTotals()
+    {
+        $month = $this->selectedMonth ?? now()->month;
+        $year = $this->selectedYear ?? now()->year;
+
+        $totals = [
+            'invoice' => 0,
+            'forecast_hot' => 0,
+            'grand_total' => 0,
+            'sales_target' => 0,
+            'difference' => 0
+        ];
+
+        foreach ($this->getTableQuery()->get() as $record) {
+            // Calculate invoice total
+            $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
+            $totals['invoice'] += $invoiceTotal;
+
+            // Calculate forecast hot total
+            $forecastTotal = $this->getForecastHot($record, $month, $year);
+            $totals['forecast_hot'] += $forecastTotal;
+
+            // Calculate proforma total (if used in grand total)
+            $proformaTotal = $this->getProformaTotal($record, $month, $year);
+
+            // Calculate grand total
+            $recordGrandTotal = $invoiceTotal + $forecastTotal + $proformaTotal;
+            $totals['grand_total'] += $recordGrandTotal;
+
+            // Calculate sales target total
+            $targetAmount = $this->getSalesTarget($record, $month, $year);
+            $totals['sales_target'] += $targetAmount;
+
+            // Add to difference total
+            $totals['difference'] += ($recordGrandTotal - $targetAmount);
+        }
+
+        return $totals;
     }
 
     public function render()

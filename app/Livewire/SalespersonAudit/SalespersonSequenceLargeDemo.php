@@ -75,11 +75,14 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
 
     public function getTableQuery()
     {
+        $startDate = Carbon::parse('2025-07-28');
+
         $query = Appointment::query()
             ->whereIn('status', ['New', 'Done'])
             ->whereIn('salesperson', [12, 6, 9])
-            ->whereHas('lead', function ($query) {
-                $query->whereIn('company_size', $this->largeCompanySizes);
+            ->whereHas('lead', function ($query) use ($startDate) {
+                $query->whereIn('company_size', $this->largeCompanySizes)
+                    ->where('created_at', '>=', $startDate);
             })
             ->whereIn('causer_id', function($query) {
                 $query->select('id')
@@ -90,7 +93,6 @@ class SalespersonSequenceLargeDemo extends Component implements HasForms, HasTab
 
         return $query;
     }
-
     public function table(Table $table): Table
     {
         $tableBuilder = $table

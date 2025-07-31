@@ -62,11 +62,14 @@ class SalespersonSequenceMediumDemoRank2 extends Component implements HasForms, 
 
     public function getTableQuery()
     {
+        $startDate = Carbon::parse('2025-07-28');
+
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
                 ->whereIn('salesperson', [11, 10, 7, 8])
-                ->whereHas('lead', function ($query) {
-                    $query->whereIn('company_size', $this->mediumCompanySizes);
+                ->whereHas('lead', function ($query) use ($startDate) {
+                    $query->whereIn('company_size', $this->mediumCompanySizes)
+                        ->where('created_at', '>=', $startDate);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')

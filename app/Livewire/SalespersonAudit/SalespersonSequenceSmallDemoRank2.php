@@ -62,11 +62,14 @@ class SalespersonSequenceSmallDemoRank2 extends Component implements HasForms, H
 
     public function getTableQuery()
     {
+        $startDate = Carbon::parse('2025-07-28');
+
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
                 ->whereIn('salesperson', [11, 10, 7, 8])
-                ->whereHas('lead', function ($query) {
-                    $query->whereIn('company_size', $this->smallCompanySizes);
+                ->whereHas('lead', function ($query) use ($startDate) {
+                    $query->whereIn('company_size', $this->smallCompanySizes)
+                        ->where('created_at', '>=', $startDate);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')
@@ -74,34 +77,6 @@ class SalespersonSequenceSmallDemoRank2 extends Component implements HasForms, H
                         ->where('role_id', 1);
                 })
                 ->with(['lead', 'lead.companyDetail']);
-
-        return $query;
-    }
-
-    private function getDemoQuery()
-    {
-        $query = Appointment::query()
-            ->whereIn('status', ['New', 'Done'])
-            ->whereHas('lead', function ($query) {
-                $query->whereIn('company_size', $this->smallCompanySizes);
-            })
-            ->with(['lead', 'lead.companyDetail']);
-
-        return $query;
-    }
-
-    private function getRfqQuery()
-    {
-        // For RFQs, we need to use a more complex approach since they're in activity logs
-        $query = Lead::query()
-            ->whereIn('company_size', $this->smallCompanySizes)
-            ->whereHas('activities', function ($q) {
-                $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%']);
-            })
-            ->with(['companyDetail', 'activities' => function ($q) {
-                $q->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-                  ->latest();
-            }]);
 
         return $query;
     }

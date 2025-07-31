@@ -62,12 +62,14 @@ class SalespersonSequenceEnterpriseDemoRank2 extends Component implements HasFor
 
     public function getTableQuery()
     {
+        $startDate = Carbon::parse('2025-07-28');
+
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
-                ->whereHas('lead', function ($query) {
-                    $query->whereIn('company_size', $this->enterpriseCompanySizes);
-
-                    $query->whereIn('salesperson', [11, 10, 7, 8]);
+                ->whereHas('lead', function ($query) use ($startDate) {
+                    $query->whereIn('company_size', $this->enterpriseCompanySizes)
+                        ->where('created_at', '>=', $startDate)
+                        ->whereIn('salesperson', [11, 10, 7, 8]);
                 })
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')
