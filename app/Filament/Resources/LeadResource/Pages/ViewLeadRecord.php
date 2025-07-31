@@ -69,7 +69,7 @@ class ViewLeadRecord extends ViewRecord
             if ($user->additional_role === 1) {
                 return ['company', 'quotation', 'repair_appointment']; // Admin Repair view
             } else {
-                return ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                     'debtor_follow_up', 'software_handover', 'hardware_handover'];
             }
@@ -88,7 +88,7 @@ class ViewLeadRecord extends ViewRecord
         } elseif ($user->role_id === 9) { // Technician
             return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
-            return ['lead', 'company', 'system', 'refer_earn', 'appointment',
+            return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                 'debtor_follow_up', 'software_handover', 'hardware_handover'];
         }
@@ -227,7 +227,7 @@ class ViewLeadRecord extends ViewRecord
 
                     switch ($roleView) {
                         case 'lead_owner':
-                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                            $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                                 'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;
@@ -249,7 +249,7 @@ class ViewLeadRecord extends ViewRecord
                             break;
                         case 'manager':
                         default:
-                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
+                            $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
                                 'debtor_follow_up', 'software_handover', 'hardware_handover'];
                             break;

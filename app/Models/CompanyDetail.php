@@ -31,6 +31,7 @@ class CompanyDetail extends Model
         'position',
         'email',
         'additional_pic',
+        'additional_prospect_pic',
     ];
 
     public function setCompanyNameAttribute($value)

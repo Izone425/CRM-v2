@@ -49,33 +49,15 @@ class SoftwareHandoverResource extends Resource
                 // Section: Company Details
                 Section::make('Company Information')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(4)
                             ->schema([
                                 TextInput::make('company_name')
                                     ->label('Company Name')
                                     ->readonly()
                                     ->maxLength(255),
-
-                                TextInput::make('pic_name')
-                                    ->label('Name')
-                                    ->readonly()
-                                    ->maxLength(255),
-
-                                TextInput::make('pic_phone')
-                                    ->label('HP Number')
-                                    ->readonly()
-                                    ->maxLength(20),
-                            ]),
-
-                        Grid::make(3)
-                            ->schema([
                                 TextInput::make('salesperson')
                                     ->label('Salesperson')
                                     ->placeholder('Select salesperson')
-                                    ->readonly(),
-
-                                TextInput::make('headcount')
-                                    ->numeric()
                                     ->readonly(),
 
                                 TextInput::make('category')
@@ -91,7 +73,11 @@ class SoftwareHandoverResource extends Resource
                                         return $state;
                                     })
                                     ->dehydrated(false)
-                                    ->readonly()
+                                    ->readonly(),
+
+                                TextInput::make('headcount')
+                                    ->numeric()
+                                    ->readonly(),
                             ]),
                     ]),
 
@@ -207,6 +193,7 @@ class SoftwareHandoverResource extends Resource
                                             ->toArray();
                                     })
                                     ->required()
+                                    ->disabled(fn() => auth()->user()->role_id !== 3)
                                     ->default(function (SoftwareHandover $record) {
                                         // First try to use existing implementer_id if record exists
                                         if ($record && $record->implementer) {
@@ -679,6 +666,64 @@ class SoftwareHandoverResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('module_configuration')
+                    ->label('Module Configuration')
+                    ->options([
+                        'full_module' => 'Full Module (TA+TL+TC+TP)',
+                        'non_full_module' => 'Non-Full Module',
+                        'ta_only' => 'TA Only',
+                        'tl_only' => 'TL Only',
+                        'tc_only' => 'TC Only',
+                        'tp_only' => 'TP Only',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            // Full module - has all core modules
+                            'full_module' => $query->where('ta', true)
+                                                ->where('tl', true)
+                                                ->where('tc', true)
+                                                ->where('tp', true),
+
+                            // Non-full module - missing at least one core module
+                            'non_full_module' => $query->where(function (Builder $subQuery) {
+                                $subQuery->where('ta', false)
+                                        ->where('tl', false)
+                                        ->where('tc', false)
+                                        ->where('tp', false);
+                            }),
+
+                            // TA Only - only has TA module enabled
+                            'ta_only' => $query->where('ta', true)
+                                            ->where('tl', false)
+                                            ->where('tc', false)
+                                            ->where('tp', false),
+
+                            // TL Only - only has TL module enabled
+                            'tl_only' => $query->where('ta', false)
+                                            ->where('tl', true)
+                                            ->where('tc', false)
+                                            ->where('tp', false),
+
+                            // TC Only - only has TC module enabled
+                            'tc_only' => $query->where('ta', false)
+                                            ->where('tl', false)
+                                            ->where('tc', true)
+                                            ->where('tp', false),
+
+                            // TP Only - only has TP module enabled
+                            'tp_only' => $query->where('ta', false)
+                                            ->where('tl', false)
+                                            ->where('tc', false)
+                                            ->where('tp', true),
+
+                            default => $query,
+                        };
+                    })
+                    ->indicator('Module Configuration'),
                 // Existing date range filter
                 Tables\Filters\SelectFilter::make('lead_association')
                     ->label('Lead Association')

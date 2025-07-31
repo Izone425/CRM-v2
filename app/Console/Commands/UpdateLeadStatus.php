@@ -22,14 +22,14 @@ class UpdateLeadStatus extends Command
             ->get();
 
         foreach ($appointments as $appointment) {
+            // Update appointment to Done
+            $appointment->updateQuietly(['status' => 'Done']);
+
             $lead = $appointment->lead;
 
             if (!$lead) {
                 continue;
             }
-
-            // Update appointment to Done
-            $appointment->updateQuietly(['status' => 'Done']);
 
             ActivityLog::create([
                 'description' => 'Demo auto-updated to Done status after overdue',
