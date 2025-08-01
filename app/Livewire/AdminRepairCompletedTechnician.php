@@ -311,25 +311,201 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                                                         }),
                                                 ]),
 
+                                            Section::make('Used Spare Parts')
+                                                ->schema([
+                                                    Placeholder::make("devices.{$index}.used_spare_parts_info")
+                                                    ->hiddenLabel()
+                                                    ->content(function () use ($record, $index, $device) {
+                                                        // Get all spare parts from repair_remark
+                                                        $allParts = [];
+                                                        $deviceInfo = [];
+
+                                                        // First collect all parts and device info from repair_remark
+                                                        if(!empty($record->repair_remark)) {
+                                                            $deviceRepairs = is_string($record->repair_remark)
+                                                                ? json_decode($record->repair_remark, true)
+                                                                : $record->repair_remark;
+
+                                                            if(is_array($deviceRepairs)) {
+                                                                foreach($deviceRepairs as $repair) {
+                                                                    if(!empty($repair['device_model']) && !empty($repair['spare_parts'])) {
+                                                                        foreach($repair['spare_parts'] as $part) {
+                                                                            if(!empty($part['part_id'])) {
+                                                                                $partId = $part['part_id'];
+                                                                                $partName = $part['name'] ?? 'Unknown Part';
+
+                                                                                // Store part in allParts
+                                                                                $allParts[$partId] = [
+                                                                                    'part_id' => $partId,
+                                                                                    'part_name' => $partName,
+                                                                                    'device_model' => $repair['device_model'],
+                                                                                    'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                                                ];
+
+                                                                                // Also store in deviceInfo for lookup
+                                                                                $deviceInfo[$partId] = [
+                                                                                    'device_model' => $repair['device_model'],
+                                                                                    'device_serial' => $repair['device_serial'] ?? 'N/A'
+                                                                                ];
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Get unused parts
+                                                        $unusedParts = !empty($record->spare_parts_unused)
+                                                            ? (is_string($record->spare_parts_unused)
+                                                                ? json_decode($record->spare_parts_unused, true)
+                                                                : $record->spare_parts_unused)
+                                                            : [];
+
+                                                        // Build a lookup for unused parts by part_id
+                                                        $unusedPartIds = [];
+                                                        if(is_array($unusedParts)) {
+                                                            foreach($unusedParts as $part) {
+                                                                if(isset($part['part_id'])) {
+                                                                    $unusedPartIds[$part['part_id']] = true;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Calculate actually used parts (all parts minus unused parts)
+                                                        $spareParts = [];
+                                                        foreach($allParts as $partId => $part) {
+                                                            // Only include if not in unused parts
+                                                            if(!isset($unusedPartIds[$partId])) {
+                                                                $spareParts[] = $part;
+                                                            }
+                                                        }
+
+                                                        // If we have specific spare_parts_used data, override with that
+                                                        $explicitUsedParts = !empty($record->spare_parts_used)
+                                                            ? (is_string($record->spare_parts_used)
+                                                                ? json_decode($record->spare_parts_used, true)
+                                                                : $record->spare_parts_used)
+                                                            : [];
+
+                                                        if(!empty($explicitUsedParts) && is_array($explicitUsedParts)) {
+                                                            $spareParts = $explicitUsedParts;
+                                                        }
+
+                                                        // Filter to only include parts for this specific device
+                                                        $deviceSerial = $device['device_serial'] ?? null;
+                                                        if ($deviceSerial) {
+                                                            $spareParts = array_filter($spareParts, function($part) use ($deviceSerial) {
+                                                                return ($part['device_serial'] ?? 'N/A') == $deviceSerial;
+                                                            });
+                                                        }
+
+                                                        // Group spare parts by device serial number
+                                                        $sparePartsBySerial = [];
+                                                        foreach($spareParts as $part) {
+                                                            $serial = $part['device_serial'] ?? 'N/A';
+                                                            if(!isset($sparePartsBySerial[$serial])) {
+                                                                $sparePartsBySerial[$serial] = [
+                                                                    'device_model' => $part['device_model'] ?? 'N/A',
+                                                                    'device_serial' => $serial,
+                                                                    'parts' => []
+                                                                ];
+                                                            }
+                                                            $sparePartsBySerial[$serial]['parts'][] = $part;
+                                                        }
+
+                                                        // Generate the HTML output
+                                                        $html = '<div class="mb-6">';
+                                                        $html .= '<h4 class="pb-2 mb-2 font-semibold text-gray-700 border-b text-md" style="color: green;">Spare Parts Used</h4>';
+
+                                                        if(!empty($spareParts) && count($spareParts) > 0) {
+                                                            $html .= '<div class="space-y-4">';
+
+                                                            foreach($sparePartsBySerial as $serial => $deviceGroup) {
+                                                                $html .= '<div class="mb-3">';
+                                                                $html .= '<div class="px-4 py-2 font-medium text-white bg-green-600 rounded-t-lg" style="background-color: green;">';
+                                                                $html .= 'Device: ' . htmlspecialchars($deviceGroup['device_model']) . ' (S/N: ' . htmlspecialchars($serial) . ')';
+                                                                $html .= '</div>';
+
+                                                                // Left-right grid for spare parts
+                                                                $html .= '<div class="grid grid-cols-1 gap-2 p-4 border border-gray-300 md:grid-cols-2" style="background-color: #0080001c;">';
+
+                                                                // Left column
+                                                                $html .= '<div>';
+                                                                foreach($deviceGroup['parts'] as $index => $part) {
+                                                                    if($index % 2 == 0) {
+                                                                        $html .= '<div class="items-start mb-2">';
+                                                                        $html .= '<span class="mr-2 text-lg">•</span>';
+                                                                        $html .= '<span>' . htmlspecialchars($part['part_name'] ?? 'N/A') . '</span>';
+                                                                        $html .= '</div>';
+                                                                    }
+                                                                }
+                                                                $html .= '</div>';
+
+                                                                // Right column
+                                                                $html .= '<div>';
+                                                                foreach($deviceGroup['parts'] as $index => $part) {
+                                                                    if($index % 2 == 1) {
+                                                                        $html .= '<div class="items-start mb-2">';
+                                                                        $html .= '<span class="mr-2 text-lg">•</span>';
+                                                                        $html .= '<span>' . htmlspecialchars($part['part_name'] ?? 'N/A') . '</span>';
+                                                                        $html .= '</div>';
+                                                                    }
+                                                                }
+                                                                $html .= '</div>';
+
+                                                                $html .= '</div>'; // End grid
+                                                                $html .= '</div>'; // End device group
+                                                            }
+
+                                                            $html .= '</div>'; // End space-y-4
+                                                        } else {
+                                                            $html .= '<p class="italic text-gray-500">No spare parts were used</p>';
+                                                        }
+
+                                                        $html .= '</div>'; // End mb-6
+
+                                                        return new HtmlString($html);
+                                                    }),
+                                                ])
+                                                ->collapsible(),
+
                                             // Required files section
                                             Section::make('Required Files')
                                                 ->schema([
                                                     // CSO File is mandatory for all
-                                                    FileUpload::make("devices.{$index}.cso_file")
-                                                        ->label('Computing Sales Order (CSO)')
-                                                        ->required()
-                                                        ->disk('public')
-                                                        ->directory('repairs/cso_files')
-                                                        ->acceptedFileTypes(['application/pdf'])
-                                                        ->maxSize(10240) // 10MB
-                                                        ->openable()
-                                                        ->downloadable()
-                                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file) use ($record, $device, $index) {
-                                                            $serialNum = $device['device_serial'] ?? 'unknown';
-                                                            $dateStr = now()->format('Ymd');
-                                                            $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                                                            return "{$repairId}_device_{$index}_CSO_{$serialNum}_{$dateStr}.{$file->getClientOriginalExtension()}";
-                                                        }),
+                                                    Grid::make(2)
+                                                    ->schema([
+                                                        FileUpload::make("devices.{$index}.cso_file")
+                                                            ->label('Computing Sales Order (CSO)')
+                                                            ->required()
+                                                            ->disk('public')
+                                                            ->directory('repairs/cso_files')
+                                                            ->acceptedFileTypes(['application/pdf'])
+                                                            ->maxSize(10240) // 10MB
+                                                            ->openable()
+                                                            ->downloadable()
+                                                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file) use ($record, $device, $index) {
+                                                                $serialNum = $device['device_serial'] ?? 'unknown';
+                                                                $dateStr = now()->format('Ymd');
+                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                return "{$repairId}_device_{$index}_CSO_{$serialNum}_{$dateStr}.{$file->getClientOriginalExtension()}";
+                                                            }),
+
+                                                        FileUpload::make("devices.{$index}.invoice_sparepart")
+                                                            ->label('Spare Parts Invoice')
+                                                            ->disk('public')
+                                                            ->directory('repairs/spareparts_invoices')
+                                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                                            ->maxSize(10240) // 10MB
+                                                            ->openable()
+                                                            ->downloadable()
+                                                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file) use ($record, $device, $index) {
+                                                                $serialNum = $device['device_serial'] ?? 'unknown';
+                                                                $dateStr = now()->format('Ymd');
+                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                return "{$repairId}_device_{$index}_SpareParts_Invoice_{$serialNum}_{$dateStr}.{$file->getClientOriginalExtension()}";
+                                                            }),
+                                                    ]),
 
                                                     Select::make("devices.{$index}.quotation_selection")
                                                         ->label('Select Quotation')
@@ -399,6 +575,10 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                                     // Add CSO file to device data
                                     if (isset($device['cso_file'])) {
                                         $deviceWarranty[$index]['cso_file'] = $device['cso_file'];
+                                    }
+
+                                    if (isset($device['invoice_sparepart'])) {
+                                        $deviceWarranty[$index]['invoice_sparepart'] = $device['invoice_sparepart'];
                                     }
 
                                     // Process quotation for out-of-warranty devices

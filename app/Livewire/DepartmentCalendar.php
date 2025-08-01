@@ -41,6 +41,9 @@ class DepartmentCalendar extends Component
     public array $status = ["DONE", "NEW", "CANCELLED"];
     public array $selectedStatus = [];
     public bool $allStatusSelected = true;
+    public $selectedDepartment = 'all';
+    public $leaveSummary = [];
+    public $todayLeaveSummary = [];
 
     public Collection $salesPeople;
     public array $selectedSalesPeople = [];
@@ -75,6 +78,14 @@ class DepartmentCalendar extends Component
         // For 'all_sales', we leave selectedSalesPeople empty which will show all
     }
 
+    public function filterByDepartment($department)
+    {
+        $this->selectedDepartment = $department;
+
+        // Recalculate leave summary with new department filter
+        $this->calculateLeaveSummary();
+    }
+
     // Modify the mount method to set default filter
     public function mount()
     {
@@ -90,6 +101,106 @@ class DepartmentCalendar extends Component
         } else {
             // Default to TimeTec HR Sales for admin users
             $this->updateSalesFilter('timetec_hr');
+        }
+    }
+
+    private function calculateLeaveSummary()
+    {
+        // Initialize summary arrays
+        $this->leaveSummary = [];
+        $this->todayLeaveSummary = [];
+
+        // Get departments based on filter
+        $departments = collect($this->getAllEmployeesByDepartment());
+
+        // Apply department filter if not showing all
+        if ($this->selectedDepartment !== 'all') {
+            $departments = $departments->filter(function($employee) {
+                return $employee->department === $this->selectedDepartment;
+            });
+        }
+
+        // Get unique departments excluding Vice President
+        $departments = $departments
+            ->pluck('department')
+            ->unique()
+            ->filter(function($dept) {
+                return $dept !== 'Vice President';
+            })
+            ->toArray();
+
+        // Initialize summary for each department
+        foreach ($departments as $department) {
+            $this->leaveSummary[$department] = [
+                'full_day' => 0,
+                'half_day_am' => 0,
+                'half_day_pm' => 0,
+                'total' => 0
+            ];
+
+            $this->todayLeaveSummary[$department] = [
+                'full_day' => 0,
+                'half_day_am' => 0,
+                'half_day_pm' => 0,
+                'total' => 0
+            ];
+        }
+
+        // Use the selected date instead of current date
+        $selectedDate = $this->date->format('Y-m-d');
+
+        // Group employees by department
+        $employeesByDept = $this->getAllEmployeesByDepartment()
+            ->filter(function($employee) {
+                return $employee->department !== 'Vice President' &&
+                    ($this->selectedDepartment === 'all' || $employee->department === $this->selectedDepartment);
+            })
+            ->groupBy('department');
+
+        // For each department
+        foreach ($employeesByDept as $department => $employees) {
+            // Get employee IDs for this department
+            $employeeIds = $employees
+                ->filter(function($employee) {
+                    return !is_string($employee->id) || !str_contains($employee->id, 'placeholder');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            // Get leaves for these employees during the week
+            $deptLeaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
+
+            // Count leaves by type
+            foreach ($deptLeaves as $userId => $userLeaves) {
+                foreach ($userLeaves as $date => $leave) {
+                    if ($leave['session'] === 'full') {
+                        $this->leaveSummary[$department]['full_day']++;
+                        $this->leaveSummary[$department]['total']++;
+
+                        // If it's the selected date, update today's summary
+                        if ($date === $selectedDate) {
+                            $this->todayLeaveSummary[$department]['full_day']++;
+                            $this->todayLeaveSummary[$department]['total']++;
+                        }
+                    } else if ($leave['session'] === 'am') {
+                        $this->leaveSummary[$department]['half_day_am']++;
+                        $this->leaveSummary[$department]['total'] += 0.5;
+
+                        if ($date === $selectedDate) {
+                            $this->todayLeaveSummary[$department]['half_day_am']++;
+                            $this->todayLeaveSummary[$department]['total'] += 0.5;
+                        }
+                    } else if ($leave['session'] === 'pm') {
+                        $this->leaveSummary[$department]['half_day_pm']++;
+                        $this->leaveSummary[$department]['total'] += 0.5;
+
+                        if ($date === $selectedDate) {
+                            $this->todayLeaveSummary[$department]['half_day_pm']++;
+                            $this->todayLeaveSummary[$department]['total'] += 0.5;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -409,7 +520,7 @@ class DepartmentCalendar extends Component
         // Set date range for the week
         $date = $this->date ? Carbon::parse($this->date) : Carbon::now();
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
-        $this->endDate = $date->copy()->endOfWeek()->addDays(4)->toDateString(); // Friday
+        $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
 
         // Get week days for display
         $this->weekDays = $this->getWeekDateDays($date);
@@ -418,12 +529,21 @@ class DepartmentCalendar extends Component
         $this->currentMonth = $date->format('F Y');
 
         // Get all employees organized by department in the specified order
-        $this->employees = $this->getAllEmployeesByDepartment();
+        $allEmployees = $this->getAllEmployeesByDepartment();
+
+        // Filter employees by department if a specific one is selected
+        if ($this->selectedDepartment !== 'all') {
+            $this->employees = $allEmployees->filter(function($employee) {
+                return $employee->department === $this->selectedDepartment;
+            });
+        } else {
+            $this->employees = $allEmployees;
+        }
 
         // Get public holidays for the week
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
 
-        // Get leaves for all employees in the date range
+        // Get leaves for filtered employees
         $employeeIds = $this->employees
             ->filter(function($employee) {
                 return !is_string($employee->id) || !str_contains($employee->id, 'placeholder');
@@ -434,7 +554,16 @@ class DepartmentCalendar extends Component
         // Get leaves from UserLeave model
         $this->leaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
 
+        // Calculate leave summaries
+        $this->calculateLeaveSummary();
+
         return view('livewire.department-calendar');
+    }
+
+    public function getDepartments()
+    {
+        $departments = collect($this->getAllEmployeesByDepartment())->pluck('department')->unique()->toArray();
+        return $departments;
     }
 
     public function calculateNewDemoCompanySize()
@@ -470,7 +599,7 @@ class DepartmentCalendar extends Component
         // Define department order and employee sequence according to requirements
         $departmentEmployees = [
             'Vice President' => [
-                ['name' => 'Faiz Shu Izhan', 'order' => 1]
+                ['name' => 'Faiz Shu - Izhan', 'order' => 1]
             ],
             'Admin Department' => [
                 ['name' => 'Fatimah Nurnabilah', 'order' => 2],
@@ -484,7 +613,7 @@ class DepartmentCalendar extends Component
                 ['name' => 'Muhammad Khoirul Bariah', 'order' => 8],
                 ['name' => 'Yasmin', 'order' => 9],
                 ['name' => 'Abdul Aziz', 'order' => 10],
-                ['name' => 'Nurul Farhanah', 'order' => 11],
+                ['name' => 'Farhanah Jamil', 'order' => 11],
                 ['name' => 'Joshua Ho', 'order' => 12],
                 ['name' => 'Vince Leong', 'order' => 13]
             ],
@@ -507,7 +636,7 @@ class DepartmentCalendar extends Component
                 ['name' => 'Noor Syazana', 'order' => 25],
                 ['name' => 'Ummu Najwa Fajrina', 'order' => 26],
                 ['name' => 'Rahmah', 'order' => 27],
-                ['name' => 'Mohd Hanif', 'order' => 28]
+                ['name' => 'Hanif Razali', 'order' => 28]
             ],
             'Technician Department' => [
                 ['name' => 'Khairul Izzuddin', 'order' => 29]

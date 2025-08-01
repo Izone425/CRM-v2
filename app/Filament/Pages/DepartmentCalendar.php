@@ -15,7 +15,7 @@ class DepartmentCalendar extends Page
 
     public function getTitle(): string | Htmlable
     {
-        return __("All Department Calendar");
+        return __("");
     }
 
     public function mount(): void {}
