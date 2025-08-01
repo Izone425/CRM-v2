@@ -155,18 +155,18 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                             })
                     ),
 
-                TextColumn::make('lead.salesperson')
-                    ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
-                        $lead = $record->lead;
-                        if (!$lead) {
-                            return '-';
-                        }
+                // TextColumn::make('lead.salesperson')
+                //     ->label('SalesPerson')
+                //     ->getStateUsing(function (HardwareHandover $record) {
+                //         $lead = $record->lead;
+                //         if (!$lead) {
+                //             return '-';
+                //         }
 
-                        $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
-                    })
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
+                //         $salespersonId = $lead->salesperson;
+                //         return User::find($salespersonId)?->name ?? '-';
+                //     })
+                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('implementer')
                     ->label('Implementer')
@@ -201,6 +201,21 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                             default => ucfirst($state),
                         };
                     })
+                    ->toggleable(),
+
+                TextColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            'full_payment' => new HtmlString('<span style="color: #10b981; font-weight: 500;">Full Payment</span>'),
+                            'partial_payment' => new HtmlString('<span style="color: #f59e0b; font-weight: 500;">Partial Payment</span>'),
+                            'hrdf_payment_paid' => new HtmlString('<span style="color: #3b82f6; font-weight: 500;">HRDF Payment (Paid)</span>'),
+                            'hrdf_payment_unpaid' => new HtmlString('<span style="color: #ef4444; font-weight: 500;">HRDF Payment (Unpaid)</span>'),
+                            default => new HtmlString('<span style="color: #6b7280;">Not Specified</span>'),
+                        };
+                    })
+                    ->searchable()
+                    ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('status')

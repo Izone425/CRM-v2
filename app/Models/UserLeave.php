@@ -152,4 +152,34 @@ class UserLeave extends Model
 
         return $newArray;
     }
+
+    public static function getAllLeavesForDateRange($startDate, $endDate, $employeeIds = [])
+    {
+        $query = self::whereBetween('date', [$startDate, $endDate]);
+
+        if (!empty($employeeIds)) {
+            $query->whereIn('user_ID', $employeeIds);
+        }
+
+        $leaves = $query->get();
+
+        // Transform the leaves into a format suitable for the calendar
+        $formattedLeaves = collect();
+
+        foreach ($leaves as $leave) {
+            $key = $leave->user_ID;
+
+            if (!$formattedLeaves->has($key)) {
+                $formattedLeaves[$key] = collect();
+            }
+
+            $formattedLeaves[$key][$leave->date] = [
+                'session' => $leave->session,
+                'leave_type' => $leave->leave_type,
+                'status' => $leave->status
+            ];
+        }
+
+        return $formattedLeaves;
+    }
 }

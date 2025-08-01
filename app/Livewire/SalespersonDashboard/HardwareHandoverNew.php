@@ -959,6 +959,17 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
                                     }),
                             ]),
+
+                            Select::make('payment_status')
+                                ->label('Payment Status')
+                                ->options([
+                                    'full_payment' => 'Full Payment',
+                                    'partial_payment' => 'Partial Payment',
+                                    'hrdf_payment_paid' => 'HRDF Payment (Paid)',
+                                    'hrdf_payment_unpaid' => 'HRDF Payment (Unpaid)',
+                                ])
+                                ->required()
+                                ->default('full_payment'),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process file uploads
@@ -1044,6 +1055,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'implementer' => $implementerName,
                                 'pending_stock_at' => now(),
                                 'status' => 'Pending Stock',
+                                'payment_status' => $data['payment_status'],
                             ];
 
                             if (isset($data['invoice_file'])) {
@@ -1496,6 +1508,17 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
                                     }),
                             ]),
+
+                            Select::make('payment_status')
+                                ->label('Payment Status')
+                                ->options([
+                                    'full_payment' => 'Full Payment',
+                                    'partial_payment' => 'Partial Payment',
+                                    'hrdf_payment_paid' => 'HRDF Payment (Paid)',
+                                    'hrdf_payment_unpaid' => 'HRDF Payment (Unpaid)',
+                                ])
+                                ->required()
+                                ->default('full_payment'),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             // Process serial data
@@ -1598,6 +1621,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'device_serials' => json_encode($serialData),
                                 'pending_migration_at' => now(),
                                 'status' => 'Pending Migration',
+                                'payment_status' => $data['payment_status'],
                             ];
 
                             if (isset($data['invoice_file'])) {
@@ -2149,6 +2173,16 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                         return "{$companyName}-salesorder-{$date}-{$random}.{$extension}";
                                     }),
                             ]),
+                            Select::make('payment_status')
+                                ->label('Payment Status')
+                                ->options([
+                                    'full_payment' => 'Full Payment',
+                                    'partial_payment' => 'Partial Payment',
+                                    'hrdf_payment_paid' => 'HRDF Payment (Paid)',
+                                    'hrdf_payment_unpaid' => 'HRDF Payment (Unpaid)',
+                                ])
+                                ->required()
+                                ->default('full_payment'),
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
                             $serialData = [
@@ -2249,6 +2283,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                                 'implementer' => $implementerName ?? null,
                                 'pending_migration_at' => now(),
                                 'status' => 'Completed Migration',
+                                'payment_status' => $data['payment_status'],
                             ];
 
                             if (isset($data['invoice_file'])) {

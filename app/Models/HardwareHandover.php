@@ -40,6 +40,7 @@ class HardwareHandover extends Model
         'face_id6_quantity',
         'time_beacon_quantity',
         'nfc_tag_quantity',
+        'payment_status',
         'device_serials',
         'invoice_type',
         'related_software_handovers',
