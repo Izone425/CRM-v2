@@ -510,7 +510,6 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                                                     Select::make("devices.{$index}.quotation_selection")
                                                         ->label('Select Quotation')
                                                         ->visible(!$hasWarranty)
-                                                        ->required(!$hasWarranty)
                                                         ->options(function () use ($record) {
                                                             $options = [];
                                                             // Get all quotations related to the same lead_id without filtering by type

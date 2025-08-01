@@ -132,6 +132,11 @@ class SearchLeadTable extends Component implements HasForms, HasTable
                     ->label('COMPANY SIZE'),
                 TextColumn::make('company_size')
                     ->label('HEADCOUNT'),
+            ])->actions([
+                ActionGroup::make([
+                    LeadActions::getTimeSinceCreationAction(),
+                ])
+                ->button(),
             ]);
     }
 

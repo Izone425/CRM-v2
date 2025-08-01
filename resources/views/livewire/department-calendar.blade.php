@@ -432,9 +432,6 @@
                             <div class="summary-card">
                                 <div class="card-header">
                                     <div class="department-name">{{ $department }}</div>
-                                    <div class="total-badge">
-                                        {{ $counts['total'] }}
-                                    </div>
                                 </div>
                                 <div class="leave-types">
                                     <div class="leave-type-row">

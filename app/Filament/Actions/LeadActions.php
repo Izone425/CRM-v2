@@ -209,10 +209,38 @@ class LeadActions
         ->requiresConfirmation()
         ->modalDescription('')
         ->form(function (?Lead $record) {
+            $companyName = optional($record?->companyDetail)->company_name;
+
+            // More thorough normalization of company names
+            $normalizedCompanyName = null;
+            if ($companyName) {
+                // Convert to uppercase for case-insensitive comparison
+                $normalizedCompanyName = strtoupper($companyName);
+
+                // Remove common Malaysian company suffixes with variations in spacing/punctuation
+                $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+
+                // Remove common prefixes like WEBINAR, MEETING, etc.
+                $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+
+                // Remove all punctuation and extra spaces
+                $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+
+                // Trim whitespace
+                $normalizedCompanyName = trim($normalizedCompanyName);
+            }
+
             $duplicateLeads = Lead::query()
-                ->where(function ($query) use ($record) {
-                    if (optional($record?->companyDetail)->company_name) {
-                        $query->where('company_name', $record->companyDetail->company_name);
+                ->where(function ($query) use ($record, $normalizedCompanyName) {
+                    // If we have a normalized company name, use it for more accurate matching
+                    if ($normalizedCompanyName) {
+                        // Look for similar company names (normalized)
+                        $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                            // Use simpler SQL that works in all MySQL versions
+                            $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?",
+                                ['%' . $normalizedCompanyName . '%']);
+                        });
                     }
 
                     if (!empty($record?->email)) {
@@ -224,11 +252,6 @@ class LeadActions
                     }
                 })
                 ->where('id', '!=', optional($record)->id)
-                ->where(function ($query) {
-                    $query->whereNull('company_name')
-                        ->orWhereRaw("company_name NOT LIKE '%SDN BHD%'")
-                        ->orWhereRaw("company_name NOT LIKE '%SDN. BHD.%'");
-                })
                 ->get(['id']);
 
             $isDuplicate = $duplicateLeads->isNotEmpty();
@@ -2698,6 +2721,47 @@ class LeadActions
             ->modalContent(function (Lead $record) {
                 return view('filament.modals.referral-details', [
                     'record' => $record,
+                ]);
+            });
+    }
+
+    public static function getTimeSinceCreationAction(): Action
+    {
+        return Action::make('time_since_creation')
+            ->label('View Period')
+            ->icon('heroicon-o-clock')
+            ->color('gray')
+            ->modalHeading('View Period')
+            ->modalSubmitAction(false)
+            ->modalCancelAction(false)
+            ->modalContent(function (Lead $record) {
+                $createdAt = $record->created_at;
+                $now = now();
+
+                $diffInDays = $createdAt->diffInDays($now);
+                $diffInHours = $createdAt->copy()->addDays($diffInDays)->diffInHours($now);
+                $diffInMinutes = $createdAt->copy()->addDays($diffInDays)->addHours($diffInHours)->diffInMinutes($now);
+
+                $humanReadable = $createdAt->diffForHumans();
+
+                // Format detailed time breakdown
+                $detailedBreakdown = '';
+                if ($diffInDays > 0) {
+                    $detailedBreakdown .= "{$diffInDays} day" . ($diffInDays > 1 ? 's' : '') . ", ";
+                }
+                if ($diffInHours > 0 || $diffInDays > 0) {
+                    $detailedBreakdown .= "{$diffInHours} hour" . ($diffInHours > 1 ? 's' : '') . ", ";
+                }
+                $detailedBreakdown .= "{$diffInMinutes} minute" . ($diffInMinutes > 1 ? 's' : '');
+
+                return view('filament.modals.time-since-creation', [
+                    'record' => $record,
+                    'created_at' => $createdAt->format('d M Y, h:i A'),
+                    'human_readable' => $humanReadable,
+                    'detailed_breakdown' => $detailedBreakdown,
+                    'diff_in_days' => $diffInDays,
+                    'diff_in_hours' => $diffInHours,
+                    'diff_in_minutes' => $diffInMinutes,
                 ]);
             });
     }
