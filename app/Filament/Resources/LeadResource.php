@@ -862,6 +862,7 @@ class LeadResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
+                    LeadActions::getTimeSinceCreationAction(),
                     LeadActions::getAssignToMeAction(),
                     LeadActions::getViewAction(),
                     LeadActions::getAddDemoAction()
