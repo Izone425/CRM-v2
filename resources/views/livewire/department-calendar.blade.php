@@ -26,8 +26,8 @@
 
         .calendar-header {
             display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
-            gap: 1px;
+            grid-template-columns: 1fr repeat(5, 0.8fr); /* Changed from 0.5fr to 1fr */
+            gap: 12px;
             background: var(--bg-color-border);
             border-radius: 17px;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
@@ -37,7 +37,7 @@
         /* Department Calendar */
         .calendar-body {
             display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
+            grid-template-columns: 1fr repeat(5, 0.8fr); /* Changed from 0.5fr to 1fr */
             gap: 1px;
             background: var(--bg-color-border);
             border-radius: 17px;
@@ -47,10 +47,9 @@
 
         .header-row {
             display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
+            grid-template-columns: 1fr repeat(5, 0.8fr); /* Changed from 0.5fr to 1fr */
             grid-column: 1 / -1;
         }
-
         .header,
         .time,
         .day,
@@ -75,7 +74,6 @@
             width: 100%;
             height: 100%;
             align-items: center;
-            justify-content: center;
             gap: 0.5rem;
             text-align: center;
         }
@@ -217,29 +215,328 @@
             background-color: #EF4444;
             color: white;
         }
+
+        .leave-summary-container {
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .leave-summary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .leave-summary-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .leave-toggle-container {
+            display: flex;
+            align-items: center;
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            gap: 15px;
+        }
+
+        .toggle-button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background-color: #f3f4f6;
+        }
+
+        .toggle-button-active {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .toggle-button-inactive {
+            color: #374151;
+        }
+
+        .toggle-button-inactive:hover {
+            background-color: #e5e7eb;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .summary-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .summary-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .summary-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        .summary-card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .summary-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .department-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .total-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            background-color: #4f46e5;
+            color: white;
+            border-radius: 9999px;
+        }
+
+        .leave-types {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .leave-type-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .leave-indicator {
+            display: flex;
+            align-items: center;
+        }
+
+        .indicator-dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+        }
+
+        .full-day-dot {
+            background-color: #FEE2E2; /* red-400 */
+        }
+
+        .half-day-am-dot {
+            background-color: #FEF9C3; /* yellow-300 */
+        }
+
+        .half-day-pm-dot {
+            background-color: #FEF9C3; /* amber-400 */
+        }
+
+        .leave-label {
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+
+        .leave-count {
+            font-weight: 500;
+        }
+
+        .card-footer {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .total-label {
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .total-value {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+
+        .summary-date {
+            margin-bottom: 1rem;
+            font-weight: 500;
+            font-size: 1rem;
+            color: #4b5563;
+        }
     </style>
+
+    <div class="leave-summary-container">
+        <div class="leave-summary-header">
+            <!-- Toggle Buttons with Show/Hide Logic -->
+            <div x-data="{ showDaily: false, showWeekly: false }">
+                <div style="color: #6b7280; font-size: 0.875rem;">
+                    Select "Daily Summary" or "Weekly Summary" to view leave statistics
+                </div>
+                <div class="leave-toggle-container" style="margin-top: 1rem;">
+                    <button
+                        @click="showDaily = showDaily ? false : true; showWeekly = false"
+                        :class="showDaily ? 'toggle-button toggle-button-active' : 'toggle-button toggle-button-inactive'">
+                        Daily Summary
+                    </button>
+                    <button
+                        @click="showWeekly = showWeekly ? false : true; showDaily = false"
+                        :class="showWeekly ? 'toggle-button toggle-button-active' : 'toggle-button toggle-button-inactive'">
+                        Weekly Summary
+                    </button>
+                </div>
+
+                <!-- Daily Summary Cards - Only shown when selected -->
+                <div x-show="showDaily" style="margin-top: 1rem;">
+                    <h4 class="summary-date">Selected Day ({{ Carbon\Carbon::parse($date)->format('d M Y') }})</h4>
+                    <div class="summary-grid">
+                        @foreach($todayLeaveSummary as $department => $counts)
+                            <div class="summary-card">
+                                <div class="card-header">
+                                    <div class="department-name">{{ $department }}</div>
+                                    <div class="total-badge">
+                                        {{ $counts['total'] }}
+                                    </div>
+                                </div>
+                                <div class="leave-types">
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot full-day-dot"></div>
+                                            <span class="leave-label">Full Day</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['full_day'] }}</span>
+                                    </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot half-day-am-dot"></div>
+                                            <span class="leave-label">Half AM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['half_day_am'] }}</span>
+                                    </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot half-day-pm-dot"></div>
+                                            <span class="leave-label">Half PM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['half_day_pm'] }}</span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <span class="total-label">Total Leave Days</span>
+                                    <span class="total-value">{{ $counts['total'] }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Weekly Summary Cards - Only shown when selected -->
+                <div x-show="showWeekly" style="margin-top: 1rem;">
+                    <h4 class="summary-date">
+                        This Week ({{ Carbon\Carbon::parse($startDate)->format('d M') }} - {{ Carbon\Carbon::parse($endDate)->format('d M Y') }})
+                    </h4>
+                    <div class="summary-grid">
+                        @foreach($leaveSummary as $department => $counts)
+                            <div class="summary-card">
+                                <div class="card-header">
+                                    <div class="department-name">{{ $department }}</div>
+                                    <div class="total-badge">
+                                        {{ $counts['total'] }}
+                                    </div>
+                                </div>
+                                <div class="leave-types">
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot full-day-dot"></div>
+                                            <span class="leave-label">Full Day</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['full_day'] }}</span>
+                                    </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot half-day-am-dot"></div>
+                                            <span class="leave-label">Half AM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['half_day_am'] }}</span>
+                                    </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot half-day-pm-dot"></div>
+                                            <span class="leave-label">Half PM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['half_day_pm'] }}</span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <span class="total-label">Total Leave Days</span>
+                                    <span class="total-value">{{ $counts['total'] }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Filter and Header Section -->
     <div class="flex items-center justify-between p-6 mb-6 bg-white shadow-xl rounded-2xl">
         <h2 class="text-2xl font-bold">All Department Calendar - {{ $currentMonth }}</h2>
 
-        <div class="flex items-center space-x-4">
-            <button wire:click="prevWeek" class="px-4 py-2 transition bg-gray-200 rounded-md hover:bg-gray-300">
-                <i class="mr-1 fa-solid fa-chevron-left"></i> Previous Week
-            </button>
-
-            <span class="text-lg font-medium">
-                {{ Carbon\Carbon::parse($startDate)->format('d M') }} -
-                {{ Carbon\Carbon::parse($endDate)->format('d M Y') }}
-            </span>
-
-            <button wire:click="nextWeek" class="px-4 py-2 transition bg-gray-200 rounded-md hover:bg-gray-300">
-                Next Week <i class="ml-1 fa-solid fa-chevron-right"></i>
-            </button>
-
+        <div class="flex items-center space-x-4" style="gap: 12px;">
+            <!-- Date Picker -->
             <div x-data="weeklyPicker()" class="w-36">
                 <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Select Date"
                     class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+
+            <!-- Department Filter - Add this new section -->
+            <div class="w-64">
+                <select wire:model.live="selectedDepartment"
+                        class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="all">All Departments</option>
+                    @foreach(['Vice President', 'Admin Department', 'SalesPerson Department', 'Implementer Department', 'Trainer Department', 'Support Department', 'Technician Department'] as $dept)
+                        <option value="{{ $dept }}">{{ $dept }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
     </div>
@@ -248,7 +545,13 @@
     <div class="calendar-header">
         <div class="header-row">
             <div class="header" style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
-                <div>{{ $currentMonth }}</div>
+                <div>
+                    @if($selectedDepartment === 'all')
+                        {{ $currentMonth }}
+                    @else
+                        {{ $selectedDepartment }} - {{ $currentMonth }}
+                    @endif
+                </div>
             </div>
             <div class="header">
                 <div class="flex">
@@ -289,31 +592,31 @@
     <div class="mt-4 calendar-body">
         <!-- Check for public holidays -->
         @if (isset($holidays['1']))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc((0.6/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((1.1/5.5)* 100%); width: calc((0.9/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem;">Public Holiday</div>
                 <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
             </div>
         @endif
         @if (isset($holidays['2']))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((1.97/5.5)*100%); width: calc((0.9/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem;">Public Holiday</div>
                 <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
             </div>
         @endif
         @if (isset($holidays['3']))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((2.86/5.5)*100%); width: calc((0.9/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem;">Public Holiday</div>
                 <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
             </div>
         @endif
         @if (isset($holidays['4']))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((3.74/5.5)*100%); width: calc((0.9/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem;">Public Holiday</div>
                 <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
             </div>
         @endif
         @if (isset($holidays['5']))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((4.6/5.5)*100%); width: calc((0.9/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem;">Public Holiday</div>
                 <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
             </div>
@@ -344,7 +647,6 @@
                     </div>
                     <div>
                         <div class="font-medium">{{ $employee->name }}</div>
-                        <div class="text-xs text-gray-500">#{{ str_pad($employee->display_order, 2, '0', STR_PAD_LEFT) }}</div>
                     </div>
                 </div>
             </div>
@@ -421,17 +723,17 @@
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center p-4 mt-4 space-x-6 bg-white rounded-lg shadow-md">
+    <div class="flex items-center p-4 mt-4 space-x-6 bg-white rounded-lg shadow-md" style="gap: 12px;">
         <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-green-200"></div>
+            <div class="w-4 h-4 mr-2 bg-green-200" style="background-color: #C6FEC3;"></div>
             <span class="text-sm">Available</span>
         </div>
         <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-red-200"></div>
+            <div class="w-4 h-4 mr-2 bg-red-200" style="background-color: #FEE2E2;"></div>
             <span class="text-sm">Full Day Leave</span>
         </div>
         <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-yellow-200"></div>
+            <div class="w-4 h-4 mr-2 bg-yellow-200" style="background-color: #FEF9C3;"></div>
             <span class="text-sm">Half Day Leave</span>
         </div>
         <div class="flex items-center">

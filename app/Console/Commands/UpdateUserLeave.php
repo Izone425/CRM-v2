@@ -111,7 +111,7 @@ class UpdateUserLeave extends Command
 
     private function getAllSalesPeople()
     {
-        return User::whereIn('role_id', ['2', '4', '5', '9'])
+        return User::whereIn('role_id', ['1', '2', '3', '4', '5', '6', '8', '9'])
             ->select('id', 'name','api_user_id')
             ->get();
     }
