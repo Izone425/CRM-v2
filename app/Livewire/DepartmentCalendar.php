@@ -44,6 +44,8 @@ class DepartmentCalendar extends Component
     public $selectedDepartment = 'all';
     public $leaveSummary = [];
     public $todayLeaveSummary = [];
+    public $selectedLeaveType = 'all';
+    public $allEmployeeLeaves;
 
     public Collection $salesPeople;
     public array $selectedSalesPeople = [];
@@ -84,6 +86,11 @@ class DepartmentCalendar extends Component
 
         // Recalculate leave summary with new department filter
         $this->calculateLeaveSummary();
+    }
+
+    public function filterByLeaveType($leaveType)
+    {
+        $this->selectedLeaveType = $leaveType;
     }
 
     // Modify the mount method to set default filter
@@ -552,7 +559,34 @@ class DepartmentCalendar extends Component
             ->toArray();
 
         // Get leaves from UserLeave model
-        $this->leaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
+        $allLeaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
+
+        if ($this->selectedLeaveType !== 'all') {
+            // Keep the original leaves for reference
+            $this->allEmployeeLeaves = $allLeaves;
+
+            // Filter leaves by type
+            $filteredLeaves = [];
+
+            foreach ($allLeaves as $userId => $userLeaves) {
+                $matching = [];
+
+                foreach ($userLeaves as $date => $leave) {
+                    if ($leave['session'] === $this->selectedLeaveType) {
+                        $matching[$date] = $leave;
+                    }
+                }
+
+                // Only include employees with matching leave types
+                if (!empty($matching)) {
+                    $filteredLeaves[$userId] = $matching;
+                }
+            }
+
+            $this->leaves = $filteredLeaves;
+        } else {
+            $this->leaves = $allLeaves;
+        }
 
         // Calculate leave summaries
         $this->calculateLeaveSummary();

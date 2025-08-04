@@ -543,6 +543,7 @@
             padding: 0.75rem 1rem;
             display: flex;
             flex-direction: column;
+            gap: 10px;
         }
 
         @media (min-width: 640px) {
@@ -675,6 +676,109 @@
             font-weight: bold;
             text-align: center;
         } */
+
+        @media (min-width: 768px) {
+            .modal-container {
+                max-width: 48rem; /* Make the modal wider for the 2-column layout */
+            }
+        }
+
+        .grid {
+            display: grid;
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .md\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .md\:col-span-2 {
+                grid-column: span 2 / span 2;
+            }
+        }
+
+        .col-span-1 {
+            grid-column: span 1 / span 1;
+        }
+
+        /* Confirmation alert styling */
+        .bg-red-50 {
+            background-color: #fef2f2;
+        }
+
+        .border-red-300 {
+            border-color: #fca5a5;
+        }
+
+        .text-red-700 {
+            color: #b91c1c;
+        }
+
+        .text-red-600 {
+            color: #dc2626;
+        }
+
+        .bg-red-600 {
+            background-color: #dc2626;
+        }
+
+        .bg-gray-200 {
+            background-color: #e5e7eb;
+        }
+
+        .text-gray-800 {
+            color: #1f2937;
+        }
+
+        .rounded-md {
+            border-radius: 0.375rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
     </style>
 
 
@@ -947,7 +1051,13 @@
                 <h3 class="text-lg font-semibold">Appointment Type</h3>
                 <p class="text-gray-600">Total Appointments: {{ $totalAppointments['ALL'] }}</p>
 
-                @foreach (['KICK OFF MEETING SESSION' => '#71eb71', 'IMPLEMENTATION SESSION 1' => '#ffff5cbf', 'IMPLEMENTATION SESSION 2' => '#f86f6f', 'IMPLEMENTATION SESSION 3' => '#aed6f1', 'IMPLEMENTATION SESSION 4' => '#d2b4de', 'IMPLEMENTATION SESSION 5' => '#f9e79f'] as $type => $color)
+                @foreach ([
+                    'KICK OFF MEETING SESSION' => '#71eb71',
+                    'IMPLEMENTATION REVIEW SESSION' => '#ffff5cbf',
+                    'DATA MIGRATION SESSION' => '#f86f6f',
+                    'SYSTEM SETTING SESSION' => '#aed6f1',
+                    'WEEKLY FOLLOW UP SESSION' => '#d2b4de'
+                ] as $type => $color)
                     @php
                         $count = $appointmentBreakdown[$type] ?? 0;
                         $percentage = $totalAppointments['ALL'] > 0 ? round(($count / $totalAppointments['ALL']) * 100, 2) : 0;
@@ -1382,6 +1492,7 @@
                                             } else {
                                                 // If it's still in the future, mark as available (green)
                                                 $cardStyle = 'background-color: #C6FEC3;';
+                                                $isClickable = true;
                                             }
                                         }
                                     }
@@ -1389,7 +1500,8 @@
 
                                 @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
                                     <!-- Display Booked Session -->
-                                    <div class="appointment-card" style="{{ $cardStyle }}">
+                                    <div class="appointment-card" style="{{ $cardStyle }}"
+                                        wire:click="showAppointmentDetails({{ $sessionDetails['appointment']->id ?? 'null' }})">
                                         <div class="appointment-card-bar"></div>
                                         <div class="appointment-card-info">
                                             <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
@@ -1398,9 +1510,9 @@
                                                 <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
                                             </div>
                                             <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
-                                                <a target="_blank" rel="noopener noreferrer" href={{ $sessionDetails['appointment']->url }}>
+                                                @if($sessionDetails['appointment']->lead_id)
                                                     {{ $sessionDetails['appointment']->company_name }}
-                                                </a>
+                                                @endif
                                             </div>
                                             <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
                                                 {{ $sessionDetails['appointment']->end_time }}</div>
@@ -1416,20 +1528,18 @@
                                         <div class="available-session-info">
                                             @if($sessionDetails['status'] === 'leave')
                                                 <div class="available-session-name">ON LEAVE</div>
-                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                                             @elseif($sessionDetails['status'] === 'holiday')
                                                 <div class="available-session-name">PUBLIC HOLIDAY</div>
-                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                                             @elseif($sessionDetails['status'] === 'past')
                                                 <div class="available-session-name">PAST SESSION</div>
-                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
-                                            @elseif($sessionDetails['status'] === 'cancelled')
+                                            @elseif($sessionDetails['status'] === 'cancelled' && !$isClickable)
                                                 <div class="available-session-name">CANCELLED SESSION</div>
-                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            @elseif(($sessionDetails['status'] === 'available' && isset($sessionDetails['wasCancelled']) && $sessionDetails['wasCancelled']))
+                                                <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT (PREVIOUSLY CANCELLED)</div>
                                             @else
                                                 <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
-                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                                             @endif
+                                            <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                                         </div>
                                     </div>
                                 @endif
@@ -1472,9 +1582,11 @@
                                             <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                         </div>
                                         <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                {{ $appointment->company_name }}
-                                            </a>
+                                            @if($appointment->lead_id)
+                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                    {{ $appointment->company_name }}
+                                                </a>
+                                            @endif
                                         </div>
                                         <div class="appointment-time">{{ $appointment->start_time }} -
                                             {{ $appointment->end_time }}</div>
@@ -1502,9 +1614,11 @@
                                                     <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                                 </div>
                                                 <div class="appointment-company-name">
-                                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                        {{ $appointment->company_name }}
-                                                    </a>
+                                                    @if($appointment->lead_id)
+                                                        <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                            {{ $appointment->company_name }}
+                                                        </a>
+                                                    @endif
                                                 </div>
                                                 <div class="appointment-time">{{ $appointment->start_time }} -
                                                     {{ $appointment->end_time }}</div>
@@ -1537,9 +1651,11 @@
                                                 <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                             </div>
                                             <div class="appointment-company-name">
-                                                <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                    {{ $appointment->company_name }}
-                                                </a>
+                                                @if($appointment->lead_id)
+                                                    <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                        {{ $appointment->company_name }}
+                                                    </a>
+                                                @endif
                                             </div>
                                             <div class="appointment-time">{{ $appointment->start_time }} -
                                                 {{ $appointment->end_time }}</div>
@@ -1571,7 +1687,7 @@
         <div class="modal-container">
             <div class="modal-body">
                 <h3 class="modal-title">
-                    Book {{ $bookingSession }} for {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
+                    Select Session Type for {{ $bookingSession }} on {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
                 </h3>
 
                 <div class="modal-form">
@@ -1584,9 +1700,250 @@
                         </p>
                     </div>
 
+                    <div class="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2">
+                        <!-- Option 1: Implementer Request -->
+                        <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementer_request')">
+                            <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTER REQUEST</h4>
+                            <p class="text-sm text-gray-600">
+                                Submit a request for Data Migration Session, System Setting Session, or Weekly Follow Up Session.
+                            </p>
+                        </div>
+
+                        <!-- Option 2: Implementation Session -->
+                        <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementation_session')">
+                            <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTATION SESSION</h4>
+                            <p class="text-sm text-gray-600">
+                                Book an implementation session with a client (Implementation Review Session or Kick Off Meeting Session).
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Implementer Request Form Modal -->
+@if($showImplementerRequestModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-body">
+                <h3 class="modal-title">
+                    Implementer Request: {{ $bookingSession }} for {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
+                </h3>
+
+                <div class="modal-form">
+                    <!-- Session Type -->
+                    <div class="form-group">
+                        <label for="requestSessionType" class="form-label">Session Type <span class="text-red-600">*</span></label>
+                        <select wire:model="requestSessionType" id="requestSessionType" class="form-select" wire:change="onRequestSessionTypeChange">
+                            <option value="">-- Select Session Type --</option>
+                            <option value="DATA MIGRATION SESSION">Data Migration Session</option>
+                            <option value="SYSTEM SETTING SESSION">System Setting Session</option>
+                            <option value="WEEKLY FOLLOW UP SESSION">Weekly Follow Up Session</option>
+                        </select>
+                        @error('requestSessionType')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    @if($requestSessionType === 'DATA MIGRATION SESSION' || $requestSessionType === 'SYSTEM SETTING SESSION')
+                        <!-- Company selection for Data Migration or System Setting -->
+                        <div class="form-group">
+                            <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
+
+                            <!-- Search box -->
+                            <div class="search-container">
+                                <input
+                                    type="text"
+                                    wire:model.live="companySearch"
+                                    placeholder="Search companies..."
+                                    class="mb-2 form-input"
+                                >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+
+                            <!-- Company dropdown (only open/delay projects) -->
+                            <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
+                                <option value="">-- Select a company --</option>
+                                @foreach($filteredOpenDelayCompanies as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedCompany')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    @elseif($requestSessionType === 'WEEKLY FOLLOW UP SESSION')
+                        <!-- Year and Week selection for Weekly Follow Up -->
+                        <div class="form-group">
+                            <label for="selectedYear" class="form-label">Year <span class="text-red-600">*</span></label>
+                            <select wire:model="selectedYear" id="selectedYear" class="form-select">
+                                @foreach($availableYears as $year)
+                                    <option value="{{ $year }}">{{ $year }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedYear')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="selectedWeek" class="form-label">Week <span class="text-red-600">*</span></label>
+                            <select wire:model="selectedWeek" id="selectedWeek" class="form-select">
+                                <option value="">-- Select Week --</option>
+                                @foreach($availableWeeks as $week)
+                                    <option value="{{ $week }}">Week {{ $week }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedWeek')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button wire:click="submitImplementerRequest" type="button" class="btn btn-primary">
+                    Submit Request
+                </button>
+                <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Appointment Details Modal -->
+@if($showAppointmentDetailsModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container" x-data="{ showConfirmation: false }">
+            <div class="modal-body">
+                <h3 class="modal-title">
+                    Implementation Appointment Details
+                </h3>
+
+                <div class="grid grid-cols-1 gap-4 modal-form md:grid-cols-2">
+                    <!-- Left Column -->
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label">Company Name</label>
+                            <p class="form-display-text">{{ $currentAppointment->company_name ?? $currentAppointment->title ?? 'N/A' }}</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Session Type</label>
+                            <p class="form-display-text">{{ $currentAppointment->type ?? 'N/A' }}</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Appointment Type</label>
+                            <p class="form-display-text">{{ $currentAppointment->appointment_type ?? 'N/A' }}</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <p class="form-display-text">{{ $currentAppointment->status ?? 'N/A' }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div>
+                        <div class="form-group">
+                            <label class="form-label">Date & Time</label>
+                            <p class="form-display-text">
+                                {{ $currentAppointment ? \Carbon\Carbon::parse($currentAppointment->date)->format('j F Y') : 'N/A' }}
+                                {{ $currentAppointment ? \Carbon\Carbon::parse($currentAppointment->start_time)->format('g:i A') : '' }} -
+                                {{ $currentAppointment ? \Carbon\Carbon::parse($currentAppointment->end_time)->format('g:i A') : '' }}
+                            </p>
+                        </div>
+
+                        @if($currentAppointment->request_status)
+                        <div class="form-group">
+                            <label class="form-label">Request Status</label>
+                            <p class="form-display-text">{{ $currentAppointment->request_status }}</p>
+                        </div>
+                        @endif
+
+                        @if($currentAppointment->required_attendees)
+                        <div class="form-group">
+                            <label class="form-label">Required Attendees</label>
+                            <p class="form-display-text">{{ $currentAppointment->required_attendees }}</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Full Width for Remarks -->
+                    <div class="col-span-1 md:col-span-2">
+                        @if($currentAppointment->remarks)
+                        <div class="form-group">
+                            <label class="form-label">Remarks</label>
+                            <p class="form-display-text">{{ $currentAppointment->remarks }}</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- Cancellation Confirmation - show when showConfirmation is true -->
+                    <template x-if="showConfirmation">
+                        <div class="col-span-1 p-4 border border-red-300 rounded-md md:col-span-2 bg-red-50">
+                            <h4 class="mb-2 font-bold text-red-700">Confirm Cancellation</h4>
+                            <p class="mb-4 text-red-600">
+                                Are you sure you want to cancel this appointment?
+                                This action cannot be undone and will send cancellation notifications to all attendees.
+                            </p>
+                            <div class="flex justify-end gap-2">
+                                <button @click="showConfirmation = false" type="button"
+                                    class="px-3 py-2 text-sm text-gray-800 bg-gray-200 rounded-md">
+                                    No, keep appointment
+                                </button>
+                                <button wire:click="cancelAppointment({{ $currentAppointment->id }})" type="button"
+                                    class="px-3 py-2 text-sm text-white bg-red-600 rounded-md">
+                                    Yes, cancel appointment
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                @if($currentAppointment && $currentAppointment->status !== 'Cancelled')
+                <button @click="showConfirmation = true" type="button" class="btn"
+                    style="background-color: #ef4444; color: white;">
+                    Cancel Demo
+                </button>
+                @endif
+                <button wire:click="closeAppointmentDetails" type="button" class="btn btn-secondary">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Implementation Session Form Modal -->
+@if($showImplementationSessionModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-body">
+                <h3 class="modal-title">
+                    Implementation Session: {{ $bookingSession }} for {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
+                </h3>
+
+                <div class="modal-form">
                     <!-- Company selection -->
                     <div class="form-group">
-                        <label for="selectedCompany" class="form-label">Company Name <span class="text-red-600">*</span></label>
+                        <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
 
                         <!-- Search box -->
                         <div class="search-container">
@@ -1601,14 +1958,26 @@
                             </svg>
                         </div>
 
-                        <!-- Company dropdown -->
+                        <!-- Company dropdown (only open/delay projects) -->
                         <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
                             <option value="">-- Select a company --</option>
-                            @foreach($filteredCompanies as $id => $name)
+                            @foreach($filteredOpenDelayCompanies as $id => $name)
                                 <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach
                         </select>
                         @error('selectedCompany')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Demo Type -->
+                    <div class="form-group">
+                        <label for="implementationDemoType" class="form-label">Demo Type <span class="text-red-600">*</span></label>
+                        <select wire:model="implementationDemoType" id="implementationDemoType" class="form-select">
+                            <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
+                            <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
+                        </select>
+                        @error('implementationDemoType')
                             <span class="form-error">{{ $message }}</span>
                         @enderror
                     </div>
@@ -1636,6 +2005,9 @@
                             class="form-input"
                             placeholder="email1@example.com;email2@example.com"
                         >
+                        <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600">
+                            Load from Software Handover
+                        </button>
                         <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
                         @error('requiredAttendees')
                             <span class="form-error">{{ $message }}</span>
@@ -1660,7 +2032,7 @@
             </div>
 
             <div class="modal-footer">
-                <button wire:click="submitBooking" type="button" class="btn btn-primary">
+                <button wire:click="submitImplementationSession" type="button" class="btn btn-primary">
                     Book Session
                 </button>
                 <button wire:click="cancelBooking" type="button" class="btn btn-secondary">

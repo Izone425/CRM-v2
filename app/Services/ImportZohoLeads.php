@@ -12,7 +12,7 @@ class ImportZohoLeads
 {
     public static function importLeads()
     {
-        $file = public_path('storage/excel/Deals_2025_03_26.csv');
+        $file = public_path('storage/excel/Lead_2025_08_04.csv');
         $import = new LeadImport();
         Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
     }

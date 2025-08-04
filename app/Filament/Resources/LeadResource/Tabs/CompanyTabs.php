@@ -164,9 +164,10 @@ class CompanyTabs
                                     ->action(function (Lead $lead, array $data) {
                                         $isOlderThan30Days = $lead->created_at->diffInDays(now()) > 30;
                                         $isAdmin = auth()->user()->role_id === 1;
+                                        $isSpecialRole = auth()->user()->role_id === 3;
 
-                                        // If trying to update company name and it's older than 30 days but not admin
-                                        if (isset($data['company_name']) && $isOlderThan30Days && !$isAdmin) {
+                                        // If trying to update company name and it's older than 30 days but not admin or special role
+                                        if (isset($data['company_name']) && $isOlderThan30Days && !$isAdmin && !$isSpecialRole) {
                                             // Remove company_name from the data if user shouldn't be able to update it
                                             $originalCompanyName = $lead->companyDetail->company_name ?? '-';
 
@@ -192,12 +193,15 @@ class CompanyTabs
                                                 ->success()
                                                 ->send();
 
-                                            // Log if admin changed company name on an old record
-                                            if ($isOlderThan30Days && $isAdmin && isset($data['company_name']) && $data['company_name'] !== $record->getOriginal('company_name')) {
+                                            // Log if admin or special role changed company name on an old record
+                                            if ($isOlderThan30Days && ($isAdmin || $isSpecialRole) &&
+                                                isset($data['company_name']) &&
+                                                $data['company_name'] !== $record->getOriginal('company_name')) {
+
                                                 activity()
                                                     ->causedBy(auth()->user())
                                                     ->performedOn($lead)
-                                                    ->log('Admin modified company name on a lead older than 30 days');
+                                                    ->log(($isSpecialRole ? 'Special role' : 'Admin') . ' modified company name on a lead older than 30 days');
                                             }
                                         } else {
                                             // Create a new CompanyDetail record via the relation

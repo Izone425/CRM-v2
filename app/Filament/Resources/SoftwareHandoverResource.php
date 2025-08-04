@@ -671,6 +671,7 @@ class SoftwareHandoverResource extends Resource
                     ->options([
                         'full_module' => 'Full Module (TA+TL+TC+TP)',
                         'non_full_module' => 'Non-Full Module',
+                        'non_payroll' => 'Non-Payroll (No TP)',
                         'ta_only' => 'TA Only',
                         'tl_only' => 'TL Only',
                         'tc_only' => 'TC Only',
@@ -690,11 +691,45 @@ class SoftwareHandoverResource extends Resource
 
                             // Non-full module - missing at least one core module
                             'non_full_module' => $query->where(function (Builder $subQuery) {
-                                $subQuery->where('ta', false)
-                                        ->where('tl', false)
-                                        ->where('tc', false)
-                                        ->where('tp', false);
-                            }),
+                                        // Customer doesn't have TA but has some combination of other modules
+                                        $subQuery->where(function ($q) {
+                                            $q->where('ta', false)
+                                            ->where(function ($inner) {
+                                                $inner->where('tl', true)
+                                                    ->orWhere('tc', true)
+                                                    ->orWhere('tp', true);
+                                            });
+                                        })
+                                        // OR Customer doesn't have TL but has some combination of other modules
+                                        ->orWhere(function ($q) {
+                                            $q->where('tl', false)
+                                            ->where(function ($inner) {
+                                                $inner->where('ta', true)
+                                                    ->orWhere('tc', true)
+                                                    ->orWhere('tp', true);
+                                            });
+                                        })
+                                        // OR Customer doesn't have TC but has some combination of other modules
+                                        ->orWhere(function ($q) {
+                                            $q->where('tc', false)
+                                            ->where(function ($inner) {
+                                                $inner->where('ta', true)
+                                                    ->orWhere('tl', true)
+                                                    ->orWhere('tp', true);
+                                            });
+                                        })
+                                        // OR Customer doesn't have TP but has some combination of other modules
+                                        ->orWhere(function ($q) {
+                                            $q->where('tp', false)
+                                            ->where(function ($inner) {
+                                                $inner->where('ta', true)
+                                                    ->orWhere('tl', true)
+                                                    ->orWhere('tc', true);
+                                            });
+                                        });
+                                    }),
+
+                            'non_payroll' => $query->where('tp', false),
 
                             // TA Only - only has TA module enabled
                             'ta_only' => $query->where('ta', true)

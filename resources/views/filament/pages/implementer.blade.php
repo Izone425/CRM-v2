@@ -65,7 +65,7 @@
     }
 
     .group-count {
-        font-size: 20px;
+        font-size: 24px;
         font-weight: bold;
     }
 
@@ -87,6 +87,9 @@
 
     .group-new-request { border-top-color: #06b6d4; }
     .group-new-request .group-count { color: #06b6d4; }
+
+    .group-implementer-request { border-top-color: #6366f1; }
+    .group-implementer-request .group-count { color: #6366f1; }
 
     /* Category column styling */
     .category-column {
@@ -261,6 +264,19 @@
     .enhancement-completed { border-left: 4px solid #0369a1; }
     .enhancement-completed .stat-count { color: #0369a1; }
 
+    /* Styles for Implementer Request sub-tabs */
+    .request-pending { border-left: 4px solid #6366f1; }
+    .request-pending .stat-count { color: #6366f1; }
+
+    .request-approved { border-left: 4px solid #8b5cf6; }
+    .request-approved .stat-count { color: #8b5cf6; }
+
+    .request-rejected { border-left: 4px solid #ef4444; }
+    .request-rejected .stat-count { color: #ef4444; }
+
+    .request-cancelled { border-left: 4px solid #94a3b8; }
+    .request-cancelled .stat-count { color: #94a3b8; }
+
     /* Selected states for categories */
     .stat-box.selected.status-all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
     .stat-box.selected.status-open { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
@@ -285,6 +301,10 @@
     .stat-box.selected.enhancement-pending { background-color: rgba(2, 132, 199, 0.05); border-left-width: 6px; }
     .stat-box.selected.enhancement-completed { background-color: rgba(3, 105, 161, 0.05); border-left-width: 6px; }
 
+    .stat-box.selected.request-pending { background-color: rgba(99, 102, 241, 0.05); border-left-width: 6px; }
+    .stat-box.selected.request-approved { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
+    .stat-box.selected.request-rejected { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
+    .stat-box.selected.request-cancelled { background-color: rgba(148, 163, 184, 0.05); border-left-width: 6px; }
     /* Animation for tab switching */
     [x-transition] {
         transition: all 0.2s ease-out;
@@ -414,6 +434,13 @@
     $followUpTotal = $followUpToday + $followUpOverdue;
     $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
+
+    $pendingRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'PENDING APPROVAL')->count();
+    $approvedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'APPROVED')->count();
+    $rejectedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'REJECTED')->count();
+    $cancelledRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'CANCELLED')->count();
+
+    $implementerRequestTotal = $pendingRequestCount + $approvedRequestCount + $rejectedRequestCount + $cancelledRequestCount;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -464,19 +491,19 @@
                 :class="{'selected': selectedGroup === 'license'}"
                 @click="setSelectedGroup('license')">
                 <div class="group-info">
-                    <div class="group-title">License Certificate</div>
+                    <div class="group-title">Pending Task</div>
                 </div>
                 <div class="group-count">{{ $licenseTotal }}</div>
             </div>
 
-            <!-- NO3 - DATA MIGRATION -->
-            <div class="group-box group-migration"
-                :class="{'selected': selectedGroup === 'migration'}"
-                @click="setSelectedGroup('migration')">
+            <!-- NO3 - IMPLEMENTER REQUEST -->
+            <div class="group-box group-implementer-request"
+                :class="{'selected': selectedGroup === 'implementer-request'}"
+                @click="setSelectedGroup('implementer-request')">
                 <div class="group-info">
-                    <div class="group-title">Data Migration</div>
+                    <div class="group-title">Implementer Request</div>
                 </div>
-                <div class="group-count">{{ $migrationTotal }}</div>
+                <div class="group-count">{{ $implementerRequestTotal }}</div>
             </div>
 
             <!-- NO4 - PROJECT FOLLOW UP -->
@@ -566,7 +593,7 @@
                     :class="{'selected': selectedStat === 'license-pending'}"
                     @click="setSelectedStat('license-pending')">
                     <div class="stat-info">
-                        <div class="stat-label">Pending</div>
+                        <div class="stat-label">License Certificate | Pending</div>
                     </div>
                     <div class="stat-count">{{ $pendingLicenseCount }}</div>
                 </div>
@@ -575,19 +602,16 @@
                     :class="{'selected': selectedStat === 'license-completed'}"
                     @click="setSelectedStat('license-completed')">
                     <div class="stat-info">
-                        <div class="stat-label">Completed</div>
+                        <div class="stat-label">License Certificate | Completed</div>
                     </div>
                     <div class="stat-count">{{ $completedLicenseCount }}</div>
                 </div>
-            </div>
 
-            <!-- DATA MIGRATION Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'migration'" x-transition>
                 <div class="stat-box migration-pending"
                     :class="{'selected': selectedStat === 'migration-pending'}"
                     @click="setSelectedStat('migration-pending')">
                     <div class="stat-info">
-                        <div class="stat-label">Pending</div>
+                        <div class="stat-label">Data Migration | Pending</div>
                     </div>
                     <div class="stat-count">{{ $pendingMigrationCount }}</div>
                 </div>
@@ -596,9 +620,48 @@
                     :class="{'selected': selectedStat === 'migration-completed'}"
                     @click="setSelectedStat('migration-completed')">
                     <div class="stat-info">
-                        <div class="stat-label">Completed</div>
+                        <div class="stat-label">Data Migration | Completed</div>
                     </div>
                     <div class="stat-count">{{ $completedMigrationCount }}</div>
+                </div>
+            </div>
+
+            <!-- IMPLEMENTER REQUEST Sub-tabs -->
+            <div class="category-container" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));" x-show="selectedGroup === 'implementer-request'" x-transition>
+                <div class="stat-box request-pending"
+                    :class="{'selected': selectedStat === 'request-pending'}"
+                    @click="setSelectedStat('request-pending')">
+                    <div class="stat-info">
+                        <div class="stat-label">Pending Approval</div>
+                    </div>
+                    <div class="stat-count">{{ $pendingRequestCount }}</div>
+                </div>
+
+                <div class="stat-box request-approved"
+                    :class="{'selected': selectedStat === 'request-approved'}"
+                    @click="setSelectedStat('request-approved')">
+                    <div class="stat-info">
+                        <div class="stat-label">Approved</div>
+                    </div>
+                    <div class="stat-count">{{ $approvedRequestCount }}</div>
+                </div>
+
+                <div class="stat-box request-rejected"
+                    :class="{'selected': selectedStat === 'request-rejected'}"
+                    @click="setSelectedStat('request-rejected')">
+                    <div class="stat-info">
+                        <div class="stat-label">Rejected</div>
+                    </div>
+                    <div class="stat-count">{{ $rejectedRequestCount }}</div>
+                </div>
+
+                <div class="stat-box request-cancelled"
+                    :class="{'selected': selectedStat === 'request-cancelled'}"
+                    @click="setSelectedStat('request-cancelled')">
+                    <div class="stat-info">
+                        <div class="stat-label">Cancelled</div>
+                    </div>
+                    <div class="stat-count">{{ $cancelledRequestCount }}</div>
                 </div>
             </div>
 
@@ -748,8 +811,6 @@
                         <livewire:implementer-dashboard.implementer-license-completed />
                     </div>
                 </div>
-
-                <!-- DATA MIGRATION Tables -->
                 <div x-show="selectedStat === 'migration-pending'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-migration />
@@ -758,6 +819,28 @@
                 <div x-show="selectedStat === 'migration-completed'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-migration-completed />
+                    </div>
+                </div>
+
+                <!-- IMPLEMENTER REQUEST Tables -->
+                <div x-show="selectedStat === 'request-pending'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-request-pending-approval />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'request-approved'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-request-approved />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'request-rejected'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-request-rejected />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'request-cancelled'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-request-cancelled />
                     </div>
                 </div>
 
