@@ -182,10 +182,10 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($fullName) . '"
+                                    title="' . e($shortened) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
+                                    ' . $shortened . '
                                 </a>';
                     })
                     ->html(),

@@ -27,6 +27,9 @@ class ImplementerAppointment extends Model
         'title',
         'required_attendees',
         'status',
+        'request_status',
+        'selected_year',
+        'selected_week',
     ];
 
     protected $casts = [

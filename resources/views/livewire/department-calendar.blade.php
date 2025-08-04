@@ -217,7 +217,7 @@
         }
 
         .leave-summary-container {
-            padding: 1.5rem;
+            padding: 1rem 1rem 0.2rem 1rem;
             margin-top: 1.5rem;
             background-color: white;
             border-radius: 0.75rem;
@@ -402,12 +402,44 @@
             font-size: 1rem;
             color: #4b5563;
         }
+        .nav-button {
+            width: 32px;
+            height: 32px;
+            color: black;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+            margin: 0 5px;
+        }
+
+        .nav-button:hover {
+            background-color:rgb(160, 160, 160);
+        }
+
+        .fa-chevron-left, .fa-chevron-right {
+            color: white;
+        }
+
+        .header {
+            position: relative;
+        }
+
+        .header .flex {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
     </style>
 
     <div class="leave-summary-container">
         <div class="leave-summary-header">
             <!-- Toggle Buttons with Show/Hide Logic -->
-            <div x-data="{ showDaily: false, showWeekly: false }">
+            <div x-data="{ showDaily: true, showWeekly: false }">
                 <div style="color: #6b7280; font-size: 0.875rem;">
                     Select "Daily Summary" or "Weekly Summary" to view leave statistics
                 </div>
@@ -422,8 +454,62 @@
                         :class="showWeekly ? 'toggle-button toggle-button-active' : 'toggle-button toggle-button-inactive'">
                         Weekly Summary
                     </button>
+                    <!-- Legend -->
+                    <div class="flex items-center p-4 mt-4 space-x-6 bg-white rounded-lg shadow-md" style="gap: 12px;">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 mr-2 bg-green-200" style="background-color: #C6FEC3;"></div>
+                            &nbsp;<span class="text-sm">Available</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 mr-2 bg-red-200" style="background-color: #FEE2E2;"></div>
+                            &nbsp;<span class="text-sm">Full Day Leave</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 mr-2 bg-yellow-200" style="background-color: #FEF9C3;"></div>
+                            &nbsp;<span class="text-sm">Half Day Leave</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 mr-2 bg-gray-300"></div>
+                            &nbsp;<span class="text-sm">Public Holiday</span>
+                        </div>
+                    </div>
                 </div>
 
+                <div class="flex items-center gap-2 mt-3">
+                    @if($selectedDepartment !== 'all' || $selectedLeaveType !== 'all')
+                        <span class="text-sm font-medium text-gray-500">Active filters:</span>
+
+                        @if($selectedDepartment !== 'all')
+                            <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-indigo-700 bg-indigo-100 rounded-full">
+                                {{ $selectedDepartment }}
+                                <button type="button" wire:click="$set('selectedDepartment', 'all')" class="ml-1 text-indigo-500 hover:text-indigo-800">
+                                    <span class="sr-only">Remove filter</span>
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </span>
+                        @endif
+
+                        @if($selectedLeaveType !== 'all')
+                            <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full text-rose-700 bg-rose-100">
+                                @if($selectedLeaveType === 'full')
+                                    Full Day Leave
+                                @elseif($selectedLeaveType === 'am')
+                                    Half Day AM
+                                @elseif($selectedLeaveType === 'pm')
+                                    Half Day PM
+                                @endif
+                                <button type="button" wire:click="$set('selectedLeaveType', 'all')" class="ml-1 text-rose-500 hover:text-rose-800">
+                                    <span class="sr-only">Remove filter</span>
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </span>
+                        @endif
+                    @endif
+                </div>
                 <!-- Daily Summary Cards - Only shown when selected -->
                 <div x-show="showDaily" style="margin-top: 1rem;">
                     <h4 class="summary-date">Selected Day ({{ Carbon\Carbon::parse($date)->format('d M Y') }})</h4>
@@ -475,9 +561,6 @@
                             <div class="summary-card">
                                 <div class="card-header">
                                     <div class="department-name">{{ $department }}</div>
-                                    <div class="total-badge">
-                                        {{ $counts['total'] }}
-                                    </div>
                                 </div>
                                 <div class="leave-types">
                                     <div class="leave-type-row">
@@ -515,7 +598,7 @@
     </div>
 
     <!-- Filter and Header Section -->
-    <div class="flex items-center justify-between p-6 mb-6 bg-white shadow-xl rounded-2xl">
+    <div class="flex items-center justify-between p-4 mb-6 bg-white shadow-xl rounded-2xl">
         <h2 class="text-2xl font-bold">All Department Calendar - {{ $currentMonth }}</h2>
 
         <div class="flex items-center space-x-4" style="gap: 12px;">
@@ -535,6 +618,17 @@
                     @endforeach
                 </select>
             </div>
+
+            <!-- Leave Type Filter -->
+            <div class="w-44">
+            <select wire:model.live="selectedLeaveType"
+                    class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="all">All Leave Types&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
+                <option value="full">Full Day Leave</option>
+                <option value="am">Half Day AM</option>
+                <option value="pm">Half Day PM</option>
+            </select>
+        </div>
         </div>
     </div>
 
@@ -544,16 +638,37 @@
             <div class="header" style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
                 <div>
                     @if($selectedDepartment === 'all')
-                        {{ $currentMonth }}
+                        @if($selectedLeaveType !== 'all')
+                            @if($selectedLeaveType === 'full')
+                                Full Day Leave - {{ $currentMonth }}
+                            @elseif($selectedLeaveType === 'am')
+                                Half Day AM Leave - {{ $currentMonth }}
+                            @elseif($selectedLeaveType === 'pm')
+                                Half Day PM Leave - {{ $currentMonth }}
+                            @endif
+                        @else
+                            {{ $currentMonth }}
+                        @endif
                     @else
-                        {{ $selectedDepartment }} - {{ $currentMonth }}
+                        {{ $selectedDepartment }}
+                        @if($selectedLeaveType !== 'all')
+                            - @if($selectedLeaveType === 'full')
+                                Full Day Leave
+                            @elseif($selectedLeaveType === 'am')
+                                Half Day AM
+                            @elseif($selectedLeaveType === 'pm')
+                                Half Day PM
+                            @endif
+                        @endif
+                        - {{ $currentMonth }}
                     @endif
                 </div>
             </div>
             <div class="header">
                 <div class="flex">
-                    <button wire:click="prevWeek" style="width: 10%;"><i
-                            class="fa-solid fa-chevron-left"></i></button>
+                    <button wire:click="prevWeek" class="nav-button">
+                        <i class="bi bi-caret-left-fill"></i>
+                    </button>
                     <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
                         <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
                         <div>{{ $weekDays[0]['day'] }}</div>
@@ -578,8 +693,9 @@
                         <div class="header-date">{{ $weekDays[4]['date'] }}</div>
                         <div>{{ $weekDays[4]['day'] }}</div>
                     </div>
-                    <button wire:click="nextWeek" style="width: 10%;"><i
-                            class="fa-solid fa-chevron-right"></i></button>
+                    <button wire:click="nextWeek" class="nav-button">
+                        <i class="bi bi-caret-right-fill"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -673,6 +789,11 @@
                     $isHalfDayAM = $userLeave && $userLeave['session'] === 'am';
                     $isHalfDayPM = $userLeave && $userLeave['session'] === 'pm';
                     $leaveType = $userLeave ? $userLeave['leave_type'] : '';
+
+                    // Check if we're filtering and the employee should be shown as available
+                    $showAsAvailable = $selectedLeaveType !== 'all' &&
+                                    !isset($leaves[$employee->id][$date]) &&
+                                    !$isHoliday;
                 @endphp
 
                 <div class="p-0 day">
@@ -710,33 +831,13 @@
                         </div>
                     @else
                         <!-- Available (default) -->
-                        <div class="leave-available">
+                        <div class="leave-available" style="{{ $selectedLeaveType !== 'all' ? 'opacity: 0.5;' : '' }}">
                             <div class="text-xs font-medium">Available</div>
                         </div>
                     @endif
                 </div>
             @endforeach
         @endforeach
-    </div>
-
-    <!-- Legend -->
-    <div class="flex items-center p-4 mt-4 space-x-6 bg-white rounded-lg shadow-md" style="gap: 12px;">
-        <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-green-200" style="background-color: #C6FEC3;"></div>
-            <span class="text-sm">Available</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-red-200" style="background-color: #FEE2E2;"></div>
-            <span class="text-sm">Full Day Leave</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-yellow-200" style="background-color: #FEF9C3;"></div>
-            <span class="text-sm">Half Day Leave</span>
-        </div>
-        <div class="flex items-center">
-            <div class="w-4 h-4 mr-2 bg-gray-300"></div>
-            <span class="text-sm">Public Holiday</span>
-        </div>
     </div>
 
     <!-- Global tooltip container -->

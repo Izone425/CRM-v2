@@ -54,7 +54,13 @@ class ImplementerCalendar extends Component
     public array $selectedImplementers = [];
     public bool $allImplementersSelected = true;
 
-    public array $appointmentTypes = ["KICK OFF MEETING SESSION", "IMPLEMENTATION REVIEW SESSION", "DATA MIGRATION SESSION", "SYSTEM SETTING SESSION", "WEEKLY FOLLOW UP SESSION"];
+    public array $appointmentTypes = [
+        "KICK OFF MEETING SESSION",
+        "IMPLEMENTATION REVIEW SESSION",
+        "DATA MIGRATION SESSION",
+        "SYSTEM SETTING SESSION",
+        "WEEKLY FOLLOW UP SESSION"
+    ];
     public array $selectedAppointmentType = [];
     public bool $allAppointmentTypeSelected = true;
 
@@ -68,6 +74,18 @@ class ImplementerCalendar extends Component
     public $appointmentType = 'ONLINE';
     public $requiredAttendees = '';
     public $remarks = '';
+
+    public $showImplementerRequestModal = false;
+    public $showImplementationSessionModal = false;
+    public $requestSessionType = '';
+    public $selectedYear;
+    public $selectedWeek;
+    public $availableYears = [];
+    public $availableWeeks = [];
+    public $implementationDemoType = 'IMPLEMENTATION REVIEW SESSION';
+    public $filteredOpenDelayCompanies = [];
+    public $showAppointmentDetailsModal = false;
+    public $currentAppointment = null;
 
     public function mount()
     {
@@ -87,6 +105,146 @@ class ImplementerCalendar extends Component
         // If current user is an implementer then only can access their own calendar
         if (auth()->user()->role_id == 4 || auth()->user()->role_id == 5) {
             $this->selectedImplementers[] = auth()->user()->name;
+        }
+    }
+
+    public function showAppointmentDetails($appointmentId)
+    {
+        if (!$appointmentId) {
+            return;
+        }
+
+        $this->currentAppointment = \App\Models\ImplementerAppointment::find($appointmentId);
+
+        if ($this->currentAppointment) {
+            // Get company name if not already set
+            if (!$this->currentAppointment->company_name && $this->currentAppointment->lead_id) {
+                $companyDetail = \App\Models\CompanyDetail::where('lead_id', $this->currentAppointment->lead_id)->first();
+                if ($companyDetail) {
+                    $this->currentAppointment->company_name = $companyDetail->company_name;
+                }
+            }
+
+            $this->showAppointmentDetailsModal = true;
+        } else {
+            Notification::make()
+                ->title('Appointment not found')
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function closeAppointmentDetails()
+    {
+        $this->showAppointmentDetailsModal = false;
+        $this->currentAppointment = null;
+    }
+
+    public function cancelAppointment($appointmentId)
+    {
+        $appointment = \App\Models\ImplementerAppointment::find($appointmentId);
+
+        if (!$appointment) {
+            Notification::make()
+                ->title('Appointment not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            // Update status to Cancelled
+            $appointment->status = 'Cancelled';
+            $appointment->save();
+
+            // Create activity log entry
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'causer_id' => auth()->id(),
+                'action' => 'Cancelled Implementer Session',
+                'description' => "Cancelled {$appointment->type} for " .
+                    ($appointment->lead_id ? $appointment->company_name : $appointment->title) .
+                    " with {$appointment->implementer}",
+                'subject_type' => get_class($appointment),
+                'subject_id' => $appointment->id,
+            ]);
+
+            // Send email notification about cancellation
+            $this->sendCancellationEmail($appointment);
+
+            Notification::make()
+                ->title('Appointment cancelled successfully')
+                ->success()
+                ->send();
+
+            // Close modal and refresh calendar
+            $this->closeAppointmentDetails();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error cancelling appointment')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    private function sendCancellationEmail($appointment)
+    {
+        try {
+            $companyDetail = null;
+            if ($appointment->lead_id) {
+                $companyDetail = \App\Models\CompanyDetail::where('lead_id', $appointment->lead_id)->first();
+            }
+
+            $companyName = $companyDetail ? $companyDetail->company_name :
+                ($appointment->title ?: 'Unknown Company');
+
+            $recipients = [];
+
+            // Add attendees from the appointment
+            if ($appointment->required_attendees) {
+                $attendeeEmails = array_map('trim', explode(';', $appointment->required_attendees));
+                foreach ($attendeeEmails as $email) {
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $recipients[] = $email;
+                    }
+                }
+            }
+
+            // Always include admin
+            $recipients[] = 'zilih.ng@timeteccloud.com';
+
+            // Get authenticated user's email for sender
+            $authUser = auth()->user();
+            $senderEmail = $authUser->email;
+            $senderName = $authUser->name;
+
+            // Prepare email data
+            $emailData = [
+                'appointmentType' => $appointment->type,
+                'companyName' => $companyName,
+                'date' => Carbon::parse($appointment->date)->format('d F Y'),
+                'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
+                        Carbon::parse($appointment->end_time)->format('g:i A'),
+                'implementer' => $appointment->implementer,
+                'cancelledBy' => $authUser->name,
+                'cancelledDate' => Carbon::now()->format('d F Y g:i A'),
+                'remarks' => $appointment->remarks ?? 'N/A'
+            ];
+
+            if (count($recipients) > 0) {
+                \Illuminate\Support\Facades\Mail::send(
+                    'emails.implementer_appointment_cancelled',
+                    ['content' => $emailData],
+                    function ($message) use ($recipients, $senderEmail, $senderName, $companyName, $appointment) {
+                        $message->from($senderEmail, $senderName)
+                            ->to($recipients)
+                            ->subject("CANCELLED: TIMETEC IMPLEMENTER APPOINTMENT | {$appointment->type} | {$companyName}");
+                    }
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Email sending failed for cancelled implementer appointment: Error: {$e->getMessage()}");
         }
     }
 
@@ -169,41 +327,39 @@ class ImplementerCalendar extends Component
             $query->whereIn("implementer", $selectedImplementers);
         }
 
-        // Initialize counters
+        // Initialize counters with proper capitalization matching appointmentTypes array
         $this->totalAppointments = [
             "ALL" => 0,
-            "KICK OFF MEETING SESSION" => 0,
-            "IMPLEMENTATION SESSION 1" => 0,
-            "IMPLEMENTATION SESSION 2" => 0,
-            "IMPLEMENTATION SESSION 3" => 0,
-            "IMPLEMENTATION SESSION 4" => 0,
-            "IMPLEMENTATION SESSION 5" => 0,
-        ];
-
-        // Initialize status counters
-        $this->totalAppointmentsStatus = [
-            "ALL" => 0,
-            "NEW" => 0,
-            "COMPLETED" => 0,
-            "CANCELLED" => 0
+            "Kick Off Meeting Session" => 0,
+            "Implementation Review Session" => 0,
+            "Data Migration Session" => 0,
+            "System Setting Session" => 0,
+            "Weekly Follow Up Session" => 0
         ];
 
         // Count active appointments (not cancelled)
         $this->totalAppointments["ALL"] = $query->clone()->where('status', '!=', 'Cancelled')->count();
         $this->totalAppointmentsStatus["ALL"] = $query->clone()->count();
 
-        // Count by appointment type
-        $this->totalAppointments["KICK OFF MEETING SESSION"] = $query->clone()->where('type', 'KICK OFF MEETING SESSION')
+        // Count by appointment type with proper capitalization
+        $this->totalAppointments["Kick Off Meeting Session"] = $query->clone()
+            ->where('type', 'Kick Off Meeting Session')
             ->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointments["IMPLEMENTATION SESSION 1"] = $query->clone()->where('type', 'IMPLEMENTATION SESSION 1')
+
+        $this->totalAppointments["Implementation Review Session"] = $query->clone()
+            ->where('type', 'Implementation Review Session')
             ->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointments["IMPLEMENTATION SESSION 2"] = $query->clone()->where('type', 'IMPLEMENTATION SESSION 2')
+
+        $this->totalAppointments["Data Migration Session"] = $query->clone()
+            ->where('type', 'Data Migration Session')
             ->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointments["IMPLEMENTATION SESSION 3"] = $query->clone()->where('type', 'IMPLEMENTATION SESSION 3')
+
+        $this->totalAppointments["System Setting Session"] = $query->clone()
+            ->where('type', 'System Setting Session')
             ->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointments["IMPLEMENTATION SESSION 4"] = $query->clone()->where('type', 'IMPLEMENTATION SESSION 4')
-            ->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointments["IMPLEMENTATION SESSION 5"] = $query->clone()->where('type', 'IMPLEMENTATION SESSION 5')
+
+        $this->totalAppointments["Weekly Follow Up Session"] = $query->clone()
+            ->where('type', 'Weekly Follow Up Session')
             ->where('status', '!=', 'Cancelled')->count();
 
         // Count by status
@@ -246,16 +402,42 @@ class ImplementerCalendar extends Component
             ->toArray();
 
         // Retrieve implementer appointments for the selected week
+        // Using leftJoin instead of join to include records without lead_id
         $appointments = DB::table('implementer_appointments')
-            ->join('leads', 'leads.id', '=', 'implementer_appointments.lead_id')
-            ->join('company_details', 'company_details.lead_id', '=', 'implementer_appointments.lead_id')
-            ->select('company_details.company_name', 'implementer_appointments.*')
+            ->leftJoin('leads', 'leads.id', '=', 'implementer_appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'implementer_appointments.lead_id')
+            ->select(
+                'implementer_appointments.*',
+                'company_details.company_name',
+                DB::raw('CASE WHEN implementer_appointments.lead_id IS NULL AND implementer_appointments.title IS NOT NULL THEN implementer_appointments.title ELSE company_details.company_name END as display_name')
+            )
             ->whereBetween("date", [$this->startDate, $this->endDate])
             ->orderBy('start_time', 'asc')
             ->when($this->selectedImplementers, function ($query) {
                 return $query->whereIn('implementer', $this->selectedImplementers);
             })
             ->get();
+
+        // Map company names for display
+        $appointments = $appointments->map(function($appointment) {
+            // For appointments without lead_id, extract company name from title
+            if (!$appointment->lead_id && $appointment->title) {
+                // For Weekly Follow Up Sessions with week and year
+                if (strpos($appointment->title, 'WEEK') !== false) {
+                    $appointment->company_name = $appointment->title;
+                }
+                // For other types, try to extract company name from title
+                else if (strpos($appointment->title, '|') !== false) {
+                    $parts = explode('|', $appointment->title);
+                    $appointment->company_name = trim(end($parts));
+                } else {
+                    $appointment->company_name = 'No company specified';
+                }
+            } else if (!$appointment->company_name) {
+                $appointment->company_name = 'No company specified';
+            }
+            return $appointment;
+        });
 
         // Group appointments by implementer
         $implementerAppointments = [];
@@ -352,7 +534,13 @@ class ImplementerCalendar extends Component
                 // Format appointment times
                 $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
                 $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-                $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+
+                // Set URL only if there's a lead_id
+                if ($appointment->lead_id) {
+                    $appointment->url = route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)]);
+                } else {
+                    $appointment->url = null; // No URL for appointments without lead_id
+                }
 
                 // Apply filters
                 $includeAppointmentType = $this->allAppointmentTypeSelected ||
@@ -364,6 +552,29 @@ class ImplementerCalendar extends Component
                 $includeStatus = $this->allStatusSelected ||
                                 in_array(strtoupper($appointment->status), $this->selectedStatus);
 
+                // *** ADD THIS CHECK: Skip cancelled appointments in the regular appointments list ***
+                // Only add cancelled appointments to the appointments array if they don't match a session slot
+                $isCancelled = $appointment->status === 'Cancelled';
+                $matchesSessionSlot = false;
+
+                // Check if this cancelled appointment matches any session slot
+                if ($isCancelled) {
+                    $appointmentStartTime = Carbon::parse($appointment->date . ' ' . $appointment->start_time)->format('H:i:s');
+                    $daySessionSlots = "{$dayOfWeek}SessionSlots";
+
+                    foreach ($data[$daySessionSlots] as $sessionName => $sessionInfo) {
+                        if ($appointmentStartTime == $sessionInfo['start_time']) {
+                            $matchesSessionSlot = true;
+                            break;
+                        }
+                    }
+
+                    // If it matches a session slot, don't add it to the appointments list
+                    if ($matchesSessionSlot) {
+                        continue;
+                    }
+                }
+
                 if ($includeAppointmentType && $includeSessionType && $includeStatus) {
                     $data[$dayField][] = $appointment;
 
@@ -374,33 +585,40 @@ class ImplementerCalendar extends Component
 
                     foreach ($data[$daySessionSlots] as $sessionName => $sessionInfo) {
                         if ($appointmentStartTime == $sessionInfo['start_time']) {
-                            $data[$daySessionSlots][$sessionName]['booked'] = true;
-                            $data[$daySessionSlots][$sessionName]['appointment'] = $appointment;
-
-                            // Update the status based on the appointment type
+                            // Add this crucial check for cancelled appointments:
                             if ($appointment->status === 'Cancelled') {
-                                // For cancelled appointments, check if it should be shown based on time
                                 $currentTime = Carbon::now();
                                 $appointmentTime = Carbon::parse($appointment->date . ' ' . $appointmentStartTime);
 
-                                if ($currentTime->format('Y-m-d') > Carbon::parse($appointment->date)->format('Y-m-d')) {
-                                    // Past day - show as grey
+                                if ($currentTime->format('Y-m-d') > Carbon::parse($appointment->date)->format('Y-m-d')
+                                    || $appointmentTime < $currentTime) {
+                                    // Past cancelled appointment - show as past
                                     $data[$daySessionSlots][$sessionName]['status'] = 'past';
-                                } else if ($appointmentTime < $currentTime) {
-                                    // Same day but past time - show as grey
-                                    $data[$daySessionSlots][$sessionName]['status'] = 'past';
+                                    $data[$daySessionSlots][$sessionName]['booked'] = false;
+                                    $data[$daySessionSlots][$sessionName]['appointment'] = null;
                                 } else {
-                                    // Same day future time - show as available (green)
+                                    // Future cancelled appointment - show as available
                                     $data[$daySessionSlots][$sessionName]['status'] = 'available';
+                                    $data[$daySessionSlots][$sessionName]['booked'] = false;
+                                    $data[$daySessionSlots][$sessionName]['appointment'] = null;
+                                    $data[$daySessionSlots][$sessionName]['wasCancelled'] = true; // Add this flag
                                 }
-                            } else if ($appointment->type === 'IMPLEMENTER REQUEST') {
-                                // Yellow for implementer requests
-                                $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
                             } else {
-                                // Red for implementation sessions
-                                $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
-                            }
+                                $data[$daySessionSlots][$sessionName]['booked'] = true;
+                                $data[$daySessionSlots][$sessionName]['appointment'] = $appointment;
 
+                                // Update the status based on the appointment type
+                                if ($appointment->request_status === 'PENDING APPROVAL') {
+                                    // Yellow for pending implementer requests (including Weekly Follow Up)
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
+                                } else if ($appointment->type === 'WEEKLY FOLLOW UP SESSION' && !$appointment->lead_id) {
+                                    // Special coloring for approved weekly follow up sessions without lead_id
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'weekly_followup';
+                                } else {
+                                    // Red for regular implementation sessions
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
+                                }
+                            }
                             break;
                         }
                     }
@@ -529,11 +747,10 @@ class ImplementerCalendar extends Component
 
         $result = [
             'KICK OFF MEETING SESSION' => 0,
-            'IMPLEMENTATION SESSION 1' => 0,
-            'IMPLEMENTATION SESSION 2' => 0,
-            'IMPLEMENTATION SESSION 3' => 0,
-            'IMPLEMENTATION SESSION 4' => 0,
-            'IMPLEMENTATION SESSION 5' => 0,
+            'IMPLEMENTATION REVIEW SESSION' => 0,
+            'DATA MIGRATION SESSION' => 0,
+            'SYSTEM SETTING SESSION' => 0,
+            'WEEKLY FOLLOW UP SESSION' => 0,
         ];
 
         foreach ($appointments as $appointment) {
@@ -564,8 +781,10 @@ class ImplementerCalendar extends Component
         $this->appointmentType = 'ONLINE';
         $this->requiredAttendees = '';
         $this->remarks = '';
+        $this->requestSessionType = '';
+        $this->implementationDemoType = 'IMPLEMENTATION REVIEW SESSION';
 
-        // Existing code
+        // Store booking details
         $this->bookingImplementerId = $implementerId;
         $this->bookingDate = $date;
         $this->bookingSession = $session;
@@ -573,8 +792,483 @@ class ImplementerCalendar extends Component
         $this->bookingEndTime = $endTime;
         $this->selectedCompany = null;
 
-        // Show the booking modal
+        // Set up available years and weeks for weekly follow-up
+        $currentYear = Carbon::now()->year;
+        $this->availableYears = [$currentYear, $currentYear + 1];
+        $this->selectedYear = $currentYear;
+        $this->updateAvailableWeeks();
+
+        // Show the session type selection modal
         $this->showBookingModal = true;
+
+        // Filter companies to only show open/delay projects
+        $this->updateOpenDelayCompanies();
+    }
+
+    private function updateOpenDelayCompanies()
+    {
+        // Get companies with 'Open' or 'Delay' status from software handover
+        $this->filteredOpenDelayCompanies = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
+            ->join('software_handovers', 'leads.id', '=', 'software_handovers.lead_id')
+            ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
+            ->orderBy('company_details.company_name')
+            ->pluck('company_details.company_name', 'company_details.id')
+            ->toArray();
+    }
+
+    public function updateAvailableWeeks()
+    {
+        $currentDate = Carbon::now();
+        $currentYear = $currentDate->year;
+        $currentWeek = $currentDate->weekOfYear;
+
+        // If selected year is current year, only show weeks from current week forward
+        if ($this->selectedYear == $currentYear) {
+            $this->availableWeeks = range($currentWeek, 53);
+        } else {
+            // If future year, show all weeks
+            $this->availableWeeks = range(1, 53);
+        }
+
+        // Reset selected week if not in available weeks
+        if (!in_array($this->selectedWeek, $this->availableWeeks)) {
+            $this->selectedWeek = null;
+        }
+    }
+
+    public function updatedSelectedYear()
+    {
+        $this->updateAvailableWeeks();
+    }
+
+    // Add method to handle session type selection
+    public function selectSessionType($type)
+    {
+        $this->showBookingModal = false;
+
+        if ($type === 'implementer_request') {
+            $this->showImplementerRequestModal = true;
+        } else {
+            $this->showImplementationSessionModal = true;
+        }
+    }
+
+    // Add method to handle session type change in implementer request
+    public function onRequestSessionTypeChange()
+    {
+        if ($this->requestSessionType === 'WEEKLY FOLLOW UP SESSION') {
+            $this->updateAvailableWeeks();
+        } else {
+            $this->updateOpenDelayCompanies();
+        }
+    }
+
+    // Add method to load attendees from software handover
+    // public function loadAttendees()
+    // {
+    //     if (!$this->selectedCompany) {
+    //         Notification::make()
+    //             ->title('Please select a company first')
+    //             ->warning()
+    //             ->send();
+    //         return;
+    //     }
+
+    //     try {
+    //         // Get implementation PICs from software handover form
+    //         $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+    //         if (!$companyDetail || !$companyDetail->lead_id) {
+    //             return;
+    //         }
+
+    //         $lead = \App\Models\Lead::find($companyDetail->lead_id);
+    //         if (!$lead) {
+    //             return;
+    //         }
+
+    //         // Here you would fetch the emails from the software handover form
+    //         // This is a placeholder - adjust based on your actual data structure
+    //         $implementationPics = \App\Models\ImplementationPic::where('lead_id', $lead->id)->get();
+
+    //         $emails = [];
+    //         foreach ($implementationPics as $pic) {
+    //             if (!empty($pic->email)) {
+    //                 $emails[] = $pic->email;
+    //             }
+    //         }
+
+    //         $this->requiredAttendees = implode(';', $emails);
+
+    //         if (empty($emails)) {
+    //             Notification::make()
+    //                 ->title('No implementation PICs found')
+    //                 ->warning()
+    //                 ->body('Please enter attendees manually')
+    //                 ->send();
+    //         } else {
+    //             Notification::make()
+    //                 ->title('Attendees loaded successfully')
+    //                 ->success()
+    //                 ->send();
+    //         }
+    //     } catch (\Exception $e) {
+    //         Notification::make()
+    //             ->title('Error loading attendees')
+    //             ->danger()
+    //             ->body($e->getMessage())
+    //             ->send();
+    //     }
+    // }
+
+    public function submitImplementerRequest()
+    {
+        if ($this->requestSessionType === 'WEEKLY FOLLOW UP SESSION') {
+            $this->validate([
+                'requestSessionType' => 'required|string',
+                'selectedYear' => 'required|integer',
+                'selectedWeek' => 'required|integer|min:1|max:53',
+            ]);
+        } else {
+            $this->validate([
+                'requestSessionType' => 'required|string',
+                'selectedCompany' => 'required|exists:company_details,id',
+            ]);
+        }
+
+        // Get implementer details
+        $implementer = User::find($this->bookingImplementerId);
+        if (!$implementer) {
+            Notification::make()
+                ->title('Implementer not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            // Prepare data
+            $leadId = null;
+            $companyName = '';
+            $softwareHandoverId = '';
+            $title = '';
+            $selectedYear = null;
+            $selectedWeek = null;
+
+            if ($this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION') {
+                $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+                if (!$companyDetail) {
+                    Notification::make()
+                        ->title('Company not found')
+                        ->danger()
+                        ->send();
+                    return;
+                }
+                $companyName = $companyDetail->company_name;
+                $softwareHandoverId = 'SW_' . str_pad($companyDetail->id, 6, '0', STR_PAD_LEFT);
+                $leadId = $companyDetail->lead_id;
+                $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | ' . $companyName;
+            } else {
+                $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | WEEK ' . $this->selectedWeek . ', ' . $this->selectedYear;
+                $selectedYear = $this->selectedYear;
+                $selectedWeek = $this->selectedWeek;
+            }
+
+            // Create appointment record with request_status
+            $appointment = new \App\Models\ImplementerAppointment();
+            $appointment->fill([
+                'lead_id' => $leadId,
+                'type' => $this->requestSessionType,
+                'appointment_type' => 'ONLINE', // Default to ONLINE for requests
+                'date' => $this->bookingDate,
+                'start_time' => $this->bookingStartTime,
+                'end_time' => $this->bookingEndTime,
+                'implementer' => $implementer->name,
+                'causer_id' => auth()->user()->id,
+                'implementer_assigned_date' => now(),
+                'title' => $title,
+                'status' => 'New',
+                'request_status' => 'PENDING APPROVAL',
+                'selected_year' => $selectedYear,
+                'selected_week' => $selectedWeek,
+                'session' => $this->bookingSession,
+                'remarks' => $this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION' ?
+                            "Request for {$this->requestSessionType} for {$companyName}" :
+                            "Request for {$this->requestSessionType} for Week {$this->selectedWeek}, {$this->selectedYear}",
+            ]);
+
+            $appointment->save();
+
+            // Prepare email content
+            $emailData = [
+                'implementerId' => 'IMP_' . str_pad($implementer->id, 6, '0', STR_PAD_LEFT),
+                'implementerName' => strtoupper($implementer->name),
+                'requestDateTime' => Carbon::now()->format('d F Y h:i A'),
+                'companyName' => $this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION' ?
+                            "{$softwareHandoverId} | {$companyName}" :
+                            "Week {$this->selectedWeek}-{$this->selectedYear}",
+                'sessionType' => $this->requestSessionType,
+                'dateAndDay' => Carbon::parse($this->bookingDate)->format('d F Y / l'),
+                'implementationSession' => "{$this->bookingSession}: " .
+                                        Carbon::parse($this->bookingStartTime)->format('h:iA') . ' – ' .
+                                        Carbon::parse($this->bookingEndTime)->format('h:iA'),
+                'status' => 'PENDING APPROVAL',
+                'appointmentId' => $appointment->id,
+                'selectedYear' => $selectedYear,
+                'selectedWeek' => $selectedWeek,
+            ];
+
+            // Create an activity log entry
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'causer_id' => auth()->id(),
+                'action' => 'Submitted Implementer Request',
+                'description' => "Submitted {$this->requestSessionType} request for " .
+                                ($this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION' ?
+                                $companyName : "Week {$this->selectedWeek}, {$this->selectedYear}"),
+                'subject_type' => get_class($appointment),
+                'subject_id' => $appointment->id,
+            ]);
+
+            // Send email
+            try {
+                // Get authenticated user's email for sender
+                $authUser = auth()->user();
+                $senderEmail = $authUser->email;
+                $senderName = $authUser->name;
+
+                // Recipients
+                // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
+                $recipients = ['zilih.ng@timeteccloud.com']; // Main recipient
+                $ccRecipients = [$senderEmail]; // CC implementer
+
+                \Illuminate\Support\Facades\Mail::send('emails.implementer_request',
+                    ['content' => $emailData],
+                    function ($message) use ($recipients, $ccRecipients, $senderEmail, $senderName, $implementer) {
+                        $message->from($senderEmail, $senderName)
+                            ->to($recipients)
+                            ->cc($ccRecipients)
+                            ->subject("IMPLEMENTER REQUEST: " . strtoupper($implementer->name));
+                    }
+                );
+
+                Notification::make()
+                    ->title('Request submitted successfully')
+                    ->success()
+                    ->body('Email notification has been sent')
+                    ->send();
+            } catch (\Exception $e) {
+                Log::error("Email sending failed for implementer request: Error: {$e->getMessage()}");
+
+                Notification::make()
+                    ->title('Request submitted but email failed')
+                    ->warning()
+                    ->body('Error sending email: ' . $e->getMessage())
+                    ->send();
+            }
+
+            // Close modals
+            $this->showImplementerRequestModal = false;
+            $this->reset(['requestSessionType', 'selectedCompany', 'selectedYear', 'selectedWeek']);
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error submitting request')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
+    // Add method to submit implementation session
+    public function submitImplementationSession()
+    {
+        $this->validate([
+            'selectedCompany' => 'required|exists:company_details,id',
+            'implementationDemoType' => 'required|string',
+            'appointmentType' => 'required|in:ONLINE,ONSITE,INHOUSE',
+            'requiredAttendees' => 'required|string',
+        ]);
+
+        // Get the company and lead data
+        $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+        if (!$companyDetail) {
+            Notification::make()
+                ->title('Company not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $leadId = $companyDetail->lead_id;
+        if (!$leadId) {
+            Notification::make()
+                ->title('No lead associated with this company')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Get implementer name
+        $implementer = User::find($this->bookingImplementerId);
+        if (!$implementer) {
+            Notification::make()
+                ->title('Implementer not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Check if the slot is still available (another user might have booked it)
+        $conflictingAppointment = \App\Models\ImplementerAppointment::where('implementer', $implementer->name)
+            ->where('date', $this->bookingDate)
+            ->where(function ($query) {
+                $query->whereBetween('start_time', [$this->bookingStartTime, $this->bookingEndTime])
+                    ->orWhereBetween('end_time', [$this->bookingStartTime, $this->bookingEndTime])
+                    ->orWhere(function ($q) {
+                        $q->where('start_time', '<=', $this->bookingStartTime)
+                            ->where('end_time', '>=', $this->bookingEndTime);
+                    });
+            })
+            ->first();
+
+        if ($conflictingAppointment) {
+            Notification::make()
+                ->title('Session no longer available')
+                ->danger()
+                ->body('This slot has been booked by another user. Please select a different slot.')
+                ->send();
+            return;
+        }
+
+        try {
+            // Count existing appointments for this company to determine implementation count
+            $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
+                ->where('status', '!=', 'Cancelled')
+                ->count();
+
+            // Create the appointment
+            $appointment = new \App\Models\ImplementerAppointment();
+            $appointment->fill([
+                'lead_id' => $leadId,
+                'type' => $this->implementationDemoType,
+                'appointment_type' => $this->appointmentType,
+                'date' => $this->bookingDate,
+                'start_time' => $this->bookingStartTime,
+                'end_time' => $this->bookingEndTime,
+                'implementer' => $implementer->name,
+                'causer_id' => auth()->user()->id,
+                'implementer_assigned_date' => now(),
+                'title' => $this->implementationDemoType . ' | ' . $this->appointmentType . ' | TIMETEC IMPLEMENTER | ' . $companyDetail->company_name,
+                'status' => 'New',
+                'session' => $this->bookingSession,
+                'required_attendees' => $this->requiredAttendees,
+                'remarks' => $this->remarks,
+            ]);
+
+            $appointment->save();
+
+            // Get lead owner details
+            $lead = \App\Models\Lead::find($leadId);
+            if (!$lead) {
+                Notification::make()
+                    ->title('Error preparing email notification')
+                    ->danger()
+                    ->body('Lead record not found')
+                    ->send();
+                return;
+            }
+
+            $leadOwner = User::where('name', $lead->lead_owner)->first();
+
+            // Parse required attendees
+            $recipients = [];
+            $attendeeEmails = array_map('trim', explode(';', $this->requiredAttendees));
+            foreach ($attendeeEmails as $email) {
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $recipients[] = $email;
+                }
+            }
+
+            // Calculate implementation session count
+            $implementationCount = $existingAppointmentsCount + 1;
+            if ($this->implementationDemoType === 'KICK OFF MEETING SESSION') {
+                $implementationCount = 1; // Always count 1 for kick-off meeting
+            }
+
+            // Prepare email content
+            $emailContent = [
+                'implementerName' => $implementer->name,
+                'implementerEmail' => $implementer->email,
+                'companyName' => $companyDetail->company_name,
+                'implementationCount' => $implementationCount,
+                'appointmentType' => $this->appointmentType,
+                'date' => Carbon::parse($this->bookingDate)->format('d F Y / l'),
+                'sessionTime' => "{$this->bookingSession}: " .
+                                Carbon::parse($this->bookingStartTime)->format('h:iA') . ' – ' .
+                                Carbon::parse($this->bookingEndTime)->format('h:iA'),
+                'meetingLink' => '', // You'll need to provide the meeting link if available
+                'meetingId' => '',   // You'll need to provide the meeting ID if available
+                'meetingPassword' => '', // You'll need to provide the meeting password if available
+                'leadOwnerMobileNumber' => $leadOwner ? $leadOwner->mobile_number : 'N/A',
+                'remarks' => $this->remarks,
+            ];
+
+            // Send email
+            try {
+                if (!empty($recipients)) {
+                    $authUser = auth()->user();
+                    $senderEmail = $authUser->email;
+                    $senderName = $authUser->name;
+
+                    \Illuminate\Support\Facades\Mail::send('emails.implementation_session',
+                        ['content' => $emailContent],
+                        function ($message) use ($recipients, $senderEmail, $senderName, $companyDetail) {
+                            $message->from($senderEmail, $senderName)
+                                ->to($recipients)
+                                ->subject("TIMETEC HR | {$this->implementationDemoType} | {$companyDetail->company_name}");
+                        }
+                    );
+
+                    Notification::make()
+                        ->title('Implementation session booked')
+                        ->success()
+                        ->body('Email notification sent to attendees')
+                        ->send();
+                }
+            } catch (\Exception $e) {
+                Log::error("Email sending failed for implementation session: Error: {$e->getMessage()}");
+
+                Notification::make()
+                    ->title('Session booked but email failed')
+                    ->warning()
+                    ->body('Error sending email: ' . $e->getMessage())
+                    ->send();
+            }
+
+            // Log activity
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'causer_id' => auth()->id(),
+                'action' => 'Booked Implementation Session',
+                'description' => "Booked {$this->implementationDemoType} for {$companyDetail->company_name} with {$implementer->name}",
+                'subject_type' => get_class($appointment),
+                'subject_id' => $appointment->id,
+            ]);
+
+            // Close modals and reset form
+            $this->showImplementationSessionModal = false;
+            $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType']);
+
+            // Refresh the calendar
+            $this->dispatch('refresh');
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error booking session')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+        }
     }
 
     public function submitBooking()
@@ -643,15 +1337,13 @@ class ImplementerCalendar extends Component
 
         $implementationType = 'KICK OFF MEETING SESSION';
         if ($existingAppointmentsCount == 1) {
-            $implementationType = 'IMPLEMENTATION SESSION 1';
+            $implementationType = 'IMPLEMENTATION REVIEW SESSION';
         } else if ($existingAppointmentsCount == 2) {
-            $implementationType = 'IMPLEMENTATION SESSION 2';
+            $implementationType = 'DATA MIGRATION SESSION';
         } else if ($existingAppointmentsCount == 3) {
-            $implementationType = 'IMPLEMENTATION SESSION 3';
-        } else if ($existingAppointmentsCount == 4) {
-            $implementationType = 'IMPLEMENTATION SESSION 4';
-        } else if ($existingAppointmentsCount >= 5) {
-            $implementationType = 'IMPLEMENTATION SESSION 5';
+            $implementationType = 'SYSTEM SETTING SESSION';
+        } else if ($existingAppointmentsCount >= 4) {
+            $implementationType = 'WEEKLY FOLLOW UP SESSION';
         }
 
         // Create the appointment
@@ -786,6 +1478,9 @@ class ImplementerCalendar extends Component
     public function cancelBooking()
     {
         $this->showBookingModal = false;
+        $this->showImplementerRequestModal = false;
+        $this->showImplementationSessionModal = false;
+        $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType', 'requestSessionType', 'selectedYear', 'selectedWeek']);
     }
 
     private function getSessionSlots($dayOfWeek, $date = null, $implementerId = null)
@@ -965,12 +1660,25 @@ class ImplementerCalendar extends Component
 
                     foreach ($standardSessions as $key => $session) {
                         if ($session['start_time'] === $appointmentStartTime) {
-                            // If the current time is after 12 AM of the next day
+                            // Get the session start time as Carbon object
+                            $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+
+                            // If the current day is past the session day, mark as past
                             if (Carbon::now()->format('Y-m-d') > $formattedDate) {
                                 $standardSessions[$key]['status'] = 'past';
-                            } else {
-                                $standardSessions[$key]['status'] = 'cancelled';
-                                $standardSessions[$key]['appointment'] = $appointment;
+                            }
+                            // If the session is in the past on the same day, mark as past
+                            elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
+                                $standardSessions[$key]['status'] = 'past';
+                            }
+                            // If the session is still in the future, make it available
+                            else {
+                                $standardSessions[$key]['status'] = 'available';
+                                // Important: Remove any association with the cancelled appointment
+                                $standardSessions[$key]['booked'] = false;
+                                $standardSessions[$key]['appointment'] = null;
+                                // Add explicit wasCancelled flag here
+                                $standardSessions[$key]['wasCancelled'] = true;
                             }
                         }
                     }
