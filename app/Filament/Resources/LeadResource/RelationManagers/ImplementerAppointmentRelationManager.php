@@ -234,98 +234,13 @@ class ImplementerAppointmentRelationManager extends RelationManager
             Grid::make(3)
             ->schema([
                 Select::make('type')
-                    ->options(function () {
-                        // Get the base lead
-                        $lead = $this->getOwnerRecord();
-
-                        // Count existing appointments
-                        $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
-                            ->where('status', '!=', 'Cancelled')
-                            ->count();
-
-                        // Determine which appointment type should be selected by default
-                        switch ($existingAppointmentsCount) {
-                            case 0:
-                                return [
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                ];
-                            case 1:
-                                return [
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                ];
-                            case 2:
-                                return [
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                ];
-                            case 3:
-                                return [
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                ];
-                            case 4:
-                                return [
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                ];
-                            default:
-                                return [
-                                    'IMPLEMENTATION SESSION 5' => 'IMPLEMENTATION SESSION 5',
-                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                                    'IMPLEMENTATION SESSION 1' => 'IMPLEMENTATION SESSION 1',
-                                    'IMPLEMENTATION SESSION 2' => 'IMPLEMENTATION SESSION 2',
-                                    'IMPLEMENTATION SESSION 3' => 'IMPLEMENTATION SESSION 3',
-                                    'IMPLEMENTATION SESSION 4' => 'IMPLEMENTATION SESSION 4',
-                                ];
-                        }
-                    })
-                    ->default(function () {
-                        // Get the base lead
-                        $lead = $this->getOwnerRecord();
-
-                        // Count existing appointments (excluding cancelled ones)
-                        $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
-                            ->where('status', '!=', 'Cancelled')
-                            ->count();
-
-                        // Set default type based on number of existing appointments
-                        switch ($existingAppointmentsCount) {
-                            case 0:
-                                return 'KICK OFF MEETING SESSION';
-                            case 1:
-                                return 'IMPLEMENTATION SESSION 1';
-                            case 2:
-                                return 'IMPLEMENTATION SESSION 2';
-                            case 3:
-                                return 'IMPLEMENTATION SESSION 3';
-                            case 4:
-                                return 'IMPLEMENTATION SESSION 4';
-                            default:
-                                return 'IMPLEMENTATION SESSION 5';
-                        }
-                    })
+                    ->options([
+                        'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
+                    ])
+                    ->default('KICK OFF MEETING SESSION')
+                    ->required()
+                    ->label('DEMO TYPE')
+                    ->reactive()
                     ->required()
                     ->disabled()
                     ->dehydrated(true)
@@ -408,7 +323,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
         return $table
             ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->headerActions($this->headerActions())
+            // ->headerActions($this->headerActions())
             ->columns([
                 TextColumn::make('implementer')
                     ->label('IMPLEMENTER')
@@ -663,137 +578,137 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('reschedule_appointment')
-                        ->label('Reschedule')
-                        ->icon('heroicon-o-clock')
-                        ->color('warning')
-                        ->modalHeading('Reschedule Implementation Appointment')
-                        ->form($this->defaultForm())
-                        ->visible(fn (ImplementerAppointment $record) =>
-                            $record->status !== 'Cancelled' && $record->status !== 'Completed'
-                        )
-                        ->action(function (array $data, ImplementerAppointment $record) {
-                            // Store the previous appointment details for the notification
-                            $oldDate = Carbon::parse($record->date)->format('d/m/Y');
-                            $oldStartTime = Carbon::parse($record->start_time)->format('h:i A');
-                            $oldEndTime = Carbon::parse($record->end_time)->format('h:i A');
+                    // Tables\Actions\Action::make('reschedule_appointment')
+                    //     ->label('Reschedule')
+                    //     ->icon('heroicon-o-clock')
+                    //     ->color('warning')
+                    //     ->modalHeading('Reschedule Implementation Appointment')
+                    //     ->form($this->defaultForm())
+                    //     ->visible(fn (ImplementerAppointment $record) =>
+                    //         $record->status !== 'Cancelled' && $record->status !== 'Completed'
+                    //     )
+                    //     ->action(function (array $data, ImplementerAppointment $record) {
+                    //         // Store the previous appointment details for the notification
+                    //         $oldDate = Carbon::parse($record->date)->format('d/m/Y');
+                    //         $oldStartTime = Carbon::parse($record->start_time)->format('h:i A');
+                    //         $oldEndTime = Carbon::parse($record->end_time)->format('h:i A');
 
-                            // Process required attendees from form data
-                            $requiredAttendeesInput = $data['required_attendees'] ?? '';
-                            $attendeeEmails = [];
-                            if (!empty($requiredAttendeesInput)) {
-                                $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
-                            }
+                    //         // Process required attendees from form data
+                    //         $requiredAttendeesInput = $data['required_attendees'] ?? '';
+                    //         $attendeeEmails = [];
+                    //         if (!empty($requiredAttendeesInput)) {
+                    //             $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
+                    //         }
 
-                            // Update the appointment with new schedule
-                            $record->update([
-                                'date' => $data['date'],
-                                'start_time' => $data['start_time'],
-                                'end_time' => $data['end_time'],
-                                'remarks' => $data['remarks'],
-                                'type' => $data['type'] ?? $record->type,
-                                'appointment_type' => $data['appointment_type'] ?? $record->appointment_type,
-                                'implementer' => $data['implementer'] ?? $record->implementer,
-                                'session' => $data['session'] ?? $record->session,
-                                'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
-                                'updated_at' => now(),
-                            ]);
+                    //         // Update the appointment with new schedule
+                    //         $record->update([
+                    //             'date' => $data['date'],
+                    //             'start_time' => $data['start_time'],
+                    //             'end_time' => $data['end_time'],
+                    //             'remarks' => $data['remarks'],
+                    //             'type' => $data['type'] ?? $record->type,
+                    //             'appointment_type' => $data['appointment_type'] ?? $record->appointment_type,
+                    //             'implementer' => $data['implementer'] ?? $record->implementer,
+                    //             'session' => $data['session'] ?? $record->session,
+                    //             'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
+                    //             'updated_at' => now(),
+                    //         ]);
 
-                            // Log the activity
-                            ActivityLog::create([
-                                'user_id' => auth()->id(),
-                                'action' => 'Rescheduled Implementation Appointment',
-                                'description' => "Rescheduled implementation appointment from {$oldDate} {$oldStartTime}-{$oldEndTime} to " .
-                                                 Carbon::parse($data['date'])->format('d/m/Y') . " " .
-                                                 Carbon::parse($data['start_time'])->format('h:i A') . "-" .
-                                                 Carbon::parse($data['end_time'])->format('h:i A'),
-                                'subject_type' => ImplementerAppointment::class,
-                                'subject_id' => $record->id,
-                            ]);
+                    //         // Log the activity
+                    //         ActivityLog::create([
+                    //             'user_id' => auth()->id(),
+                    //             'action' => 'Rescheduled Implementation Appointment',
+                    //             'description' => "Rescheduled implementation appointment from {$oldDate} {$oldStartTime}-{$oldEndTime} to " .
+                    //                              Carbon::parse($data['date'])->format('d/m/Y') . " " .
+                    //                              Carbon::parse($data['start_time'])->format('h:i A') . "-" .
+                    //                              Carbon::parse($data['end_time'])->format('h:i A'),
+                    //             'subject_type' => ImplementerAppointment::class,
+                    //             'subject_id' => $record->id,
+                    //         ]);
 
-                            // Send email notification about the rescheduled appointment
-                            $lead = $this->ownerRecord;
+                    //         // Send email notification about the rescheduled appointment
+                    //         $lead = $this->ownerRecord;
 
-                            $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                            // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
+                    //         $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                    //         // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
 
-                            // Add the lead owner's email if available
-                            // $leadOwner = User::where('name', $lead->lead_owner)->first();
-                            // if ($leadOwner && !empty($leadOwner->email)) {
-                            //     $recipients[] = $leadOwner->email;
-                            // }
+                    //         // Add the lead owner's email if available
+                    //         // $leadOwner = User::where('name', $lead->lead_owner)->first();
+                    //         // if ($leadOwner && !empty($leadOwner->email)) {
+                    //         //     $recipients[] = $leadOwner->email;
+                    //         // }
 
-                            // // Add company contact email if available
-                            // if (!empty($lead->companyDetail->email)) {
-                            //     $recipients[] = $lead->companyDetail->email;
-                            // }
+                    //         // // Add company contact email if available
+                    //         // if (!empty($lead->companyDetail->email)) {
+                    //         //     $recipients[] = $lead->companyDetail->email;
+                    //         // }
 
-                            // Add required attendees from the form input
-                            if (!empty($attendeeEmails)) {
-                                foreach ($attendeeEmails as $email) {
-                                    if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
-                                        $recipients[] = $email;
-                                    }
-                                }
-                            }
+                    //         // Add required attendees from the form input
+                    //         if (!empty($attendeeEmails)) {
+                    //             foreach ($attendeeEmails as $email) {
+                    //                 if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
+                    //                     $recipients[] = $email;
+                    //                 }
+                    //             }
+                    //         }
 
-                            // Ensure recipients are unique
-                            $viewName = 'emails.implementer_appointment_reschedule';
+                    //         // Ensure recipients are unique
+                    //         $viewName = 'emails.implementer_appointment_reschedule';
 
-                            $recipients = array_unique($recipients);
-                            $authUser = auth()->user();
-                            $senderEmail = $authUser->email;
-                            $senderName = $authUser->name;
-                            // Prepare email content with reschedule reason
-                            $emailContent = [
-                                'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                                'lead' => [
-                                    'company' => $lead->companyDetail->company_name ?? 'N/A',
-                                    'implementerName' => $record->implementer ?? 'N/A',
-                                    'date' => Carbon::parse($data['date'])->format('d/m/Y'),
-                                    'startTime' => Carbon::parse($data['start_time'])->format('h:i A'),
-                                    'endTime' => Carbon::parse($data['end_time'])->format('h:i A'),
-                                    'oldDate' => $oldDate,
-                                    'oldStartTime' => $oldStartTime,
-                                    'oldEndTime' => $oldEndTime,
-                                    'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                                    'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                                    'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                                    'rescheduleReason' => $data['reschedule_reason'] ?? 'No reason provided',
-                                ],
-                            ];
+                    //         $recipients = array_unique($recipients);
+                    //         $authUser = auth()->user();
+                    //         $senderEmail = $authUser->email;
+                    //         $senderName = $authUser->name;
+                    //         // Prepare email content with reschedule reason
+                    //         $emailContent = [
+                    //             'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                    //             'lead' => [
+                    //                 'company' => $lead->companyDetail->company_name ?? 'N/A',
+                    //                 'implementerName' => $record->implementer ?? 'N/A',
+                    //                 'date' => Carbon::parse($data['date'])->format('d/m/Y'),
+                    //                 'startTime' => Carbon::parse($data['start_time'])->format('h:i A'),
+                    //                 'endTime' => Carbon::parse($data['end_time'])->format('h:i A'),
+                    //                 'oldDate' => $oldDate,
+                    //                 'oldStartTime' => $oldStartTime,
+                    //                 'oldEndTime' => $oldEndTime,
+                    //                 'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
+                    //                 'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
+                    //                 'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
+                    //                 'rescheduleReason' => $data['reschedule_reason'] ?? 'No reason provided',
+                    //             ],
+                    //         ];
 
-                            try {
-                                // Send email with template and custom subject format
-                                if (count($recipients) > 0) {
-                                    \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
-                                        $message->from($senderEmail, $senderName)
-                                            ->to($recipients)
-                                            ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
-                                    });
+                    //         try {
+                    //             // Send email with template and custom subject format
+                    //             if (count($recipients) > 0) {
+                    //                 \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
+                    //                     $message->from($senderEmail, $senderName)
+                    //                         ->to($recipients)
+                    //                         ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
+                    //                 });
 
-                                    Notification::make()
-                                        ->title('Implementation appointment notification sent')
-                                        ->success()
-                                        ->body('Email notification sent to administrator and required attendees')
-                                        ->send();
-                                }
-                            } catch (\Exception $e) {
-                                // Handle email sending failure
-                                Log::error("Email sending failed for implementation appointment: Error: {$e->getMessage()}");
+                    //                 Notification::make()
+                    //                     ->title('Implementation appointment notification sent')
+                    //                     ->success()
+                    //                     ->body('Email notification sent to administrator and required attendees')
+                    //                     ->send();
+                    //             }
+                    //         } catch (\Exception $e) {
+                    //             // Handle email sending failure
+                    //             Log::error("Email sending failed for implementation appointment: Error: {$e->getMessage()}");
 
-                                Notification::make()
-                                    ->title('Email Notification Failed')
-                                    ->danger()
-                                    ->body('Could not send email notification: ' . $e->getMessage())
-                                    ->send();
-                            }
+                    //             Notification::make()
+                    //                 ->title('Email Notification Failed')
+                    //                 ->danger()
+                    //                 ->body('Could not send email notification: ' . $e->getMessage())
+                    //                 ->send();
+                    //         }
 
-                            Notification::make()
-                                ->title('Implementation Appointment Rescheduled Successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         Notification::make()
+                    //             ->title('Implementation Appointment Rescheduled Successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
                 ])->icon('heroicon-m-list-bullet')
                 ->size(ActionSize::Small)
                 ->color('primary')
@@ -892,7 +807,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
                                 $message->from($senderEmail, $senderName)
                                     ->to($recipients)
-                                    ->subject("TIMETEC IMPLEMENTER APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
+                                    ->subject("TIMETEC HR | ONLINE | KICK-OFF MEETING SESSION | {$lead->companyDetail->company_name}");
                             });
 
                             Notification::make()
@@ -911,16 +826,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             ->body('Could not send email notification: ' . $e->getMessage())
                             ->send();
                     }
-
-                    // Log the activity
-                    ActivityLog::create([
-                        'user_id' => auth()->id(),
-                        'causer_id' => auth()->id(),
-                        'action' => 'Added Implementer Appointment',
-                        'description' => "Added a new implementer appointment for lead: {$lead->companyDetail->company_name} ({$lead->id})",
-                        'subject_type' => ImplementerAppointment::class,
-                        'subject_id' => $appointment->id,
-                    ]);
 
                     Notification::make()
                         ->title('Implementer Appointment Added Successfully')

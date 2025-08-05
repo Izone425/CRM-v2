@@ -285,14 +285,14 @@ class MarketingAnalysis extends Page
             }
         }
 
-        $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
-            $q->where(function ($sub) use ($activeStatuses) {
-                $sub->where(function ($inner) {
-                    $inner->where('categories', 'Active')
-                          ->orWhere('categories', 'New');
-                })->whereIn('lead_status', $activeStatuses);
-            })->orWhereIn('lead_status', $otherStatuses);
-        });
+        // $query->where(function ($q) use ($activeStatuses, $otherStatuses) {
+        //     $q->where(function ($sub) use ($activeStatuses) {
+        //         $sub->where(function ($inner) {
+        //             $inner->where('categories', 'Active')
+        //                   ->orWhere('categories', 'New');
+        //         })->whereIn('lead_status', $activeStatuses);
+        //     })->orWhereIn('lead_status', $otherStatuses);
+        // });
 
         // ✅ Total Count
         $this->totalLeadStatus = (clone $query)->count();

@@ -1504,15 +1504,8 @@
                                         wire:click="showAppointmentDetails({{ $sessionDetails['appointment']->id ?? 'null' }})">
                                         <div class="appointment-card-bar"></div>
                                         <div class="appointment-card-info">
-                                            <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
-                                            <div class="appointment-appointment-type">
-                                                {{ $sessionDetails['appointment']->appointment_type }} |
-                                                <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
-                                            </div>
-                                            <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
-                                                @if($sessionDetails['appointment']->lead_id)
-                                                    {{ $sessionDetails['appointment']->company_name }}
-                                                @endif
+                                            <div class="available-session-name">
+                                                {{ $sessionName }} NOT AVAILABLE
                                             </div>
                                             <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
                                                 {{ $sessionDetails['appointment']->end_time }}</div>
@@ -1881,38 +1874,60 @@
                             <p class="form-display-text">{{ $currentAppointment->required_attendees }}</p>
                         </div>
                         @endif
-                    </div>
 
-                    <!-- Full Width for Remarks -->
-                    <div class="col-span-1 md:col-span-2">
                         @if($currentAppointment->remarks)
-                        <div class="form-group">
-                            <label class="form-label">Remarks</label>
-                            <p class="form-display-text">{{ $currentAppointment->remarks }}</p>
-                        </div>
+                            <div class="form-group">
+                                <label class="form-label">Remarks</label>
+                                <p class="form-display-text">{{ $currentAppointment->remarks }}</p>
+                            </div>
                         @endif
                     </div>
 
                     <!-- Cancellation Confirmation - show when showConfirmation is true -->
-                    <template x-if="showConfirmation">
-                        <div class="col-span-1 p-4 border border-red-300 rounded-md md:col-span-2 bg-red-50">
-                            <h4 class="mb-2 font-bold text-red-700">Confirm Cancellation</h4>
-                            <p class="mb-4 text-red-600">
-                                Are you sure you want to cancel this appointment?
-                                This action cannot be undone and will send cancellation notifications to all attendees.
-                            </p>
-                            <div class="flex justify-end gap-2">
+                    <div x-show="showConfirmation"
+                        class="fixed inset-0 z-50 flex items-center justify-center"
+                        style="background-color: rgba(0, 0, 0, 0.5);">
+                        <div class="w-full max-w-md p-6 mx-auto bg-white rounded-lg shadow-xl"
+                            @click.away="showConfirmation = false">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-red-700">Confirm Cancellation</h3>
+                                <button @click="showConfirmation = false" class="text-gray-500 hover:text-gray-700">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="p-4 mb-4 border border-red-300 rounded-md bg-red-50">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 01-1-1V8a1 1 0 112 0v6a1 1 0 01-1 1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-red-700">
+                                            Are you sure you want to cancel this appointment?
+                                        </p>
+                                        <p class="mt-2 text-sm text-red-600">
+                                            This action cannot be undone and will send cancellation notifications to all attendees.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3 mt-5">
                                 <button @click="showConfirmation = false" type="button"
-                                    class="px-3 py-2 text-sm text-gray-800 bg-gray-200 rounded-md">
-                                    No, keep appointment
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    Keep Appointment
                                 </button>
                                 <button wire:click="cancelAppointment({{ $currentAppointment->id }})" type="button"
-                                    class="px-3 py-2 text-sm text-white bg-red-600 rounded-md">
-                                    Yes, cancel appointment
+                                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    Yes, Cancel Appointment
                                 </button>
                             </div>
                         </div>
-                    </template>
+                    </div>
                 </div>
             </div>
 
@@ -2005,7 +2020,7 @@
                             class="form-input"
                             placeholder="email1@example.com;email2@example.com"
                         >
-                        <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600">
+                        <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
                             Load from Software Handover
                         </button>
                         <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>

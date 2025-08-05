@@ -14,13 +14,21 @@ use App\Filament\Pages\DepartmentCalendar;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
+use App\Filament\Pages\ImplementationSession;
 use App\Filament\Pages\ImplementerAuditList;
 use App\Filament\Pages\ImplementerCalendar;
 use App\Filament\Pages\ImplementerDataFile;
+use App\Filament\Pages\ImplementerRequestCount;
+use App\Filament\Pages\ImplementerRequestList;
+use App\Filament\Pages\KickOffMeetingSession;
 use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\ProformaInvoices;
+use App\Filament\Pages\ProjectCategoryClosed;
+use App\Filament\Pages\ProjectCategoryDelay;
+use App\Filament\Pages\ProjectCategoryInactive;
+use App\Filament\Pages\ProjectCategoryOpen;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
 use App\Filament\Pages\SalesAdminAnalysisV1;
@@ -223,6 +231,14 @@ class AdminPanelProvider extends PanelProvider
                 ImplementerAuditList::class,
                 SalespersonAuditList::class,
                 DepartmentCalendar::class,
+                ImplementerRequestCount::class,
+                ImplementerRequestList::class,
+                ProjectCategoryOpen::class,
+                ProjectCategoryDelay::class,
+                ProjectCategoryInactive::class,
+                ProjectCategoryClosed::class,
+                KickOffMeetingSession::class,
+                ImplementationSession::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -30,6 +30,8 @@ class ImplementerAppointment extends Model
         'request_status',
         'selected_year',
         'selected_week',
+        'causer_id',
+        'software_handover_id',
     ];
 
     protected $casts = [
@@ -114,6 +116,11 @@ class ImplementerAppointment extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function softwareHandover(): BelongsTo
+    {
+        return $this->belongsTo(SoftwareHandover::class);
     }
 
     /**

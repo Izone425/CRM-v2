@@ -74,6 +74,8 @@ class ImplementerMigrationCompleted extends Component implements HasForms, HasTa
 
     public function getOverdueHardwareHandovers()
     {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
+
         $query  = SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->where('data_migrated', true)

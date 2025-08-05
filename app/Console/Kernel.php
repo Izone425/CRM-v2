@@ -23,7 +23,9 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('leads:update-status')->dailyAt('00:01'); // Runs daily at 12:01 AM
 
-        $schedule->command('repair-appointments:update-status')->dailyAt('00:05');
+        $schedule->command('repair-appointments:update-status')->dailyAt('00:03');
+
+        $schedule->command('implementer-appointments:update-status')->dailyAt('00:05');
 
         $schedule->command('follow-up:auto')->weeklyOn(2, '10:00'); // Runs at Tuesday 10 AM
 

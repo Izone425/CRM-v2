@@ -7,6 +7,7 @@
         ['label' => 'Salesperson Assigned Date', 'value' => $lead->salesperson_assigned_date
             ? \Carbon\Carbon::parse($lead->salesperson_assigned_date)->format('d M Y')
             : '-'],
+        ['label' => 'Call Attempt', 'value' => $lead->call_attempt . ' times'],
     ];
 @endphp
 

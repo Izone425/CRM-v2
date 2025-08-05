@@ -1,106 +1,93 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/emails/implementer_appointment_cancelled.blade.php -->
+<?php
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Implementation Appointment Cancelled</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            font-size: 14px;
             line-height: 1.6;
             color: #333;
         }
         .container {
-            width: 100%;
             max-width: 600px;
             margin: 0 auto;
         }
-        .header {
-            background-color: #f44336;
-            color: white;
+        h3 {
+            color: #0056b3;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .details {
+            margin-left: 20px;
+        }
+        .signature {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .teams-info {
+            background-color: #f8f9fa;
+            border-left: 4px solid #5558af;
             padding: 15px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 24px;
-        }
-        .content {
-            padding: 20px;
-            border: 1px solid #ddd;
-        }
-        .footer {
-            padding: 15px;
-            text-align: center;
-            font-size: 12px;
-            color: #777;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f2f2f2;
+            margin: 15px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            IMPLEMENTATION APPOINTMENT CANCELLED
+        <p>Dear Customer,</p>
+        <p>Good day to you.</p>
+
+        <p>As per our discussion, our implementation review session has been scheduled.</p>
+        <p>Kindly find below the details:</p>
+
+        <div class="section">
+            <h3>Implementer Details:</h3>
+            <div class="details">
+                <p>Implementer: {{ $content['implementerName'] }}</p>
+                <p>Email: {{ $content['implementerEmail'] }}</p>
+            </div>
         </div>
-        <div class="content">
-            <p>Dear Sir/Madam,</p>
 
-            <p>Please be informed that the following implementation session has been <strong>cancelled</strong>:</p>
+        <div class="section">
+            <h3>Implementation Review Session Details:</h3>
+            <div class="details">
+                <p>Company Name: {{ $content['companyName'] }}</p>
+                <p>Implementation Review Session: Count {{ $content['implementationCount'] }}</p>
+                <p>Appointment Type: {{ $content['appointmentType'] }}</p>
+                <p>Date: {{ $content['date'] }}</p>
+                <p>{{ $content['sessionName'] }}: {{ $content['startTime'] }} – {{ $content['endTime'] }}</p>
 
-            <table>
-                <tr>
-                    <th>Implementation Type</th>
-                    <td>{{ $content['appointmentType'] }}</td>
-                </tr>
-                <tr>
-                    <th>Company</th>
-                    <td>{{ $content['companyName'] }}</td>
-                </tr>
-                <tr>
-                    <th>Date</th>
-                    <td>{{ $content['date'] }}</td>
-                </tr>
-                <tr>
-                    <th>Time</th>
-                    <td>{{ $content['time'] }}</td>
-                </tr>
-                <tr>
-                    <th>Implementer</th>
-                    <td>{{ $content['implementer'] }}</td>
-                </tr>
-                <tr>
-                    <th>Cancelled By</th>
-                    <td>{{ $content['cancelledBy'] }}</td>
-                </tr>
-                <tr>
-                    <th>Cancelled Date</th>
-                    <td>{{ $content['cancelledDate'] }}</td>
-                </tr>
-                <tr>
-                    <th>Remarks</th>
-                    <td>{{ $content['remarks'] }}</td>
-                </tr>
-            </table>
+                @if($content['appointmentType'] === 'ONLINE' && $content['meetingLink'])
+                <div class="teams-info">
+                    <h3>Microsoft Teams Meeting Information:</h3>
+                    <p><a href="{{ $content['meetingLink'] }}">Join Microsoft Teams Meeting</a></p>
 
-            <p>If you have any questions, please contact us.</p>
+                    @if($content['meetingId'])
+                    <p>Meeting ID: {{ $content['meetingId'] }}</p>
+                    @endif
 
-            <p>Thank you.</p>
+                    @if($content['meetingPassword'])
+                    <p>Password: {{ $content['meetingPassword'] }}</p>
+                    @endif
+                </div>
+                @endif
 
-            <p>Best regards,<br>
-            TimeTec Implementation Team</p>
+                @if($content['remarks'])
+                    <p>Remarks: {{ $content['remarks'] }}</p>
+                @endif
+            </div>
         </div>
-        <div class="footer">
-            This is an automated email. Please do not reply to this email.
+
+        <div class="signature">
+            <p>Best Regards,<br>
+            {{ $content['implementerName'] }}<br>
+            Dedicated Implementer<br>
+            TimeTec Cloud Sdn Bhd<br>
+            Office Number: {{ $content['officeNumber'] }}</p>
         </div>
     </div>
 </body>
