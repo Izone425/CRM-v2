@@ -415,6 +415,14 @@
         ->getOverdueHardwareHandovers()
         ->count();
 
+    $sessionsToday = app(\App\Livewire\ImplementerDashboard\SessionToday::class)
+        ->getAppointments()
+        ->count();
+
+    $sessionsTomorrow = app(\App\Livewire\ImplementerDashboard\SessionTomorrow::class)
+        ->getAppointments()
+        ->count();
+
     // Ticketing System Counts
     $internalTicketsToday = 0; // Replace with actual count
     $internalTicketsOverdue = 0; // Replace with actual count
@@ -429,11 +437,12 @@
 
     // Calculate totals for main categories
     $projectStatusTotal = $allProjects;
-    $licenseTotal = $pendingLicenseCount + $completedLicenseCount;
+    $licenseTotal = $pendingLicenseCount + $completedLicenseCount + $pendingMigrationCount + $completedMigrationCount;
     $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
     $followUpTotal = $followUpToday + $followUpOverdue;
     $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
+    $sessionsTotal = $sessionsToday + $sessionsTomorrow;
 
     $pendingRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'PENDING APPROVAL')->count();
     $approvedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'APPROVED')->count();
@@ -486,6 +495,16 @@
                 <div class="group-count">{{ $projectStatusTotal }}</div>
             </div>
 
+            <!-- NO7 - DEMO SESSION -->
+            <div class="group-box group-new-request"
+                :class="{'selected': selectedGroup === 'new-request'}"
+                @click="setSelectedGroup('appointment')">
+                <div class="group-info">
+                    <div class="group-title">Appointment</div>
+                </div>
+                <div class="group-count">{{ $sessionsTotal }}</div>
+            </div>
+
             <!-- NO2 - LICENSE CERTIFICATION -->
             <div class="group-box group-license"
                 :class="{'selected': selectedGroup === 'license'}"
@@ -526,7 +545,7 @@
                 <div class="group-count">{{ $ticketingTotal }}</div>
             </div>
 
-            <!-- NO6 - NEW REQUEST -->
+            {{-- <!-- NO6 - NEW REQUEST -->
             <div class="group-box group-new-request"
                 :class="{'selected': selectedGroup === 'new-request'}"
                 @click="setSelectedGroup('new-request')">
@@ -534,7 +553,7 @@
                     <div class="group-title">New Request</div>
                 </div>
                 <div class="group-count">{{ $requestTotal }}</div>
-            </div>
+            </div> --}}
         </div>
 
         <!-- Right content column -->
@@ -584,6 +603,27 @@
                         <div class="stat-label">Inactive</div>
                     </div>
                     <div class="stat-count">{{ $inactiveProjects }}</div>
+                </div>
+            </div>
+
+            <!-- Appointment Sub-tabs -->
+            <div class="category-container" x-show="selectedGroup === 'appointment'" x-transition>
+                <div class="stat-box customization-pending"
+                    :class="{'selected': selectedStat === 'sessions-today'}"
+                    @click="setSelectedStat('sessions-today')">
+                    <div class="stat-info">
+                        <div class="stat-label">Sessions Today</div>
+                    </div>
+                    <div class="stat-count">{{ $sessionsToday }}</div>
+                </div>
+
+                <div class="stat-box customization-completed"
+                    :class="{'selected': selectedStat === 'sessions-tomorrow'}"
+                    @click="setSelectedStat('sessions-tomorrow')">
+                    <div class="stat-info">
+                        <div class="stat-label">Sessions Tomorrow</div>
+                    </div>
+                    <div class="stat-count">{{ $sessionsTomorrow }}</div>
                 </div>
             </div>
 
@@ -797,6 +837,19 @@
                 <div x-show="selectedStat === 'status-inactive'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-project-inactive />
+                    </div>
+                </div>
+
+                <!-- Sessions Today Table -->
+                <div x-show="selectedStat === 'sessions-today'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.session-today />
+                    </div>
+                </div>
+                <!-- Sessions Tomorrow Table -->
+                <div x-show="selectedStat === 'sessions-tomorrow'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.session-tomorrow />
                     </div>
                 </div>
 

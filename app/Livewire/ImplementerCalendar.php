@@ -86,6 +86,7 @@ class ImplementerCalendar extends Component
     public $filteredOpenDelayCompanies = [];
     public $showAppointmentDetailsModal = false;
     public $currentAppointment = null;
+    public $isLoadingAttendees = false;
 
     public function mount()
     {
@@ -155,19 +156,42 @@ class ImplementerCalendar extends Component
         try {
             // Update status to Cancelled
             $appointment->status = 'Cancelled';
-            $appointment->save();
 
-            // Create activity log entry
-            ActivityLog::create([
-                'user_id' => auth()->id(),
-                'causer_id' => auth()->id(),
-                'action' => 'Cancelled Implementer Session',
-                'description' => "Cancelled {$appointment->type} for " .
-                    ($appointment->lead_id ? $appointment->company_name : $appointment->title) .
-                    " with {$appointment->implementer}",
-                'subject_type' => get_class($appointment),
-                'subject_id' => $appointment->id,
-            ]);
+            // Cancel Teams meeting if exists
+            if ($appointment->teams_event_id && $appointment->organizer_email) {
+                $eventId = $appointment->teams_event_id;
+                $organizerEmail = $appointment->organizer_email;
+
+                try {
+                    $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                    $graph = new \Microsoft\Graph\Graph();
+                    $graph->setAccessToken($accessToken);
+
+                    // Cancel the Teams meeting
+                    $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
+
+                    Notification::make()
+                        ->title('Teams Meeting Cancelled Successfully')
+                        ->warning()
+                        ->body('The meeting has been cancelled in Microsoft Teams.')
+                        ->send();
+
+                } catch (\Exception $e) {
+                    Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                        'event_id' => $eventId,
+                        'organizer' => $organizerEmail,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+
+                    Notification::make()
+                        ->title('Failed to Cancel Teams Meeting')
+                        ->warning()
+                        ->body('The appointment was cancelled, but there was an error cancelling the Teams meeting: ' . $e->getMessage())
+                        ->send();
+                }
+            }
+
+            $appointment->save();
 
             // Send email notification about cancellation
             $this->sendCancellationEmail($appointment);
@@ -211,9 +235,6 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            // Always include admin
-            $recipients[] = 'zilih.ng@timeteccloud.com';
-
             // Get authenticated user's email for sender
             $authUser = auth()->user();
             $senderEmail = $authUser->email;
@@ -229,7 +250,10 @@ class ImplementerCalendar extends Component
                 'implementer' => $appointment->implementer,
                 'cancelledBy' => $authUser->name,
                 'cancelledDate' => Carbon::now()->format('d F Y g:i A'),
-                'remarks' => $appointment->remarks ?? 'N/A'
+                'remarks' => $appointment->remarks ?? 'N/A',
+                'meetingLink' => $appointment->teams_meeting_link ?? null,
+                'meetingId' => $appointment->teams_meeting_id ?? null,
+                'meetingPassword' => $appointment->teams_meeting_password ?? null
             ];
 
             if (count($recipients) > 0) {
@@ -252,6 +276,18 @@ class ImplementerCalendar extends Component
     public function updatedWeekDate()
     {
         $this->date = Carbon::parse($this->weekDate);
+    }
+
+    public function updatedSelectedCompany($value)
+    {
+        if (!empty($value)) {
+            $this->isLoadingAttendees = true;
+            $this->loadAttendees();
+            $this->isLoadingAttendees = false;
+        } else {
+            // Reset attendees field if no company is selected
+            $this->requiredAttendees = '';
+        }
     }
 
     // For Filtering
@@ -389,10 +425,24 @@ class ImplementerCalendar extends Component
 
     private function getWeeklyAppointments($date = null)
     {
-        // Set weekly date range (Monday to Friday)
         $date = $date ? Carbon::parse($date) : Carbon::now();
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
         $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
+
+        // Define the custom order for implementers
+        $customOrder = [
+            'Nurul Shaqinur Ain' => 1,
+            'Ahmad Syamim' => 2,
+            'Ahmad Syazwan' => 3,
+            'Siti Shahilah' => 4,
+            'Muhamad Izzul Aiman' => 5,
+            'Zulhilmie' => 6,
+            'Mohd Amirul Ashraf' => 7,
+            'John Low' => 8,
+            'Nur Fazuliana' => 9,
+            'Ummu Najwa Fajrina' => 10,
+            'Noor Syazana' => 11
+        ];
 
         // Get implementers data
         $implementerUsers = User::whereIn('role_id', [4, 5])
@@ -417,6 +467,7 @@ class ImplementerCalendar extends Component
                 return $query->whereIn('implementer', $this->selectedImplementers);
             })
             ->get();
+
 
         // Map company names for display
         $appointments = $appointments->map(function($appointment) {
@@ -466,10 +517,12 @@ class ImplementerCalendar extends Component
         $result = [];
         $weekDays = $this->getWeekDateDays($date);
 
+        // Create a collection for sorting
+        $implementerCollection = collect();
+
         // Process each implementer
         foreach ($allImplementers as $implementerId) {
             $name = trim($implementerId);
-
             $user = \App\Models\User::where('name', $name)->first();
 
             if ($user) {
@@ -490,7 +543,6 @@ class ImplementerCalendar extends Component
             } else {
                 $implementerName = $implementerId;
                 $implementerAvatar = asset('storage/uploads/photos/default-avatar.png');
-
                 Log::warning("Unknown implementer name", ['implementerName' => $implementerId]);
             }
 
@@ -499,6 +551,7 @@ class ImplementerCalendar extends Component
                 'implementerId' => $user->id ?? null,
                 'implementerName' => $implementerName,
                 'implementerAvatar' => $implementerAvatar,
+                'order' => $customOrder[$implementerName] ?? 999, // Custom order for sorting
                 'mondayAppointments' => [],
                 'tuesdayAppointments' => [],
                 'wednesdayAppointments' => [],
@@ -628,7 +681,9 @@ class ImplementerCalendar extends Component
             // Count appointments for statistics
             $this->countAppointments($data['newAppointment']);
             $result[] = $data;
+            $implementerCollection->push($data);
         }
+        $result = $implementerCollection->sortBy('order')->values()->toArray();
 
         return $result;
     }
@@ -645,12 +700,26 @@ class ImplementerCalendar extends Component
 
     public function getAllImplementers()
     {
+        // Define the custom order for implementers
+        $customOrder = [
+            'Nurul Shaqinur Ain' => 1,
+            'Ahmad Syamim' => 2,
+            'Ahmad Syazwan' => 3,
+            'Siti Shahilah' => 4,
+            'Muhamad Izzul Aiman' => 5,
+            'Zulhilmie' => 6,
+            'Mohd Amirul Ashraf' => 7,
+            'John Low' => 8,
+            'Nur Fazuliana' => 9,
+            'Ummu Najwa Fajrina' => 10,
+            'Noor Syazana' => 11
+        ];
+
         // Get implementers (role_id 4 and 5)
         $implementers = User::whereIn('role_id', [4, 5])
             ->select('id', 'name', 'avatar_path')
-            ->orderBy('name')
             ->get()
-            ->map(function ($implementer) {
+            ->map(function ($implementer) use ($customOrder) {
                 // Process avatar URL
                 $avatarUrl = null;
                 if ($implementer->avatar_path) {
@@ -669,9 +738,12 @@ class ImplementerCalendar extends Component
                     'id' => $implementer->name,
                     'name' => $implementer->name,
                     'avatar_path' => $implementer->avatar_path,
-                    'avatar_url' => $avatarUrl
+                    'avatar_url' => $avatarUrl,
+                    'order' => $customOrder[$implementer->name] ?? 999 // Default high order for names not in the list
                 ];
             })
+            ->sortBy('order') // Sort by the custom order
+            ->values() // Reset array keys
             ->toArray();
 
         return $implementers;
@@ -863,62 +935,81 @@ class ImplementerCalendar extends Component
         }
     }
 
-    // Add method to load attendees from software handover
-    // public function loadAttendees()
-    // {
-    //     if (!$this->selectedCompany) {
-    //         Notification::make()
-    //             ->title('Please select a company first')
-    //             ->warning()
-    //             ->send();
-    //         return;
-    //     }
+    public function loadAttendees()
+    {
+        if (!$this->selectedCompany) {
+            return;
+        }
 
-    //     try {
-    //         // Get implementation PICs from software handover form
-    //         $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
-    //         if (!$companyDetail || !$companyDetail->lead_id) {
-    //             return;
-    //         }
+        try {
+            // Get company details
+            $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+            if (!$companyDetail || !$companyDetail->lead_id) {
+                // Don't show a notification since this is automatic now
+                return;
+            }
 
-    //         $lead = \App\Models\Lead::find($companyDetail->lead_id);
-    //         if (!$lead) {
-    //             return;
-    //         }
+            // Get software handover record
+            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $companyDetail->lead_id)->first();
+            if (!$softwareHandover) {
+                // Don't show a notification since this is automatic now
+                return;
+            }
 
-    //         // Here you would fetch the emails from the software handover form
-    //         // This is a placeholder - adjust based on your actual data structure
-    //         $implementationPics = \App\Models\ImplementationPic::where('lead_id', $lead->id)->get();
+            $emails = [];
 
-    //         $emails = [];
-    //         foreach ($implementationPics as $pic) {
-    //             if (!empty($pic->email)) {
-    //                 $emails[] = $pic->email;
-    //             }
-    //         }
+            // Extract emails from implementation_pics JSON field
+            if (!empty($softwareHandover->implementation_pics)) {
+                try {
+                    $implementationPics = json_decode($softwareHandover->implementation_pics, true);
 
-    //         $this->requiredAttendees = implode(';', $emails);
+                    if (is_array($implementationPics)) {
+                        foreach ($implementationPics as $pic) {
+                            if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
+                                $email = trim($pic['pic_email_impl']);
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                    $emails[] = $email;
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error parsing implementation_pics JSON: " . $e->getMessage());
+                }
+            }
 
-    //         if (empty($emails)) {
-    //             Notification::make()
-    //                 ->title('No implementation PICs found')
-    //                 ->warning()
-    //                 ->body('Please enter attendees manually')
-    //                 ->send();
-    //         } else {
-    //             Notification::make()
-    //                 ->title('Attendees loaded successfully')
-    //                 ->success()
-    //                 ->send();
-    //         }
-    //     } catch (\Exception $e) {
-    //         Notification::make()
-    //             ->title('Error loading attendees')
-    //             ->danger()
-    //             ->body($e->getMessage())
-    //             ->send();
-    //     }
-    // }
+            // Update required attendees field with all found emails
+            $this->requiredAttendees = implode(';', $emails);
+
+            // Only show a notification if we're not auto-loading
+            if (!$this->isLoadingAttendees) {
+                if (empty($emails)) {
+                    Notification::make()
+                        ->title('No implementation PICs found')
+                        ->warning()
+                        ->body('Please enter attendees manually')
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title('Attendees loaded successfully')
+                        ->success()
+                        ->body('Found ' . count($emails) . ' email addresses from Implementation PICs')
+                        ->send();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error in loadAttendees: " . $e->getMessage());
+
+            // Only show an error notification if we're not auto-loading
+            if (!$this->isLoadingAttendees) {
+                Notification::make()
+                    ->title('Error loading attendees')
+                    ->danger()
+                    ->body($e->getMessage())
+                    ->send();
+            }
+        }
+    }
 
     public function submitImplementerRequest()
     {
@@ -954,6 +1045,15 @@ class ImplementerCalendar extends Component
             $selectedYear = null;
             $selectedWeek = null;
 
+            $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+            $leadId = $companyDetail->lead_id;
+
+            if ($leadId) {
+                $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->orderBy('id', 'desc')
+                    ->value('id');
+            }
+
             if ($this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION') {
                 $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
                 if (!$companyDetail) {
@@ -964,8 +1064,7 @@ class ImplementerCalendar extends Component
                     return;
                 }
                 $companyName = $companyDetail->company_name;
-                $softwareHandoverId = 'SW_' . str_pad($companyDetail->id, 6, '0', STR_PAD_LEFT);
-                $leadId = $companyDetail->lead_id;
+
                 $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | ' . $companyName;
             } else {
                 $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | WEEK ' . $this->selectedWeek . ', ' . $this->selectedYear;
@@ -978,7 +1077,7 @@ class ImplementerCalendar extends Component
             $appointment->fill([
                 'lead_id' => $leadId,
                 'type' => $this->requestSessionType,
-                'appointment_type' => 'ONLINE', // Default to ONLINE for requests
+                'appointment_type' => 'ONLINE',
                 'date' => $this->bookingDate,
                 'start_time' => $this->bookingStartTime,
                 'end_time' => $this->bookingEndTime,
@@ -994,6 +1093,7 @@ class ImplementerCalendar extends Component
                 'remarks' => $this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION' ?
                             "Request for {$this->requestSessionType} for {$companyName}" :
                             "Request for {$this->requestSessionType} for Week {$this->selectedWeek}, {$this->selectedYear}",
+                'software_handover_id' => $softwareHandoverId,
             ]);
 
             $appointment->save();
@@ -1037,8 +1137,7 @@ class ImplementerCalendar extends Component
                 $senderName = $authUser->name;
 
                 // Recipients
-                // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
-                $recipients = ['zilih.ng@timeteccloud.com']; // Main recipient
+                $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
                 $ccRecipients = [$senderEmail]; // CC implementer
 
                 \Illuminate\Support\Facades\Mail::send('emails.implementer_request',
@@ -1118,36 +1217,200 @@ class ImplementerCalendar extends Component
             return;
         }
 
-        // Check if the slot is still available (another user might have booked it)
-        $conflictingAppointment = \App\Models\ImplementerAppointment::where('implementer', $implementer->name)
-            ->where('date', $this->bookingDate)
-            ->where(function ($query) {
-                $query->whereBetween('start_time', [$this->bookingStartTime, $this->bookingEndTime])
-                    ->orWhereBetween('end_time', [$this->bookingStartTime, $this->bookingEndTime])
-                    ->orWhere(function ($q) {
-                        $q->where('start_time', '<=', $this->bookingStartTime)
-                            ->where('end_time', '>=', $this->bookingEndTime);
-                    });
-            })
-            ->first();
+        // // Check if the slot is still available
+        // $conflictingAppointment = \App\Models\ImplementerAppointment::where('implementer', $implementer->name)
+        //     ->where('date', $this->bookingDate)
+        //     ->where(function ($query) {
+        //         $query->whereBetween('start_time', [$this->bookingStartTime, $this->bookingEndTime])
+        //             ->orWhereBetween('end_time', [$this->bookingStartTime, $this->bookingEndTime])
+        //             ->orWhere(function ($q) {
+        //                 $q->where('start_time', '<=', $this->bookingStartTime)
+        //                     ->where('end_time', '>=', $this->bookingEndTime);
+        //             });
+        //     })
+        //     ->first();
 
-        if ($conflictingAppointment) {
-            Notification::make()
-                ->title('Session no longer available')
-                ->danger()
-                ->body('This slot has been booked by another user. Please select a different slot.')
-                ->send();
-            return;
-        }
+        // if ($conflictingAppointment) {
+        //     Notification::make()
+        //         ->title('Session no longer available')
+        //         ->danger()
+        //         ->body('This slot has been booked by another user. Please select a different slot.')
+        //         ->send();
+        //     return;
+        // }
 
         try {
-            // Count existing appointments for this company to determine implementation count
+            // Count existing appointments for this company
             $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
                 ->where('status', '!=', 'Cancelled')
+                ->where('type', 'IMPLEMENTATION REVIEW SESSION')  // Only count implementation review sessions
                 ->count();
 
-            // Create the appointment
+            // Create appointment
             $appointment = new \App\Models\ImplementerAppointment();
+
+            // Create Teams meeting if appointment type is ONLINE
+            $teamsEventId = null;
+            $meetingLink = null;
+            $meetingId = null;
+            $meetingPassword = null;
+
+            if ($this->appointmentType === 'ONLINE') {
+                try {
+                    // Parse required attendees for Teams meeting
+                    $attendeeEmails = [];
+                    foreach (array_map('trim', explode(';', $this->requiredAttendees)) as $email) {
+                        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                            $attendeeEmails[] = $email;
+                        }
+                    }
+
+                    // Create Teams meeting
+                    $startDateTime = Carbon::parse($this->bookingDate . ' ' . $this->bookingStartTime);
+                    $endDateTime = Carbon::parse($this->bookingDate . ' ' . $this->bookingEndTime);
+
+                    $meetingTitle = "{$this->implementationDemoType} | {$companyDetail->company_name}";
+                    $meetingBody = "Implementation session scheduled by {$implementer->name}.\n\n" .
+                                "Session: {$this->bookingSession}\n";
+
+                    // Create Teams meeting through Microsoft Graph API
+                    $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                    $graph = new \Microsoft\Graph\Graph();
+                    $graph->setAccessToken($accessToken);
+
+                    // Format meeting request
+                    $meetingRequest = [
+                        'subject' => $meetingTitle,
+                        'body' => [
+                            'contentType' => 'text',
+                            'content' => $meetingBody
+                        ],
+                        'start' => [
+                            'dateTime' => $startDateTime->format('Y-m-d\TH:i:s'),
+                            'timeZone' => config('app.timezone', 'Asia/Kuala_Lumpur')
+                        ],
+                        'end' => [
+                            'dateTime' => $endDateTime->format('Y-m-d\TH:i:s'),
+                            'timeZone' => config('app.timezone', 'Asia/Kuala_Lumpur')
+                        ],
+                        'location' => [
+                            'displayName' => 'Microsoft Teams Meeting'
+                        ],
+                        'attendees' => array_map(function($email) {
+                            return [
+                                'emailAddress' => [
+                                    'address' => $email,
+                                ],
+                                'type' => 'required'
+                            ];
+                        }, $attendeeEmails),
+                        'isOnlineMeeting' => true,
+                        'onlineMeetingProvider' => 'teamsForBusiness'
+                    ];
+
+                    // Create the event in the implementer's calendar
+                    $organizerEmail = $implementer->email;
+                    $response = $graph->createRequest("POST", "/users/$organizerEmail/events")
+                        ->attachBody($meetingRequest)
+                        ->setReturnType(\Microsoft\Graph\Model\Event::class)
+                        ->execute();
+
+                    // Extract meeting details
+                    $teamsEventId = $response->getId();
+                    $meetingLink = $response->getOnlineMeeting()->getJoinUrl();
+
+                    $onlineMeeting = $response->getOnlineMeeting();
+                    if ($onlineMeeting) {
+                        $meetingId = null;
+                        $meetingPassword = null;
+
+                        // Extract Conference ID if available
+                        if (method_exists($onlineMeeting, 'getConferenceId')) {
+                            $meetingId = $onlineMeeting->getConferenceId();
+                        }
+
+                        // If not found, try to parse from the joinUrl
+                        if (!$meetingId && $meetingLink) {
+                            // The conference ID is often in the URL as a parameter
+                            $urlParts = parse_url($meetingLink);
+                            if (isset($urlParts['query'])) {
+                                parse_str($urlParts['query'], $queryParams);
+                                if (isset($queryParams['confid'])) {
+                                    $meetingId = $queryParams['confid'];
+                                }
+                            }
+                        }
+
+                        // For password, check all possible locations
+                        // Try getting from online meeting details directly
+                        try {
+                            // Different API versions might store the password in different locations
+                            if (method_exists($onlineMeeting, 'getPassword')) {
+                                $meetingPassword = $onlineMeeting->getPassword();
+                            } else if (property_exists($onlineMeeting, 'password')) {
+                                $meetingPassword = $onlineMeeting->password;
+                            } else {
+                                // Get the full JSON response to inspect all properties
+                                $onlineMeetingArray = $response->getProperties();
+
+                                // Check common password field names
+                                $possiblePasswordFields = [
+                                    'password', 'passcode', 'meetingPassword', 'joinPassword',
+                                    'onlineMeeting.password', 'onlineMeeting.passcode'
+                                ];
+
+                                foreach ($possiblePasswordFields as $field) {
+                                    $fieldParts = explode('.', $field);
+                                    $value = $onlineMeetingArray;
+
+                                    foreach ($fieldParts as $part) {
+                                        if (is_array($value) && isset($value[$part])) {
+                                            $value = $value[$part];
+                                        } else {
+                                            $value = null;
+                                            break;
+                                        }
+                                    }
+
+                                    if ($value) {
+                                        $meetingPassword = $value;
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // Log the exception but continue processing
+                            Log::warning('Error accessing meeting password: ' . $e->getMessage(), [
+                                'trace' => $e->getTraceAsString()
+                            ]);
+                        }
+                    }
+
+                    Log::info('Teams meeting created successfully', [
+                        'event_id' => $teamsEventId,
+                        'meeting_link' => $meetingLink
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString()
+                    ]);
+
+                    // Continue without Teams meeting if it fails
+                    Notification::make()
+                        ->title('Teams meeting creation failed')
+                        ->warning()
+                        ->body('The appointment will be created without Teams meeting details.')
+                        ->send();
+                }
+            }
+            if ($leadId) {
+                $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->orderBy('id', 'desc')
+                    ->value('id');
+            }
+
+            // Continue creating the appointment
             $appointment->fill([
                 'lead_id' => $leadId,
                 'type' => $this->implementationDemoType,
@@ -1163,22 +1426,10 @@ class ImplementerCalendar extends Component
                 'session' => $this->bookingSession,
                 'required_attendees' => $this->requiredAttendees,
                 'remarks' => $this->remarks,
+                'software_handover_id' => $softwareHandoverId,
             ]);
 
             $appointment->save();
-
-            // Get lead owner details
-            $lead = \App\Models\Lead::find($leadId);
-            if (!$lead) {
-                Notification::make()
-                    ->title('Error preparing email notification')
-                    ->danger()
-                    ->body('Lead record not found')
-                    ->send();
-                return;
-            }
-
-            $leadOwner = User::where('name', $lead->lead_owner)->first();
 
             // Parse required attendees
             $recipients = [];
@@ -1195,36 +1446,41 @@ class ImplementerCalendar extends Component
                 $implementationCount = 1; // Always count 1 for kick-off meeting
             }
 
-            // Prepare email content
+            // Format the date for day display
+            $appointmentDate = Carbon::parse($this->bookingDate);
+            $formattedDate = $appointmentDate->format('d F Y / l'); // e.g. "14 July 2025 / Monday"
+
+            // Prepare email content according to the specified format
             $emailContent = [
                 'implementerName' => $implementer->name,
                 'implementerEmail' => $implementer->email,
                 'companyName' => $companyDetail->company_name,
                 'implementationCount' => $implementationCount,
                 'appointmentType' => $this->appointmentType,
-                'date' => Carbon::parse($this->bookingDate)->format('d F Y / l'),
-                'sessionTime' => "{$this->bookingSession}: " .
-                                Carbon::parse($this->bookingStartTime)->format('h:iA') . ' – ' .
-                                Carbon::parse($this->bookingEndTime)->format('h:iA'),
-                'meetingLink' => '', // You'll need to provide the meeting link if available
-                'meetingId' => '',   // You'll need to provide the meeting ID if available
-                'meetingPassword' => '', // You'll need to provide the meeting password if available
-                'leadOwnerMobileNumber' => $leadOwner ? $leadOwner->mobile_number : 'N/A',
+                'date' => $formattedDate,
+                'sessionName' => $this->bookingSession,
+                'startTime' => Carbon::parse($this->bookingStartTime)->format('hi\A\M'), // Format as 0930AM
+                'endTime' => Carbon::parse($this->bookingEndTime)->format('hi\A\M'),    // Format as 1030AM
+                'meetingLink' => $meetingLink,
+                'meetingId' => $meetingId,
+                'meetingPassword' => $meetingPassword,
                 'remarks' => $this->remarks,
+                'officeNumber' => '+603-8070 9933',
             ];
 
             // Send email
             try {
                 if (!empty($recipients)) {
-                    $authUser = auth()->user();
-                    $senderEmail = $authUser->email;
-                    $senderName = $authUser->name;
+                    // Use implementer's email as sender
+                    $senderEmail = $implementer->email;
+                    $senderName = $implementer->name;
 
-                    \Illuminate\Support\Facades\Mail::send('emails.implementation_session',
+                    \Illuminate\Support\Facades\Mail::send('emails.implementation_session_new',
                         ['content' => $emailContent],
-                        function ($message) use ($recipients, $senderEmail, $senderName, $companyDetail) {
+                        function ($message) use ($recipients, $senderEmail, $senderName, $implementer, $companyDetail) {
                             $message->from($senderEmail, $senderName)
                                 ->to($recipients)
+                                ->cc([$senderEmail]) // CC the implementer
                                 ->subject("TIMETEC HR | {$this->implementationDemoType} | {$companyDetail->company_name}");
                         }
                     );
@@ -1267,210 +1523,6 @@ class ImplementerCalendar extends Component
                 ->title('Error booking session')
                 ->danger()
                 ->body($e->getMessage())
-                ->send();
-        }
-    }
-
-    public function submitBooking()
-    {
-        $this->validate([
-            'selectedCompany' => 'required|exists:company_details,id',
-            'appointmentType' => 'required|in:ONLINE,ONSITE,INHOUSE',
-            'requiredAttendees' => 'required|string',
-        ]);
-
-        // Get the company and lead data
-        $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
-        if (!$companyDetail) {
-            Notification::make()
-                ->title('Company not found')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        $leadId = $companyDetail->lead_id;
-        if (!$leadId) {
-            Notification::make()
-                ->title('No lead associated with this company')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        // Get implementer name
-        $implementer = User::find($this->bookingImplementerId);
-        if (!$implementer) {
-            Notification::make()
-                ->title('Implementer not found')
-                ->danger()
-                ->send();
-            return;
-        }
-
-        // Check if the slot is still available (another user might have booked it)
-        $conflictingAppointment = \App\Models\ImplementerAppointment::where('implementer', $implementer->name)
-            ->where('date', $this->bookingDate)
-            ->where(function ($query) {
-                $query->whereBetween('start_time', [$this->bookingStartTime, $this->bookingEndTime])
-                    ->orWhereBetween('end_time', [$this->bookingStartTime, $this->bookingEndTime])
-                    ->orWhere(function ($q) {
-                        $q->where('start_time', '<=', $this->bookingStartTime)
-                            ->where('end_time', '>=', $this->bookingEndTime);
-                    });
-            })
-            ->first();
-
-        if ($conflictingAppointment) {
-            Notification::make()
-                ->title('Session no longer available')
-                ->danger()
-                ->body('This slot has been booked by another user. Please select a different slot.')
-                ->send();
-            return;
-        }
-
-        // Determine the appropriate implementation type based on existing appointments
-        $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
-            ->where('status', '!=', 'Cancelled')
-            ->count();
-
-        $implementationType = 'KICK OFF MEETING SESSION';
-        if ($existingAppointmentsCount == 1) {
-            $implementationType = 'IMPLEMENTATION REVIEW SESSION';
-        } else if ($existingAppointmentsCount == 2) {
-            $implementationType = 'DATA MIGRATION SESSION';
-        } else if ($existingAppointmentsCount == 3) {
-            $implementationType = 'SYSTEM SETTING SESSION';
-        } else if ($existingAppointmentsCount >= 4) {
-            $implementationType = 'WEEKLY FOLLOW UP SESSION';
-        }
-
-        // Create the appointment
-        $appointment = new \App\Models\ImplementerAppointment();
-        $appointment->fill([
-            'lead_id' => $leadId,
-            'type' => $implementationType,
-            'appointment_type' => $this->appointmentType, // Use the selected appointment type
-            'date' => $this->bookingDate,
-            'start_time' => $this->bookingStartTime,
-            'end_time' => $this->bookingEndTime,
-            'implementer' => $implementer->name,
-            'causer_id' => auth()->user()->id,
-            'implementer_assigned_date' => now(),
-            'title' => $implementationType . ' | ' . $this->appointmentType . ' | TIMETEC IMPLEMENTER | ' . $companyDetail->company_name,
-            'status' => 'New',
-            'session' => $this->bookingSession,
-            'required_attendees' => $this->requiredAttendees, // Add attendees
-            'remarks' => $this->remarks, // Add remarks
-        ]);
-
-        try {
-            $appointment->save();
-
-            $lead = \App\Models\Lead::find($leadId);
-            if (!$lead) {
-                Notification::make()
-                    ->title('Error preparing email notification')
-                    ->danger()
-                    ->body('Lead record not found')
-                    ->send();
-                return;
-            }
-
-            $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
-
-            // Parse and add required attendees if they have valid emails
-            $attendeeEmails = array_map('trim', explode(';', $this->requiredAttendees));
-            foreach ($attendeeEmails as $email) {
-                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $recipients[] = $email;
-                }
-            }
-
-            // Get lead owner details
-            $leadowner = User::where('name', $lead->lead_owner)->first();
-
-            // Prepare email content with correct data
-            $viewName = 'emails.implementer_appointment_notification';
-            $emailContent = [
-                'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                'lead' => [
-                    'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
-                    'company' => $companyDetail->company_name ?? 'N/A',
-                    'implementerName' => $implementer->name ?? 'N/A',
-                    'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                    'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                    'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                    'date' => Carbon::parse($this->bookingDate)->format('d/m/Y') ?? 'N/A',
-                    'startTime' => Carbon::parse($this->bookingStartTime)->format('h:i A') ?? 'N/A',
-                    'endTime' => Carbon::parse($this->bookingEndTime)->format('h:i A') ?? 'N/A',
-                    'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                    'session' => $this->bookingSession ?? 'N/A',
-                    'demo_type' => $implementationType,
-                    'appointment_type' => $this->appointmentType,
-                    'remarks' => $this->remarks ?? 'N/A',
-                ],
-            ];
-
-            // Get authenticated user's email for sender
-            $authUser = auth()->user();
-            $senderEmail = $authUser->email;
-            $senderName = $authUser->name;
-
-            try {
-                // Send email with template and custom subject format
-                if (count($recipients) > 0) {
-                    \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $implementationType, $companyDetail) {
-                        $message->from($senderEmail, $senderName)
-                            ->to($recipients)
-                            ->subject("TIMETEC IMPLEMENTER APPOINTMENT | {$implementationType} | {$companyDetail->company_name} | " . Carbon::parse($this->bookingDate)->format('d/m/Y'));
-                    });
-
-                    Notification::make()
-                        ->title('Implementer appointment notification sent')
-                        ->success()
-                        ->body('Email notification sent to administrator and required attendees')
-                        ->send();
-                }
-            } catch (\Exception $e) {
-                // Handle email sending failure
-                Log::error("Email sending failed for implementer appointment: Error: {$e->getMessage()}");
-
-                Notification::make()
-                    ->title('Email Notification Failed')
-                    ->danger()
-                    ->body('Could not send email notification: ' . $e->getMessage())
-                    ->send();
-            }
-
-            // Log activity
-            ActivityLog::create([
-                'user_id' => auth()->id(),
-                'causer_id' => auth()->id(),
-                'action' => 'Booked Implementer Session',
-                'description' => "Booked {$this->bookingSession} ({$implementationType}) for {$companyDetail->company_name} with {$implementer->name}",
-                'subject_type' => get_class($appointment),
-                'subject_id' => $appointment->id,
-            ]);
-
-            Notification::make()
-                ->title('Session booked successfully')
-                ->success()
-                ->send();
-
-            // Close the modal
-            $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks']);
-            $this->showBookingModal = false;
-
-            // Refresh the calendar
-            $this->dispatch('refresh');
-
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Failed to book session')
-                ->body($e->getMessage())
-                ->danger()
                 ->send();
         }
     }

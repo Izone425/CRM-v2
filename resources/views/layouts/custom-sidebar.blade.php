@@ -1076,22 +1076,22 @@
                         </div>
 
                         <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.project-category-open') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Open</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.project-category-closed') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Delay</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.project-category-inactive') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Inactive</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.project-category-closed') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Closed</span>
                             </a>
@@ -1134,10 +1134,34 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
-                        <i class="bi bi-dot"></i>
-                        <span>Implementer Calendar</span>
-                    </a>
+                    <div class="nested-dropdown">
+                        <div class="sidebar-item nested-dropdown-trigger">
+                            <i class="bi bi-calendar-week-fill"></i>
+                            <span>Implementer - Calendar</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Implementer - Session</span>
+                            </a>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Implementer - Request Count</span>
+                            </a>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.implementer-request-list') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>Implementer - Request List</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
             @endif
