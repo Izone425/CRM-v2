@@ -2,22 +2,26 @@
     @php
         $lead = $this->getRecord();
         $notes = $lead->implementerNotes()->with('user')->orderBy('created_at', 'desc')->get();
+        $totalNotes = $notes->count();
     @endphp
 
     @if($notes->count() > 0)
         <div class="overflow-y-auto bg-white rounded-lg max-h-96">
             <div class="space-y-0 divide-y divide-gray-200">
-                @foreach($notes as $note)
+                @foreach($notes as $index => $note)
                     <div class="p-4 hover:bg-gray-50">
                         <div class="flex items-start justify-between">
                             <div class="w-full space-y-1">
                                 <div class="flex items-center justify-between w-full">
+                                    <p class="text-gray-500" style="font-weight:bold; font-size: 1rem; color: #eb321a; text-decoration: underline;">
+                                        Note {{ $totalNotes - $index }}
+                                    </p>
                                     <p class="text-xs text-gray-500">
                                         {{ $note->created_at->format('d M Y, h:i A') }} by {{ $note->user ? $note->user->name : 'Unknown User' }}
                                     </p>
                                 </div>
                                 <div class="mt-2 text-sm prose max-w-none">
-                                    {!! $note->content !!}
+                                    {!! strtoupper($note->content) !!}
                                 </div>
                             </div>
                         </div>

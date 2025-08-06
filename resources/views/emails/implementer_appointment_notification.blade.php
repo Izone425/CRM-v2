@@ -9,6 +9,10 @@
             line-height: 1.6;
             color: #333;
         }
+        .meeting-link {
+            color: #0066cc; /* Changed to standard blue link color */
+            text-decoration: underline;
+        }
         .container {
             max-width: 720px;
             margin: 0 auto;
@@ -104,43 +108,45 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>TIMETEC HR | {{ $content['lead']['appointment_type'] }} | {{ $content['lead']['demo_type'] }}</h2>
-        </div>
+    <p class="greeting">Dear Customer,</p>
 
-        <div class="content">
-            <p class="greeting">Dear Customer,</p>
+    <p>Good day to you.</p>
 
-            <p>Good day to you.</p>
+    <p>It's a great pleasure to have you onboard! We are thrilled that you have chosen to embark on this voyage with TimeTec HR.</p>
 
-            <p>It's a great pleasure to have you onboard! We are thrilled that you have chosen to embark on this voyage with TimeTec HR.</p>
+    <p>We have carefully mapped out the route for your onboarding process to ensure a smooth journey ahead. Set your sails and all hands-on deck!</p>
 
-            <p>We have carefully mapped out the route for your onboarding process to ensure a smooth journey ahead. Set your sails and all hands-on deck!</p>
+    <p>To kick start your journey, please find the details below:</p>
 
-            <p>To kick start your journey, please find the details below:</p>
-
-            <div class="remark-box">
-                <strong>Kick-Off Online Meeting Date and Time:</strong>
-                {{ $content['lead']['date'] }}, {{ \Carbon\Carbon::parse($content['lead']['date'])->format('l') }},
-                {{ $content['lead']['session'] }}: {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}
-            </div>
-
-            <div class="section-header">Implementation File</div>
-            <ul class="file-list">
-                <li class="file-item">Data Migration Template: <a href="https://timeteccloud0-my.sharepoint.com/:x:/g/personal/faiz_timeteccloud_com/EcpHUT5h3q5Pg45tl48DhgUByt5KkVMPJuJEesUyL4WVLA?e=IRhgct" target="_blank">Import User Sample.xlsx</a></li>
-
-                <li class="file-item">Data Migration Guide (PDF): <a href="https://timeteccloud0-my.sharepoint.com/personal/faiz_timeteccloud_com/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Ffaiz%5Ftimeteccloud%5Fcom%2FDocuments%2F01%20%2D%20TIMETEC%20HR%20%5BSHARED%5D%2F98%20%2D%20%23%20GENERAL%20TASK%20%2D%20TIMETEC%20HR%20STAFF%2F01%20%2D%20MOHD%20HANIF%20BIN%20RAZALI%2F02%20%2D%20KICK%2DOFF%20MEETING%20FILES%2FKICK%20OFF%20MEETING%20FILES%2F02%20%2D%20Import%20User%20File%20Guideline%20%2D%20Data%20Migration%20Explanation%2Epdf&parent=%2Fpersonal%2Ffaiz%5Ftimeteccloud%5Fcom%2FDocuments%2F01%20%2D%20TIMETEC%20HR%20%5BSHARED%5D%2F98%20%2D%20%23%20GENERAL%20TASK%20%2D%20TIMETEC%20HR%20STAFF%2F01%20%2D%20MOHD%20HANIF%20BIN%20RAZALI%2F02%20%2D%20KICK%2DOFF%20MEETING%20FILES%2FKICK%20OFF%20MEETING%20FILES&ga=1" target="_blank">Import User File Guideline.pdf</a></li>
-
-                <li class="file-item">Import Leave Balance Template: <a href="https://timeteccloud0-my.sharepoint.com/:x:/g/personal/faiz_timeteccloud_com/EQO8XFDvlC9JjCU3DnHWcJ4BbgfjxFb8gXfzjOj_wGsP7w?e=2VLsrP" target="_blank">User Leave Balance.xlsx</a></li>
-
-                <li class="file-item">Import Leave Balance Guide (PDF): <a href="https://timeteccloud0-my.sharepoint.com/personal/faiz_timeteccloud_com/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Ffaiz%5Ftimeteccloud%5Fcom%2FDocuments%2F01%20%2D%20TIMETEC%20HR%20%5BSHARED%5D%2F98%20%2D%20%23%20GENERAL%20TASK%20%2D%20TIMETEC%20HR%20STAFF%2F01%20%2D%20MOHD%20HANIF%20BIN%20RAZALI%2F02%20%2D%20KICK%2DOFF%20MEETING%20FILES%2FKICK%20OFF%20MEETING%20FILES%2F04%20%2D%20Import%20User%20Leave%20Balance%20Guideline%2Epdf&parent=%2Fpersonal%2Ffaiz%5Ftimeteccloud%5Fcom%2FDocuments%2F01%20%2D%20TIMETEC%20HR%20%5BSHARED%5D%2F98%20%2D%20%23%20GENERAL%20TASK%20%2D%20TIMETEC%20HR%20STAFF%2F01%20%2D%20MOHD%20HANIF%20BIN%20RAZALI%2F02%20%2D%20KICK%2DOFF%20MEETING%20FILES%2FKICK%20OFF%20MEETING%20FILES&ga=1" target="_blank">Import leave balance guideline.pdf</a></li>
-            </ul>
-
-            <div class="section-header">Microsoft Teams Link: <a href="{{ $content['lead']['meetingLink'] }}" target="_blank">Join Meeting</a></div>
-
-            <p>Looking forward to have you in our Kick-Off Meeting session.</p>
-        </div>
+    <div class="section-header">* Kick Off Meeting details:</div>
+    <div class="remark-box">
+        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['lead']['date'])->format('d M Y, l') }}</div>
+        <div><strong>Time:</strong> {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</div>
+        <div><strong>Demo Type:</strong> {{ $content['lead']['demo_type'] }}</div>
+        <div><strong>Appointment Type:</strong> {{ $content['lead']['appointment_type'] }}</div>
     </div>
+
+    <div class="section-header">* Microsoft Teams meeting details:</div>
+    <div class="remark-box">
+        <div><strong>Link:</strong> <a href="{{ $content['lead']['meetingLink'] }}" class="meeting-link" target="_blank">{{ $content['lead']['meetingLink'] }}</a></div>
+    </div>
+
+    <div class="section-header">* Implementer details:</div>
+    <div class="remark-box">
+        <div><strong>Name:</strong> {{ $content['lead']['implementerName'] }}</div>
+        <div><strong>Email:</strong> <a href="mailto:{{ $content['lead']['implementerEmail'] }}">{{ $content['lead']['implementerEmail'] }}</a></div>
+    </div>
+
+    <div class="section-header">Implementation File</div>
+    <ul class="file-list">
+        <li class="file-item">Data Migration Template: <a href="{{ route('implementer.files', 'import-user-example.xlsx') }}" target="_blank">Import User Sample.xlsx</a></li>
+
+        <li class="file-item">Data Migration Guide (PDF): <a href="{{ route('implementer.files', 'data-migration-explaination.pdf') }}" target="_blank">Import User File Guideline.pdf</a></li>
+
+        <li class="file-item">Import Leave Balance Template: <a href="{{ route('implementer.files', 'user-leave-balance-template.xlsx') }}" target="_blank">User Leave Balance.xlsx</a></li>
+
+        <li class="file-item">Import Leave Balance Guide (PDF): <a href="{{ route('implementer.files', 'user-leave-balance-guideline.pdf') }}" target="_blank">Import leave balance guideline.pdf</a></li>
+    </ul>
+    <p>Looking forward to have you in our Kick-Off Meeting session.</p>
 </body>
 </html>

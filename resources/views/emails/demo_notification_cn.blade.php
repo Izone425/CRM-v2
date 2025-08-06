@@ -53,7 +53,7 @@
     </ul>
 
     <p>祝商祺！</p>
-    <p> {{ $salespersonName }} 敬上<br>
+    <p> {{ $lead['salespersonName'] }} 敬上<br>
         @if(isset($lead['position']))
             @if(strtolower($lead['position']) == 'business development executive')
                 市场开发代表<br>

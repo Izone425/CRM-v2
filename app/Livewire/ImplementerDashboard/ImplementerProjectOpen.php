@@ -5,10 +5,13 @@ namespace App\Livewire\ImplementerDashboard;
 use App\Filament\Filters\SortFilter;
 use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
+use App\Models\ImplementerNote;
+use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\RichEditor;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -251,6 +254,44 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
                             // Return the view with the record using $this->record pattern
                             return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
+                        }),
+                    Action::make('add_note')
+                        ->label('Add Note')
+                        ->color('primary')
+                        ->icon('heroicon-o-plus')
+                        ->form([
+                            RichEditor::make('notes')
+                                ->label('New Note')
+                                ->disableToolbarButtons([
+                                    'attachFiles',
+                                    'blockquote',
+                                    'codeBlock',
+                                    'h2',
+                                    'h3',
+                                    'link',
+                                    'redo',
+                                    'strike',
+                                    'undo',
+                                ])
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->placeholder('Add your note here...')
+                                ->required()
+                        ])
+                        ->modalHeading('Add New Note')
+                        ->action(function (SoftwareHandover $record, array $data) {
+                            // Create a new implementer note
+                            ImplementerNote::create([
+                                'lead_id' => $record->lead_id,
+                                'user_id' => auth()->id(),
+                                'content' => $data['notes'],
+                            ]);
+
+                            Notification::make()
+                                ->title('Note added successfully')
+                                ->success()
+                                ->send();
                         }),
                     Action::make('mark_as_closed')
                         ->label('Mark as Closed')

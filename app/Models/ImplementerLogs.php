@@ -19,7 +19,6 @@ class ImplementerLogs extends Model
         'remark',
         'follow_up_counter',
         'follow_up_date',
-        'manual_follow_up_count',
     ];
 
     public function lead(): BelongsTo
@@ -30,5 +29,10 @@ class ImplementerLogs extends Model
     public function causer()
     {
         return $this->belongsTo(User::class, 'causer_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

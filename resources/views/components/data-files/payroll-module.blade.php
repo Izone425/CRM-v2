@@ -101,7 +101,7 @@
 @endphp
 
 <div class="section-container">
-    <h4 class="section-title">PAYROLL EMPLOYEE INFO</h4>
+    <h4 class="section-title">PAYROLL - EMPLOYEE INFO</h4>
     @if($employeeInfoFiles->count() > 0)
         <div class="files-grid">
             @foreach($employeeInfoFiles as $file)
@@ -110,11 +110,12 @@
                         @php
                             $originalName = basename($file->filename);
                             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                            $shortName = "Employee Info " . $loop->iteration;
+                            $shortName = "PAYROLL - EMPLOYEE INFO ";
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
+                        <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ strtoupper($extension) }} · {{ date('M d, Y', strtotime($file->created_at)) }}
+                            {{ strtoupper($extension) }} · {{ date('d F Y, H:i:s', strtotime($file->created_at)) }}
                         </div>
                     </div>
                     <div class="file-actions">
@@ -139,7 +140,7 @@
 </div>
 
 <div class="section-container">
-    <h4 class="section-title">PAYROLL EMPLOYEE SALARY DATA</h4>
+    <h4 class="section-title">PAYROLL - EMPLOYEE SALARY DATA</h4>
     @if($salaryDataFiles->count() > 0)
         <div class="files-grid">
             @foreach($salaryDataFiles as $file)
@@ -148,11 +149,12 @@
                         @php
                             $originalName = basename($file->filename);
                             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                            $shortName = "Employee Salary Data " . $loop->iteration;
+                            $shortName = "Payroll - Employee Salary Data " . $loop->iteration;
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
+                        <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ strtoupper($extension) }} · {{ date('M d, Y', strtotime($file->created_at)) }}
+                            {{ strtoupper($extension) }} · {{ date('d F Y, H:i:s', strtotime($file->created_at)) }}
                         </div>
                     </div>
                     <div class="file-actions">
@@ -177,7 +179,7 @@
 </div>
 
 <div class="section-container">
-    <h4 class="section-title">PAYROLL ACCUMULATED ITEM EA</h4>
+    <h4 class="section-title">PAYROLL - ACCUMULATED ITEM EA</h4>
     @if($accumulatedItemFiles->count() > 0)
         <div class="files-grid">
             @foreach($accumulatedItemFiles as $file)
@@ -186,11 +188,12 @@
                         @php
                             $originalName = basename($file->filename);
                             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                            $shortName = "Accumulated Item " . $loop->iteration;
+                            $shortName = "Payroll - Accumulated Item EA " . $loop->iteration;
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
+                        <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ strtoupper($extension) }} · {{ date('M d, Y', strtotime($file->created_at)) }}
+                            {{ strtoupper($extension) }} · {{ date('d F Y, H:i:s', strtotime($file->created_at)) }}
                         </div>
                     </div>
                     <div class="file-actions">
@@ -215,7 +218,7 @@
 </div>
 
 <div class="section-container">
-    <h4 class="section-title">PAYROLL BASIC INFORMATION</h4>
+    <h4 class="section-title">PAYROLL - BASIC INFORMATION</h4>
     @if($basicInfoFiles->count() > 0)
         <div class="files-grid">
             @foreach($basicInfoFiles as $file)
@@ -227,8 +230,9 @@
                             $shortName = "Basic Info " . $loop->iteration;
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
+                        <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ strtoupper($extension) }} · {{ date('M d, Y', strtotime($file->created_at)) }}
+                            {{ strtoupper($extension) }} · {{ date('d F Y, H:i:s', strtotime($file->created_at)) }}
                         </div>
                     </div>
                     <div class="file-actions">

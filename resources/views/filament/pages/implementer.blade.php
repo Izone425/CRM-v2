@@ -437,7 +437,7 @@
 
     // Calculate totals for main categories
     $projectStatusTotal = $allProjects;
-    $licenseTotal = $pendingLicenseCount + $completedLicenseCount + $pendingMigrationCount + $completedMigrationCount;
+    $licenseTotal = $pendingLicenseCount + $pendingMigrationCount;
     $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
     $followUpTotal = $followUpToday + $followUpOverdue;
     $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;

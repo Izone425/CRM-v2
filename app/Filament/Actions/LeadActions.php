@@ -2128,9 +2128,7 @@ class LeadActions
                         Select::make('salesperson')
                             ->label('SALESPERSON')
                             ->options(function () {
-                                return auth()->user()->role_id == 3
-                                    ? User::whereIn('role_id', [2, 3])->pluck('name', 'id')->toArray()
-                                    : User::where('role_id', 2)->pluck('name', 'id')->toArray();
+                                return User::where('role_id', 2)->pluck('name', 'id')->toArray();
                             })
                             ->disableOptionWhen(function ($value, $get) {
                                 $date = $get('date');

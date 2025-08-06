@@ -40,11 +40,11 @@
         }
 
         .progress-bar--large {
-            background-color:rgb(218, 231, 36);
+            background-color: #dae724;
         }
 
         .progress-bar--enterprise {
-            background-color:rgb(209, 59, 32);
+            background-color: #d13b20;
         }
 
         /* Text styles */
@@ -157,6 +157,8 @@
         }
         .group-small { border-top-color: #2563eb; }
         .group-medium { border-top-color: #10b981; }
+        .group-large { border-top-color: #dae724; }
+        .group-enterprise { border-top-color: #d13b20; }
         .group-box.selected {
             background-color: #f9fafb;
             transform: translateY(-5px);
@@ -480,7 +482,7 @@
                         <div class="group-column">
                             <div class="group-container">
                                 <div
-                                    class="group-box group-medium"
+                                    class="group-box group-large"
                                     :class="{ 'selected': selectedType === 'large' }"
                                     @click="setSelectedType('large')"
                                 >
@@ -490,7 +492,7 @@
                                     </div>
                                 </div>
                                 <div
-                                    class="group-box group-medium"
+                                    class="group-box group-enterprise"
                                     :class="{ 'selected': selectedType === 'enterprise' }"
                                     @click="setSelectedType('enterprise')"
                                 >

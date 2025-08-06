@@ -1061,6 +1061,8 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 'thire' => $data['thire'] ?? false,
                                 'tacc' => $data['tacc'] ?? false,
                                 'tpbi' => $data['tpbi'] ?? false,
+                                'follow_up_date' => now(),
+                                'follow_up_counter' => true,
                             ];
 
                             // Add invoice file if it exists
