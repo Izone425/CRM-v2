@@ -65,16 +65,13 @@
     </style>
 </head>
 <body>
-    <p class="greeting">Dear Customer,</p>
-
-    <p>Kindly find the details for our Implementation Review Session below:</p>
+    <p class="greeting">Dear Customer,<br>Kindly find the details for our Implementation Review Session below:</p>
 
     <div class="section-header">* Implementation Review Session details:</div>
     <div class="remark-box">
         <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['date'])->format('d M Y, l') }}</div>
         <div><strong>Time:</strong> {{ $content['startTime'] }} – {{ $content['endTime'] }}</div>
-        <div><strong>Demo Type:</strong> {{ $content['type'] }}</div>
-        <div><strong>Appointment Type:</strong> {{ $content['appointmentType'] }}</div>
+        <div><strong>Meeting Type:</strong> Implementation Review Session</div>
     </div>
 
     <div class="section-header">* Microsoft Teams meeting details:</div>
