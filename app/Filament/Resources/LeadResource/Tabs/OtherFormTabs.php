@@ -30,10 +30,10 @@ class OtherFormTabs
         'implementation_documents' => [
             'name' => 'IMPLEMENTATION DOCUMENTS',
             'subcategories' => [
-                'kickoff_meeting_slide' => 'KICK OFF MEETING SLIDE',
+                'kickoff_meeting_slide' => 'KICK-OFF MEETING SLIDE',
                 'project_plan' => 'PROJECT PLAN',
-                'uat_form' => 'UAT FORM',
-                'handover_form' => 'HANDOVER FORM',
+                'uat_form' => 'USER ACCEPTANCE TEST FORM',
+                'handover_form' => 'PROJECT GO-LIVE HANDOVER FORM',
             ]
         ],
         'employee_profile' => [
@@ -79,7 +79,6 @@ class OtherFormTabs
 
         // IMPLEMENTATION DOCUMENTS SECTION - Added as the first section
         $sections[] = Section::make('Implementation Documents')
-            ->description('Upload implementation documents for customer review')
             ->icon('heroicon-o-document-text')
             ->headerActions([
                 Action::make('edit_implementation_documents')
@@ -90,7 +89,7 @@ class OtherFormTabs
                     ->form([
                         // Create upload fields for each implementation document type
                         FileUpload::make('kickoff_meeting_slide')
-                            ->label('KICK OFF MEETING SLIDE')
+                            ->label('KICK-OFF MEETING SLIDE')
                             ->directory("data-files/implementation_documents")
                             ->visibility('public') // Make it publicly accessible
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'])
@@ -106,7 +105,7 @@ class OtherFormTabs
                             ->multiple(),
 
                         FileUpload::make('uat_form')
-                            ->label('UAT FORM')
+                            ->label('USER ACCEPTANCE TEST FORM')
                             ->directory("data-files/implementation_documents")
                             ->visibility('public') // Make it publicly accessible
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
@@ -114,7 +113,7 @@ class OtherFormTabs
                             ->multiple(),
 
                         FileUpload::make('handover_form')
-                            ->label('HANDOVER FORM')
+                            ->label('PROJECT GO-LIVE HANDOVER FORM')
                             ->directory("data-files/implementation_documents")
                             ->visibility('public') // Make it publicly accessible
                             ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])

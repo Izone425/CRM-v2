@@ -110,7 +110,7 @@
                         @php
                             $originalName = basename($file->filename);
                             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                            $shortName = "PAYROLL - EMPLOYEE INFO ";
+                            $shortName = "Payroll - Employee Info ";
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
                         <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
