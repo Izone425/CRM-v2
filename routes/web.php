@@ -188,6 +188,17 @@ Route::get('/hrms/implementer/{filename}', function ($filename) {
     return response()->file($path);
 })->name('implementer.files');
 
+Route::get('/file/{filepath}', function ($filepath) {
+    // The filepath parameter will capture everything after /file/
+    $path = storage_path('app/public/' . $filepath);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+})->where('filepath', '.*')->name('file.serve');
+
 // Route::get('/zoho/auth', function (Request $request) {
 //     $clientId = env('ZOHO_CLIENT_ID');
 //     $clientSecret = env('ZOHO_CLIENT_SECRET');

@@ -15,10 +15,10 @@
         // Helper function to get category label
         function getCategoryLabel($subcategory) {
             switch($subcategory) {
-                case 'kickoff_meeting_slide': return 'KICK OFF MEETING SLIDE';
+                case 'kickoff_meeting_slide': return 'KICK-OFF MEETING SLIDE';
                 case 'project_plan': return 'PROJECT PLAN';
-                case 'uat_form': return 'UAT FORM';
-                case 'handover_form': return 'HANDOVER FORM';
+                case 'uat_form': return 'USER ACCEPTANCE TEST FORM';
+                case 'handover_form': return 'PROJECT GO-LIVE HANDOVER FORM';
                 default: return strtoupper(str_replace('_', ' ', $subcategory));
             }
         }
@@ -229,7 +229,7 @@
                                             {{ $shortName }}
                                         </div>
                                         <div class="implementation-docs-file-meta">
-                                            Uploaded by {{ $uploadedByName }} on {{ $file->created_at->format('M d, Y') }}
+                                            Uploaded by {{ $uploadedByName }} on {{ $file->created_at->format('d F Y, H:i:s') }}
                                         </div>
                                         <div class="implementation-docs-file-actions">
                                             <a href="{{ Storage::url($file->filename) }}" target="_blank" class="implementation-docs-file-btn view">
@@ -326,7 +326,7 @@
                                             {{ $shortName }}
                                         </div>
                                         <div class="implementation-docs-file-meta">
-                                            Uploaded by {{ $uploadedByName }} on {{ $file->created_at->format('M d, Y') }}
+                                            Uploaded by {{ $uploadedByName }} on {{ $file->created_at->format('d F Y, H:i:s') }}
                                         </div>
                                         <div class="implementation-docs-file-actions">
                                             <a href="{{ Storage::url($file->filename) }}" target="_blank" class="implementation-docs-file-btn view">
@@ -370,7 +370,13 @@
 
     <script>
         function copyShareableLink(url) {
-            navigator.clipboard.writeText(url).then(() => {
+            // Extract the relative path from the Storage URL
+            const path = url.split('/storage/')[1];
+
+            // Create a URL without "storage" in the path
+            const fullUrl = 'https://crm.timeteccloud.com/file/' + path;
+
+            navigator.clipboard.writeText(fullUrl).then(() => {
                 alert('Link copied to clipboard!');
             }).catch(err => {
                 console.error('Failed to copy link: ', err);

@@ -240,4 +240,66 @@ class SoftwareHandoverAnalysis extends Page
     {
         return ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
     }
+
+    public function openImplementerHandoversSlideOver($implementer, $status = null)
+    {
+        $query = SoftwareHandover::query()->where('implementer', $implementer);
+
+        if ($status) {
+            $query->where('status_handover', $status);
+        } elseif ($status === null && $this->slideOverTitle && str_contains($this->slideOverTitle, 'Ongoing')) {
+            // If it's an "Ongoing" cell click (no specific status passed but title indicates ongoing)
+            $query->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE']);
+        }
+
+        // Get company_name directly from handovers
+        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+
+        if ($status) {
+            $statusText = " ({$status})";
+        } elseif ($status === null && $this->slideOverTitle && str_contains($this->slideOverTitle, 'Ongoing')) {
+            $statusText = " (Ongoing)";
+        } else {
+            $statusText = " (All)";
+        }
+
+        $this->slideOverTitle = "{$implementer} Handovers{$statusText}";
+        $this->showSlideOver = true;
+    }
+
+    public function openOngoingHandoversSlideOver($implementer = null)
+    {
+        $query = SoftwareHandover::query()->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE']);
+
+        if ($implementer) {
+            $query->where('implementer', $implementer);
+        }
+
+        // Get company_name directly from handovers
+        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+
+        $title = $implementer ? "{$implementer} Handovers (Ongoing)" : "Ongoing Handovers";
+        $this->slideOverTitle = $title;
+        $this->showSlideOver = true;
+    }
+
+    public function openStatusHandoversSlideOver($status)
+    {
+        $query = SoftwareHandover::query()->where('status_handover', $status);
+
+        // Get company_name directly from handovers
+        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+
+        $this->slideOverTitle = "{$status} Handovers";
+        $this->showSlideOver = true;
+    }
+
+    public function openAllHandoversSlideOver()
+    {
+        // Get company_name directly from handovers
+        $this->handoverList = SoftwareHandover::select('id', 'lead_id', 'company_name', 'status_handover')->get();
+
+        $this->slideOverTitle = "All Handovers";
+        $this->showSlideOver = true;
+    }
 }
