@@ -134,7 +134,7 @@
 
     <div class="section-header">Implementation File</div>
     <ul class="file-list">
-        <li class="file-item">Software Onboarding Process: <a href="{{ route('implementer.files', 'software-onboarding-process.pdf') }}" target="_blank">Import User Sample.xlsx</a></li>
+        <li class="file-item">Software Onboarding Process: <a href="{{ route('implementer.files', 'software-onboarding-process.pdf') }}" target="_blank">Software Onboarding Process.pdf</a></li>
 
         <li class="file-item">Data Migration Template: <a href="{{ route('implementer.files', 'import-user-example.xlsx') }}" target="_blank">Import User Sample.xlsx</a></li>
 
