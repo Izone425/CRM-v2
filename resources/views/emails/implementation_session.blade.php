@@ -1,82 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUBJECT: TIMETEC HR | {{ $content['appointmentType'] }} | {{ $content['type'] }} | {{ $content['companyName'] }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            margin: 0;
-            padding: 0;
             color: #333;
         }
+        .meeting-link {
+            color: #0066cc; /* Changed to standard blue link color */
+            text-decoration: underline;
+        }
         .container {
-            width: 100%;
-            max-width: 600px;
+            max-width: 720px;
             margin: 0 auto;
+            padding: 20px;
         }
         .header {
-            background-color: #f5f5f5;
-            padding: 20px;
+            background-color: #2b374f;
+            color: white;
+            padding: 15px;
             text-align: center;
+            border-radius: 5px 5px 0 0;
+            border-bottom: 5px solid #2b374f;
         }
         .content {
             padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
         }
-        .footer {
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .section-header {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .remark-box {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-left: 3px solid #2b374f;
+            background-color: #f9f9f9;
+        }
+        .detail-item {
+            margin-left: 10px;
+            margin-bottom: 5px;
+        }
+        .detail-label {
+            font-weight: bold;
+        }
+        .meeting-link {
+            color: #2b374f;
+            text-decoration: underline;
+        }
+        .signature {
             margin-top: 30px;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="content">
-            <p>Dear Customer,</p>
-            <p>Good day to you.</p>
+    <p class="greeting">Dear Customer,</p>
 
-            <p>As per our discussion, our implementation review session has been scheduled.</p>
-            <p>Kindly find below the details:</p>
+    <p>Kindly find the details for our Implementation Review Session below:</p>
 
-            <h3>Implementer Details:</h3>
-            <p>
-                Implementer: {{ $content['implementerName'] }}<br>
-                Email: {{ $content['implementerEmail'] }}
-            </p>
-
-            <h3>Implementation Review Session Details:</h3>
-            <p>
-                Company Name: {{ $content['companyName'] }}<br>
-                Implementation Review Session: Count {{ $content['implementationCount'] }}<br>
-                Appointment Type: {{ $content['appointmentType'] }}<br>
-                Date: {{ $content['date'] }}<br>
-                {{ $content['sessionTime'] }}<br>
-                @if(!empty($content['meetingLink']))
-                Meeting Link: {{ $content['meetingLink'] }}<br>
-                @endif
-                @if(!empty($content['meetingId']))
-                Meeting ID: {{ $content['meetingId'] }}<br>
-                @endif
-                @if(!empty($content['meetingPassword']))
-                Meeting Password: {{ $content['meetingPassword'] }}<br>
-                @endif
-            </p>
-
-            @if(!empty($content['remarks']))
-            <h3>Remarks:</h3>
-            <p>{{ $content['remarks'] }}</p>
-            @endif
-
-            <div class="footer">
-                <p>
-                    Best Regards,<br>
-                    {{ $content['implementerName'] }}<br>
-                    Dedicated Implementer<br>
-                    TimeTec Cloud Sdn Bhd<br>
-                    Office Number: +603-8070 9933
-                </p>
-            </div>
-        </div>
+    <div class="section-header">* Implementation Review Session details:</div>
+    <div class="remark-box">
+        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['date'])->format('d M Y, l') }}</div>
+        <div><strong>Time:</strong> {{ $content['startTime'] }} – {{ $content['endTime'] }}</div>
+        <div><strong>Demo Type:</strong> {{ $content['type'] }}</div>
+        <div><strong>Appointment Type:</strong> {{ $content['appointmentType'] }}</div>
     </div>
+
+    <div class="section-header">* Microsoft Teams meeting details:</div>
+    <div class="remark-box">
+        <div><strong>Link:</strong> <a href="{{ $content['meetingLink'] }}" class="meeting-link" target="_blank">{{ $content['meetingLink'] }}</a></div>
+    </div>
+
+    <div class="section-header">* Implementer details:</div>
+    <div class="remark-box">
+        <div><strong>Name:</strong> {{ $content['implementerName'] }}</div>
+        <div><strong>Email:</strong> <a href="mailto:{{ $content['implementerEmail'] }}">{{ $content['implementerEmail'] }}</a></div>
+    </div>
+
+    <p class="signature">Looking forward to have you in our Implementation Review Session.</p>
 </body>
 </html>

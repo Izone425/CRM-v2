@@ -11,6 +11,7 @@ use App\Models\AdminRepair;
 use App\Models\Appointment;
 use App\Models\ImplementerAppointment;
 use App\Models\RepairAppointment;
+use App\Models\SoftwareHandover;
 use App\Models\User;
 use App\Services\MicrosoftGraphService;
 use App\Services\TemplateSelector;
@@ -234,18 +235,64 @@ class ImplementerAppointmentRelationManager extends RelationManager
             Grid::make(3)
             ->schema([
                 Select::make('type')
-                    ->options([
-                        'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
-                    ])
-                    ->default('KICK OFF MEETING SESSION')
+                    ->options(function () {
+                        // Get the lead record
+                        $lead = $this->getOwnerRecord();
+
+                        // Find the latest software handover for this lead
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                            ->latest()
+                            ->first();
+
+                        // Check if there are any existing kick-off meetings that are completed or scheduled
+                        $hasKickoffAppointment = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
+                            ->where('software_handover_id', $softwareHandover->id ?? 0)
+                            ->where('type', 'KICK OFF MEETING SESSION')
+                            ->whereIn('status', ['Done', 'New']) // Check for completed or scheduled kick-offs
+                            ->exists();
+
+                        // Also check if kick_off_meeting exists in the software handover record as a backup
+                        $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
+
+                        // If either condition is true, allow implementation review sessions
+                        if ($hasKickoffAppointment || $hasKickoffMeeting) {
+                            return [
+                                'IMPLEMENTATION REVIEW SESSION' => 'IMPLEMENTATION REVIEW SESSION',
+                            ];
+                        } else {
+                            return [
+                                'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
+                            ];
+                        }
+                    })
+                    ->default(function () {
+                        // Get the lead record
+                        $lead = $this->getOwnerRecord();
+
+                        // Find the latest software handover
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                            ->latest()
+                            ->first();
+
+                        // Check if there are any existing kick-off meetings that are completed or scheduled
+                        $hasKickoffAppointment = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
+                            ->where('software_handover_id', $softwareHandover->id ?? 0)
+                            ->where('type', 'KICK OFF MEETING SESSION')
+                            ->whereIn('status', ['Completed', 'New'])
+                            ->exists();
+
+                        // Also check if kick_off_meeting exists in the software handover record as a backup
+                        $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
+
+                        // Set default based on whether any kick-off meeting exists
+                        return ($hasKickoffAppointment || $hasKickoffMeeting)
+                            ? 'IMPLEMENTATION REVIEW SESSION'
+                            : 'KICK OFF MEETING SESSION';
+                    })
                     ->required()
-                    ->label('DEMO TYPE')
+                    ->label('SESSION TYPE')
                     ->reactive()
-                    ->required()
-                    ->disabled()
-                    ->dehydrated(true)
-                    ->label('DEMO TYPE')
-                    ->reactive(),
+                    ->dehydrated(true),
 
                 Select::make('appointment_type')
                     ->options([
@@ -260,15 +307,28 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 Select::make('implementer')
                     ->label('IMPLEMENTER')
                     ->options(function () {
-                        // Get technicians (role_id 9) with their names as both keys and values
-                        $technicians = \App\Models\User::where('role_id', 4)
+                        // Get the lead record
+                        $lead = $this->getOwnerRecord();
+
+                        // Find the latest software handover for this lead
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                            ->latest()
+                            ->first();
+
+                        // If we found a software handover with an implementer, only show that implementer
+                        if ($softwareHandover && $softwareHandover->implementer) {
+                            return [$softwareHandover->implementer => $softwareHandover->implementer];
+                        }
+
+                        // Fallback: if no software handover or no implementer assigned,
+                        // show all implementers (role_id 4 or 5)
+                        return \App\Models\User::whereIn('role_id', [4, 5])
                             ->orderBy('name')
                             ->get()
                             ->mapWithKeys(function ($tech) {
                                 return [$tech->name => $tech->name];
                             })
                             ->toArray();
-                        return $technicians;
                     })
                     ->default(function ($record = null) {
                         // First try to get from existing record if editing
@@ -276,7 +336,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return $record->implementer;
                         }
 
-                        // If creating new record or record has no implementer, try to get from lead's first software handover
+                        // If creating new record or record has no implementer,
+                        // try to get from lead's latest software handover
                         $lead = $this->getOwnerRecord();
                         if ($lead) {
                             $softwareHandover = $lead->softwareHandover()->latest()->first();
@@ -290,20 +351,64 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     })
                     ->searchable()
                     ->required()
+                    ->disabled(function () {
+                        // Disable the field if there's a software handover with an implementer
+                        $lead = $this->getOwnerRecord();
+                        if (!$lead) return false;
+
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                            ->latest()
+                            ->first();
+
+                        return $softwareHandover && $softwareHandover->implementer;
+                    })
+                    ->dehydrated(true)
                     ->placeholder('Select a implementer'),
                 ]),
 
             TextInput::make('required_attendees')
                 ->label('REQUIRED ATTENDEES')
-                ->default(function ($record = null) {
-                    if ($record && !empty($record->required_attendees)) {
-                        if (is_string($record->required_attendees) && $this->isJson($record->required_attendees)) {
-                            $attendees = json_decode($record->required_attendees, true);
-                            return is_array($attendees) ? implode(';', $attendees) : '';
+                ->default(function () {
+                    // Get the lead record
+                    $lead = $this->getOwnerRecord();
+                    if (!$lead) return null;
+
+                    // Get the most recent software handover for this lead
+                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                        ->latest()
+                        ->first();
+
+                    if (!$softwareHandover) return null;
+
+                    // Handle the implementation_pics field properly
+                    $implementation_pics = $softwareHandover->implementation_pics;
+                    $emails = [];
+
+                    // Handle JSON string format (stored as string)
+                    if (is_string($implementation_pics)) {
+                        try {
+                            $pics = json_decode($implementation_pics, true);
+                            if (is_array($pics)) {
+                                foreach ($pics as $pic) {
+                                    if (!empty($pic['pic_email_impl'])) {
+                                        $emails[] = $pic['pic_email_impl'];
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Error parsing JSON: ' . $e->getMessage());
                         }
-                        return $record->required_attendees;
                     }
-                    return null;
+                    // Handle array format (if using model casting)
+                    else if (is_array($implementation_pics)) {
+                        foreach ($implementation_pics as $pic) {
+                            if (!empty($pic['pic_email_impl'])) {
+                                $emails[] = $pic['pic_email_impl'];
+                            }
+                        }
+                    }
+
+                    return !empty($emails) ? implode(';', $emails) : null;
                 })
                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 
@@ -390,13 +495,13 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     ->label('STATUS')
                     ->sortable()
                     ->color(fn ($state) => match ($state) {
-                        'Completed' => 'success',
+                        'Done' => 'success',
                         'Cancelled' => 'danger',
                         'New' => 'warning',
                         default => 'gray',
                     })
                     ->icon(fn ($state) => match ($state) {
-                        'Completed' => 'heroicon-o-check-circle',
+                        'Done' => 'heroicon-o-check-circle',
                         'Cancelled' => 'heroicon-o-x-circle',
                         'New' => 'heroicon-o-clock',
                         default => 'heroicon-o-question-mark-circle',
@@ -739,6 +844,19 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
                     }
 
+                    // Find the SoftwareHandover record for this lead
+                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    if (!$softwareHandover) {
+                        Notification::make()
+                            ->title('Error: Software Handover record not found')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
                     // Create a new Appointment
                     $appointment = new \App\Models\ImplementerAppointment();
                     $appointment->fill([
@@ -756,19 +874,105 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
                         'status' => 'New',
                         'session' => $data['session'] ?? null,
+                        'software_handover_id' => $softwareHandover->id,
                     ]);
 
                     // Save the appointment
                     $appointment->save();
 
+                    // Update SoftwareHandover if this is a kick-off meeting
+                    if ($data['type'] === 'KICK OFF MEETING SESSION' && !$softwareHandover->kick_off_meeting) {
+                        $softwareHandover->update([
+                            'kick_off_meeting' => Carbon::parse($data['date'] . ' ' . $data['start_time'])->toDateTimeString(),
+                        ]);
+                    }
+
                     // Set up email recipients for notification
-                    $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                    // $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                    // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
+                    $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
 
                     // Add required attendees if they have valid emails
                     foreach ($attendeeEmails as $email) {
                         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                             $recipients[] = $email;
+                        }
+                    }
+
+                    // Format start and end times for Teams meeting
+                    $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                    $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+                    // Get the implementer as the organizer
+                    $implementerName = $data['implementer'] ?? null;
+                    $implementerUser = User::where('name', $implementerName)->first();
+                    $meetingLink = null;
+
+                    if ($implementerUser && $implementerUser->email) {
+                        $organizerEmail = $implementerUser->email;
+
+                        // Initialize Microsoft Graph service
+                        $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                        $graph = new \Microsoft\Graph\Graph();
+                        $graph->setAccessToken($accessToken);
+
+                        $meetingPayload = [
+                            'start' => [
+                                'dateTime' => $startTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'end' => [
+                                'dateTime' => $endTime,
+                                'timeZone' => 'Asia/Kuala_Lumpur'
+                            ],
+                            'subject' => 'TIMETEC HR | ' . $data['appointment_type'] . ' | ' . $data['type'] . ' | ' . ($lead->companyDetail->company_name ?? 'Client'),
+                            'isOnlineMeeting' => true,
+                            'onlineMeetingProvider' => 'teamsForBusiness',
+                            'allowNewTimeProposals' => false,
+                            'responseRequested' => true,
+                            'attendees' => []
+                        ];
+
+                        // Add required attendees to the meeting payload
+                        if (!empty($attendeeEmails)) {
+                            foreach ($attendeeEmails as $email) {
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                    $meetingPayload['attendees'][] = [
+                                        'emailAddress' => [
+                                            'address' => $email,
+                                            'name' => $email // Using email as name since we don't have names
+                                        ],
+                                        'type' => 'required'
+                                    ];
+                                }
+                            }
+                        }
+
+                        try {
+                            // Use the correct endpoint for app-only authentication
+                            $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
+                                ->attachBody($meetingPayload)
+                                ->setReturnType(\Microsoft\Graph\Model\Event::class)
+                                ->execute();
+
+                            $meetingInfo = $onlineMeeting->getOnlineMeeting();
+                            $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
+
+                            Notification::make()
+                                ->title('Teams Meeting Created Successfully')
+                                ->success()
+                                ->body('The meeting has been scheduled successfully.')
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+                                'request' => $meetingPayload,
+                                'user' => $organizerEmail,
+                            ]);
+
+                            Notification::make()
+                                ->title('Failed to Create Teams Meeting')
+                                ->danger()
+                                ->body('Error: ' . $e->getMessage())
+                                ->send();
                         }
                     }
 
@@ -785,7 +989,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
                             'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
                             'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                            'date' => Carbon::parse($data['date'])->format('d/m/Y') ?? 'N/A',
+                            'date' => Carbon::parse($data['date'])->format('Y-m-d'),
+                            'dateDisplay' => Carbon::parse($data['date'])->format('d/m/Y'),
                             'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
                             'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
                             'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
@@ -793,6 +998,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             'demo_type' => $data['type'],
                             'appointment_type' => $data['appointment_type'],
                             'remarks' => $data['remarks'] ?? 'N/A',
+                            'meetingLink' => $meetingLink ?? 'Will be provided separately',
                         ],
                     ];
 
@@ -801,13 +1007,20 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     $senderEmail = $authUser->email;
                     $senderName = $authUser->name;
 
+                    // Default to implementer email if available
+                    if ($implementerUser && $implementerUser->email) {
+                        $senderEmail = $implementerUser->email;
+                        $senderName = $implementerUser->name;
+                    }
+
                     try {
                         // Send email with template and custom subject format
                         if (count($recipients) > 0) {
                             \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
                                 $message->from($senderEmail, $senderName)
                                     ->to($recipients)
-                                    ->subject("TIMETEC HR | ONLINE | KICK-OFF MEETING SESSION | {$lead->companyDetail->company_name}");
+                                    ->bcc('admin.timetec.hr@timeteccloud.com')
+                                    ->subject("TIMETEC HR | {$data['appointment_type']} | {$data['type']} | {$lead->companyDetail->company_name}");
                             });
 
                             Notification::make()
@@ -826,6 +1039,16 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             ->body('Could not send email notification: ' . $e->getMessage())
                             ->send();
                     }
+
+                    // Create activity log entry
+                    \App\Models\ActivityLog::create([
+                        'user_id' => auth()->id(),
+                        'causer_id' => auth()->id(),
+                        'action' => 'Created Appointment',
+                        'description' => "Created {$data['type']} for {$lead->companyDetail->company_name} with {$data['implementer']}",
+                        'subject_type' => get_class($appointment),
+                        'subject_id' => $appointment->id,
+                    ]);
 
                     Notification::make()
                         ->title('Implementer Appointment Added Successfully')

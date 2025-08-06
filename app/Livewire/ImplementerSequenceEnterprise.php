@@ -131,24 +131,34 @@ class ImplementerSequenceEnterprise extends Component implements HasForms, HasTa
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
-                        'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Open' => 'Open',
+                        'Closed' => 'Closed',
+                        'Delay' => 'Delay',
+                        'InActive' => 'InActive',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
+
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
                     ->options(function () {
-                        return User::where('role_id', '2')
-                            ->whereNot('id',15) // Exclude Testing Account
+                        return User::whereIn('role_id', [4, 5])
+                            ->orderBy('name')
                             ->pluck('name', 'name')
                             ->toArray();
                     })
-                    ->placeholder('All Salesperson')
+                    ->placeholder('All Implementers')
                     ->multiple(),
+
+                SelectFilter::make('software_handovers.salesperson')
+                    ->label('Salesperson')
+                    ->options(function () {
+                        return \App\Models\User::where('role_id', 2)
+                            ->orderBy('name')
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->searchable(),
 
                 SortFilter::make("sort_by"),
             ])

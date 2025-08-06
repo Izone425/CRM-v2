@@ -181,12 +181,6 @@ class ImplementerPICTabs
                                         'implementation_pics' => $originalPics
                                     ]);
 
-                                    // Log activity
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($swHandover)
-                                        ->log('Updated original PIC status');
-
                                     Notification::make()
                                         ->title('PIC status updated successfully')
                                         ->success()

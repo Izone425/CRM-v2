@@ -34,7 +34,6 @@ class ImplementerHandoverTabs
             Tabs::make('Handovers')
                 ->tabs([
                     Tabs\Tab::make('Software Handover')
-                        ->icon('heroicon-o-computer-desktop')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager::class
@@ -42,15 +41,13 @@ class ImplementerHandoverTabs
                         ]),
 
                     Tabs\Tab::make('Hardware Handover')
-                        ->icon('heroicon-o-cube')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('Rapair Handover')
-                        ->icon('heroicon-o-wrench')
+                    Tabs\Tab::make('Repair Handover')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager::class

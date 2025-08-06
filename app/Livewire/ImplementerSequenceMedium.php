@@ -131,11 +131,10 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
-                        'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Open' => 'Open',
+                        'Closed' => 'Closed',
+                        'Delay' => 'Delay',
+                        'InActive' => 'InActive',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
@@ -149,6 +148,16 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
+
+                SelectFilter::make('software_handovers.salesperson')
+                    ->label('Salesperson')
+                    ->options(function () {
+                        return \App\Models\User::where('role_id', 2)
+                            ->orderBy('name')
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->searchable(),
 
                 SortFilter::make("sort_by"),
             ])

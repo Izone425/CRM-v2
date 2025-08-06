@@ -30,8 +30,8 @@ class ImplementerNoteTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Notes')
-                        ->description('View and add notes about this lead')
+                    Section::make('Implementer Notes')
+                        ->description('View and add notes about this Project')
                         ->icon('heroicon-o-document-text')
                         ->headerActions([
                             Action::make('add_note')
@@ -42,6 +42,20 @@ class ImplementerNoteTabs
                                 ->form([
                                     RichEditor::make('notes')
                                         ->label('New Note')
+                                        ->disableToolbarButtons([
+                                            'attachFiles',
+                                            'blockquote',
+                                            'codeBlock',
+                                            'h2',
+                                            'h3',
+                                            'link',
+                                            'redo',
+                                            'strike',
+                                            'undo',
+                                        ])
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                         ->placeholder('Add your note here...')
                                         ->required()
                                 ])

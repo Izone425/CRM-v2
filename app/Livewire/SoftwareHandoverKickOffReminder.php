@@ -243,14 +243,19 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     ->label('SESSION')
                                     ->options(function (callable $get) {
                                         $date = $get('date');
-                                        if (!$date) return [];
+                                        $implementer = $get('implementer'); // Get the selected implementer
+
+                                        if (!$date || !$implementer) return [];
 
                                         $selectedDate = Carbon::parse($date);
                                         $dayOfWeek = $selectedDate->dayOfWeek;
 
+                                        // Define all possible sessions based on day of week
+                                        $allSessions = [];
+
                                         // Friday sessions (dayOfWeek = 5)
                                         if ($dayOfWeek === 5) {
-                                            return [
+                                            $allSessions = [
                                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                                 'SESSION 2' => 'SESSION 2 (1100 - 1230)',
                                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
@@ -259,17 +264,55 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         }
                                         // Monday to Thursday sessions (dayOfWeek = 1-4)
                                         else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
-                                            return [
+                                            $allSessions = [
                                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                                 'SESSION 2' => 'SESSION 2 (1100 - 1230)',
                                                 'SESSION 3' => 'SESSION 3 (1400 - 1500)',
                                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                                             ];
+                                        } else {
+                                            // Weekend or invalid date
+                                            return ['NO_SESSIONS' => 'No sessions available on weekends'];
                                         }
 
-                                        // Weekend or invalid date
-                                        return ['NO_SESSIONS' => 'No sessions available on weekends'];
+                                        // Check for conflicts with existing appointments
+                                        $bookedSessions = [];
+
+                                        // Find any appointments for the selected implementer on the selected date
+                                        // with status New or Completed (exclude Cancelled)
+                                        $existingAppointments = \App\Models\ImplementerAppointment::where('implementer', $implementer)
+                                            ->whereDate('date', $selectedDate->toDateString())
+                                            ->whereIn('status', ['New', 'Completed'])
+                                            ->get();
+
+                                        // Mark sessions as booked based on time conflicts
+                                        foreach ($existingAppointments as $appointment) {
+                                            $appointmentStart = Carbon::parse($appointment->start_time)->format('H:i');
+                                            $appointmentEnd = Carbon::parse($appointment->end_time)->format('H:i');
+
+                                            // Check which session this appointment conflicts with
+                                            if ($appointmentStart === '09:30' || ($appointmentStart < '10:30' && $appointmentEnd > '09:30')) {
+                                                $bookedSessions[] = 'SESSION 1';
+                                            } else if ($appointmentStart === '11:00' || ($appointmentStart < '12:30' && $appointmentEnd > '11:00')) {
+                                                $bookedSessions[] = 'SESSION 2';
+                                            } else if ($appointmentStart === '14:00' || ($appointmentStart < '15:00' && $appointmentEnd > '14:00')) {
+                                                $bookedSessions[] = 'SESSION 3';
+                                            } else if (($dayOfWeek === 5 && $appointmentStart === '15:00') ||
+                                                    ($dayOfWeek !== 5 && $appointmentStart === '15:30') ||
+                                                    ($appointmentStart < ($dayOfWeek === 5 ? '16:00' : '16:30') && $appointmentEnd > ($dayOfWeek === 5 ? '15:00' : '15:30'))) {
+                                                $bookedSessions[] = 'SESSION 4';
+                                            } else if (($dayOfWeek === 5 && $appointmentStart === '16:30') ||
+                                                    ($dayOfWeek !== 5 && $appointmentStart === '17:00') ||
+                                                    ($appointmentStart < ($dayOfWeek === 5 ? '17:30' : '18:00') && $appointmentEnd > ($dayOfWeek === 5 ? '16:30' : '17:00'))) {
+                                                $bookedSessions[] = 'SESSION 5';
+                                            }
+                                        }
+
+                                        // Filter out booked sessions
+                                        $availableSessions = array_diff_key($allSessions, array_flip($bookedSessions));
+
+                                        return $availableSessions ?: ['NO_AVAILABLE_SESSIONS' => 'No available sessions for this implementer on selected date'];
                                     })
                                     ->default(function (callable $get, ?Model $record = null) {
                                         // If editing existing record, use its session value
@@ -277,27 +320,29 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                             return $record->session;
                                         }
 
-                                        // For new records, select a default based on the day
-                                        $date = $get('date');
-                                        if (!$date) return null;
-
-                                        $selectedDate = Carbon::parse($date);
-                                        $dayOfWeek = $selectedDate->dayOfWeek;
-
-                                        // Default to SESSION 1 for all days
-                                        return 'SESSION 1';
+                                        // For new records, don't set a default as it depends on implementer selection
+                                        return null;
                                     })
                                     ->columnSpan(2)
                                     ->required()
                                     ->reactive()
+                                    ->disabled(function (callable $get) {
+                                        // Disable if no implementer is selected
+                                        return empty($get('implementer'));
+                                    })
+                                    ->placeholder(function (callable $get) {
+                                        return empty($get('implementer'))
+                                            ? 'Please select an implementer first'
+                                            : 'Select a session';
+                                    })
                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                         // Set the start_time and end_time based on selected session
                                         $times = [
                                             'SESSION 1' => ['09:30', '10:30'],
                                             'SESSION 2' => ['11:00', '12:30'],
                                             'SESSION 3' => ['14:00', '15:00'],
-                                            'SESSION 4' => ['15:30', '16:30'], // Friday has different time
-                                            'SESSION 5' => ['17:00', '18:00'], // Friday has different time
+                                            'SESSION 4' => ['15:30', '16:30'],
+                                            'SESSION 5' => ['17:00', '18:00'],
                                         ];
 
                                         // Friday has different times for sessions 4 and 5
@@ -409,7 +454,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     ->label('IMPLEMENTER')
                                     ->options(function () {
                                         // Get technicians (role_id 9) with their names as both keys and values
-                                        $technicians = \App\Models\User::where('role_id', 4)
+                                        $technicians = \App\Models\User::whereIn('role_id', [4,5])
                                             ->orderBy('name')
                                             ->get()
                                             ->mapWithKeys(function ($tech) {
@@ -423,19 +468,10 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         if ($record && $record->implementer) {
                                             return $record->implementer;
                                         }
-
-                                        // If creating new record or record has no implementer, try to get from lead's first software handover
-                                        // $lead = $this->getOwnerRecord();
-                                        // if ($lead) {
-                                        //     $softwareHandover = $lead->softwareHandover()->latest()->first();
-                                        //     if ($softwareHandover && $softwareHandover->implementer) {
-                                        //         return $softwareHandover->implementer;
-                                        //     }
-                                        // }
-
-                                        // Default to null if nothing found
                                         return null;
                                     })
+                                    ->disabled()
+                                    ->dehydrated(true)
                                     ->searchable()
                                     ->required()
                                     ->placeholder('Select a implementer'),
@@ -606,6 +642,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         'onlineMeetingProvider' => 'teamsForBusiness',
                                     ];
                                 }
+                                $meetingLink = 'Will be provided separately';
 
                                 try {
                                     // Use the correct endpoint for app-only authentication
@@ -615,7 +652,11 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         ->execute();
 
                                     $meetingInfo = $onlineMeeting->getOnlineMeeting();
-                                    $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
+
+                                    // Only try to get the join URL if meetingInfo exists
+                                    if ($meetingInfo) {
+                                        $meetingLink = $meetingInfo->getJoinUrl() ?? 'Will be provided separately';
+                                    }
 
                                     Notification::make()
                                         ->title('Teams Meeting Created Successfully')
@@ -623,6 +664,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         ->body('The meeting has been scheduled successfully.')
                                         ->send();
                                 } catch (\Exception $e) {
+                                    // Keep the default value for meetingLink if an exception occurs
+
                                     \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
                                         'request' => $meetingPayload,
                                         'user' => $organizerEmail,
@@ -646,6 +689,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
                                     'company' => $lead->companyDetail->company_name ?? 'N/A',
                                     'implementerName' => $data['implementer'] ?? 'N/A',
+                                    'implementerEmail' => $implementerUser->email ?? $senderEmail ?? 'admin.timetec.hr@timeteccloud.com', // Add this line
                                     'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
                                     'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
                                     'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',

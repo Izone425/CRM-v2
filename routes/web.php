@@ -177,6 +177,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/leads/{lead}/send-activation', [CustomerActivationController::class, 'sendActivationEmail'])
          ->name('admin.leads.send-activation');
 });
+
+Route::get('/hrms/implementer/{filename}', function ($filename) {
+    $path = storage_path('app/public/hrms/implementer/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+})->name('implementer.files');
+
 // Route::get('/zoho/auth', function (Request $request) {
 //     $clientId = env('ZOHO_CLIENT_ID');
 //     $clientSecret = env('ZOHO_CLIENT_SECRET');

@@ -107,11 +107,12 @@
                         @php
                             $originalName = basename($file->filename);
                             $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-                            $shortName = "Claim Policy " . $loop->iteration;
+                            $shortName = "Claim Policy ";
                         @endphp
                         <div class="font-medium">{{ $shortName }}</div>
+                        <div class="text-xs text-gray-500">File {{ $loop->iteration }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ strtoupper($extension) }} · {{ date('M d, Y', strtotime($file->created_at)) }}
+                            {{ strtoupper($extension) }} · {{ date('d F Y, H:i:s', strtotime($file->created_at)) }}
                         </div>
                     </div>
                     <div class="file-actions">
