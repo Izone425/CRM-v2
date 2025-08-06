@@ -108,13 +108,9 @@
     </style>
 </head>
 <body>
-    <p class="greeting">Dear Customer,</p>
+    <p class="greeting">Dear Customer,<br>Good day to you.</p>
 
-    <p>Good day to you.</p>
-
-    <p>It's a great pleasure to have you onboard! We are thrilled that you have chosen to embark on this voyage with TimeTec HR.</p>
-
-    <p>We have carefully mapped out the route for your onboarding process to ensure a smooth journey ahead. Set your sails and all hands-on deck!</p>
+    <p>It's a great pleasure to have you onboard! We are thrilled that you have chosen to embark on this voyage with TimeTec HR. <br>We have carefully mapped out the route for your onboarding process to ensure a smooth journey ahead. Set your sails and all hands-on deck!</p>
 
     <p>To kick start your journey, please find the details below:</p>
 
@@ -122,8 +118,7 @@
     <div class="remark-box">
         <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['lead']['date'])->format('d M Y, l') }}</div>
         <div><strong>Time:</strong> {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</div>
-        <div><strong>Demo Type:</strong> {{ $content['lead']['demo_type'] }}</div>
-        <div><strong>Appointment Type:</strong> {{ $content['lead']['appointment_type'] }}</div>
+        <div><strong>Meeting Type:</strong> Kick-Off Meeting Session</div>
     </div>
 
     <div class="section-header">* Microsoft Teams meeting details:</div>
@@ -139,6 +134,8 @@
 
     <div class="section-header">Implementation File</div>
     <ul class="file-list">
+        <li class="file-item">Software Onboarding Process: <a href="{{ route('implementer.files', 'software-onboarding-process.pdf') }}" target="_blank">Import User Sample.xlsx</a></li>
+
         <li class="file-item">Data Migration Template: <a href="{{ route('implementer.files', 'import-user-example.xlsx') }}" target="_blank">Import User Sample.xlsx</a></li>
 
         <li class="file-item">Data Migration Guide (PDF): <a href="{{ route('implementer.files', 'data-migration-explaination.pdf') }}" target="_blank">Import User File Guideline.pdf</a></li>
