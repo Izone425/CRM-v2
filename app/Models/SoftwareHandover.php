@@ -231,6 +231,11 @@ class SoftwareHandover extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function implementerAppointments()
+    {
+        return $this->hasMany(ImplementerAppointment::class, 'software_handover_id');
+    }
+
     public function getCompanySizeLabelAttribute()
     {
         switch ($this->company_size) {

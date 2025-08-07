@@ -500,7 +500,7 @@
                 :class="{'selected': selectedGroup === 'new-request'}"
                 @click="setSelectedGroup('appointment')">
                 <div class="group-info">
-                    <div class="group-title">Appointment</div>
+                    <div class="group-title">Session</div>
                 </div>
                 <div class="group-count">{{ $sessionsTotal }}</div>
             </div>

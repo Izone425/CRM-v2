@@ -81,6 +81,12 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
 
         $query =  SoftwareHandover::query()
             ->where('status_handover', '=', 'Delay')
+            ->select('software_handovers.*', DB::raw('(
+                SELECT COUNT(*)
+                FROM implementer_appointments
+                WHERE implementer_appointments.software_handover_id = software_handovers.id
+                AND implementer_appointments.type = "IMPLEMENTATION REVIEW SESSION"
+            ) as review_session_count'))
             ->orderBy('id', 'desc');
 
         if ($this->selectedUser === 'all-implementer') {
@@ -220,6 +226,20 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
 
                 TextColumn::make('status_handover')
                     ->label('Status'),
+
+                TextColumn::make('review_session_count')
+                    ->label('Review Sessions')
+                    ->formatStateUsing(function ($state) {
+                        // If count is zero, display dash or zero
+                        if ($state == 0) {
+                            return '-';
+                        }
+
+                        // Return the count as a badge with styling
+                        return $state;
+                    })
+                    ->alignCenter()
+                    ->html()
             ])
             // ->filters([
             //     // Filter for Creator

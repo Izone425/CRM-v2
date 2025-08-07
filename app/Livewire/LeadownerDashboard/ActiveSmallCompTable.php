@@ -118,6 +118,24 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                     ->multiple()
                     ->options(\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray())
                     ->placeholder('Select Lead Owner'),
+                SelectFilter::make('lead_code')
+                    ->label('')
+                    ->multiple()
+                    ->options(function () {
+                        // Get all distinct lead codes from the database
+                        return Lead::distinct()
+                            ->whereNotNull('lead_code')
+                            ->where('lead_code', '!=', '') // Exclude empty strings
+                            ->orderBy('lead_code')
+                            ->pluck('lead_code', 'lead_code')
+                            ->toArray();
+                    })
+                    ->placeholder('Select Lead Source')
+                    ->indicateUsing(function (array $data) {
+                        return !empty($data['values'])
+                            ? 'Lead Source: ' . implode(', ', $data['values'])
+                            : null;
+                    }),
             ])
             ->columns([
                 TextColumn::make('lead_owner')

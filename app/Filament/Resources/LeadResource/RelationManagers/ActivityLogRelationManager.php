@@ -1897,34 +1897,16 @@ class ActivityLogRelationManager extends RelationManager
                                 $day3 = "$date3 - $formattedSlots3";
                             }
 
-                            $isChinese = $lead->lead_code && (
-                                str_contains($lead->lead_code, '(CN)') ||
-                                str_contains($lead->lead_code, 'CN')
-                            );
+                            // Regular template
+                            $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529';
 
-                            if ($isChinese) {
-                                // Chinese template
-                                $contentTemplateSid = 'HX99cd275a009cf38322ede220d81be784';
-
-                                // For Chinese templates, we exclude the recipient name
-                                // and only include the day slots
-                                $variables = [
-                                    $day1,
-                                    $day2 ?? ' ',  // Send empty string if day2 is null
-                                    $day3 ?? ' '   // Send empty string if day3 is null
-                                ];
-                            } else {
-                                // Regular template
-                                $contentTemplateSid = 'HX8ffc6fd8b995859aa28fa59ba9712529';
-
-                                // For regular templates, we include the recipient name
-                                $variables = [
-                                    $recipientName,
-                                    $day1,
-                                    $day2 ?? ' ',  // Send empty string if day2 is null
-                                    $day3 ?? ' '   // Send empty string if day3 is null
-                                ];
-                            }
+                            // For regular templates, we include the recipient name
+                            $variables = [
+                                $recipientName,
+                                $day1,
+                                $day2 ?? ' ',  // Send empty string if day2 is null
+                                $day3 ?? ' '   // Send empty string if day3 is null
+                            ];
 
                             try {
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();

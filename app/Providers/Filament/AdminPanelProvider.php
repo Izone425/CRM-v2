@@ -41,6 +41,7 @@ use App\Filament\Pages\SalespersonAppointment;
 use App\Filament\Pages\SalespersonAuditList;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
+use App\Filament\Pages\SoftwareHandoverAnalysisV2;
 use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
 use App\Filament\Pages\TrainingCalendar;
@@ -239,6 +240,7 @@ class AdminPanelProvider extends PanelProvider
                 ProjectCategoryClosed::class,
                 KickOffMeetingSession::class,
                 ImplementationSession::class,
+                SoftwareHandoverAnalysisV2::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

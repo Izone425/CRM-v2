@@ -118,9 +118,9 @@ class ImplementerAppointment extends Model
         return $this->belongsTo(Lead::class);
     }
 
-    public function softwareHandover(): BelongsTo
+    public function softwareHandover()
     {
-        return $this->belongsTo(SoftwareHandover::class);
+        return $this->belongsTo(SoftwareHandover::class, 'software_handover_id');
     }
 
     /**
