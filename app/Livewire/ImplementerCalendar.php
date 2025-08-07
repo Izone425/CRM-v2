@@ -879,15 +879,35 @@ class ImplementerCalendar extends Component
 
     private function updateOpenDelayCompanies()
     {
-        // Get companies with 'Open' or 'Delay' status from software handover
-        $this->filteredOpenDelayCompanies = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
+        // Base query for companies with Open or Delay status from software handover
+        $query = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
             ->join('software_handovers', 'leads.id', '=', 'software_handovers.lead_id')
-            ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
+            ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
+
+        // Apply implementer-specific filtering only for role_id 4 or 5 (Implementer roles)
+        // All other roles (1, 2, 3, etc.) will see all companies
+        if (auth()->user()->role_id === 4 || auth()->user()->role_id === 5) {
+            $implementerName = auth()->user()->name;
+            $query->where('software_handovers.implementer', $implementerName);
+        }
+
+        // Get the filtered companies list, sorted by company name for better UX
+        $this->filteredOpenDelayCompanies = $query
             ->orderBy('company_details.company_name')
             ->pluck('company_details.company_name', 'company_details.id')
             ->toArray();
-    }
 
+        // If the list is empty (which shouldn't happen for non-implementer roles),
+        // provide a fallback to display all companies with Open/Delay status
+        if (empty($this->filteredOpenDelayCompanies) && auth()->user()->role_id !== 4 && auth()->user()->role_id !== 5) {
+            $this->filteredOpenDelayCompanies = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
+                ->join('software_handovers', 'leads.id', '=', 'software_handovers.lead_id')
+                ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
+                ->orderBy('company_details.company_name')
+                ->pluck('company_details.company_name', 'company_details.id')
+                ->toArray();
+        }
+    }
     public function updateAvailableWeeks()
     {
         $currentDate = Carbon::now();
@@ -1671,14 +1691,14 @@ class ImplementerCalendar extends Component
             }
 
             // Check if the session is in the past (before current time)
-            foreach ($standardSessions as $key => $session) {
-                $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+            // foreach ($standardSessions as $key => $session) {
+            //     $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
 
-                // If session is in the past, mark it as past
-                if ($sessionStart < $currentTime) {
-                    $standardSessions[$key]['status'] = 'past';
-                }
-            }
+            //     // If session is in the past, mark it as past
+            //     if ($sessionStart < $currentTime) {
+            //         $standardSessions[$key]['status'] = 'past';
+            //     }
+            // }
 
             // Process any cancelled appointments
             // This will mark the session as cancelled but still display it in the calendar
@@ -1693,26 +1713,31 @@ class ImplementerCalendar extends Component
 
                     foreach ($standardSessions as $key => $session) {
                         if ($session['start_time'] === $appointmentStartTime) {
-                            // Get the session start time as Carbon object
-                            $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+                            $standardSessions[$key]['status'] = 'available';
+                            $standardSessions[$key]['booked'] = false;
+                            $standardSessions[$key]['appointment'] = null;
+                            $standardSessions[$key]['wasCancelled'] = true;
 
-                            // If the current day is past the session day, mark as past
-                            if (Carbon::now()->format('Y-m-d') > $formattedDate) {
-                                $standardSessions[$key]['status'] = 'past';
-                            }
-                            // If the session is in the past on the same day, mark as past
-                            elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
-                                $standardSessions[$key]['status'] = 'past';
-                            }
-                            // If the session is still in the future, make it available
-                            else {
-                                $standardSessions[$key]['status'] = 'available';
-                                // Important: Remove any association with the cancelled appointment
-                                $standardSessions[$key]['booked'] = false;
-                                $standardSessions[$key]['appointment'] = null;
-                                // Add explicit wasCancelled flag here
-                                $standardSessions[$key]['wasCancelled'] = true;
-                            }
+                            // Get the session start time as Carbon object
+                            // $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+
+                            // // If the current day is past the session day, mark as past
+                            // if (Carbon::now()->format('Y-m-d') > $formattedDate) {
+                            //     $standardSessions[$key]['status'] = 'past';
+                            // }
+                            // // If the session is in the past on the same day, mark as past
+                            // elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
+                            //     $standardSessions[$key]['status'] = 'past';
+                            // }
+                            // // If the session is still in the future, make it available
+                            // else {
+                            //     $standardSessions[$key]['status'] = 'available';
+                            //     // Important: Remove any association with the cancelled appointment
+                            //     $standardSessions[$key]['booked'] = false;
+                            //     $standardSessions[$key]['appointment'] = null;
+                            //     // Add explicit wasCancelled flag here
+                            //     $standardSessions[$key]['wasCancelled'] = true;
+                            // }
                         }
                     }
                 }

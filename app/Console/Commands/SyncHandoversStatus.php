@@ -48,7 +48,6 @@ class SyncHandoversStatus extends Command
 
             // Skip if no hardware handover exists
             if (!$latestHandover) {
-                Log::info("No hardware handover found for lead #{$softwareHandover->lead_id}");
                 continue;
             }
 

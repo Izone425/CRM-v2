@@ -81,8 +81,15 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        $query =  SoftwareHandover::query()
+        $query = SoftwareHandover::query()
             ->where('status_handover', '=', 'Open')
+            // Add a subquery to count the review sessions
+            ->select('software_handovers.*', DB::raw('(
+                SELECT COUNT(*)
+                FROM implementer_appointments
+                WHERE implementer_appointments.software_handover_id = software_handovers.id
+                AND implementer_appointments.type = "IMPLEMENTATION REVIEW SESSION"
+            ) as review_session_count'))
             ->orderBy('id', 'desc');
 
         if ($this->selectedUser === 'all-implementer') {
@@ -222,22 +229,21 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
 
                 TextColumn::make('status_handover')
                     ->label('Status'),
-            ])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
 
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(HardwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
+                TextColumn::make('review_session_count')
+                    ->label('Review Sessions')
+                    ->formatStateUsing(function ($state) {
+                        // If count is zero, display dash or zero
+                        if ($state == 0) {
+                            return '-';
+                        }
+
+                        // Return the count as a badge with styling
+                        return $state;
+                    })
+                    ->alignCenter()
+                    ->html()
+            ])
             ->actions([
                 ActionGroup::make([
                     Action::make('view')

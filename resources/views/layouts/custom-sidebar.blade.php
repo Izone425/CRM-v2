@@ -941,7 +941,7 @@
                 // 'filament.admin.resources.software-handovers.index',
                 // 'filament.admin.resources.hardware-handovers.index',
                 'filament.admin.pages.future-enhancement'
-            ]) || in_array(auth()->user()->role_id, [4,5]))
+            ]) || in_array(auth()->user()->role_id, [4,5]) || auth()->user()->id == 43)
             <div class="sidebar-dropdown">
                 <div class="sidebar-item dropdown-trigger" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; padding: 12px 0; position: relative; text-align: center;">
                     <div class="sidebar-icon" style="display: flex; justify-content: center; align-items: center; font-size: 1.25rem; margin-bottom: 4px;">
