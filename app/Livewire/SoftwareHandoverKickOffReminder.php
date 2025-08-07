@@ -257,7 +257,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         if ($dayOfWeek === 5) {
                                             $allSessions = [
                                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
-                                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                                'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                                             ];
@@ -266,7 +266,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
                                             $allSessions = [
                                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
-                                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                                'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                                 'SESSION 3' => 'SESSION 3 (1400 - 1500)',
                                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
@@ -294,7 +294,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                             // Check which session this appointment conflicts with
                                             if ($appointmentStart === '09:30' || ($appointmentStart < '10:30' && $appointmentEnd > '09:30')) {
                                                 $bookedSessions[] = 'SESSION 1';
-                                            } else if ($appointmentStart === '11:00' || ($appointmentStart < '12:30' && $appointmentEnd > '11:00')) {
+                                            } else if ($appointmentStart === '11:00' || ($appointmentStart < '12:00' && $appointmentEnd > '11:00')) {
                                                 $bookedSessions[] = 'SESSION 2';
                                             } else if ($appointmentStart === '14:00' || ($appointmentStart < '15:00' && $appointmentEnd > '14:00')) {
                                                 $bookedSessions[] = 'SESSION 3';
@@ -339,7 +339,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         // Set the start_time and end_time based on selected session
                                         $times = [
                                             'SESSION 1' => ['09:30', '10:30'],
-                                            'SESSION 2' => ['11:00', '12:30'],
+                                            'SESSION 2' => ['11:00', '12:00'],
                                             'SESSION 3' => ['14:00', '15:00'],
                                             'SESSION 4' => ['15:30', '16:30'],
                                             'SESSION 5' => ['17:00', '18:00'],
@@ -406,7 +406,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
                                         $times = [
                                             'SESSION 1' => '10:30',
-                                            'SESSION 2' => '12:30',
+                                            'SESSION 2' => '12:00',
                                             'SESSION 3' => '15:00',
                                             'SESSION 4' => '16:30',
                                             'SESSION 5' => '18:00',

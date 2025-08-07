@@ -5,6 +5,9 @@ use Filament\Pages\Page;
 use App\Models\SoftwareHandover;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
 
 class SoftwareHandoverAnalysisV2 extends Page
 {
@@ -15,42 +18,61 @@ class SoftwareHandoverAnalysisV2 extends Page
 
     protected static string $view = 'filament.pages.software-handover-analysis-v2';
 
-    public function getHandoversByMonthAndStatus()
+    public $selectedYear;
+
+    public function mount()
     {
-        $currentYear = Carbon::now()->year;
+        $this->selectedYear = now()->year; // Default to current year
+    }
+
+    #[On('getDataForYear')]
+    public function updateSelectedYear($year)
+    {
+        $this->selectedYear = $year;
+    }
+
+    public function getHandoversByMonthAndStatus($year = null)
+    {
+        // Use the selected year or the passed year parameter
+        $selectedYear = $year ?? $this->selectedYear ?? Carbon::now()->year;
 
         $monthlyData = [];
 
-        for ($month = 1; $month <= 12; $month++) {
-            $closedCount = SoftwareHandover::whereYear('created_at', $currentYear)
-                ->whereMonth('created_at', $month)
-                ->where('status_handover', 'CLOSED')
-                ->count();
+        try {
+            for ($month = 1; $month <= 12; $month++) {
+                $closedCount = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Closed')
+                    ->count();
 
-            $openCount = SoftwareHandover::whereYear('created_at', $currentYear)
-                ->whereMonth('created_at', $month)
-                ->where('status_handover', 'OPEN')
-                ->count();
+                $openCount = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Open')
+                    ->count();
 
-            $delayCount = SoftwareHandover::whereYear('created_at', $currentYear)
-                ->whereMonth('created_at', $month)
-                ->where('status_handover', 'DELAY')
-                ->count();
+                $delayCount = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Delay')
+                    ->count();
 
-            $inactiveCount = SoftwareHandover::whereYear('created_at', $currentYear)
-                ->whereMonth('created_at', $month)
-                ->where('status_handover', 'INACTIVE')
-                ->count();
+                $inactiveCount = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'InActive')
+                    ->count();
 
-            $ongoingCount = $openCount + $delayCount + $inactiveCount;
-            $totalCount = $closedCount + $ongoingCount;
+                $ongoingCount = $openCount + $delayCount + $inactiveCount;
+                $totalCount = $closedCount + $ongoingCount;
 
-            $monthlyData[] = [
-                'month' => Carbon::create()->month($month)->format('M'),
-                'closed' => $closedCount,
-                'ongoing' => $ongoingCount,
-                'total' => $totalCount
-            ];
+                $monthlyData[] = [
+                    'month' => Carbon::create()->month($month)->format('M'),
+                    'closed' => $closedCount,
+                    'ongoing' => $ongoingCount,
+                    'total' => $totalCount
+                ];
+            }
+        } catch (Exception $e) {
+            // Log any errors
+            Log::error('Error fetching monthly handovers: ' . $e->getMessage());
         }
 
         return $monthlyData;
@@ -64,6 +86,28 @@ class SoftwareHandoverAnalysisV2 extends Page
             ->groupBy('salesperson')
             ->orderByDesc('total')
             ->limit(4)
+            ->get();
+    }
+
+    public function getHandoversBySalesPersonRank1()
+    {
+        $salespeople = ['Joshua Ho', 'Vince Leong', 'Wan Amirul Muim'];
+
+        return SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
+            ->whereIn('salesperson', $salespeople)
+            ->groupBy('salesperson')
+            ->orderByDesc('total')
+            ->get();
+    }
+
+    public function getHandoversBySalesPersonRank2()
+    {
+        $salespeople = ['Yasmin', 'Muhammad Khoirul Bariah', 'Abdul Aziz', 'Farhanah Jamil'];
+
+        return SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
+            ->whereIn('salesperson', $salespeople)
+            ->groupBy('salesperson')
+            ->orderByDesc('total')
             ->get();
     }
 
@@ -108,5 +152,58 @@ class SoftwareHandoverAnalysisV2 extends Page
             'tc' => SoftwareHandover::where('tc', 1)->count(),
             'tp' => SoftwareHandover::where('tp', 1)->count(),
         ];
+    }
+
+    public function getModulesByQuarter()
+    {
+        // Starting from Q3 2024 and generating 12 quarters
+        $quarters = [];
+        $startYear = 2024;
+        $startQuarter = 3;
+
+        for ($i = 0; $i < 12; $i++) {
+            $year = $startYear + floor(($startQuarter + $i - 1) / 4);
+            $quarter = (($startQuarter + $i - 1) % 4) + 1;
+
+            // Generate quarterly data for each module
+            // These should be fetched from your database in a real implementation
+            $taCount = $this->getModuleCountForQuarter('ta', $year, $quarter);
+            $tlCount = $this->getModuleCountForQuarter('tl', $year, $quarter);
+            $tcCount = $this->getModuleCountForQuarter('tc', $year, $quarter);
+            $tpCount = $this->getModuleCountForQuarter('tp', $year, $quarter);
+
+            $quarters[] = [
+                'quarter' => "Q$quarter $year",
+                'ta' => $taCount,
+                'tl' => $tlCount,
+                'tc' => $tcCount,
+                'tp' => $tpCount
+            ];
+        }
+
+        return $quarters;
+    }
+
+    private function getModuleCountForQuarter($moduleCode, $year, $quarter)
+    {
+        // Define which months are in each quarter
+        $quarterMonths = [
+            1 => [1, 2, 3],
+            2 => [4, 5, 6],
+            3 => [7, 8, 9],
+            4 => [10, 11, 12]
+        ];
+
+        $months = $quarterMonths[$quarter];
+
+        // Query the database to count handovers where the specified module is true/1
+        // in the specified quarter
+        return SoftwareHandover::where($moduleCode, 1)  // Using 1 instead of true for database compatibility
+            ->whereYear('created_at', $year)
+            ->whereIn(DB::raw('MONTH(created_at)'), $months)
+            ->count();
+
+        // If no data available for testing, uncomment this line:
+        // return rand(5, 20); // Random data for visualization testing
     }
 }

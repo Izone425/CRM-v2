@@ -162,9 +162,6 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('implementer')
-                    ->label('Implementer'),
-
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareHandover $record) {
@@ -197,11 +194,6 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                             })
                     ),
 
-                TextColumn::make('completed_at')
-                    ->label('Completed At')
-                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-')
-                    ->sortable(),
-
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -229,6 +221,17 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('implementer')
+                    ->label('Implementer'),
+
+                TextColumn::make('salesperson')
+                    ->label('Salesperson'),
+
+                TextColumn::make('completed_at')
+                    ->label('DB Creation Date')
+                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-')
+                    ->sortable(),
             ])
             ->actions([
                 ActionGroup::make([

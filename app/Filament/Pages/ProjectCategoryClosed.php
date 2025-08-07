@@ -38,31 +38,24 @@ class ProjectCategoryClosed extends Page implements HasTable
             ->defaultSort('id', 'desc')
             ->striped()
             ->columns([
-                TextColumn::make('software_handover_id')
-                    ->label('SW ID')
-                    ->formatStateUsing(function ($state, $record) {
-                        if (empty($state)) {
-                            return 'N/A';
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        if (!$state) {
+                            return 'Unknown';
                         }
 
-                        // Get the year digits from created_at date or current date as fallback
-                        $yearDigits = '25'; // Default for 2025
-
-                        if ($record->created_at) {
-                            // Use the last two digits of the creation year (e.g., 25 for 2025, 26 for 2026)
-                            $yearDigits = Carbon::parse($record->created_at)->format('y');
+                        if ($record->handover_pdf) {
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
                         }
 
-                        // Check if the ID already starts with the SW_ prefix
-                        if (Str::startsWith($state, 'SW_')) {
-                            return $state; // Already formatted, return as is
-                        }
-
-                        // Extract just the numeric part if it's a full formatted ID
-                        $numericId = preg_replace('/[^0-9]/', '', $state);
-
-                        // Format with SW_ prefix, year digits, and pad the numeric ID
-                        return 'SW_' . $yearDigits . '0' . str_pad($numericId, 3, '0', STR_PAD_LEFT);
+                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    })
+                    ->color('primary')
+                    ->weight('bold')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('id', $direction);
                     }),
 
                 TextColumn::make('company_name')
@@ -239,26 +232,26 @@ class ProjectCategoryClosed extends Page implements HasTable
                 TextColumn::make('go_live_date')
                     ->label('GO LIVE DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('kick_off_meeting')
                     ->label('KICK OFF DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('webinar_training')
                     ->label('WEBINAR TRAINING DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('hrdf_training_date')
                     ->label('HRDF TRAINING DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('salesperson')
                     ->label('SALESPERSON')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('implementer')

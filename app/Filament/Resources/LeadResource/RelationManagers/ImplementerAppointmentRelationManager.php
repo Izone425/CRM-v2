@@ -100,7 +100,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         if ($dayOfWeek === 5) {
                             return [
                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
-                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                             ];
@@ -109,7 +109,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
                             return [
                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
-                                'SESSION 2' => 'SESSION 2 (1100 - 1230)',
+                                'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                 'SESSION 3' => 'SESSION 3 (1400 - 1500)',
                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
@@ -142,7 +142,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // Set the start_time and end_time based on selected session
                         $times = [
                             'SESSION 1' => ['09:30', '10:30'],
-                            'SESSION 2' => ['11:00', '12:30'],
+                            'SESSION 2' => ['11:00', '12:00'],
                             'SESSION 3' => ['14:00', '15:00'],
                             'SESSION 4' => ['15:30', '16:30'], // Friday has different time
                             'SESSION 5' => ['17:00', '18:00'], // Friday has different time
@@ -209,7 +209,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                         $times = [
                             'SESSION 1' => '10:30',
-                            'SESSION 2' => '12:30',
+                            'SESSION 2' => '12:00',
                             'SESSION 3' => '15:00',
                             'SESSION 4' => '16:30',
                             'SESSION 5' => '18:00',

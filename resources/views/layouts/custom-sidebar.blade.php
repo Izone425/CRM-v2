@@ -1081,7 +1081,7 @@
                                 <span>Open</span>
                             </a>
 
-                            <a href="{{ route('filament.admin.pages.project-category-closed') }}" class="sidebar-item">
+                            <a href="{{ route('filament.admin.pages.project-category-delay') }}" class="sidebar-item">
                                 <i class="bi bi-dot"></i>
                                 <span>Delay</span>
                             </a>

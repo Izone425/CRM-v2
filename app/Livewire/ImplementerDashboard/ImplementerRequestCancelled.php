@@ -91,14 +91,14 @@ class ImplementerRequestCancelled extends Component implements HasForms, HasTabl
         elseif (is_numeric($this->selectedUser)) {
             $user = User::find($this->selectedUser);
 
-            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
+            if ($user && ($user->role_id === 4)) {
                 $query->where('implementer', $user->name);
             }
         }
         else {
             $currentUser = auth()->user();
 
-            if ($currentUser->role_id === 4 || $currentUser->role_id === 5) {
+            if ($currentUser->role_id === 4) {
                 $query->where('implementer', $currentUser->name);
             }
         }
