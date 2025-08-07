@@ -232,26 +232,26 @@ class ProjectCategoryInactive extends Page implements HasTable
                 TextColumn::make('go_live_date')
                     ->label('GO LIVE DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('kick_off_meeting')
                     ->label('KICK OFF DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('webinar_training')
                     ->label('WEBINAR TRAINING DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('hrdf_training_date')
                     ->label('HRDF TRAINING DATE')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('salesperson')
                     ->label('SALESPERSON')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('implementer')

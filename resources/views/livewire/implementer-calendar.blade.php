@@ -1505,7 +1505,7 @@
                                         <div class="appointment-card-bar"></div>
                                         <div class="appointment-card-info">
                                             <div class="available-session-name">
-                                                {{ $sessionName }} NOT AVAILABLE
+                                                {{ $sessionName }}<br> NOT AVAILABLE
                                             </div>
                                             <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
                                                 {{ $sessionDetails['appointment']->end_time }}</div>
@@ -1528,9 +1528,9 @@
                                             @elseif($sessionDetails['status'] === 'cancelled' && !$isClickable)
                                                 <div class="available-session-name">CANCELLED SESSION</div>
                                             @elseif(($sessionDetails['status'] === 'available' && isset($sessionDetails['wasCancelled']) && $sessionDetails['wasCancelled']))
-                                                <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT (PREVIOUSLY CANCELLED)</div>
+                                                <div class="available-session-name">{{ $sessionName }}<br> AVAILABLE SLOT</div>
                                             @else
-                                                <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
+                                                <div class="available-session-name">{{ $sessionName }}<br> AVAILABLE SLOT</div>
                                             @endif
                                             <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                                         </div>
@@ -1569,10 +1569,13 @@
                                         style="background-color: var(--bg-demo-red)" @endif>
                                     <div class="appointment-card-bar"></div>
                                     <div class="appointment-card-info">
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }} |
-                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                            <div class="appointment-demo-type">{{ str_replace(' SESSION', '', $appointment->type) }}</div>                                        <div class="appointment-appointment-type">
+                                            {{ $appointment->appointment_type }}
+                                            @if($appointment->type === 'DATA MIGRATION SESSION' || $appointment->type === 'SYSTEM SETTING SESSION' || $appointment->type === 'WEEKLY FOLLOW UP SESSION')
+                                                @if($appointment->request_status)
+                                                    | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                @endif
+                                            @endif
                                         </div>
                                         <div class="appointment-company-name" title="{{ $appointment->company_name }}">
                                             @if($appointment->lead_id)
@@ -1601,10 +1604,14 @@
                                                 style="background-color: var(--bg-demo-red)" @endif>
                                             <div class="appointment-card-bar"></div>
                                             <div class="appointment-card-info">
-                                                <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                                <div class="appointment-demo-type">{{ str_replace(' SESSION', '', $appointment->type) }}</div>
                                                 <div class="appointment-appointment-type">
-                                                    {{ $appointment->appointment_type }} |
-                                                    <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                                    {{ $appointment->appointment_type }}
+                                                    @if($appointment->type === 'DATA MIGRATION SESSION' || $appointment->type === 'SYSTEM SETTING SESSION' || $appointment->type === 'WEEKLY FOLLOW UP SESSION')
+                                                        @if($appointment->request_status)
+                                                            | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                                 <div class="appointment-company-name">
                                                     @if($appointment->lead_id)
@@ -1638,10 +1645,14 @@
                                             style="background-color: var(--bg-demo-red)" @endif>
                                         <div class="appointment-card-bar"></div>
                                         <div class="appointment-card-info">
-                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                            <div class="appointment-demo-type">{{ str_replace(' SESSION', '', $appointment->type) }}</div>
                                             <div class="appointment-appointment-type">
-                                                {{ $appointment->appointment_type }} |
-                                                <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                                {{ $appointment->appointment_type }}
+                                                @if($appointment->type === 'DATA MIGRATION SESSION' || $appointment->type === 'SYSTEM SETTING SESSION' || $appointment->type === 'WEEKLY FOLLOW UP SESSION')
+                                                    @if($appointment->request_status)
+                                                        | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                    @endif
+                                                @endif
                                             </div>
                                             <div class="appointment-company-name">
                                                 @if($appointment->lead_id)
@@ -1750,19 +1761,6 @@
                         <!-- Company selection for Data Migration or System Setting -->
                         <div class="form-group">
                             <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
-
-                            <!-- Search box -->
-                            <div class="search-container">
-                                <input
-                                    type="text"
-                                    wire:model.live="companySearch"
-                                    placeholder="Search companies..."
-                                    class="mb-2 form-input"
-                                >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
 
                             <!-- Company dropdown (only open/delay projects) -->
                             <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
@@ -1960,54 +1958,63 @@
                     <div class="form-group">
                         <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
 
-                        <!-- Search box -->
-                        <div class="search-container">
-                            <input
-                                type="text"
-                                wire:model.live="companySearch"
-                                placeholder="Search companies..."
-                                class="mb-2 form-input"
-                            >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-
-                        <!-- Company dropdown (only open/delay projects) -->
+                        <!-- Company dropdown with Software Handover ID and grouped by status -->
                         <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
                             <option value="">-- Select a company --</option>
-                            @foreach($filteredOpenDelayCompanies as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
-                            @endforeach
+
+                            <!-- Open Projects Group -->
+                            <optgroup label="Open Projects">
+                                @foreach($filteredOpenDelayCompanies as $id => $data)
+                                    @if($data['status'] === 'Open')
+                                        <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
+
+                            <!-- Delay Projects Group -->
+                            <optgroup label="Delay Projects">
+                                @foreach($filteredOpenDelayCompanies as $id => $data)
+                                    @if($data['status'] === 'Delay')
+                                        <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
                         </select>
                         @error('selectedCompany')
                             <span class="form-error">{{ $message }}</span>
                         @enderror
                     </div>
 
-                    <!-- Demo Type -->
-                    <div class="form-group">
-                        <label for="implementationDemoType" class="form-label">Demo Type <span class="text-red-600">*</span></label>
-                        <select wire:model="implementationDemoType" id="implementationDemoType" class="form-select">
-                            <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
-                            <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
-                        </select>
-                        @error('implementationDemoType')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
-                    </div>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <!-- Demo Type - Left side -->
+                        <div class="form-group">
+                            <label for="implementationDemoType" class="form-label">Demo Type <span class="text-red-600">*</span></label>
+                            <select wire:model="implementationDemoType" id="implementationDemoType" class="form-select" {{ isset($hasKickOffMeeting) && $hasKickOffMeeting ? 'disabled' : '' }}>
+                                @if(!isset($hasKickOffMeeting) || !$hasKickOffMeeting)
+                                    <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
+                                @endif
+                                <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
+                            </select>
+                            @if(isset($hasKickOffMeeting) && $hasKickOffMeeting)
+                                <p class="mt-1 text-xs text-gray-500">This company already had a Kick Off Meeting Session.</p>
+                            @endif
+                            @error('implementationDemoType')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
 
-                    <!-- Appointment Type -->
-                    <div class="form-group">
-                        <label for="appointmentType" class="form-label">Appointment Type <span class="text-red-600">*</span></label>
-                        <select wire:model="appointmentType" id="appointmentType" class="form-select">
-                            <option value="ONLINE">ONLINE</option>
-                            <option value="ONSITE">ONSITE</option>
-                            <option value="INHOUSE">INHOUSE</option>
-                        </select>
-                        @error('appointmentType')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
+                        <!-- Appointment Type - Right side -->
+                        <div class="form-group">
+                            <label for="appointmentType" class="form-label">Appointment Type <span class="text-red-600">*</span></label>
+                            <select wire:model="appointmentType" id="appointmentType" class="form-select">
+                                <option value="ONLINE">ONLINE</option>
+                                <option value="ONSITE">ONSITE</option>
+                                <option value="INHOUSE">INHOUSE</option>
+                            </select>
+                            @error('appointmentType')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
                     </div>
 
                     <!-- Required Attendees -->
@@ -2025,21 +2032,6 @@
                         </button>
                         <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
                         @error('requiredAttendees')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <!-- Remarks -->
-                    <div class="form-group">
-                        <label for="remarks" class="form-label">Remarks</label>
-                        <textarea
-                            wire:model="remarks"
-                            id="remarks"
-                            class="form-textarea"
-                            rows="3"
-                            placeholder="Add any additional information here..."
-                        ></textarea>
-                        @error('remarks')
                             <span class="form-error">{{ $message }}</span>
                         @enderror
                     </div>

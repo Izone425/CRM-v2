@@ -195,11 +195,6 @@ class ImplementerSequenceEnterprise extends Component implements HasForms, HasTa
                             })
                     ),
 
-                TextColumn::make('completed_at')
-                    ->label('Completed At')
-                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-')
-                    ->sortable(),
-
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -219,7 +214,7 @@ class ImplementerSequenceEnterprise extends Component implements HasForms, HasTa
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $company->company_name . '
+                                    ' . $shortened . '
                                 </a>');
                         }
 
@@ -227,6 +222,16 @@ class ImplementerSequenceEnterprise extends Component implements HasForms, HasTa
                         return "<span title='{$state}'>{$shortened}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('implementer')
+                    ->label('Implementer'),
+
+                TextColumn::make('salesperson')
+                    ->label('Salesperson'),
+
+                TextColumn::make('completed_at')
+                    ->label('DB Creation Date')
+                    ->formatStateUsing(fn($state) => $state ? \Carbon\Carbon::parse($state)->format('d M Y') : '-'),
             ])
             ->actions([
                 ActionGroup::make([

@@ -88,6 +88,8 @@ class ImplementerCalendar extends Component
     public $currentAppointment = null;
     public $isLoadingAttendees = false;
 
+    public $hasKickOffMeeting = false;
+
     public function mount()
     {
         // Load all implementers
@@ -281,12 +283,27 @@ class ImplementerCalendar extends Component
     public function updatedSelectedCompany($value)
     {
         if (!empty($value)) {
-            $this->isLoadingAttendees = true;
+            // Load attendees if needed
             $this->loadAttendees();
-            $this->isLoadingAttendees = false;
-        } else {
-            // Reset attendees field if no company is selected
-            $this->requiredAttendees = '';
+
+            // Check if company already has a kick off meeting session
+            $companyDetail = \App\Models\CompanyDetail::find($value);
+            if ($companyDetail && $companyDetail->lead_id) {
+                $hasKickOffMeeting = \App\Models\ImplementerAppointment::where('lead_id', $companyDetail->lead_id)
+                    ->where('type', 'KICK OFF MEETING SESSION')
+                    ->where('status', '!=', 'Cancelled')
+                    ->exists();
+
+                if ($hasKickOffMeeting) {
+                    // If company already had a kick off meeting, restrict to implementation review only
+                    $this->implementationDemoType = "IMPLEMENTATION REVIEW SESSION";
+                    $this->hasKickOffMeeting = true;
+                } else {
+                    // If no kick off meeting yet, default to kick off meeting
+                    $this->implementationDemoType = "KICK OFF MEETING SESSION";
+                    $this->hasKickOffMeeting = false;
+                }
+            }
         }
     }
 
@@ -847,6 +864,28 @@ class ImplementerCalendar extends Component
         }
     }
 
+    public function getWeekInfo($date = null)
+    {
+        $dateCarbon = $date ? Carbon::parse($date) : Carbon::now();
+
+        return [
+            'year' => (int) $dateCarbon->format('Y'),
+            'week' => (int) $dateCarbon->format('W')
+        ];
+    }
+
+    public function updateSelectedYearAndWeek()
+    {
+        if ($this->bookingDate) {
+            $weekInfo = $this->getWeekInfo($this->bookingDate);
+            $this->selectedYear = $weekInfo['year'];
+            $this->selectedWeek = $weekInfo['week'];
+
+            // Update available weeks to ensure this week is included
+            $this->updateAvailableWeeks();
+        }
+    }
+
     public function bookSession($implementerId, $date, $session, $startTime, $endTime)
     {
         // Reset form fields
@@ -870,6 +909,8 @@ class ImplementerCalendar extends Component
         $this->selectedYear = $currentYear;
         $this->updateAvailableWeeks();
 
+        $this->updateSelectedYearAndWeek();
+
         // Show the session type selection modal
         $this->showBookingModal = true;
 
@@ -877,37 +918,33 @@ class ImplementerCalendar extends Component
         $this->updateOpenDelayCompanies();
     }
 
-    private function updateOpenDelayCompanies()
+    public function updateOpenDelayCompanies()
     {
-        // Base query for companies with Open or Delay status from software handover
-        $query = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
-            ->join('software_handovers', 'leads.id', '=', 'software_handovers.lead_id')
-            ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
-
-        // Apply implementer-specific filtering only for role_id 4 or 5 (Implementer roles)
-        // All other roles (1, 2, 3, etc.) will see all companies
-        if (auth()->user()->role_id === 4 || auth()->user()->role_id === 5) {
-            $implementerName = auth()->user()->name;
-            $query->where('software_handovers.implementer', $implementerName);
-        }
-
-        // Get the filtered companies list, sorted by company name for better UX
-        $this->filteredOpenDelayCompanies = $query
+        // Get companies with Open or Delay status
+        $companies = \App\Models\CompanyDetail::select(
+                'company_details.id',
+                'company_details.company_name',
+                'software_handovers.id as handover_id',
+                'software_handovers.status_handover as status'
+            )
+            ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
+            ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
+            ->orderBy('software_handovers.status_handover')
             ->orderBy('company_details.company_name')
-            ->pluck('company_details.company_name', 'company_details.id')
-            ->toArray();
+            ->get();
 
-        // If the list is empty (which shouldn't happen for non-implementer roles),
-        // provide a fallback to display all companies with Open/Delay status
-        if (empty($this->filteredOpenDelayCompanies) && auth()->user()->role_id !== 4 && auth()->user()->role_id !== 5) {
-            $this->filteredOpenDelayCompanies = \App\Models\CompanyDetail::join('leads', 'company_details.lead_id', '=', 'leads.id')
-                ->join('software_handovers', 'leads.id', '=', 'software_handovers.lead_id')
-                ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
-                ->orderBy('company_details.company_name')
-                ->pluck('company_details.company_name', 'company_details.id')
-                ->toArray();
+        // Format the company data for the dropdown
+        $this->filteredOpenDelayCompanies = [];
+
+        foreach ($companies as $company) {
+            $this->filteredOpenDelayCompanies[$company->id] = [
+                'name' => $company->company_name,
+                'handover_id' => str_pad($company->handover_id, 6, '0', STR_PAD_LEFT),
+                'status' => $company->status
+            ];
         }
     }
+
     public function updateAvailableWeeks()
     {
         $currentDate = Carbon::now();
@@ -939,6 +976,10 @@ class ImplementerCalendar extends Component
         $this->showBookingModal = false;
 
         if ($type === 'implementer_request') {
+            if ($this->requestSessionType === 'WEEKLY FOLLOW UP SESSION') {
+                // Ensure week number is set based on the booking date
+                $this->updateSelectedYearAndWeek();
+            }
             $this->showImplementerRequestModal = true;
         } else {
             $this->showImplementationSessionModal = true;
@@ -981,7 +1022,12 @@ class ImplementerCalendar extends Component
             // Extract emails from implementation_pics JSON field
             if (!empty($softwareHandover->implementation_pics)) {
                 try {
-                    $implementationPics = json_decode($softwareHandover->implementation_pics, true);
+                    $implementationPics = $softwareHandover->implementation_pics;
+
+                    // Check if it's already an array or needs to be decoded
+                    if (!is_array($implementationPics)) {
+                        $implementationPics = json_decode($implementationPics, true);
+                    }
 
                     if (is_array($implementationPics)) {
                         foreach ($implementationPics as $pic) {
@@ -1039,11 +1085,50 @@ class ImplementerCalendar extends Component
                 'selectedYear' => 'required|integer',
                 'selectedWeek' => 'required|integer|min:1|max:53',
             ]);
+
+            // For weekly follow-up, initialize these variables
+            $leadId = null;
+            $companyName = '';
+            $softwareHandoverId = null;
+            $selectedYear = $this->selectedYear;
+            $selectedWeek = $this->selectedWeek;
+            $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | WEEK ' . $this->selectedWeek . ', ' . $this->selectedYear;
+
         } else {
             $this->validate([
                 'requestSessionType' => 'required|string',
                 'selectedCompany' => 'required|exists:company_details,id',
             ]);
+
+            // Initialize variables
+            $leadId = null;
+            $companyName = '';
+            $softwareHandoverId = null;
+            $selectedYear = null;
+            $selectedWeek = null;
+
+            // Fetch company details
+            $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+            if (!$companyDetail) {
+                Notification::make()
+                    ->title('Company not found')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            // Now it's safe to access lead_id
+            $leadId = $companyDetail->lead_id;
+            $companyName = $companyDetail->company_name;
+
+            // Find software handover ID if lead ID exists
+            if ($leadId) {
+                $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->orderBy('id', 'desc')
+                    ->value('id');
+            }
+
+            $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | ' . $companyName;
         }
 
         // Get implementer details
@@ -1057,45 +1142,10 @@ class ImplementerCalendar extends Component
         }
 
         try {
-            // Prepare data
-            $leadId = null;
-            $companyName = '';
-            $softwareHandoverId = '';
-            $title = '';
-            $selectedYear = null;
-            $selectedWeek = null;
-
-            $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
-            $leadId = $companyDetail->lead_id;
-
-            if ($leadId) {
-                $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
-                    ->orderBy('id', 'desc')
-                    ->value('id');
-            }
-
-            if ($this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION') {
-                $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
-                if (!$companyDetail) {
-                    Notification::make()
-                        ->title('Company not found')
-                        ->danger()
-                        ->send();
-                    return;
-                }
-                $companyName = $companyDetail->company_name;
-
-                $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | ' . $companyName;
-            } else {
-                $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | WEEK ' . $this->selectedWeek . ', ' . $this->selectedYear;
-                $selectedYear = $this->selectedYear;
-                $selectedWeek = $this->selectedWeek;
-            }
-
             // Create appointment record with request_status
             $appointment = new \App\Models\ImplementerAppointment();
             $appointment->fill([
-                'lead_id' => $leadId,
+                'lead_id' => $leadId ?? null,
                 'type' => $this->requestSessionType,
                 'appointment_type' => 'ONLINE',
                 'date' => $this->bookingDate,
@@ -1111,8 +1161,8 @@ class ImplementerCalendar extends Component
                 'selected_week' => $selectedWeek,
                 'session' => $this->bookingSession,
                 'remarks' => $this->requestSessionType !== 'WEEKLY FOLLOW UP SESSION' ?
-                            "Request for {$this->requestSessionType} for {$companyName}" :
-                            "Request for {$this->requestSessionType} for Week {$this->selectedWeek}, {$this->selectedYear}",
+                        "Request for {$this->requestSessionType} for {$companyName}" :
+                        "Request for {$this->requestSessionType} for Week {$this->selectedWeek}, {$this->selectedYear}",
                 'software_handover_id' => $softwareHandoverId,
             ]);
 
@@ -1158,6 +1208,7 @@ class ImplementerCalendar extends Component
 
                 // Recipients
                 $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
+                // $recipients = ['zilih.ng@timeteccloud.com']; // Main recipient
                 $ccRecipients = [$senderEmail]; // CC implementer
 
                 \Illuminate\Support\Facades\Mail::send('emails.implementer_request',
@@ -1423,7 +1474,7 @@ class ImplementerCalendar extends Component
                 'status' => 'New',
                 'session' => $this->bookingSession,
                 'required_attendees' => $this->requiredAttendees,
-                'remarks' => $this->remarks,
+                'remarks' => $this->remarks ?? null,
                 'software_handover_id' => $softwareHandoverId,
             ]);
 
@@ -1482,7 +1533,7 @@ class ImplementerCalendar extends Component
                         'companyName' => $companyDetail->company_name,
                         'implementerName' => $implementer->name,
                         'implementerEmail' => $implementer->email,
-                        'remarks' => $this->remarks,
+                        'remarks' => $this->remarks ?? null,
                     ];
 
                     \Illuminate\Support\Facades\Mail::send(
@@ -1552,9 +1603,9 @@ class ImplementerCalendar extends Component
             ],
             'SESSION 2' => [
                 'start_time' => '11:00:00',
-                'end_time' => '12:30:00',
+                'end_time' => '12:00:00',
                 'formatted_start' => '11:00 AM',
-                'formatted_end' => '12:30 PM',
+                'formatted_end' => '12:00 PM',
                 'booked' => false,
                 'appointment' => null,
                 'status' => 'available', // Default status
@@ -1607,9 +1658,9 @@ class ImplementerCalendar extends Component
 
             $standardSessions['SESSION 2'] = [
                 'start_time' => '11:00:00',
-                'end_time' => '12:30:00',
+                'end_time' => '12:00:00',
                 'formatted_start' => '11:00 AM',
-                'formatted_end' => '12:30 PM',
+                'formatted_end' => '12:00 PM',
                 'booked' => false,
                 'appointment' => null,
                 'status' => 'available', // Default status
