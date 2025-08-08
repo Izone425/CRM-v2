@@ -201,7 +201,7 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'PENDING APPROVAL' => 'warning',
+                        'PENDING' => 'warning',
                         'APPROVED' => 'success',
                         'REJECTED' => 'danger',
                         'CANCELLED' => 'gray',
@@ -242,19 +242,6 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
                                 ->send();
 
                             $this->dispatch('refresh-implementer-tables');
-                        }),
-
-                    Action::make('view')
-                        ->label('View Details')
-                        ->icon('heroicon-o-eye')
-                        ->color('secondary')
-                        ->modalHeading('Implementer Request Details')
-                        ->modalWidth('2xl')
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->modalContent(function (\App\Models\ImplementerAppointment $record): View {
-                            return view('components.implementer-appointment-details')
-                                ->with('appointment', $record);
                         }),
                 ])
                 ->button()

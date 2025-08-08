@@ -444,7 +444,7 @@
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
     $sessionsTotal = $sessionsToday + $sessionsTomorrow;
 
-    $pendingRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'PENDING APPROVAL')->count();
+    $pendingRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'PENDING')->count();
     $approvedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'APPROVED')->count();
     $rejectedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'REJECTED')->count();
     $cancelledRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'CANCELLED')->count();

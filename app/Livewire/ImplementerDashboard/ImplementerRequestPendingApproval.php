@@ -79,7 +79,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
         $query = \App\Models\ImplementerAppointment::query()
-                ->where('request_status', 'PENDING APPROVAL')
+                ->where('request_status', 'PENDING')
                 ->orderBy('date', 'asc')
                 ->orderBy('start_time', 'asc')
                 ->with(['lead', 'lead.companyDetail']);
@@ -91,14 +91,14 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
         elseif (is_numeric($this->selectedUser)) {
             $user = User::find($this->selectedUser);
 
-            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
+            if ($user && ($user->role_id === 4)) {
                 $query->where('implementer', $user->name);
             }
         }
         else {
             $currentUser = auth()->user();
 
-            if ($currentUser->role_id === 4 || $currentUser->role_id === 5) {
+            if ($currentUser->role_id === 4) {
                 $query->where('implementer', $currentUser->name);
             }
         }
@@ -201,7 +201,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'PENDING APPROVAL' => 'warning',
+                        'PENDING' => 'warning',
                         'APPROVED' => 'success',
                         'REJECTED' => 'danger',
                         'CANCELLED' => 'gray',
@@ -252,19 +252,6 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                                 ->send();
 
                             $this->dispatch('refresh-implementer-tables');
-                        }),
-
-                    Action::make('view')
-                        ->label('View Details')
-                        ->icon('heroicon-o-eye')
-                        ->color('secondary')
-                        ->modalHeading('Implementer Request Details')
-                        ->modalWidth('2xl')
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->modalContent(function (\App\Models\ImplementerAppointment $record): View {
-                            return view('components.implementer-appointment-details')
-                                ->with('appointment', $record);
                         }),
                 ])
                 ->button()

@@ -323,21 +323,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
                                     $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                                    $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
-                                    $templateSelector = new TemplateSelector();
-
-                                    if ($lead->lead_code && (
-                                        str_contains($lead->lead_code, '(CN)') ||
-                                        str_contains($lead->lead_code, 'CN')
-                                    )) {
-                                        // Use CN templates
-                                        $template = $templateSelector->getTemplateByLeadSource('CN', 5);
-                                    } else {
-                                        // Use regular templates based on UTM campaign
-                                        $template = $templateSelector->getTemplate($utmCampaign, 5); // first follow-up
-                                    }
-
-                                    $viewName = $template['email'] ?? 'emails.cancel_demo_notification';
+                                    $viewName = 'emails.cancel_demo_notification';
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager', // Lead Owner/Manager Name
                                         'lead' => [
@@ -927,21 +913,8 @@ class DemoAppointmentRelationManager extends RelationManager
                         }
 
                         if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
-                                $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
-                                $templateSelector = new TemplateSelector();
-                                try {
-                                    if ($lead->lead_code && (
-                                    str_contains($lead->lead_code, '(CN)') ||
-                                    str_contains($lead->lead_code, 'CN')
-                                )) {
-                                    // Use CN templates
-                                    $template = $templateSelector->getTemplateByLeadSource('CN', 0);
-                                } else {
-                                    // Use regular templates based on UTM campaign
-                                    $template = $templateSelector->getTemplate($utmCampaign, 0); // first follow-up
-                                }
-
-                                $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
+                            try {
+                                $viewName = 'emails.demo_notification'; // fallback
                                 $leadowner = User::where('name', $lead->lead_owner)->first();
 
                                 $emailContent = [

@@ -824,21 +824,7 @@ class ActivityLogRelationManager extends RelationManager
 
                             if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                                 try {
-                                    $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
-                                    $templateSelector = new TemplateSelector();
-
-                                    if ($lead->lead_code && (
-                                        str_contains($lead->lead_code, '(CN)') ||
-                                        str_contains($lead->lead_code, 'CN')
-                                    )) {
-                                        // Use CN templates
-                                        $template = $templateSelector->getTemplateByLeadSource('CN', 0);
-                                    } else {
-                                        // Use regular templates based on UTM campaign
-                                        $template = $templateSelector->getTemplate($utmCampaign, 0); // first follow-up
-                                    }
-
-                                    $viewName = $template['email'] ?? 'emails.demo_notification'; // fallback
+                                    $viewName = 'emails.demo_notification'; // fallback
                                     $leadowner = User::where('name', $lead->lead_owner)->first();
 
                                     $emailContent = [
