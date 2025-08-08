@@ -117,7 +117,7 @@
             </a>
 
             <!-- Leads Section -->
-            @if(in_array(auth()->user()->role_id, [1, 2, 3]))
+            @if(in_array(auth()->user()->role_id, [1, 2, 3, 4, 5]))
                 <a href="{{ route('filament.admin.resources.leads.index') }}"
                     title="Leads"
                     class="sidebar-item {{ request()->routeIs('filament.admin.resources.leads.*') ? 'active' : '' }}">

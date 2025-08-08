@@ -19,16 +19,23 @@ class SoftwareHandoverAnalysisV2 extends Page
     protected static string $view = 'filament.pages.software-handover-analysis-v2';
 
     public $selectedYear;
+    public $selectedTargetYear;
 
     public function mount()
     {
         $this->selectedYear = now()->year; // Default to current year
+        $this->selectedTargetYear = now()->year;
     }
 
     #[On('getDataForYear')]
     public function updateSelectedYear($year)
     {
         $this->selectedYear = $year;
+    }
+
+    public function updateTargetYear()
+    {
+        // This will automatically refresh the chart with the new year
     }
 
     public function getHandoversByMonthAndStatus($year = null)
@@ -91,13 +98,43 @@ class SoftwareHandoverAnalysisV2 extends Page
 
     public function getHandoversBySalesPersonRank1()
     {
-        $salespeople = ['Joshua Ho', 'Vince Leong', 'Wan Amirul Muim'];
+        // Rank 1 salespeople
+        $rank1Salespeople = ['Joshua Ho', 'Vince Leong', 'Wan Amirul Muim'];
 
-        return SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
-            ->whereIn('salesperson', $salespeople)
+        // Rank 2 salespeople (to be excluded from Others count)
+        $rank2Salespeople = ['Yasmin', 'Muhammad Khoirul Bariah', 'Abdul Aziz', 'Farhanah Jamil'];
+
+        // All salespeople to exclude from "Others" count
+        $excludeSalespeople = array_merge($rank1Salespeople, $rank2Salespeople);
+
+        // Get the count for the specified Rank 1 salespeople
+        $rank1Data = SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
+            ->whereIn('salesperson', $rank1Salespeople)
             ->groupBy('salesperson')
             ->orderByDesc('total')
             ->get();
+
+        // Get the count for all other salespeople excluding both Rank 1 and Rank 2
+        $othersCount = SoftwareHandover::where(function($query) use ($excludeSalespeople) {
+            // Include records where salesperson is not in excluded list
+            $query->whereNotIn('salesperson', $excludeSalespeople)
+                // Or include records where salesperson is null or empty
+                ->orWhereNull('salesperson')
+                ->orWhere('salesperson', '');
+        })->count();
+
+        // Add "Others" as a new entry in the collection with a sequence field
+        $rank1Data->push((object)[
+            'salesperson' => 'Others',
+            'total' => $othersCount,
+            'is_others' => true
+        ]);
+
+        // Sort the entire collection including "Others" by total in descending order
+        $sortedData = $rank1Data->sortByDesc('total');
+
+        // Convert back to a collection to maintain the same return type
+        return collect($sortedData->values()->all());
     }
 
     public function getHandoversBySalesPersonRank2()
@@ -161,7 +198,7 @@ class SoftwareHandoverAnalysisV2 extends Page
         $startYear = 2024;
         $startQuarter = 3;
 
-        for ($i = 0; $i < 12; $i++) {
+        for ($i = 0; $i < 6; $i++) {
             $year = $startYear + floor(($startQuarter + $i - 1) / 4);
             $quarter = (($startQuarter + $i - 1) % 4) + 1;
 

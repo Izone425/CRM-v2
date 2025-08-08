@@ -15,7 +15,7 @@
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 16px;
+            padding: 10px;
         }
 
         .card-header {
@@ -235,7 +235,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100px;
+            max-width: 200px;
         }
 
         .salesperson-rank {
@@ -268,120 +268,264 @@
         [x-cloak] {
             display: none !important;
         }
+
+        .circular-progress {
+            position: relative;
+        }
+
+        .circle-tooltip {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .circular-progress:hover .circle-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 
     <div class="dashboard-container">
         <!-- Section 1: Monthly Software Handover Status -->
-        <div class="dashboard-card" x-data="{
-            selectedYear: 2025,
-            chartInstance: null,
-            async loadChart() {
-                const data = await @this.getHandoversByMonthAndStatus(this.selectedYear);
-                const months = data.map(item => item.month);
-                const closedData = data.map(item => item.closed);
-                const ongoingData = data.map(item => item.ongoing);
-                const totalData = data.map(item => item.total);
-
-                // Make sure the canvas still exists in the DOM
-                const canvas = document.getElementById('monthlyHandoversChart');
-                if (!canvas) {
-                    console.error('Canvas element for monthly chart not found');
-                    return;
-                }
-
-                // Properly destroy the old chart if it exists
-                if (this.chartInstance) {
-                    try {
-                        this.chartInstance.destroy();
-                    } catch (e) {
-                        console.warn('Error destroying previous chart:', e);
-                    }
-                }
-
-                try {
-                    this.chartInstance = new Chart(
-                        canvas,
-                        {
-                            type: 'bar',
-                            data: {
-                                labels: months,
-                                datasets: [
-                                    {
-                                        label: 'Total',
-                                        data: totalData,
-                                        backgroundColor: '#ef4444',
-                                        borderRadius: 4,
-                                        barPercentage: 0.5,
-                                        categoryPercentage: 0.8,
-                                        stack: 'Stack 1',
-                                    },
-                                    {
-                                        label: 'Ongoing',
-                                        data: ongoingData,
-                                        backgroundColor: '#84cc16',
-                                        borderRadius: 4,
-                                        barPercentage: 0.5,
-                                        categoryPercentage: 0.8,
-                                        stack: 'Stack 2',
-                                    },
-                                    {
-                                        label: 'Closed',
-                                        data: closedData,
-                                        backgroundColor: '#eab308',
-                                        borderRadius: 4,
-                                        barPercentage: 0.5,
-                                        categoryPercentage: 0.8,
-                                        stack: 'Stack 3',
-                                    }
-                                ]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        grid: { display: false }
-                                    },
-                                    y: {
-                                        beginAtZero: true,
-                                        grid: { color: '#f3f4f6' }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        position: 'top',
-                                        labels: {
-                                            boxWidth: 12,
-                                            usePointStyle: true,
-                                            pointStyle: 'circle',
-                                        }
-                                    },
-                                    tooltip: {
-                                        mode: 'index',
-                                        intersect: false
-                                    }
-                                }
-                            }
-                        }
-                    );
-                } catch (e) {
-                    console.error('Error creating chart:', e);
-                }
-            }
-        }" x-init="loadChart()">
+        <!-- Monthly Target vs. New vs. Closed Projects -->
+        <div class="dashboard-card">
             <div class="card-header">
                 <div class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Total Software Handover by Month</span>
+                    <i class="fas fa-bullseye"></i>
+                    <span>Monthly Target vs. Actual Projects</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <div class="target-legend">
+                        <div class="target-legend-item">
+                            <div class="legend-box target-color"></div>
+                            <span>Target (100/month)</span>
+                        </div>
+                        <div class="target-legend-item">
+                            <div class="legend-box new-color"></div>
+                            <span>New Projects</span>
+                        </div>
+                        <div class="target-legend-item">
+                            <div class="legend-box closed-color"></div>
+                            <span>Closed Projects</span>
+                        </div>
+                    </div>
                 </div>
-                <select class="year-selector" x-model="selectedYear" @change="loadChart()">
+                <select class="year-selector" wire:model="selectedTargetYear" wire:change="updateTargetYear">
                     <option value="2026">2026&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
                     <option value="2025">2025&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
                     <option value="2024">2024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
                 </select>
             </div>
-            <div class="chart-container">
-                <canvas id="monthlyHandoversChart"></canvas>
+
+            <style>
+                .target-container {
+                    width: 100%;
+                    height: 160px;
+                    position: relative;
+                }
+
+                .target-chart {
+                    width: 95%;
+                    height: 120px;
+                    position: relative;
+                    border-left: 1px solid #e5e7eb;
+                    border-bottom: 1px solid #e5e7eb;
+                    margin-left: 35px;
+                    margin-bottom: 30px;
+                }
+
+                .month-label {
+                    position: absolute;
+                    bottom: -25px;
+                    transform: translateX(-50%);
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: #6b7280;
+                    text-align: center;
+                    width: 40px;
+                }
+
+                .new-projects-bar {
+                    position: absolute;
+                    bottom: 0;
+                    background-color: #10b981; /* Green */
+                    border-radius: 3px 3px 0 0;
+                }
+
+                .closed-projects-bar {
+                    position: absolute;
+                    bottom: 0;
+                    background-color: #f59e0b; /* Amber/Yellow */
+                    border-radius: 3px 3px 0 0;
+                }
+
+                .target-line {
+                    position: absolute;
+                    height: 3px;
+                    background-color: #ef4444; /* Red */
+                    z-index: 3;
+                    width: 6%; /* Fixed width for target line */
+                }
+
+                .target-value {
+                    color: #ef4444;
+                    position: absolute;
+                    top: -5px;
+                    left: 105%;
+                    font-weight: 600;
+                    font-size: 11px;
+                }
+
+                .target-legend {
+                    display: flex;
+                    justify-content: center;
+                    gap: 20px;
+                    padding: 10px 0;
+                }
+
+                .target-legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                .legend-box {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 2px;
+                }
+
+                .new-projects-bar,
+                .closed-projects-bar {
+                    cursor: pointer;
+                }
+
+                .bar-tooltip {
+                    position: absolute;
+                    top: -40px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background-color: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 500;
+                    white-space: nowrap;
+                    z-index: 10;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: opacity 0.2s, visibility 0.2s;
+                    pointer-events: none;
+                }
+
+                .new-projects-bar:hover .bar-tooltip,
+                .closed-projects-bar:hover .bar-tooltip {
+                    opacity: 1;
+                    visibility: visible;
+                }
+
+                .target-color { background-color: #ef4444; }
+                .new-color { background-color: #10b981; }
+                .closed-color { background-color: #f59e0b; }
+            </style>
+
+            <div class="target-container">
+                <div class="target-chart">
+                    @php
+                        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        $monthlyData = $this->getHandoversByMonthAndStatus($selectedTargetYear ?? now()->year);
+                        $maxHeight = 120; // Max height of chart
+                        $targetValue = 100; // Fixed target value per month
+
+                        // Find maximum value for proper scaling
+                        $maxValue = $targetValue; // Start with target as minimum max
+                        foreach ($monthlyData as $data) {
+                            $maxValue = max($maxValue, ($data['total'] ?? 0), ($data['closed'] ?? 0));
+                        }
+
+                        // Ensure maximum is at least 125 instead of 100
+                        $maxValue = max(125, ceil($maxValue / 25) * 25);
+
+                        // Calculate heights based on this max value
+                        $targetHeight = ($targetValue / $maxValue) * $maxHeight;
+
+                        // Create fixed scale intervals at 0, 25, 50, 75, 100, 125
+                        $scaleValues = [125, 100, 75, 50, 25, 0];
+                        $scalePositions = [];
+                        foreach ($scaleValues as $index => $value) {
+                            $scalePositions[$index] = 100 - (($value / $maxValue) * 100);
+                        }
+                    @endphp
+
+                    <!-- Fixed value indicators on the left -->
+                    @foreach($scaleValues as $index => $value)
+                        @if($value <= $maxValue)
+                            <div style="position: absolute; left: -35px; top: {{ $scalePositions[$index] }}%; transform: translateY(-50%); font-size: 11px; color: #6b7280;">
+                                {{ $value }}
+                            </div>
+
+                            <!-- Horizontal grid lines -->
+                            @if($value > 0)
+                                <div style="position: absolute; left: 0; right: 0; top: {{ $scalePositions[$index] }}%; height: 1px; background-color: #f3f4f6;"></div>
+                            @endif
+                        @endif
+                    @endforeach
+
+                    <!-- Target line - single continuous line across the chart at the 100 mark -->
+                    <div style="position: absolute; left: 0; right: 0; bottom: {{ $targetHeight }}px; height: 2px; background-color: #ef4444; z-index: 3;">
+                        <span style="position: absolute; right: -40px; top: -8px; color: #ef4444; font-weight: 600; font-size: 12px;">Target</span>
+                    </div>
+
+                    @foreach($months as $index => $month)
+                        @php
+                            $monthData = $monthlyData[$index] ?? null;
+                            $newProjects = $monthData ? $monthData['total'] : 0;
+                            $newHeight = min(($newProjects / $maxValue) * $maxHeight, $maxHeight);
+
+                            $closedProjects = $monthData ? $monthData['closed'] : 0;
+                            $closedHeight = min(($closedProjects / $maxValue) * $maxHeight, $maxHeight);
+
+                            // Calculate the width of each month section
+                            $monthWidth = 8.2; // Each month takes 7.5% of the chart width
+                            $barWidth = 3; // Individual bar width in percent
+                            $spacing = 0.1; // Space between bars in percent
+
+                            // Calculate the center position for this month
+                            $monthCenter = ($index * $monthWidth) + ($monthWidth / 2);
+
+                            // Position the bars on either side of the center
+                            $newBarX = $monthCenter - $barWidth - ($spacing / 2);
+                            $closedBarX = $monthCenter + ($spacing / 2);
+                        @endphp
+
+                        <!-- Month label -->
+                        <div class="month-label" style="left: {{ $monthCenter }}%">{{ $month }}</div>
+
+                        <!-- New projects bar (green) with tooltip -->
+                        <div class="new-projects-bar" style="left: {{ $newBarX }}%; height: {{ $newHeight }}px; width: {{ $barWidth }}%;">
+                            <div class="bar-tooltip">New: {{ $newProjects }}</div>
+                        </div>
+
+                        <!-- Closed projects bar (yellow) with tooltip -->
+                        <div class="closed-projects-bar" style="left: {{ $closedBarX }}%; height: {{ $closedHeight }}px; width: {{ $barWidth }}%;">
+                            <div class="bar-tooltip">Closed: {{ $closedProjects }}</div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -412,21 +556,31 @@
                     @php
                         $rank1Data = $this->getHandoversBySalesPersonRank1();
                         $totalHandovers = max(array_sum(array_column($rank1Data->toArray(), 'total')), 1);
-                        $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316'];
+                        $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#8b5cf6']; // Added an extra color for Others
                     @endphp
 
                     @foreach($rank1Data as $index => $person)
+                        @php
+                            $percentage = round(($person->total / $totalHandovers) * 100, 1);
+                        @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
-                                <div class="circular-progress" style="--percentage: {{ ($person->total / $totalHandovers) * 100 }}; --color: {{ $colors[$index % 4] }};">
+                                <div class="circular-progress" style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 5] }};">
                                     <div class="inner">
                                         <span class="value">{{ $person->total }}</span>
                                     </div>
+                                    <div class="circle-tooltip">{{ $percentage }}%</div>
                                 </div>
                             </div>
                             <div class="metric-info">
                                 <div class="salesperson-name">{{ $person->salesperson }}</div>
-                                <div class="salesperson-rank">Top {{ $index + 1 }}</div>
+                                <div class="salesperson-rank">
+                                    @if($person->salesperson === 'Others')
+                                        Others
+                                    @else
+                                        Top {{ $index + 1 }}
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -440,17 +594,23 @@
                     @endphp
 
                     @foreach($rank2Data as $index => $person)
+                        @php
+                            $percentage = round(($person->total / $totalHandovers) * 100, 1);
+                        @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
-                                <div class="circular-progress" style="--percentage: {{ ($person->total / $totalHandovers) * 100 }}; --color: {{ $colors[$index % 4] }};">
+                                <div class="circular-progress" style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 4] }};">
                                     <div class="inner">
                                         <span class="value">{{ $person->total }}</span>
                                     </div>
+                                    <div class="circle-tooltip">{{ $percentage }}%</div>
                                 </div>
                             </div>
                             <div class="metric-info">
                                 <div class="salesperson-name">{{ $person->salesperson }}</div>
-                                <div class="salesperson-rank">Rank 2</div>
+                                <div class="salesperson-rank">
+                                    Top {{ $index + 1 }}
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -463,18 +623,26 @@
                     <div class="card-title">
                         <i class="fas fa-chart-pie"></i>
                         <span>by Project Status</span>
+                        @php
+                            $statusData = $this->getHandoversByStatus();
+                            $totalStatus = array_sum($statusData);
+                        @endphp
+                        <span class="total-count">| Project Count ({{ $totalStatus }})</span>
                     </div>
                 </div>
                 <div class="horizontal-bar-container">
                     @php
                         $statusData = $this->getHandoversByStatus();
                         $maxStatus = max($statusData);
+                        $totalStatus = array_sum($statusData);
                     @endphp
 
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Open</span>
                         <div class="bar-track">
-                            <div class="bar-fill bar-fill-open" style="width: {{ ($statusData['open'] / $maxStatus) * 100 }}%"></div>
+                            <div class="bar-fill bar-fill-open" style="width: {{ ($statusData['open'] / $maxStatus) * 100 }}%">
+                                <span class="bar-tooltip">{{ round(($statusData['open'] / $totalStatus) * 100, 1) }}%</span>
+                            </div>
                         </div>
                         <span class="bar-value">{{ $statusData['open'] }}</span>
                     </div>
@@ -482,7 +650,9 @@
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Delay</span>
                         <div class="bar-track">
-                            <div class="bar-fill bar-fill-delay" style="width: {{ ($statusData['delay'] / $maxStatus) * 100 }}%"></div>
+                            <div class="bar-fill bar-fill-delay" style="width: {{ ($statusData['delay'] / $maxStatus) * 100 }}%">
+                                <span class="bar-tooltip">{{ round(($statusData['delay'] / $totalStatus) * 100, 1) }}%</span>
+                            </div>
                         </div>
                         <span class="bar-value">{{ $statusData['delay'] }}</span>
                     </div>
@@ -490,7 +660,9 @@
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Inactive</span>
                         <div class="bar-track">
-                            <div class="bar-fill bar-fill-inactive" style="width: {{ ($statusData['inactive'] / $maxStatus) * 100 }}%"></div>
+                            <div class="bar-fill bar-fill-inactive" style="width: {{ ($statusData['inactive'] / $maxStatus) * 100 }}%">
+                                <span class="bar-tooltip">{{ round(($statusData['inactive'] / $totalStatus) * 100, 1) }}%</span>
+                            </div>
                         </div>
                         <span class="bar-value">{{ $statusData['inactive'] }}</span>
                     </div>
@@ -498,7 +670,9 @@
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Closed</span>
                         <div class="bar-track">
-                            <div class="bar-fill bar-fill-closed" style="width: {{ ($statusData['closed'] / $maxStatus) * 100 }}%"></div>
+                            <div class="bar-fill bar-fill-closed" style="width: {{ ($statusData['closed'] / $maxStatus) * 100 }}%">
+                                <span class="bar-tooltip">{{ round(($statusData['closed'] / $totalStatus) * 100, 1) }}%</span>
+                            </div>
                         </div>
                         <span class="bar-value">{{ $statusData['closed'] }}</span>
                     </div>
@@ -511,9 +685,14 @@
             <!-- Section 4: Company Size -->
             <div class="mini-chart-card" style='flex: 1;'>
                 <div class="card-header">
-                    <div class="card-title">
+                    <div class="card-title" style="padding-bottom: 10px;">
                         <i class="fas fa-building"></i>
                         <span>by Company Size</span>
+                        @php
+                            $sizeData = $this->getHandoversByCompanySize();
+                            $totalSize = array_sum($sizeData);
+                        @endphp
+                        <span class="total-count">| Project Count ({{ $totalSize }})</span>
                     </div>
                 </div>
                 <div class="horizontal-bar-container">
@@ -588,7 +767,6 @@
                         width: 100%;
                         height: 150px;
                         position: relative;
-                        padding: 10px 0 40px;
                         margin-top: 10px;
                     }
 

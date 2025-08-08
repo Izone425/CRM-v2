@@ -678,14 +678,17 @@ class ImplementerCalendar extends Component
                                 $data[$daySessionSlots][$sessionName]['appointment'] = $appointment;
 
                                 // Update the status based on the appointment type
-                                if ($appointment->request_status === 'PENDING APPROVAL') {
-                                    // Yellow for pending implementer requests (including Weekly Follow Up)
+                                if ($appointment->request_status === 'PENDING') {
+                                    // Yellow for pending implementer requests
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
-                                } else if ($appointment->type === 'WEEKLY FOLLOW UP SESSION' && !$appointment->lead_id) {
-                                    // Special coloring for approved weekly follow up sessions without lead_id
-                                    $data[$daySessionSlots][$sessionName]['status'] = 'weekly_followup';
+                                } else if (in_array($appointment->type, ['DATA MIGRATION SESSION', 'SYSTEM SETTING SESSION', 'WEEKLY FOLLOW UP SESSION'])) {
+                                    // Yellow for these specific session types
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
+                                } else if (in_array($appointment->type, ['KICK OFF MEETING SESSION', 'IMPLEMENTATION REVIEW SESSION'])) {
+                                    // Red for implementation sessions
+                                    $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
                                 } else {
-                                    // Red for regular implementation sessions
+                                    // Default fallback (should rarely be used)
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
                                 }
                             }
@@ -920,15 +923,29 @@ class ImplementerCalendar extends Component
 
     public function updateOpenDelayCompanies()
     {
-        // Get companies with Open or Delay status
-        $companies = \App\Models\CompanyDetail::select(
+        // Get the current authenticated user's name if they're an implementer
+        $currentUserName = null;
+        if (auth()->user()->role_id == 4 || auth()->user()->role_id == 5) {
+            $currentUserName = auth()->user()->name;
+        }
+
+        // Base query to get companies with Open or Delay status
+        $query = \App\Models\CompanyDetail::select(
                 'company_details.id',
                 'company_details.company_name',
                 'software_handovers.id as handover_id',
                 'software_handovers.status_handover as status'
             )
             ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
-            ->whereIn('software_handovers.status_handover', ['Open', 'Delay'])
+            ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
+
+        // Filter by implementer if the current user is an implementer
+        if ($currentUserName) {
+            $query->where('software_handovers.implementer', $currentUserName);
+        }
+
+        // Execute the query with sorting by handover ID in descending order
+        $companies = $query->orderBy('software_handovers.id', 'desc')
             ->orderBy('software_handovers.status_handover')
             ->orderBy('company_details.company_name')
             ->get();
@@ -1156,7 +1173,7 @@ class ImplementerCalendar extends Component
                 'implementer_assigned_date' => now(),
                 'title' => $title,
                 'status' => 'New',
-                'request_status' => 'PENDING APPROVAL',
+                'request_status' => 'PENDING',
                 'selected_year' => $selectedYear,
                 'selected_week' => $selectedWeek,
                 'session' => $this->bookingSession,
@@ -1181,7 +1198,7 @@ class ImplementerCalendar extends Component
                 'implementationSession' => "{$this->bookingSession}: " .
                                         Carbon::parse($this->bookingStartTime)->format('h:iA') . ' – ' .
                                         Carbon::parse($this->bookingEndTime)->format('h:iA'),
-                'status' => 'PENDING APPROVAL',
+                'status' => 'PENDING',
                 'appointmentId' => $appointment->id,
                 'selectedYear' => $selectedYear,
                 'selectedWeek' => $selectedWeek,
@@ -1304,7 +1321,6 @@ class ImplementerCalendar extends Component
             $meetingId = null;
             $meetingPassword = null;
 
-            if ($this->appointmentType === 'ONLINE') {
                 try {
                     // Parse required attendees for Teams meeting
                     $attendeeEmails = [];
@@ -1452,7 +1468,6 @@ class ImplementerCalendar extends Component
                         ->body('The appointment will be created without Teams meeting details.')
                         ->send();
                 }
-            }
             if ($leadId) {
                 $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
                     ->orderBy('id', 'desc')

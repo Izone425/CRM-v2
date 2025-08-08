@@ -99,7 +99,7 @@ class ImplementerRequestList extends Page implements HasTable
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Pending Approval' => 'warning',
+                        'Pending' => 'warning',
                         'Approved' => 'success',
                         'Rejected' => 'danger',
                         'Cancelled' => 'gray',
@@ -152,7 +152,7 @@ class ImplementerRequestList extends Page implements HasTable
                 SelectFilter::make('request_status')
                     ->label('Status')
                     ->options([
-                        'Pending Approval' => 'Pending Approval',
+                        'Pending' => 'Pending',
                         'Approved' => 'Approved',
                         'Rejected' => 'Rejected',
                         'Cancelled' => 'Cancelled',

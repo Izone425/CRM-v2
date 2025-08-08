@@ -53,9 +53,14 @@ use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
 use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
 use Carbon\Carbon;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
@@ -901,6 +906,119 @@ class LeadResource extends Resource
                     LeadActions::getRequestChangeLeadOwnerAction(),
 
                     LeadActions::getViewReferralDetailsAction(),
+
+                    Tables\Actions\Action::make('handoverMapping')
+                        ->label(__('Handover Mapping'))
+                        ->visible(fn (Lead $lead) =>
+                            in_array(auth()->user()->role_id, [4, 5, 3])
+                        )
+                        ->modalHeading('Map Lead to Software Handover')
+                        ->color('danger')
+                        ->icon('heroicon-o-link')
+                        ->form([
+                            Placeholder::make('')
+                                ->content(__('Update the company name, mark this lead as Closed, and link to a software handover.')),
+
+                            TextInput::make('company_name')
+                                ->label('Company Name')
+                                ->required()
+                                ->default(fn (Lead $record) => $record->companyDetail?->company_name ?? '')
+                                ->reactive()
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                            Select::make('status')
+                                ->label('INACTIVE STATUS')
+                                ->options(function () {
+                                    // Create base options array
+                                    $options = [
+                                        'Closed' => 'Closed',
+                                    ];
+
+                                    return $options;
+                                })
+                                ->default('Closed')
+                                ->required()
+                                ->reactive(),
+
+                            Select::make('software_handover_id')
+                                ->label('Link Software Handover')
+                                ->options(function (callable $get, $livewire) {
+                                    $companyName = $get('company_name');
+
+                                    if (!$companyName) {
+                                        return [];
+                                    }
+
+                                    // Find orphaned software handovers with matching company name
+                                    return \App\Models\SoftwareHandover::whereNull('lead_id')
+                                        ->where('company_name', 'LIKE', "%{$companyName}%")
+                                        ->get()
+                                        ->mapWithKeys(function ($handover) {
+                                            $date = $handover->created_at->format('d M Y');
+                                            $implementer = $handover->implementer ?? 'Unknown';
+                                            return [$handover->id => "#{$handover->id} - {$handover->company_name} ({$implementer} - {$date})"];
+                                        })
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->placeholder('Select handover to link')
+                                ->live(),
+                        ])
+                        ->action(function (Lead $record, array $data) {
+                            $lead = $record;
+
+                            // First, update the company name in the company details
+                            if ($lead->companyDetail) {
+                                $lead->companyDetail->update([
+                                    'company_name' => $data['company_name'],
+                                ]);
+                            }
+
+                            // Update the lead status to Closed
+                            $updateData = [
+                                'categories' => 'Inactive',
+                                'lead_status' => 'Closed',
+                                'stage' => null,
+                            ];
+
+                            $lead->update($updateData);
+
+                            // Link to software handover if selected
+                            if (!empty($data['software_handover_id'])) {
+                                $handoverId = $data['software_handover_id'];
+                                $handover = \App\Models\SoftwareHandover::find($handoverId);
+
+                                if ($handover) {
+                                    // Update the software handover with the lead_id
+                                    $handover->update([
+                                        'lead_id' => $lead->id
+                                    ]);
+
+                                    // Log this action
+                                    activity()
+                                        ->causedBy(auth()->user())
+                                        ->performedOn($lead)
+                                        ->log('Software handover #' . $handoverId . ' linked to this lead');
+                                }
+                            }
+
+                            // Log activity
+                            $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Company name updated to ' . $data['company_name'] . ' and linked to software handover',
+                                ]);
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Handover Mapping Complete')
+                                ->success()
+                                ->body('You have successfully updated the company name and linked the software handover.')
+                                ->send();
+                        }),
 
                     Tables\Actions\Action::make('resetLead')
                         ->label(__('Reset Lead'))

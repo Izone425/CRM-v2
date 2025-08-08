@@ -220,6 +220,33 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('manual_kick_off_meeting')
+                        ->label('Task Completed (Manual)')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->modalSubmitActionLabel('Submit')
+                        ->modalWidth(MaxWidth::FourExtraLarge)
+                        ->modalHeading(fn(SoftwareHandover $record) => "Online Kick-Off Meeting for {$record->company_name}") // SlideOver title
+                        ->form([
+                            DatePicker::make('kick_off_meeting')
+                                ->native(false)
+                                ->displayFormat('d F Y')
+                                ->placeholder("Choose date")
+                                ->label("Online Kick Off Meeting Date"),
+                            PlaceHolder::make('webinar_training')
+                                ->label("Online Webinar Date")
+                                ->content('N/A'),
+                        ])
+                        ->action(function (SoftwareHandover $record, array $data): void {
+                            $record->update([
+                                'kick_off_meeting' => $data['kick_off_meeting']
+                            ]);
+
+                            Notification::make()
+                                ->title('Online Kick-Off Meeting Scheduled successfully')
+                                ->success()
+                                ->send();
+                        }),
                     Action::make('edit_kick_off_meeting')
                         ->label('Task Completed')
                         ->icon('heroicon-o-pencil')

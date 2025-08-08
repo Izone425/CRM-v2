@@ -42,18 +42,27 @@
 
     @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
         <!-- Display Booked Session -->
-        <div class="appointment-card" style="{{ $cardStyle }}">
+        <div class="appointment-card" style="{{ $cardStyle }}"
+            wire:click="showAppointmentDetails({{ $sessionDetails['appointment']->id ?? 'null' }})">
             <div class="appointment-card-bar"></div>
             <div class="appointment-card-info">
-                <div class="appointment-demo-type">{{ $sessionDetails['appointment']->type }}</div>
+                <div class="appointment-demo-type">{{ str_replace(' SESSION', '', $sessionDetails['appointment']->type) }}</div>
                 <div class="appointment-appointment-type">
-                    {{ $sessionDetails['appointment']->appointment_type }} |
-                    <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                    {{ $sessionDetails['appointment']->appointment_type }}
+                    @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
+                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
+                    @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
+                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                    @endif
                 </div>
                 <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
-                    <a target="_blank" rel="noopener noreferrer" href={{ $sessionDetails['appointment']->url }}>
-                        {{ $sessionDetails['appointment']->company_name }}
-                    </a>
+                    @if(isset($sessionDetails['appointment']->lead_id) && $sessionDetails['appointment']->lead_id)
+                        <a target="_blank" rel="noopener noreferrer" href="{{ $sessionDetails['appointment']->url }}">
+                            {{ $sessionDetails['appointment']->company_name }}
+                        </a>
+                    @else
+                        {{ $sessionDetails['appointment']->company_name ?? $sessionDetails['appointment']->title ?? 'N/A' }}
+                    @endif
                 </div>
                 <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
                     {{ $sessionDetails['appointment']->end_time }}</div>
@@ -76,11 +85,11 @@
                 @elseif($sessionDetails['status'] === 'past')
                     <div class="available-session-name">PAST SESSION</div>
                     <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
-                @elseif($sessionDetails['status'] === 'cancelled')
+                @elseif($sessionDetails['status'] === 'cancelled' && !$isClickable)
                     <div class="available-session-name">CANCELLED SESSION</div>
                     <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                 @else
-                    <div class="available-session-name">{{ $sessionName }} AVAILABLE SLOT</div>
+                    <div class="available-session-name">{{ $sessionName }}<br>AVAILABLE SLOT</div>
                     <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
                 @endif
             </div>
