@@ -214,6 +214,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                         ->label('Approve')
                         ->icon('heroicon-o-check')
                         ->color('success')
+                        ->requiresConfirmation()
                         ->visible(function() {
                             $user = auth()->user();
                             return $user->name === 'Fazuliana Mohdarsad' ||
@@ -236,6 +237,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                         ->label('Reject')
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
+                        ->requiresConfirmation()
                         ->visible(function() {
                             $user = auth()->user();
                             return $user->name === 'Fazuliana Mohdarsad' ||
@@ -248,6 +250,31 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                             // Notification logic
                             Notification::make()
                                 ->title('Request Rejected')
+                                ->warning()
+                                ->send();
+
+                            $this->dispatch('refresh-implementer-tables');
+                        }),
+
+                    Action::make('cancelled')
+                        ->label('Cancelled')
+                        ->icon('heroicon-o-x-mark')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->visible(function() {
+                            $user = auth()->user();
+                            return $user->name === 'Fazuliana Mohdarsad' ||
+                                $user->role_id === 3 ||
+                                $user->id === 26;
+                        })
+                        ->action(function (\App\Models\ImplementerAppointment $record) {
+                            $record->update([
+                                'request_status' => 'CANCELLED',
+                                'status' => 'Cancelled'
+                            ]);
+
+                            Notification::make()
+                                ->title('Request Cancelled')
                                 ->warning()
                                 ->send();
 

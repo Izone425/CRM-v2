@@ -210,34 +210,25 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('approve')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check')
-                        ->color('success')
-                        ->visible(fn() => auth()->user()->name === 'Fazuliana Mohdarsad')
-                        ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update(['request_status' => 'APPROVED']);
-
-                            // Notification logic
-                            Notification::make()
-                                ->title('Request Approved')
-                                ->success()
-                                ->send();
-
-                            $this->dispatch('refresh-implementer-tables');
-                        }),
-
-                    Action::make('reject')
-                        ->label('Reject')
+                    Action::make('cancelled')
+                        ->label('Cancelled')
                         ->icon('heroicon-o-x-mark')
-                        ->color('danger')
-                        ->visible(fn() => auth()->user()->name === 'Fazuliana Mohdarsad')
+                        ->color('gray')
+                        ->requiresConfirmation()
+                        ->visible(function() {
+                            $user = auth()->user();
+                            return $user->name === 'Fazuliana Mohdarsad' ||
+                                $user->role_id === 3 ||
+                                $user->id === 26;
+                        })
                         ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update(['request_status' => 'REJECTED']);
+                            $record->update([
+                                'request_status' => 'CANCELLED',
+                                'status' => 'Cancelled'
+                            ]);
 
-                            // Notification logic
                             Notification::make()
-                                ->title('Request Rejected')
+                                ->title('Request Cancelled')
                                 ->warning()
                                 ->send();
 

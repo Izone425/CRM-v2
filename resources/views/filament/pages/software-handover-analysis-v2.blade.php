@@ -164,10 +164,9 @@
         }
 
         .bar-value {
-            width: 40px;
+            width: 90px;
             font-size: 14px;
             font-weight: 600;
-            text-align: right;
         }
 
         .salesperson-metrics {
@@ -296,6 +295,64 @@
             opacity: 1;
             visibility: visible;
         }
+
+        .horizontal-bar-tooltip {
+            position: absolute;
+            right: -5px;
+            top: -25px;
+            transform: translateX(0);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Make bar-fill position relative so tooltip positioning works */
+        .bar-fill {
+            position: relative;
+            height: 100%;
+            border-radius: 6px;
+        }
+
+        /* Show tooltip on hover */
+        .bar-fill:hover .horizontal-bar-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        color: white;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s, visibility 0.2s;
+        z-index: 10;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
+    /* Make bar-fill position relative so tooltip positioning works */
+    .bar-fill {
+        position: relative;
+        height: 100%;
+        border-radius: 6px;
+    }
+
+    /* Show tooltip on hover */
+    .bar-fill:hover .horizontal-bar-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
     </style>
 
     <div class="dashboard-container">
@@ -305,7 +362,7 @@
             <div class="card-header">
                 <div class="card-title">
                     <i class="fas fa-bullseye"></i>
-                    <span>Monthly Target vs. Actual Projects</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span>Total Software Handover by Month</span>&nbsp;&nbsp;&nbsp;&nbsp;
                     <div class="target-legend">
                         <div class="target-legend-item">
                             <div class="legend-box target-color"></div>
@@ -531,11 +588,19 @@
 
         <!-- Section 2: Top Salespersons -->
         <div class="mini-charts-container">
-            <div class="mini-chart-card" style="flex: 2;" x-data="{ rankView: 'rank1' }">
+            <div class="mini-chart-card" style="flex: 2;" x-data="{
+                rankView: 'rank1',
+                get totalCount() {
+                    return this.rankView === 'rank1'
+                        ? {{ array_sum(array_column($this->getHandoversBySalesPersonRank1()->toArray(), 'total')) }}
+                        : {{ array_sum(array_column($this->getHandoversBySalesPersonRank2()->toArray(), 'total')) }};
+                }
+            }">
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-user-tie"></i>
                         <span>by Salesperson</span>
+                        <span class="total-count" x-text="'| Project Count (' + totalCount + ')'"></span>
                     </div>
                     <div class="toggle-container">
                         <button
@@ -641,40 +706,36 @@
                         <span class="bar-label">Open</span>
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-open" style="width: {{ ($statusData['open'] / $maxStatus) * 100 }}%">
-                                <span class="bar-tooltip">{{ round(($statusData['open'] / $totalStatus) * 100, 1) }}%</span>
                             </div>
                         </div>
-                        <span class="bar-value">{{ $statusData['open'] }}</span>
+                        <span class="bar-value">{{ $statusData['open'] }} ({{ round(($statusData['open'] / $totalStatus) * 100, 1) }}% )</span>
                     </div>
 
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Delay</span>
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-delay" style="width: {{ ($statusData['delay'] / $maxStatus) * 100 }}%">
-                                <span class="bar-tooltip">{{ round(($statusData['delay'] / $totalStatus) * 100, 1) }}%</span>
                             </div>
                         </div>
-                        <span class="bar-value">{{ $statusData['delay'] }}</span>
+                        <span class="bar-value">{{ $statusData['delay'] }} ({{ round(($statusData['delay'] / $totalStatus) * 100, 1) }}%)</span>
                     </div>
 
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Inactive</span>
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-inactive" style="width: {{ ($statusData['inactive'] / $maxStatus) * 100 }}%">
-                                <span class="bar-tooltip">{{ round(($statusData['inactive'] / $totalStatus) * 100, 1) }}%</span>
                             </div>
                         </div>
-                        <span class="bar-value">{{ $statusData['inactive'] }}</span>
+                        <span class="bar-value">{{ $statusData['inactive'] }} ({{ round(($statusData['inactive'] / $totalStatus) * 100, 1) }}%)</span>
                     </div>
 
                     <div class="horizontal-bar-item">
                         <span class="bar-label">Closed</span>
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-closed" style="width: {{ ($statusData['closed'] / $maxStatus) * 100 }}%">
-                                <span class="bar-tooltip">{{ round(($statusData['closed'] / $totalStatus) * 100, 1) }}%</span>
                             </div>
                         </div>
-                        <span class="bar-value">{{ $statusData['closed'] }}</span>
+                        <span class="bar-value">{{ $statusData['closed'] }} ({{ round(($statusData['closed'] / $totalStatus) * 100, 1) }}%)</span>
                     </div>
                 </div>
             </div>
@@ -706,7 +767,7 @@
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-small" style="width: {{ ($sizeData['Small'] / $maxSize) * 100 }}%"></div>
                         </div>
-                        <span class="bar-value">{{ $sizeData['Small'] }}</span>
+                        <span class="bar-value">{{ $sizeData['Small'] }} ({{ round(($sizeData['Small'] / $totalSize) * 100, 1) }}%)</span>
                     </div>
 
                     <div class="horizontal-bar-item">
@@ -714,7 +775,7 @@
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-medium" style="width: {{ ($sizeData['Medium'] / $maxSize) * 100 }}%"></div>
                         </div>
-                        <span class="bar-value">{{ $sizeData['Medium'] }}</span>
+                        <span class="bar-value">{{ $sizeData['Medium'] }} ({{ round(($sizeData['Medium'] / $totalSize) * 100, 1) }}%)</span>
                     </div>
 
                     <div class="horizontal-bar-item">
@@ -722,7 +783,7 @@
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-large" style="width: {{ ($sizeData['Large'] / $maxSize) * 100 }}%"></div>
                         </div>
-                        <span class="bar-value">{{ $sizeData['Large'] }}</span>
+                        <span class="bar-value">{{ $sizeData['Large'] }} ({{ round(($sizeData['Large'] / $totalSize) * 100, 1) }}%)</span>
                     </div>
 
                     <div class="horizontal-bar-item">
@@ -730,7 +791,7 @@
                         <div class="bar-track">
                             <div class="bar-fill bar-fill-enterprise" style="width: {{ ($sizeData['Enterprise'] / $maxSize) * 100 }}%"></div>
                         </div>
-                        <span class="bar-value">{{ $sizeData['Enterprise'] }}</span>
+                        <span class="bar-value">{{ $sizeData['Enterprise'] }} ({{ round(($sizeData['Enterprise'] / $totalSize) * 100, 1) }}%)</span>
                     </div>
                 </div>
             </div>
@@ -739,7 +800,8 @@
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-chart-line"></i>
-                        <span>Module Adoption by Quarter</span>
+                        <span>by TimeTec Module</span>
+                        <span class="total-count">| Project Count ({{ $totalStatus }})</span>
                     </div>
                     <div class="module-legend">
                         <div class="legend-item">
