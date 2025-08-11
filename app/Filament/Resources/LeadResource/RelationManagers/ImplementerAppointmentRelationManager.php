@@ -477,6 +477,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         return 'gray';
                     })
                     ->weight('bold'),
+                TextColumn::make('date')
+                    ->label('DATE & TIME'),
                 // TextColumn::make('date')
                 //     ->label('DATE & TIME')
                 //     ->sortable()
@@ -628,91 +630,128 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         ->icon('heroicon-o-x-circle')
                         ->action(function (array $data, ImplementerAppointment $record) {
                             // Update the Appointment status
-                            $record->update([
-                                'status' => 'Cancelled',
-                                // 'cancelled_at' => now(),
-                                // 'cancelled_by' => auth()->id(),
-                                // 'cancel_reason' => $data['cancel_reason'] ?? null,
-                            ]);
+                            try {
+                                // Update status to Cancelled
+                                $record->status = 'Cancelled';
+                                $record->request_status = 'CANCELLED';
 
-                            // Send cancellation email notification
-                            $lead = $this->ownerRecord;
+                                // Cancel Teams meeting if exists
+                                if ($record->event_id) {
+                                    $eventId = $record->event_id;
 
-                            // Set up email recipients
-                            $recipients = ['admin.timetec.hr@timeteccloud.com']; // Admin email
-                            // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
+                                    // Get implementer's email instead of using organizer_email
+                                    $implementer = User::where('name', $record->implementer)->first();
 
-                            // Process required attendees from saved data
-                            $requiredAttendees = null;
-                            if (!empty($record->required_attendees)) {
-                                if ($this->isJson($record->required_attendees)) {
-                                    $requiredAttendees = json_decode($record->required_attendees, true);
-                                } else {
-                                    $requiredAttendees = array_filter(array_map('trim', explode(';', $record->required_attendees)));
+                                    if ($implementer && $implementer->email) {
+                                        $implementerEmail = $implementer->email;
+
+                                        try {
+                                            $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                                            $graph = new Graph();
+                                            $graph->setAccessToken($accessToken);
+
+                                            // Cancel the Teams meeting using implementer's email
+                                            $graph->createRequest("DELETE", "/users/$implementerEmail/events/$eventId")->execute();
+
+                                            Notification::make()
+                                                ->title('Teams Meeting Cancelled Successfully')
+                                                ->warning()
+                                                ->body('The meeting has been cancelled in Microsoft Teams.')
+                                                ->send();
+
+                                        } catch (\Exception $e) {
+                                            Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                                                'event_id' => $eventId,
+                                                'implementer' => $implementerEmail,
+                                                'trace' => $e->getTraceAsString()
+                                            ]);
+
+                                            Notification::make()
+                                                ->title('Failed to Cancel Teams Meeting')
+                                                ->warning()
+                                                ->body('The appointment was cancelled, but there was an error cancelling the Teams meeting: ' . $e->getMessage())
+                                                ->send();
+                                        }
+                                    } else {
+                                        Log::error('Failed to cancel Teams meeting: Implementer email not found', [
+                                            'event_id' => $eventId,
+                                            'implementer_name' => $record->implementer
+                                        ]);
+
+                                        Notification::make()
+                                            ->title('Failed to Cancel Teams Meeting')
+                                            ->warning()
+                                            ->body('The appointment was cancelled, but the implementer email was not found.')
+                                            ->send();
+                                    }
                                 }
 
-                                // Add valid email addresses to recipients
-                                if (is_array($requiredAttendees)) {
-                                    foreach ($requiredAttendees as $email) {
-                                        if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
+                                $record->save();
+
+                                Notification::make()
+                                    ->title('Appointment cancelled successfully')
+                                    ->success()
+                                    ->send();
+
+                                // Refresh tables
+                                $this->dispatch('refresh-implementer-tables');
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error cancelling appointment')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+
+                            try {
+                                $companyDetail = null;
+                                if ($record->lead_id) {
+                                    $companyDetail = \App\Models\CompanyDetail::where('lead_id', $record->lead_id)->first();
+                                }
+
+                                $companyName = $companyDetail ? $companyDetail->company_name :
+                                    ($record->title ?: 'Unknown Company');
+
+                                $recipients = [];
+
+                                // Add attendees from the appointment
+                                if ($record->required_attendees) {
+                                    $attendeeEmails = array_map('trim', explode(';', $record->required_attendees));
+                                    foreach ($attendeeEmails as $email) {
+                                        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                             $recipients[] = $email;
                                         }
                                     }
                                 }
-                            }
 
-                            // Ensure recipients are unique
-                            $recipients = array_unique($recipients);
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $authUser->email;
+                                $senderName = $authUser->name;
 
-                            // Prepare email content
-                            $emailContent = [
-                                'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                                'lead' => [
-                                    'company' => $lead->companyDetail->company_name ?? 'N/A',
-                                    'implementerName' => $record->implementer ?? 'N/A',
-                                    'date' => Carbon::parse($record->date)->format('d/m/Y'),
-                                    'startTime' => Carbon::parse($record->start_time)->format('h:i A'),
-                                    'endTime' => Carbon::parse($record->end_time)->format('h:i A'),
-                                    'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                                    'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                                    'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                                    'demo_type' => $record->type,
-                                    'appointment_type' => $record->appointment_type,
-                                    'cancelReason' => $data['cancel_reason'] ?? 'No reason provided',
-                                ],
-                            ];
+                                // Prepare email data
+                                $emailData = [
+                                    'appointmentType' => $record->type,
+                                    'companyName' => $companyName,
+                                    'date' => Carbon::parse($record->date)->format('d F Y'),
+                                    'time' => Carbon::parse($record->start_time)->format('g:i A') . ' - ' .
+                                            Carbon::parse($record->end_time)->format('g:i A'),
+                                    'implementer' => $record->implementer,
+                                ];
 
-                            $viewName = 'emails.implementer_appointment_cancel';
-
-                            $authUser = auth()->user();
-                            $senderEmail = $authUser->email;
-                            $senderName = $authUser->name;
-
-                            try {
-                                // Send email with template and custom subject format
                                 if (count($recipients) > 0) {
-                                    \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $record) {
-                                        $message->from($senderEmail, $senderName)
-                                            ->to($recipients)
-                                            ->subject("CANCELLED: TIMETEC IMPLEMENTATION APPOINTMENT | {$record->type} | {$lead->companyDetail->company_name} | " .
-                                                    Carbon::parse($record->date)->format('d M Y'));
-                                    });
-
-                                    Notification::make()
-                                        ->title('Implementation appointment notification sent')
-                                        ->success()
-                                        ->body('Email notification sent to administrator and required attendees')
-                                        ->send();
+                                    \Illuminate\Support\Facades\Mail::send(
+                                        'emails.implementer_appointment_cancelled',
+                                        ['content' => $emailData],
+                                        function ($message) use ($recipients, $senderEmail, $senderName, $companyName, $record) {
+                                            $message->from($senderEmail, $senderName)
+                                                ->to($recipients)
+                                                ->subject("CANCELLED: TIMETEC IMPLEMENTER APPOINTMENT | {$record->type} | {$companyName}");
+                                        }
+                                    );
                                 }
                             } catch (\Exception $e) {
-                                // Handle email sending failure
-                                Log::error("Email sending failed for implementation appointment: Error: {$e->getMessage()}");
-
-                                Notification::make()
-                                    ->title('Email Notification Failed')
-                                    ->danger()
-                                    ->body('Could not send email notification: ' . $e->getMessage())
-                                    ->send();
+                                Log::error("Email sending failed for cancelled implementer appointment: Error: {$e->getMessage()}");
                             }
 
                             Notification::make()

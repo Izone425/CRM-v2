@@ -358,12 +358,6 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
                 'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
                         Carbon::parse($appointment->end_time)->format('g:i A'),
                 'implementer' => $appointment->implementer,
-                'cancelledBy' => $authUser->name,
-                'cancelledDate' => Carbon::now()->format('d F Y g:i A'),
-                'remarks' => $appointment->remarks ?? 'N/A',
-                'meetingLink' => $appointment->teams_meeting_link ?? null,
-                'meetingId' => $appointment->teams_meeting_id ?? null,
-                'meetingPassword' => $appointment->teams_meeting_password ?? null
             ];
 
             if (count($recipients) > 0) {
