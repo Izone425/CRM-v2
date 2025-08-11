@@ -495,7 +495,7 @@ class CompanyTabs
                                 ])
                                 ->visible(function (Lead $lead) {
                                     // Admin role always has access
-                                    if (auth()->user()->role_id === 3) {
+                                    if (auth()->user()->role_id === 3 || auth()->user()->role_id === 5) {
                                         return true;
                                     }
 
@@ -513,30 +513,14 @@ class CompanyTabs
                                 ->headerActions([
                                     Action::make('edit_project_info')
                                         ->label('Edit')
-                                        ->visible(function (Lead $lead) {
-                                            // Admin role always has access
-                                            if (auth()->user()->role_id === 3) {
-                                                return true;
-                                            }
-
-                                            // Check if current user is the implementer for this lead
-                                            $latestHandover = $lead->softwareHandover()
-                                                ->orderBy('created_at', 'desc')
-                                                ->first();
-
-                                            if ($latestHandover && strtolower($latestHandover->implementer) === strtolower(auth()->user()->name)) {
-                                                return true;
-                                            }
-
-                                            return false;
-                                        })
+                                        ->visible(false)
                                         ->modalHeading('Edit Project Information')
                                         ->modalSubmitActionLabel('Save Changes')
                                         ->form([
                                             Select::make('status_handover')
                                                 ->label('Project Status')
                                                 ->options([
-                                                    'Inactive' => 'Inactive',
+                                                    'InActive' => 'InActive',
                                                     'Closed' => 'Closed',
                                                 ])
                                                 ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->status_handover ?? 'Open')
@@ -548,9 +532,9 @@ class CompanyTabs
                                                 ->format('Y-m-d')
                                                 ->displayFormat('d/m/Y')
                                                 ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->go_live_date ?? null)
-                                                // Only require go_live_date when status is NOT Inactive
-                                                ->required(fn (callable $get) => $get('status_handover') !== 'Inactive')
-                                                // Hide field when status is Inactive
+                                                // Only require go_live_date when status is NOT InActive
+                                                ->required(fn (callable $get) => $get('status_handover') !== 'InActive')
+                                                // Hide field when status is InActive
                                                 ->visible(fn (callable $get) => $get('status_handover') == 'Closed'),
                                         ])
                                         ->action(function (Lead $lead, array $data) {

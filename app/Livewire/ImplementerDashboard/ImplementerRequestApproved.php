@@ -91,7 +91,7 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
         elseif (is_numeric($this->selectedUser)) {
             $user = User::find($this->selectedUser);
 
-            if ($user && ($user->role_id === 4)) {
+            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
                 $query->where('implementer', $user->name);
             }
         }
@@ -210,17 +210,11 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('cancelled')
-                        ->label('Cancelled')
+                    Action::make('cancel')
+                        ->label('Cancel')
                         ->icon('heroicon-o-x-mark')
                         ->color('gray')
                         ->requiresConfirmation()
-                        ->visible(function() {
-                            $user = auth()->user();
-                            return $user->name === 'Fazuliana Mohdarsad' ||
-                                $user->role_id === 3 ||
-                                $user->id === 26;
-                        })
                         ->action(function (\App\Models\ImplementerAppointment $record) {
                             $record->update([
                                 'request_status' => 'CANCELLED',

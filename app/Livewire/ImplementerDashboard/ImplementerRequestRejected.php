@@ -91,7 +91,7 @@ class ImplementerRequestRejected extends Component implements HasForms, HasTable
         elseif (is_numeric($this->selectedUser)) {
             $user = User::find($this->selectedUser);
 
-            if ($user && ($user->role_id === 4)) {
+            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
                 $query->where('implementer', $user->name);
             }
         }

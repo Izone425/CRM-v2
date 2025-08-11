@@ -366,14 +366,21 @@ class SoftwareHandoverResource extends Resource
                             Select::make('status_handover')
                                 ->label('Project Status')
                                 ->options(function (callable $get) {
-                                    // First check if go_live_date has been selected
-                                    if (!empty($get('go_live_date'))) {
-                                        // If go_live_date exists, include Closed option
+                                    // Check if user has permissions to set Closed status
+                                    $user = auth()->user();
+                                    $canSetClosed = ($user->role_id == 3 || $user->id == 26);
+
+                                    // First check if go_live_date has been selected or user has special permission
+                                    if (!empty($get('go_live_date')) || $canSetClosed) {
+                                        // Include Closed option
                                         return [
+                                            'Open' => 'Open',
+                                            'InActive' => 'InActive',
+                                            'Delay' => 'Delay',
                                             'Closed' => 'Closed',
                                         ];
                                     } else {
-                                        // If no go_live_date, don't include Closed option
+                                        // If no go_live_date and user doesn't have special permissions, don't include Closed option
                                         return [
                                             'Open' => 'Open',
                                             'InActive' => 'InActive',

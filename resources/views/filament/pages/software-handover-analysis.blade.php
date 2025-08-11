@@ -286,6 +286,44 @@
         .clickable:hover {
             background-color: rgba(59, 130, 246, 0.1);
         }
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            border-radius: 0.375rem 0.375rem 0 0;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .group-header:hover {
+            background: linear-gradient(to right, #1d4ed8, #3b82f6);
+        }
+
+        .group-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: white;
+            color: #2563eb;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+        }
+
+        .group-content {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+        }
     </style>
 
     @php
@@ -564,31 +602,84 @@
                         </svg>
                         <p>No handovers found for this selection.</p>
                     </div>
-                @else
-                    @foreach ($handoverList as $handover)
-                        @if ($handover->lead_id)
-                            @php
-                                try {
-                                    $companyName = $handover->company_name ?? 'N/A';
-                                    $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
-                                    $encryptedId = \App\Classes\Encryptor::encrypt($handover->lead_id);
-                                } catch (\Exception $e) {
-                                    $shortened = 'Error loading company';
-                                    $encryptedId = '#';
-                                    $companyName = 'Error: ' . $e->getMessage();
-                                }
-                            @endphp
+                @elseif ($handoverList instanceof \Illuminate\Support\Collection && $handoverList->first() instanceof \Illuminate\Support\Collection)
+                    <!-- Grouped display -->
+                    @foreach ($handoverList as $companySize => $handovers)
+                        <div class="mb-4">
+                            <!-- Group header -->
+                            <div
+                                class="group-header"
+                                x-on:click="expandedGroups['{{ $companySize }}'] = !expandedGroups['{{ $companySize }}']"
+                            >
+                                <div class="flex items-center">
+                                    <span class="group-badge">{{ $handovers->count() }}</span>
+                                    <span>{{ $companySize }}</span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform"
+                                    :class="expandedGroups['{{ $companySize }}'] ? 'transform rotate-180' : ''"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
 
+                            <!-- Group content (collapsible) -->
+                            <div class="group-content" x-show="expandedGroups['{{ $companySize }}']" x-collapse>
+                                @foreach ($handovers as $handover)
+                                    @php
+                                        try {
+                                            $companyName = $handover->company_name ?? 'N/A';
+                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
+                                            $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
+                                        } catch (\Exception $e) {
+                                            $shortened = 'Error loading company';
+                                            $encryptedId = null;
+                                            $companyName = 'Error: ' . $e->getMessage();
+                                        }
+                                    @endphp
+
+                                    @if ($encryptedId)
+                                        <a href="{{ url('admin/leads/' . $encryptedId) }}"
+                                            target="_blank"
+                                            title="{{ $companyName }}"
+                                            class="company-item has-lead">
+                                            {{ $shortened }}
+                                            <i class="ml-1 text-xs fas fa-external-link-alt"></i>
+                                        </a>
+                                    @else
+                                        <div class="company-item no-lead">
+                                            {{ $shortened }}
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <!-- Legacy non-grouped display as fallback -->
+                    @foreach ($handoverList as $handover)
+                        @php
+                            try {
+                                $companyName = $handover->company_name ?? 'N/A';
+                                $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
+                                $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
+                            } catch (\Exception $e) {
+                                $shortened = 'Error loading company';
+                                $encryptedId = null;
+                                $companyName = 'Error: ' . $e->getMessage();
+                            }
+                        @endphp
+
+                        @if ($encryptedId)
                             <a href="{{ url('admin/leads/' . $encryptedId) }}"
-                            target="_blank"
-                            title="{{ $companyName }}"
-                            class="company-item has-lead">
+                                target="_blank"
+                                title="{{ $companyName }}"
+                                class="company-item has-lead">
                                 {{ $shortened }}
                                 <i class="ml-1 text-xs fas fa-external-link-alt"></i>
                             </a>
                         @else
                             <div class="company-item no-lead">
-                                {{ strtoupper(\Illuminate\Support\Str::limit($handover->company_name ?? 'N/A', 40, '...')) }}
+                                {{ $shortened }}
                             </div>
                         @endif
                     @endforeach
