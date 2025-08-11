@@ -19,6 +19,8 @@ use Illuminate\Support\Str;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Support\HtmlString;
+use Filament\Tables\Actions\Action;
+use Illuminate\View\View;
 
 class ProjectCategoryClosed extends Page implements HasTable
 {
@@ -41,27 +43,44 @@ class ProjectCategoryClosed extends Page implements HasTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
                         }
 
+                        // For handover_pdf, extract filename
                         if ($record->handover_pdf) {
+                            // Extract just the filename without extension
                             $filename = basename($record->handover_pdf, '.pdf');
                             return $filename;
                         }
 
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
                         return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
-                    ->color('primary')
+                    ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
                     ->sortable(query: function (Builder $query, string $direction): Builder {
+                        // Custom sorting logic that uses the raw ID value
                         return $query->orderBy('id', $direction);
-                    }),
+                    })
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (SoftwareHandover $record): View {
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $record]);
+                            })
+                    ),
 
                 TextColumn::make('company_name')
-                    ->label('COMPANY NAME')
                     ->searchable()
+                    ->label('Company Name')
                     ->formatStateUsing(function ($state, $record) {
+                        // This will control what's displayed
                         $company = CompanyDetail::where('company_name', $state)->first();
 
                         if (!empty($record->lead_id)) {
@@ -86,7 +105,7 @@ class ProjectCategoryClosed extends Page implements HasTable
                             return url('admin/leads/' . $encryptedId);
                         }
 
-                        return null;
+                        return null; // No URL if no company found
                     })
                     ->openUrlInNewTab()
                     ->color(function ($record) {
@@ -103,16 +122,18 @@ class ProjectCategoryClosed extends Page implements HasTable
                         return Color::hex("#000000");
                     }),
 
+                TextColumn::make('salesperson')
+                    ->label('SalesPerson'),
+
                 TextColumn::make('implementer')
-                    ->label('IMPLEMENTER')
-                    ->sortable(),
+                    ->label('Implementer')
+                    ->toggleable(),
 
                 TextColumn::make('status_handover')
-                    ->label('PROJECT STATUS')
-                    ->sortable()
-                    ->formatStateUsing(fn($state) => strtoupper($state ?? 'Open')),
+                    ->label('Status')
+                    ->toggleable()
+                    ->formatStateUsing(fn($state) => strtoupper($state ?? '')),
 
-                // Module columns grouped together for better readability
                 TextColumn::make('ta')
                     ->label('TA')
                     ->formatStateUsing(function ($state) {
@@ -185,8 +206,12 @@ class ProjectCategoryClosed extends Page implements HasTable
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('payroll_code')
+                    ->label('Payroll Code')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('company_size_label')
-                    ->label('COMPANY SIZE')
+                    ->label('Company Size')
                     ->formatStateUsing(function ($state, $record) {
                         if ($record && isset($record->headcount)) {
                             $categoryService = app(CategoryService::class);
@@ -195,62 +220,57 @@ class ProjectCategoryClosed extends Page implements HasTable
                         return $state ?? 'N/A';
                     })
                     ->toggleable(),
-
                 TextColumn::make('headcount')
-                    ->label('HEADCOUNT')
+                    ->label('Headcount')
                     ->toggleable(),
-
                 TextColumn::make('completed_at')
-                    ->label('DB CREATION')
+                    ->label('DB Creation')
                     ->date('d M Y')
                     ->toggleable(),
-
                 TextColumn::make('total_days')
-                    ->label('TOTAL DAYS')
+                    ->label('Total Days')
                     ->getStateUsing(function (SoftwareHandover $record) {
+                        // Check if completed_at exists
                         if (!$record->go_live_date) {
                             try {
                                 $completedDate = Carbon::parse($record->completed_at);
                                 $today = Carbon::now();
+                                // Calculate the difference in days
                                 $daysDifference = $completedDate->diffInDays($today);
+
                                 return $daysDifference . ' ' . Str::plural('day', $daysDifference);
                             } catch (\Exception $e) {
-                                return 'N/A';
+                                return 'Error: ' . $e->getMessage();
                             }
                         }
 
                         try {
-                            $goLiveDate = Carbon::parse($record->go_live_date);
-                            $completedDate = Carbon::parse($record->completed_at);
-                            $daysDifference = $completedDate->diffInDays($goLiveDate);
-                            return $daysDifference . ' ' . Str::plural('day', $daysDifference);
+                           $goLiveDate = Carbon::parse($record->go_live_date);
+                           $completedDate = Carbon::parse($record->completed_at);
+
+                           $daysDifference = $completedDate->diffInDays($goLiveDate);
+
+                           return $daysDifference . ' ' . Str::plural('day', $daysDifference);
                         } catch (\Exception $e) {
-                            return 'N/A';
+                            // Return exception message for debugging
+                            return 'Error: ' . $e->getMessage();
                         }
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('go_live_date')
-                    ->label('GO LIVE DATE')
+                    ->label('Go Live Date')
                     ->date('d M Y')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('kick_off_meeting')
-                    ->label('KICK OFF DATE')
+                    ->label('Kick Off Date')
                     ->date('d M Y')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('webinar_training')
-                    ->label('WEBINAR TRAINING DATE')
+                    ->label('Webinar Date')
                     ->date('d M Y')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('hrdf_training_date')
-                    ->label('HRDF TRAINING DATE')
-                    ->date('d M Y')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('salesperson')
-                    ->label('SALESPERSON')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([

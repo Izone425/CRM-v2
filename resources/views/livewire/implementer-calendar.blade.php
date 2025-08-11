@@ -1565,19 +1565,20 @@
                         <!-- Existing appointments that might not be tied to standard session slots -->
                         @foreach ($row[$day . 'Appointments'] as $appointment)
                             @php
-                                // Skip appointments that are already displayed as session slots
+                                // Check if this appointment is already shown in a session slot
                                 $isSessionAppointment = false;
-                                $appointmentStartTime = \Carbon\Carbon::parse($appointment->start_time)->format('g:i A');
-                                foreach($row[$daySessionSlots] as $sessionDetails) {
-                                    if(isset($sessionDetails['appointment']) &&
-                                       $appointmentStartTime == \Carbon\Carbon::parse($sessionDetails['appointment']->start_time)->format('g:i A')) {
+                                $daySessionSlots = $day . 'SessionSlots';
+
+                                foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                    if (isset($sessionDetails['appointment']) &&
+                                        $sessionDetails['appointment']->id == $appointment->id) {
                                         $isSessionAppointment = true;
                                         break;
                                     }
                                 }
                             @endphp
 
-                            @if(!$isSessionAppointment)
+                            @if (!$isSessionAppointment)
                                 <div class="available-session-card"
                                     @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
                                     @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
@@ -1585,27 +1586,11 @@
                                     wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
                                     <div class="available-session-bar"></div>
                                     <div class="available-session-info">
+                                        <!-- Appointment content -->
                                         <div class="appointment-demo-type">
                                             {{ str_replace(' SESSION', '', $appointment->type) }}
                                         </div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }}
-                                            @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
-                                                | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
-                                            @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
-                                                | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                            @if($appointment->lead_id)
-                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                    {{ $appointment->company_name }}
-                                                </a>
-                                            @else
-                                                {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
-                                            @endif
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                        <!-- Rest of appointment content -->
                                     </div>
                                 </div>
                             @endif
@@ -1614,14 +1599,28 @@
                         <!-- Keep existing expand/collapse logic for many appointments -->
                         <template x-if="!expanded">
                             <div>
+                                @php $shownCount = 0; @endphp
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    @if ($loop->index < 3)
+                                    @php
+                                        // Check if this appointment is already shown in a session slot
+                                        $isSessionAppointment = false;
+                                        $daySessionSlots = $day . 'SessionSlots';
+
+                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                            if (isset($sessionDetails['appointment']) &&
+                                                $sessionDetails['appointment']->id == $appointment->id) {
+                                                $isSessionAppointment = true;
+                                                break;
+                                            }
+                                        }
+                                    @endphp
+
+                                    @if (!$isSessionAppointment && $shownCount < 3)
+                                        @php $shownCount++; @endphp
                                         <div class="available-session-card"
                                             @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                            @elseif ($appointment->status == 'New')
-                                                style="background-color: var(--bg-demo-yellow)"
-                                            @else
-                                                style="background-color: var(--bg-demo-red)" @endif
+                                            @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                            @else style="background-color: var(--bg-demo-red)" @endif
                                             wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
                                             <div class="available-session-bar"></div>
                                             <div class="available-session-info">
@@ -1630,10 +1629,8 @@
                                                 </div>
                                                 <div class="appointment-appointment-type">
                                                     {{ $appointment->appointment_type }}
-                                                    @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
-                                                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
-                                                    @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
-                                                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                                                    @if(isset($appointment->request_status) && $appointment->request_status)
+                                                        | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
                                                     @endif
                                                 </div>
                                                 <div class="appointment-company-name">
@@ -1649,50 +1646,84 @@
                                                     {{ $appointment->end_time }}</div>
                                             </div>
                                         </div>
-                                    @elseif($loop->index === 3)
-                                        <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                            @click="expanded = true">
-                                            +{{ count($row[$day . 'Appointments']) - 3 }} more
-                                        </div>
                                     @endif
                                 @endforeach
+
+                                @php
+                                    // Count how many non-session slot appointments there are
+                                    $nonSessionSlotCount = 0;
+                                    foreach ($row[$day . 'Appointments'] as $appointment) {
+                                        $isSessionAppointment = false;
+                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                            if (isset($sessionDetails['appointment']) &&
+                                                $sessionDetails['appointment']->id == $appointment->id) {
+                                                $isSessionAppointment = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!$isSessionAppointment) {
+                                            $nonSessionSlotCount++;
+                                        }
+                                    }
+                                @endphp
+
+                                @if($nonSessionSlotCount > 3)
+                                    <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
+                                        @click="expanded = true">
+                                        +{{ $nonSessionSlotCount - 3 }} more
+                                    </div>
+                                @endif
                             </div>
                         </template>
 
                         <template x-if="expanded">
                             <div>
                                 @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    <div class="available-session-card"
-                                        @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                        @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                        @else style="background-color: var(--bg-demo-red)" @endif
-                                        wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
-                                        <div class="available-session-bar"></div>
-                                        <div class="available-session-info">
-                                            <div class="appointment-demo-type">
-                                                {{ str_replace(' SESSION', '', $appointment->type) }}
+                                    @php
+                                        // Check if this appointment is already shown in a session slot
+                                        $isSessionAppointment = false;
+                                        $daySessionSlots = $day . 'SessionSlots';
+
+                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                            if (isset($sessionDetails['appointment']) &&
+                                                $sessionDetails['appointment']->id == $appointment->id) {
+                                                $isSessionAppointment = true;
+                                                break;
+                                            }
+                                        }
+                                    @endphp
+
+                                    @if (!$isSessionAppointment)
+                                        <div class="available-session-card"
+                                            @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                            @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                            @else style="background-color: var(--bg-demo-red)" @endif
+                                            wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
+                                            <div class="available-session-bar"></div>
+                                            <div class="available-session-info">
+                                                <div class="appointment-demo-type">
+                                                    {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                </div>
+                                                <div class="appointment-appointment-type">
+                                                    {{ $appointment->appointment_type }}
+                                                    @if(isset($appointment->request_status) && $appointment->request_status)
+                                                        | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                    @endif
+                                                </div>
+                                                <div class="appointment-company-name">
+                                                    @if($appointment->lead_id)
+                                                        <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                            {{ $appointment->company_name }}
+                                                        </a>
+                                                    @else
+                                                        {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
+                                                    @endif
+                                                </div>
+                                                <div class="appointment-time">{{ $appointment->start_time }} -
+                                                    {{ $appointment->end_time }}</div>
                                             </div>
-                                            <div class="appointment-appointment-type">
-                                                {{ $appointment->appointment_type }}
-                                                @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
-                                                    | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
-                                                @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
-                                                    | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
-                                                @endif
-                                            </div>
-                                            <div class="appointment-company-name">
-                                                @if($appointment->lead_id)
-                                                    <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                        {{ $appointment->company_name }}
-                                                    </a>
-                                                @else
-                                                    {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
-                                                @endif
-                                            </div>
-                                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                                {{ $appointment->end_time }}</div>
                                         </div>
-                                    </div>
+                                    @endif
                                 @endforeach
 
                                 <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
@@ -2020,7 +2051,7 @@
                         <div class="form-group">
                             <label for="implementationDemoType" class="form-label">Demo Type <span class="text-red-600">*</span></label>
                             <select wire:model="implementationDemoType" id="implementationDemoType" class="form-select" {{ isset($hasKickOffMeeting) && $hasKickOffMeeting ? 'disabled' : '' }}>
-                                @if(!isset($hasKickOffMeeting) || !$hasKickOffMeeting)
+                                @if((!isset($hasKickOffMeeting) || !$hasKickOffMeeting) && auth()->user()->role_id == 3)
                                     <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
                                 @endif
                                 <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>

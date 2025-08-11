@@ -366,9 +366,13 @@
                             id="userFilter"
                             class="border-gray-300 rounded-md shadow-sm"
                         >
-                            <option value="{{ auth()->id() }}">Dashboard</option>
-
-                            <option value="all-implementer">All Implementers</option>
+                            @if(auth()->id() == 26)
+                                <option value="all-implementer">All Implementers</option>
+                                <option value="{{ auth()->id() }}">Dashboard</option>
+                            @else
+                                <option value="{{ auth()->id() }}">Dashboard</option>
+                                <option value="all-implementer">All Implementers</option>
+                            @endif
 
                             <optgroup label="Implementer">
                                 @foreach ($users->whereIn('role_id', [4,5])->where('id', '!=', auth()->id()) as $user)

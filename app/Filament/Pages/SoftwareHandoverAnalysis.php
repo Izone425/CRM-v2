@@ -241,6 +241,40 @@ class SoftwareHandoverAnalysis extends Page
         return ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
     }
 
+    private function groupHandoversByCompanySize($handovers)
+    {
+        // Group handovers by headcount ranges
+        $groupedHandovers = $handovers->groupBy(function ($handover) {
+            $headcount = is_numeric($handover->headcount) ? (int)$handover->headcount : null;
+
+            if ($headcount === null) {
+                return 'Unknown';
+            } elseif ($headcount >= 1 && $headcount <= 24) {
+                return '1-24';
+            } elseif ($headcount >= 25 && $headcount <= 99) {
+                return '25-99';
+            } elseif ($headcount >= 100 && $headcount <= 500) {
+                return '100-500';
+            } elseif ($headcount > 500) {
+                return '501 and Above';
+            } else {
+                return 'Unknown';
+            }
+        });
+
+        // Sort groups in a logical order
+        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortedGroups = collect();
+
+        foreach ($sortOrder as $size) {
+            if ($groupedHandovers->has($size)) {
+                $sortedGroups[$size] = $groupedHandovers[$size];
+            }
+        }
+
+        return $sortedGroups;
+    }
+
     public function openImplementerHandoversSlideOver($implementer, $status = null)
     {
         $query = SoftwareHandover::query()->where('implementer', $implementer);
@@ -252,8 +286,11 @@ class SoftwareHandoverAnalysis extends Page
             $query->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE']);
         }
 
-        // Get company_name directly from handovers
-        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+        // Get handovers with company size
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        $this->handoverList = $this->groupHandoversByCompanySize($handovers);
 
         if ($status) {
             $statusText = " ({$status})";
@@ -275,8 +312,11 @@ class SoftwareHandoverAnalysis extends Page
             $query->where('implementer', $implementer);
         }
 
-        // Get company_name directly from handovers
-        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+        // Get handovers with company size
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        $this->handoverList = $this->groupHandoversByCompanySize($handovers);
 
         $title = $implementer ? "{$implementer} Handovers (Ongoing)" : "Ongoing Handovers";
         $this->slideOverTitle = $title;
@@ -287,8 +327,11 @@ class SoftwareHandoverAnalysis extends Page
     {
         $query = SoftwareHandover::query()->where('status_handover', $status);
 
-        // Get company_name directly from handovers
-        $this->handoverList = $query->select('id', 'lead_id', 'company_name', 'status_handover')->get();
+        // Get handovers with company size
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        $this->handoverList = $this->groupHandoversByCompanySize($handovers);
 
         $this->slideOverTitle = "{$status} Handovers";
         $this->showSlideOver = true;
@@ -296,8 +339,11 @@ class SoftwareHandoverAnalysis extends Page
 
     public function openAllHandoversSlideOver()
     {
-        // Get company_name directly from handovers
-        $this->handoverList = SoftwareHandover::select('id', 'lead_id', 'company_name', 'status_handover')->get();
+        // Get handovers with company size
+        $handovers = SoftwareHandover::select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        $this->handoverList = $this->groupHandoversByCompanySize($handovers);
 
         $this->slideOverTitle = "All Handovers";
         $this->showSlideOver = true;

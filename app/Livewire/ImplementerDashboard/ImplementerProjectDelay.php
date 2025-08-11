@@ -95,7 +95,7 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
         elseif (is_numeric($this->selectedUser)) {
             $user = User::find($this->selectedUser);
 
-            if ($user && ($user->role_id === 4)) {
+            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
                 $query->where('implementer', $user->name);
             }
         }
@@ -315,6 +315,10 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
                         ->label('Mark as Closed')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->visible(function () {
+                            $user = auth()->user();
+                            return $user->role_id === 3 || $user->id === 26;
+                        })
                         ->form([
                             DatePicker::make('go_live_date')
                                 ->label('Go Live Date')

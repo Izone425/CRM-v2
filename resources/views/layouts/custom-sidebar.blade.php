@@ -1162,6 +1162,27 @@
                             </a>
                         </div>
                     </div>
+                    {{-- <div class="nested-dropdown">
+                        <div class="sidebar-item nested-dropdown-trigger">
+                            <i class="bi bi-calendar-week-fill"></i>
+                            <span>Follow Up Template</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.resources.email-templates.index') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>By Default</span>
+                            </a>
+                        </div>
+
+                        <div class="nested-dropdown-content">
+                            <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="sidebar-item">
+                                <i class="bi bi-dot"></i>
+                                <span>By Implementer</span>
+                            </a>
+                        </div>
+                    </div> --}}
                 </div>
             </div>
             @endif

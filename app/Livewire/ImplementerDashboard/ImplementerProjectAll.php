@@ -92,7 +92,7 @@ class ImplementerProjectAll extends Component implements HasForms, HasTable
         else {
             $currentUser = auth()->user();
 
-            if ($currentUser->role_id === 4 || $currentUser->role_id === 5) {
+            if ($currentUser->role_id === 4) {
                 $query->where('implementer', $currentUser->name);
             }
         }
