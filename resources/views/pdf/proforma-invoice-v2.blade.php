@@ -179,7 +179,22 @@
                 <td style="border: 1px solid #989898;font-weight:bold;" class="text-right">{{ number_format($totalAfterTax,2) }}</td>
             </tr>
             <tr>
-                <td colspan="7">
+                @if($quotation->quotation_type == 'product')
+                    <td colspan="7">
+                        <div style="padding-top:30px;">
+                            Terms & Conditions:<br />
+                            1.	Please keep this invoice for your future reference and correspondence with TimeTec Cloud Sdn Bhd (832542-W)<br />
+                            2.	All purchases with TimeTec Cloud Sdn Bhd are bound by the Terms & Conditions.<br />
+                            3.	Questions about your invoice, email us at info@timeteccloud.com.<br />
+                            4.	Bank Account Details (for TT payment)<br />
+                            Banker: <strong>United Overseas Bank (M) Bhd</strong><br />
+                            Beneficiary's Name: <strong>TimeTec Cloud Sdn Bhd (832542-W)</strong><br />
+                            Account No.: <strong>2253081440</strong><br />
+                            Swift Code: <strong>UOVBMYKL</strong><br />
+                        </div>
+                    </td>
+                @else
+                    <td colspan="7">
                     <div style="padding-top:30px;">
                         Terms & Conditions:<br />
                         1.	Please keep this invoice for your future reference and correspondence with TimeTec Cloud Sdn Bhd (832542-W)<br />
@@ -193,6 +208,7 @@
                         Swift Code: <strong>PBBEMYKL</strong><br />
                     </div>
                 </td>
+                @endif
             </tr>
         </tbody>
     </table>

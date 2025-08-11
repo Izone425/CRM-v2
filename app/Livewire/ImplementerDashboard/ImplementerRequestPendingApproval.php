@@ -24,9 +24,11 @@ use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
+use Microsoft\Graph\Graph;
 
 class ImplementerRequestPendingApproval extends Component implements HasForms, HasTable
 {
@@ -285,23 +287,163 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                             return !($user->role_id === 3 || $user->id === 26);
                         })
                         ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update([
-                                'request_status' => 'CANCELLED',
-                                'status' => 'Cancelled'
-                            ]);
-
-                            Notification::make()
-                                ->title('Request Cancelled')
-                                ->warning()
-                                ->send();
-
-                            $this->dispatch('refresh-implementer-tables');
+                            // Call the cancelAppointment method with the appointment ID
+                            $this->cancelAppointment($record->id);
                         }),
                 ])
                 ->button()
                 ->color('warning')
                 ->label('Actions')
             ]);
+    }
+
+    public function cancelAppointment($appointmentId)
+    {
+        $appointment = \App\Models\ImplementerAppointment::find($appointmentId);
+
+        if (!$appointment) {
+            Notification::make()
+                ->title('Appointment not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            // Update status to Cancelled
+            $appointment->status = 'Cancelled';
+            $appointment->request_status = 'CANCELLED';
+
+            // Cancel Teams meeting if exists
+            if ($appointment->event_id) {
+                $eventId = $appointment->event_id;
+
+                // Get implementer's email instead of using organizer_email
+                $implementer = User::where('name', $appointment->implementer)->first();
+
+                if ($implementer && $implementer->email) {
+                    $implementerEmail = $implementer->email;
+
+                    try {
+                        $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                        $graph = new Graph();
+                        $graph->setAccessToken($accessToken);
+
+                        // Cancel the Teams meeting using implementer's email
+                        $graph->createRequest("DELETE", "/users/$implementerEmail/events/$eventId")->execute();
+
+                        Notification::make()
+                            ->title('Teams Meeting Cancelled Successfully')
+                            ->warning()
+                            ->body('The meeting has been cancelled in Microsoft Teams.')
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                            'event_id' => $eventId,
+                            'implementer' => $implementerEmail,
+                            'trace' => $e->getTraceAsString()
+                        ]);
+
+                        Notification::make()
+                            ->title('Failed to Cancel Teams Meeting')
+                            ->warning()
+                            ->body('The appointment was cancelled, but there was an error cancelling the Teams meeting: ' . $e->getMessage())
+                            ->send();
+                    }
+                } else {
+                    Log::error('Failed to cancel Teams meeting: Implementer email not found', [
+                        'event_id' => $eventId,
+                        'implementer_name' => $appointment->implementer
+                    ]);
+
+                    Notification::make()
+                        ->title('Failed to Cancel Teams Meeting')
+                        ->warning()
+                        ->body('The appointment was cancelled, but the implementer email was not found.')
+                        ->send();
+                }
+            }
+
+            $appointment->save();
+
+            // Send email notification about cancellation if needed
+            $this->sendCancellationEmail($appointment);
+
+            Notification::make()
+                ->title('Appointment cancelled successfully')
+                ->success()
+                ->send();
+
+            // Refresh tables
+            $this->dispatch('refresh-implementer-tables');
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error cancelling appointment')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    private function sendCancellationEmail($appointment)
+    {
+        try {
+            $companyDetail = null;
+            if ($appointment->lead_id) {
+                $companyDetail = \App\Models\CompanyDetail::where('lead_id', $appointment->lead_id)->first();
+            }
+
+            $companyName = $companyDetail ? $companyDetail->company_name :
+                ($appointment->title ?: 'Unknown Company');
+
+            $recipients = [];
+
+            // Add attendees from the appointment
+            if ($appointment->required_attendees) {
+                $attendeeEmails = array_map('trim', explode(';', $appointment->required_attendees));
+                foreach ($attendeeEmails as $email) {
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $recipients[] = $email;
+                    }
+                }
+            }
+
+            // Get authenticated user's email for sender
+            $authUser = auth()->user();
+            $senderEmail = $authUser->email;
+            $senderName = $authUser->name;
+
+            // Prepare email data
+            $emailData = [
+                'appointmentType' => $appointment->type,
+                'companyName' => $companyName,
+                'date' => Carbon::parse($appointment->date)->format('d F Y'),
+                'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
+                        Carbon::parse($appointment->end_time)->format('g:i A'),
+                'implementer' => $appointment->implementer,
+                'cancelledBy' => $authUser->name,
+                'cancelledDate' => Carbon::now()->format('d F Y g:i A'),
+                'remarks' => $appointment->remarks ?? 'N/A',
+                'meetingLink' => $appointment->teams_meeting_link ?? null,
+                'meetingId' => $appointment->teams_meeting_id ?? null,
+                'meetingPassword' => $appointment->teams_meeting_password ?? null
+            ];
+
+            if (count($recipients) > 0) {
+                \Illuminate\Support\Facades\Mail::send(
+                    'emails.implementer_appointment_cancelled',
+                    ['content' => $emailData],
+                    function ($message) use ($recipients, $senderEmail, $senderName, $companyName, $appointment) {
+                        $message->from($senderEmail, $senderName)
+                            ->to($recipients)
+                            ->subject("CANCELLED: TIMETEC IMPLEMENTER APPOINTMENT | {$appointment->type} | {$companyName}");
+                    }
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Email sending failed for cancelled implementer appointment: Error: {$e->getMessage()}");
+        }
     }
 
     public function render()

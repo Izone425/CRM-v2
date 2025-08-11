@@ -158,7 +158,7 @@ class ImplementerCalendar extends Component
         try {
             // Update status to Cancelled
             $appointment->status = 'Cancelled';
-
+            $appointment->request_status = 'CANCELLED';
             // Cancel Teams meeting if exists
             if ($appointment->event_id) {
                 $eventId = $appointment->event_id;

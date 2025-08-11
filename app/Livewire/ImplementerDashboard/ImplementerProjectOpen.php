@@ -89,6 +89,7 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
                 FROM implementer_appointments
                 WHERE implementer_appointments.software_handover_id = software_handovers.id
                 AND implementer_appointments.type = "IMPLEMENTATION REVIEW SESSION"
+                AND implementer_appointments.status != "Cancelled"
             ) as review_session_count'))
             ->orderBy('id', 'desc');
 
