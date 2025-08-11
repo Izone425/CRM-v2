@@ -444,12 +444,23 @@
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
     $sessionsTotal = $sessionsToday + $sessionsTomorrow;
 
-    $pendingRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'PENDING')->count();
-    $approvedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'APPROVED')->count();
-    $rejectedRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'REJECTED')->count();
-    $cancelledRequestCount = \App\Models\ImplementerAppointment::where('request_status', 'CANCELLED')->count();
+    $pendingRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestPendingApproval::class)
+        ->getImplementerPendingRequests()
+        ->count();
 
-    $implementerRequestTotal = $pendingRequestCount + $approvedRequestCount + $rejectedRequestCount + $cancelledRequestCount;
+    $approvedRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestApproved::class)
+        ->getImplementerPendingRequests()
+        ->count();
+
+    $rejectedRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestRejected::class)
+        ->getImplementerPendingRequests()
+        ->count();
+
+    $cancelledRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestCancelled::class)
+        ->getImplementerPendingRequests()
+        ->count();
+
+    $implementerRequestTotal = $pendingRequestCount;
 @endphp
 
 <div id="implementer-container" class="implementer-container"

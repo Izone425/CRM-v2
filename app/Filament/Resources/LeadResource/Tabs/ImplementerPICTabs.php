@@ -93,16 +93,23 @@ class ImplementerPICTabs
                                                     TextInput::make("original_pics.{$index}.pic_name_impl")
                                                         ->label('Name')
                                                         ->default($pic['pic_name_impl'] ?? '')
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                                         ->disabled(),
 
                                                     TextInput::make("original_pics.{$index}.position")
                                                         ->label('Position')
                                                         ->default($pic['position'] ?? '')
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                                         ->disabled(),
 
                                                     TextInput::make("original_pics.{$index}.pic_phone_impl")
                                                         ->label('Phone Number')
                                                         ->default($pic['pic_phone_impl'] ?? '')
+                                                        ->tel()
                                                         ->disabled(),
 
                                                     TextInput::make("original_pics.{$index}.pic_email_impl")
@@ -222,15 +229,22 @@ class ImplementerPICTabs
                                                     TextInput::make('name')
                                                         ->required()
                                                         ->maxLength(255)
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                                         ->columnSpan(1),
 
                                                     TextInput::make('position')
                                                         ->maxLength(255)
+                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
                                                         ->columnSpan(1),
 
                                                     TextInput::make('hp_number')
                                                         ->required()
                                                         ->tel()
+                                                        ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
                                                         ->maxLength(20)
                                                         ->columnSpan(1),
 
@@ -243,7 +257,6 @@ class ImplementerPICTabs
                                                     Select::make('status')
                                                         ->options([
                                                             'Available' => 'Available',
-                                                            'Resign' => 'Resign'
                                                         ])
                                                         ->default('Available')
                                                         ->required()

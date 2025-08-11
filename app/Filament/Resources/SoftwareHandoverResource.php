@@ -95,7 +95,7 @@ class SoftwareHandoverResource extends Resource
                                             ->inline(),
 
                                         Checkbox::make('tapp')
-                                            ->label('TimeTec Access (T-APP)')
+                                            ->label('TimeTec Appraisal (T-APP)')
                                             ->disabled()
                                             ->inline(),
 

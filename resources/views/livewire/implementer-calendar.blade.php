@@ -782,7 +782,7 @@
     </style>
 
 
-<div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
+<div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl" wire:poll.1s>
     <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
         style="width:70%;">
         <h3> Filter </h3><br>
@@ -1809,7 +1809,11 @@
                             <option value="">-- Select Session Type --</option>
                             <option value="DATA MIGRATION SESSION">Data Migration Session</option>
                             <option value="SYSTEM SETTING SESSION">System Setting Session</option>
-                            <option value="WEEKLY FOLLOW UP SESSION">Weekly Follow Up Session</option>
+                            @if(!$this->weekHasFollowUpSession($selectedYear, $selectedWeek))
+                                <option value="WEEKLY FOLLOW UP SESSION">Weekly Follow Up Session</option>
+                            @else
+                                <option value="WEEKLY FOLLOW UP SESSION" disabled>Weekly Follow Up Session (Already Scheduled)</option>
+                            @endif
                         </select>
                         @error('requestSessionType')
                             <span class="form-error">{{ $message }}</span>
@@ -2088,9 +2092,9 @@
                             class="form-input"
                             placeholder="email1@example.com;email2@example.com"
                         >
-                        <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
+                        <!-- <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
                             Load from Software Handover
-                        </button>
+                        </button> -->
                         <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
                         @error('requiredAttendees')
                             <span class="form-error">{{ $message }}</span>
@@ -2100,8 +2104,15 @@
             </div>
 
             <div class="modal-footer">
-                <button wire:click="submitImplementationSession" type="button" class="btn btn-primary">
-                    Book Session
+                <button wire:click="submitImplementationSession" type="button" class="btn btn-primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="submitImplementationSession">Book Session</span>
+                    <span wire:loading wire:target="submitImplementationSession">
+                        <svg class="inline-block w-4 h-4 mr-2 -ml-1 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                    </span>
                 </button>
                 <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
                     Cancel

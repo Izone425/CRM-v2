@@ -18,6 +18,7 @@ class Product extends Model
         'package_group',
         'package_sort_order',
         'taxable',
+        'editable',
         'is_active',
         'sort_order'
     ];

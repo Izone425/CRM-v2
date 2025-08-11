@@ -240,12 +240,35 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                             $user = auth()->user();
                             return $user->role_id === 3 || $user->id === 26;
                         })
-                        ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update(['request_status' => 'REJECTED']);
-
+                        ->form([
+                            \Filament\Forms\Components\Textarea::make('remark')
+                                ->label('Rejection Reason')
+                                ->placeholder('Please provide a reason for rejection')
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->required()
+                                ->maxLength(500)
+                        ])
+                        ->modalHeading('Reject Request')
+                        ->modalDescription('Please provide a reason for rejecting this request.')
+                        ->modalSubmitActionLabel('Reject Request')
+                        ->action(function (\App\Models\ImplementerAppointment $record, array $data) {
+                            $record->update([
+                                'status' => 'Cancelled',
+                                'request_status' => 'REJECTED',
+                                'remarks' => $data['remark'],
+                            ]);
+                            info('Implementer request rejected', [
+                                'record_id' => $record->id,
+                                'remark' => $data['remark'],
+                                'rejected_by' => auth()->id(),
+                                'rejected_at' => now(),
+                            ]);
                             // Notification logic
                             Notification::make()
                                 ->title('Request Rejected')
+                                ->body('Reason: ' . $data['remark'])
                                 ->warning()
                                 ->send();
 
@@ -257,6 +280,10 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                         ->icon('heroicon-o-x-mark')
                         ->color('gray')
                         ->requiresConfirmation()
+                        ->visible(function() {
+                            $user = auth()->user();
+                            return !($user->role_id === 3 || $user->id === 26);
+                        })
                         ->action(function (\App\Models\ImplementerAppointment $record) {
                             $record->update([
                                 'request_status' => 'CANCELLED',

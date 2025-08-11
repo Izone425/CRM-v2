@@ -328,6 +328,7 @@ class QuotationResource extends Resource
                                         $quotationType = $get('../../quotation_type');
 
                                         $query = \App\Models\Product::query()
+                                            ->where('is_active', true)
                                             ->orderBy('solution')
                                             ->orderBy('sort_order'); // 🔄 changed from 'code' to 'sort_order'
 
@@ -426,9 +427,41 @@ class QuotationResource extends Resource
                                         'md' => 1,
                                     ])
                                     ->live(debounce:500)
+                                    ->rules([
+                                        'numeric',
+                                        'min:0',
+                                        function($attribute, $value, $fail) {
+                                            // Get the product ID from the context
+                                            $productId = $this->getProductId();
+
+                                            // If no product is selected yet, no validation needed
+                                            if (!$productId) {
+                                                return;
+                                            }
+
+                                            // Find the product and check its minimum price
+                                            $product = \App\Models\Product::find($productId);
+                                            if ($product && (float)$value < (float)$product->unit_price) {
+                                                $fail("Price cannot be lower than the product's base price ({$product->unit_price})");
+                                            }
+                                        }
+                                    ])
                                     ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                        // self::updateFields('unit_price', $get, $set, $state);
-                                        //$set('unit_price', $state);
+                                        // Get the product to verify minimum price
+                                        $productId = $get('product_id');
+                                        if ($productId) {
+                                            $product = \App\Models\Product::find($productId);
+                                            if ($product && (float)$state < (float)$product->unit_price) {
+                                                // Reset to the minimum price if entered value is too low
+                                                $set('unit_price', $product->unit_price);
+                                                // Show notification to user
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Price Adjusted')
+                                                    ->body("Unit price cannot be lower than the product's base price ({$product->unit_price})")
+                                                    ->send();
+                                            }
+                                        }
                                         self::recalculateAllRows($get, $set);
                                     }),
                                 TextInput::make('total_before_tax')
@@ -466,6 +499,30 @@ class QuotationResource extends Resource
                                     ])
                                     ->reactive()
                                     ->extraInputAttributes(['style'=> 'max-height: 200px; overflow: scroll'])
+                                    ->disabled(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return false; // If no product selected, allow editing
+                                        }
+
+                                        $product = \App\Models\Product::find($productId);
+
+                                        // Make sure we're explicitly checking for editable === false
+                                        // Use strict comparison and explicit boolean check
+                                        return $product && $product->editable === 0;
+                                    })
+                                    ->helperText(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return null;
+                                        }
+
+                                        $product = \App\Models\Product::find($productId);
+
+                                        return $product && $product->editable === 0
+                                            ? 'This product description cannot be edited.'
+                                            : null;
+                                    })
                                     ->afterStateUpdated(fn(?string $state, Forms\Get $get, Forms\Set $set) => self::recalculateAllRows($get, $set))
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())

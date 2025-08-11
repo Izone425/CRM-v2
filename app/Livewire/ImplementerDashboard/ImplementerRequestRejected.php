@@ -210,39 +210,25 @@ class ImplementerRequestRejected extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('approve')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check')
-                        ->color('success')
-                        ->visible(fn() => auth()->user()->name === 'Fazuliana Mohdarsad')
-                        ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update(['request_status' => 'APPROVED']);
-
-                            // Notification logic
-                            Notification::make()
-                                ->title('Request Approved')
-                                ->success()
-                                ->send();
-
-                            $this->dispatch('refresh-implementer-tables');
-                        }),
-
-                    Action::make('reject')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-mark')
+                    Action::make('viewRejectionReason')
+                        ->label('View Rejection Reason')
+                        ->icon('heroicon-o-eye')
                         ->color('danger')
-                        ->visible(fn() => auth()->user()->name === 'Fazuliana Mohdarsad')
-                        ->action(function (\App\Models\ImplementerAppointment $record) {
-                            $record->update(['request_status' => 'REJECTED']);
-
-                            // Notification logic
-                            Notification::make()
-                                ->title('Request Rejected')
-                                ->warning()
-                                ->send();
-
-                            $this->dispatch('refresh-implementer-tables');
-                        }),
+                        ->modalHeading('Rejection Reason')
+                        ->form([
+                            \Filament\Forms\Components\Textarea::make('remarks')
+                                ->hiddenLabel()
+                                ->default(function (ImplementerAppointment $record) {
+                                    return $record->remarks ?? 'No reason provided';
+                                })
+                                ->disabled()
+                                ->rows(4)
+                                ->extraAttributes(['class' => 'bg-gray-50']),
+                        ])
+                        ->closeModalByClickingAway(true)
+                        ->modalWidth('md')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
                 ])
                 ->button()
                 ->color('warning')
