@@ -71,6 +71,9 @@ class ProductResource extends Resource
                 Toggle::make('is_active')
                         ->label('Is Active?')
                         ->inline(false),
+                Toggle::make('editable_description')
+                    ->label('Allow Editing Description in Quotations')
+                    ->default(true),
                 TextInput::make('subscription_period')
                     ->label('Subscription Period (Months)')
                     ->numeric()
@@ -153,11 +156,37 @@ class ProductResource extends Resource
                     ->visible(fn ($record) => !empty($record->package_group))
                     ->width(80),
                 TextColumn::make('solution')->width(100),
-                TextColumn::make('description')->html()->width(500)->wrap(),
+                TextColumn::make('description')
+                    ->html()
+                    ->width(500)
+                    ->wrap()
+                    ->formatStateUsing(function ($state) {
+                        // Ensure the HTML is properly formatted and encoded
+                        if ($state) {
+                            // Clean up any potential double-encoding issues
+                            $state = html_entity_decode($state);
+
+                            // Check if it's a list without proper <ul> tags
+                            if (!str_contains($state, '<ul>') && str_contains($state, '<li>')) {
+                                $state = '<ul style="list-style-type: disc; padding-left: 20px;">' . $state . '</ul>';
+                            }
+                            // If it already has <ul> tags, add styling to them
+                            else if (str_contains($state, '<ul>')) {
+                                $state = str_replace('<ul>', '<ul style="list-style-type: disc; padding-left: 20px;">', $state);
+                            }
+
+                            // Make sure <li> tags also have proper styling
+                            $state = str_replace('<li>', '<li style="display: list-item;">', $state);
+
+                            return $state;
+                        }
+                        return '';
+                    }),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
                 TextColumn::make('subscription_period')->label('Sub Period (Months)')->width(150),
                 ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(),
                 ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
+                ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(),
             ])
             ->filters([
                 Filter::make('package_group')

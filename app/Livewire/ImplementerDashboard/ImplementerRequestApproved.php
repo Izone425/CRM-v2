@@ -215,6 +215,10 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-x-mark')
                         ->color('gray')
                         ->requiresConfirmation()
+                        ->visible(function() {
+                            $user = auth()->user();
+                            return !($user->role_id === 3 || $user->id === 26);
+                        })
                         ->action(function (\App\Models\ImplementerAppointment $record) {
                             $record->update([
                                 'request_status' => 'CANCELLED',

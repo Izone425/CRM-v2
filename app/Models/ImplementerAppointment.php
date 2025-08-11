@@ -30,6 +30,8 @@ class ImplementerAppointment extends Model
         'request_status',
         'selected_year',
         'selected_week',
+        'event_id',
+        'meeting_link',
         'causer_id',
         'software_handover_id',
     ];

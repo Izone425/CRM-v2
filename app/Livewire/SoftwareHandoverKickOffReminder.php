@@ -752,7 +752,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         $message->from($senderEmail, $senderName)
                                             ->to($recipients)
                                             ->bcc('admin.timetec.hr@timeteccloud.com')
-                                            ->subject("TIMETEC HR | ONLINE | KICK-OFF MEETING SESSION | {$lead->companyDetail->company_name}");
+                                            ->subject("KICK-OFF MEETING SESSION | {$lead->companyDetail->company_name}");
                                     });
 
                                     Notification::make()

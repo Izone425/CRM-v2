@@ -160,35 +160,52 @@ class ImplementerCalendar extends Component
             $appointment->status = 'Cancelled';
 
             // Cancel Teams meeting if exists
-            if ($appointment->teams_event_id && $appointment->organizer_email) {
-                $eventId = $appointment->teams_event_id;
-                $organizerEmail = $appointment->organizer_email;
+            if ($appointment->event_id) {
+                $eventId = $appointment->event_id;
 
-                try {
-                    $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
-                    $graph = new \Microsoft\Graph\Graph();
-                    $graph->setAccessToken($accessToken);
+                // Get implementer's email instead of using organizer_email
+                $implementer = User::where('name', $appointment->implementer)->first();
 
-                    // Cancel the Teams meeting
-                    $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")->execute();
+                if ($implementer && $implementer->email) {
+                    $implementerEmail = $implementer->email;
 
-                    Notification::make()
-                        ->title('Teams Meeting Cancelled Successfully')
-                        ->warning()
-                        ->body('The meeting has been cancelled in Microsoft Teams.')
-                        ->send();
+                    try {
+                        $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                        $graph = new \Microsoft\Graph\Graph();
+                        $graph->setAccessToken($accessToken);
 
-                } catch (\Exception $e) {
-                    Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                        // Cancel the Teams meeting using implementer's email
+                        $graph->createRequest("DELETE", "/users/$implementerEmail/events/$eventId")->execute();
+
+                        Notification::make()
+                            ->title('Teams Meeting Cancelled Successfully')
+                            ->warning()
+                            ->body('The meeting has been cancelled in Microsoft Teams.')
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                            'event_id' => $eventId,
+                            'implementer' => $implementerEmail,
+                            'trace' => $e->getTraceAsString()
+                        ]);
+
+                        Notification::make()
+                            ->title('Failed to Cancel Teams Meeting')
+                            ->warning()
+                            ->body('The appointment was cancelled, but there was an error cancelling the Teams meeting: ' . $e->getMessage())
+                            ->send();
+                    }
+                } else {
+                    Log::error('Failed to cancel Teams meeting: Implementer email not found', [
                         'event_id' => $eventId,
-                        'organizer' => $organizerEmail,
-                        'trace' => $e->getTraceAsString()
+                        'implementer_name' => $appointment->implementer
                     ]);
 
                     Notification::make()
                         ->title('Failed to Cancel Teams Meeting')
                         ->warning()
-                        ->body('The appointment was cancelled, but there was an error cancelling the Teams meeting: ' . $e->getMessage())
+                        ->body('The appointment was cancelled, but the implementer email was not found.')
                         ->send();
                 }
             }
@@ -993,10 +1010,23 @@ class ImplementerCalendar extends Component
         $this->showBookingModal = false;
 
         if ($type === 'implementer_request') {
+            // For Weekly Follow Up Session, check if already exists for the selected week
             if ($this->requestSessionType === 'WEEKLY FOLLOW UP SESSION') {
                 // Ensure week number is set based on the booking date
                 $this->updateSelectedYearAndWeek();
+
+                // Check if this week already has a session
+                if ($this->weekHasFollowUpSession($this->selectedYear, $this->selectedWeek)) {
+                    Notification::make()
+                        ->title('Weekly Follow-up Session limit reached')
+                        ->warning()
+                        ->body('There is already a Weekly Follow-up Session scheduled for Week ' . $this->selectedWeek . ', ' . $this->selectedYear)
+                        ->send();
+
+                    return;
+                }
             }
+
             $this->showImplementerRequestModal = true;
         } else {
             $this->showImplementationSessionModal = true;
@@ -1008,6 +1038,21 @@ class ImplementerCalendar extends Component
     {
         if ($this->requestSessionType === 'WEEKLY FOLLOW UP SESSION') {
             $this->updateAvailableWeeks();
+
+            // Set the selected year and week from the booking date
+            $this->updateSelectedYearAndWeek();
+
+            // Check if this week already has a session
+            if ($this->selectedYear && $this->selectedWeek && $this->weekHasFollowUpSession($this->selectedYear, $this->selectedWeek)) {
+                Notification::make()
+                    ->title('Weekly Follow-up Session limit reached')
+                    ->warning()
+                    ->body('There is already a Weekly Follow-up Session scheduled for Week ' . $this->selectedWeek . ', ' . $this->selectedYear . '. Please choose a different session type.')
+                    ->send();
+
+                // Reset session type selection
+                $this->requestSessionType = '';
+            }
         } else {
             $this->updateOpenDelayCompanies();
         }
@@ -1036,8 +1081,9 @@ class ImplementerCalendar extends Component
 
             $emails = [];
 
-            // Extract emails from implementation_pics JSON field
-            if (!empty($softwareHandover->implementation_pics)) {
+            // First, get emails from software handover implementation_pics
+            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $companyDetail->lead_id)->first();
+            if ($softwareHandover && !empty($softwareHandover->implementation_pics)) {
                 try {
                     $implementationPics = $softwareHandover->implementation_pics;
 
@@ -1060,6 +1106,40 @@ class ImplementerCalendar extends Component
                     Log::error("Error parsing implementation_pics JSON: " . $e->getMessage());
                 }
             }
+
+            // Second, get emails from company_details additional_pic field
+            if ($companyDetail && !empty($companyDetail->additional_pic)) {
+                try {
+                    $additionalPics = $companyDetail->additional_pic;
+
+                    // Check if it's already an array or needs to be decoded
+                    if (!is_array($additionalPics)) {
+                        $additionalPics = json_decode($additionalPics, true);
+                    }
+
+                    if (is_array($additionalPics)) {
+                        foreach ($additionalPics as $pic) {
+                            // Only include PICs with "Available" status
+                            if (
+                                isset($pic['status']) &&
+                                strtolower($pic['status']) === 'available' &&
+                                isset($pic['email']) &&
+                                !empty($pic['email'])
+                            ) {
+                                $email = trim($pic['email']);
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                    $emails[] = $email;
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error parsing additional_pic JSON: " . $e->getMessage());
+                }
+            }
+
+            // Remove duplicates
+            $emails = array_unique($emails);
 
             // Update required attendees field with all found emails
             $this->requiredAttendees = implode(';', $emails);
@@ -1103,15 +1183,25 @@ class ImplementerCalendar extends Component
                 'selectedWeek' => 'required|integer|min:1|max:53',
             ]);
 
-            // For weekly follow-up, initialize these variables
+            // Check one more time if a weekly session already exists for this week
+            if ($this->weekHasFollowUpSession($this->selectedYear, $this->selectedWeek)) {
+                Notification::make()
+                    ->title('Weekly Follow-up Session limit reached')
+                    ->warning()
+                    ->body('There is already a Weekly Follow-up Session scheduled for Week ' . $this->selectedWeek . ', ' . $this->selectedYear)
+                    ->send();
+
+                return;
+            }
+
+            // Continue with existing code...
             $leadId = null;
             $companyName = '';
             $softwareHandoverId = null;
             $selectedYear = $this->selectedYear;
             $selectedWeek = $this->selectedWeek;
             $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | WEEK ' . $this->selectedWeek . ', ' . $this->selectedYear;
-
-        } else {
+        }  else {
             $this->validate([
                 'requestSessionType' => 'required|string',
                 'selectedCompany' => 'required|exists:company_details,id',
@@ -1491,6 +1581,8 @@ class ImplementerCalendar extends Component
                 'required_attendees' => $this->requiredAttendees,
                 'remarks' => $this->remarks ?? null,
                 'software_handover_id' => $softwareHandoverId,
+                'event_id' => $teamsEventId,
+                'meeting_link' => $meetingLink,
             ]);
 
             $appointment->save();
@@ -1551,6 +1643,10 @@ class ImplementerCalendar extends Component
                         'remarks' => $this->remarks ?? null,
                     ];
 
+                    if($this->implementationDemoType === 'IMPLEMENTATION REVIEW SESSION') {
+                        $this->implementationDemoType = 'REVIEW SESSION';
+                    }
+
                     \Illuminate\Support\Facades\Mail::send(
                         $emailTemplate,
                         ['content' => $emailContent],
@@ -1558,7 +1654,7 @@ class ImplementerCalendar extends Component
                             $message->from($senderEmail, $senderName)
                                 ->to($recipients)
                                 ->cc([$senderEmail]) // CC the implementer
-                                ->subject("TIMETEC HR | {$this->appointmentType} | {$this->implementationDemoType} | {$companyDetail->company_name}");
+                                ->subject("{$this->implementationDemoType} | {$companyDetail->company_name}");
                         }
                     );
 
@@ -1817,5 +1913,35 @@ class ImplementerCalendar extends Component
     {
         // This is a hook for the JavaScript to capture and process
         $this->dispatch('openAddAppointmentModal', $params);
+    }
+
+    public function weekHasFollowUpSession($year, $week)
+    {
+        // Don't check if year or week is not set
+        if (!$year || !$week) {
+            return false;
+        }
+
+        // Get the implementer name for the current booking
+        $implementerName = null;
+        if ($this->bookingImplementerId) {
+            $implementer = User::find($this->bookingImplementerId);
+            if ($implementer) {
+                $implementerName = $implementer->name;
+            }
+        }
+
+        // If we don't have an implementer name, we can't check specifically
+        if (!$implementerName) {
+            return false;
+        }
+
+        // Check if this specific implementer already has a Weekly Follow-up Session for this week
+        return \App\Models\ImplementerAppointment::where('type', 'WEEKLY FOLLOW UP SESSION')
+            ->where('implementer', $implementerName)
+            ->where('selected_year', $year)
+            ->where('selected_week', $week)
+            ->where('status', '!=', 'Cancelled')
+            ->exists();
     }
 }
