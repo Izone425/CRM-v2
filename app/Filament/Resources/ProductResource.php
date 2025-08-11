@@ -25,6 +25,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Validation\Rule;
+use Filament\Forms\Components\Grid;
+
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
@@ -65,15 +67,23 @@ class ProductResource extends Resource
                 RichEditor::make('description'),
                 TextInput::make('unit_price')
                         ->label('Cost (RM)'),
-                Toggle::make('taxable')
+                Grid::make(4)
+                    ->schema([
+                    Toggle::make('taxable')
                         ->label('Taxable?')
                         ->inline(false),
-                Toggle::make('is_active')
+                    Toggle::make('is_active')
                         ->label('Is Active?')
                         ->inline(false),
-                Toggle::make('editable_description')
-                    ->label('Allow Editing Description in Quotations')
-                    ->default(true),
+                    Toggle::make('editable')
+                        ->label('Editable?')
+                        ->inline(false)
+                        ->default(true),
+                    Toggle::make('minimum_price')
+                        ->label('Minimum Price?')
+                        ->inline(false)
+                        ->default(true),
+                    ]),
                 TextInput::make('subscription_period')
                     ->label('Subscription Period (Months)')
                     ->numeric()
@@ -187,6 +197,7 @@ class ProductResource extends Resource
                 ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(),
                 ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
                 ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(),
+                ToggleColumn::make('minimum_price')->label('Minimum Price?')->width(100)->disabled(),
             ])
             ->filters([
                 Filter::make('package_group')

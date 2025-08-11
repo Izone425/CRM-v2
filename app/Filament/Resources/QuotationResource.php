@@ -15,6 +15,7 @@ use App\Models\Setting;
 use App\Services\QuotationService;
 use Carbon\Carbon;
 use Coolsam\FilamentFlatpickr\Forms\Components\Flatpickr;
+use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -420,40 +421,24 @@ class QuotationResource extends Resource
                                         }
                                         return false;
                                     }),
-                                TextInput::make('unit_price')
+                               TextInput::make('unit_price')
                                     ->label('Unit Price')
                                     ->numeric()
                                     ->columnSpan([
                                         'md' => 1,
                                     ])
                                     ->live(debounce:500)
-                                    ->rules([
-                                        'numeric',
-                                        'min:0',
-                                        function($attribute, $value, $fail) {
-                                            // Get the product ID from the context
-                                            $productId = $this->getProductId();
-
-                                            // If no product is selected yet, no validation needed
-                                            if (!$productId) {
-                                                return;
-                                            }
-
-                                            // Find the product and check its minimum price
-                                            $product = \App\Models\Product::find($productId);
-                                            if ($product && (float)$value < (float)$product->unit_price) {
-                                                $fail("Price cannot be lower than the product's base price ({$product->unit_price})");
-                                            }
-                                        }
-                                    ])
                                     ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                        // Get the product to verify minimum price
+                                        // Handle unit price validation directly in afterStateUpdated
                                         $productId = $get('product_id');
-                                        if ($productId) {
+                                        if ($productId && $state) {
                                             $product = \App\Models\Product::find($productId);
-                                            if ($product && (float)$state < (float)$product->unit_price) {
+
+                                            // Only apply minimum price validation if product has minimum_price set to true
+                                            if ($product && $product->minimum_price && (float)$state < (float)$product->unit_price) {
                                                 // Reset to the minimum price if entered value is too low
                                                 $set('unit_price', $product->unit_price);
+
                                                 // Show notification to user
                                                 \Filament\Notifications\Notification::make()
                                                     ->warning()
@@ -462,6 +447,7 @@ class QuotationResource extends Resource
                                                     ->send();
                                             }
                                         }
+
                                         self::recalculateAllRows($get, $set);
                                     }),
                                 TextInput::make('total_before_tax')
@@ -523,6 +509,7 @@ class QuotationResource extends Resource
                                             ? 'This product description cannot be edited.'
                                             : null;
                                     })
+                                    ->dehydrated(true)
                                     ->afterStateUpdated(fn(?string $state, Forms\Get $get, Forms\Set $set) => self::recalculateAllRows($get, $set))
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())

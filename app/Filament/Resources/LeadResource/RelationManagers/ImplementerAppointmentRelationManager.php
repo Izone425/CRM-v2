@@ -439,6 +439,44 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 TextColumn::make('appointment_type')
                     ->label('APPOINTMENT TYPE')
                     ->sortable(),
+                TextColumn::make('review_session_count')
+                    ->label('REVIEW SESSIONS')
+                    ->getStateUsing(function ($record) {
+                        // If the current record is not an IMPLEMENTATION REVIEW SESSION, show dash
+                        if ($record->type !== 'IMPLEMENTATION REVIEW SESSION' || $record->status == 'Cancelled') {
+                            return '-';
+                        }
+
+                        // For IMPLEMENTATION REVIEW SESSION, count review sessions for this lead that aren't cancelled
+                        $reviewSessions = \App\Models\ImplementerAppointment::where('lead_id', $record->lead_id)
+                            ->where('type', 'IMPLEMENTATION REVIEW SESSION')
+                            ->where('status', '!=', 'Cancelled')
+                            ->orderBy('date', 'asc')
+                            ->orderBy('start_time', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+                        // Find position of current record in the sorted list
+                        $position = 0;
+                        foreach ($reviewSessions as $index => $session) {
+                            if ($session->id === $record->id) {
+                                $position = $index + 1; // +1 because we want to start counting from 1, not 0
+                                break;
+                            }
+                        }
+
+                        // Return the position for display
+                        return $position > 0 ? $position : '-';
+                    })
+                    ->alignCenter()
+                    ->color(function ($state) {
+                        // Only color as success if it's a number greater than 0
+                        if (is_numeric($state) && $state > 0) {
+                            return 'success';
+                        }
+                        return 'gray';
+                    })
+                    ->weight('bold'),
                 // TextColumn::make('date')
                 //     ->label('DATE & TIME')
                 //     ->sortable()

@@ -19,6 +19,7 @@ class Product extends Model
         'package_sort_order',
         'taxable',
         'editable',
+        'minimum_price',
         'is_active',
         'sort_order'
     ];

@@ -147,10 +147,6 @@
                         </span>
                     </td>
                 </tr>
-                <tr>
-                    <th>Technician</th>
-                    <td>{{ $content['lead']['implementerName'] }}</td>
-                </tr>
             </table>
 
             <p>Please update your calendar accordingly. If you had made any arrangements for this appointment, please cancel them as well.</p>
