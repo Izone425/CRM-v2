@@ -1833,7 +1833,15 @@
                                 <optgroup label="Open Projects">
                                     @foreach($filteredOpenDelayCompanies as $id => $data)
                                         @if($data['status'] === 'Open')
-                                            <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                            <option value="{{ $id }}">
+                                                SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                                @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                    ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                                @endif
+                                                @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                    ({{ $data['system_setting_count'] }}/4 System Setting)
+                                                @endif
+                                            </option>
                                         @endif
                                     @endforeach
                                 </optgroup>
@@ -1842,7 +1850,15 @@
                                 <optgroup label="Delay Projects">
                                     @foreach($filteredOpenDelayCompanies as $id => $data)
                                         @if($data['status'] === 'Delay')
-                                            <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                            <option value="{{ $id }}">
+                                                SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                                @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                    ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                                @endif
+                                                @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                    ({{ $data['system_setting_count'] }}/4 System Setting)
+                                                @endif
+                                            </option>
                                         @endif
                                     @endforeach
                                 </optgroup>
@@ -2031,7 +2047,15 @@
                             <optgroup label="Open Projects">
                                 @foreach($filteredOpenDelayCompanies as $id => $data)
                                     @if($data['status'] === 'Open')
-                                        <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                        <option value="{{ $id }}">
+                                            SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                            @if(isset($data['data_migration_count']) && $data['data_migration_count'] > 0 && $implementationDemoType === 'DATA MIGRATION SESSION')
+                                                ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                            @endif
+                                            @if(isset($data['system_setting_count']) && $data['system_setting_count'] > 0 && $implementationDemoType === 'SYSTEM SETTING SESSION')
+                                                ({{ $data['system_setting_count'] }}/4 System Setting)
+                                            @endif
+                                        </option>
                                     @endif
                                 @endforeach
                             </optgroup>
@@ -2040,7 +2064,15 @@
                             <optgroup label="Delay Projects">
                                 @foreach($filteredOpenDelayCompanies as $id => $data)
                                     @if($data['status'] === 'Delay')
-                                        <option value="{{ $id }}">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</option>
+                                        <option value="{{ $id }}">
+                                            SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                            @if(isset($data['data_migration_count']) && $data['data_migration_count'] > 0 && $implementationDemoType === 'DATA MIGRATION SESSION')
+                                                ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                            @endif
+                                            @if(isset($data['system_setting_count']) && $data['system_setting_count'] > 0 && $implementationDemoType === 'SYSTEM SETTING SESSION')
+                                                ({{ $data['system_setting_count'] }}/4 System Setting)
+                                            @endif
+                                        </option>
                                     @endif
                                 @endforeach
                             </optgroup>

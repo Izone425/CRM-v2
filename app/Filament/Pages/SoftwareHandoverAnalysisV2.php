@@ -21,6 +21,10 @@ class SoftwareHandoverAnalysisV2 extends Page
     public $selectedYear;
     public $selectedTargetYear;
 
+    public $showSlideOver = false;
+    public $slideOverTitle = 'Software Handovers';
+    public $handoversList = [];
+
     public function mount()
     {
         $this->selectedYear = now()->year; // Default to current year
@@ -47,6 +51,7 @@ class SoftwareHandoverAnalysisV2 extends Page
 
         try {
             for ($month = 1; $month <= 12; $month++) {
+                // Get counts by status with optimized separate queries
                 $closedCount = SoftwareHandover::whereYear('created_at', $selectedYear)
                     ->whereMonth('created_at', $month)
                     ->where('status_handover', 'Closed')
@@ -67,6 +72,58 @@ class SoftwareHandoverAnalysisV2 extends Page
                     ->where('status_handover', 'InActive')
                     ->count();
 
+                // Get company size data for all handovers in this month
+                $small = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('headcount', '>=', 1)
+                    ->where('headcount', '<=', 24)
+                    ->count();
+
+                $medium = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('headcount', '>=', 25)
+                    ->where('headcount', '<=', 99)
+                    ->count();
+
+                $large = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('headcount', '>=', 100)
+                    ->where('headcount', '<=', 500)
+                    ->count();
+
+                $enterprise = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('headcount', '>=', 501)
+                    ->count();
+
+                // Get company size data for closed handovers only
+                $closedSmall = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Closed')
+                    ->where('headcount', '>=', 1)
+                    ->where('headcount', '<=', 24)
+                    ->count();
+
+                $closedMedium = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Closed')
+                    ->where('headcount', '>=', 25)
+                    ->where('headcount', '<=', 99)
+                    ->count();
+
+                $closedLarge = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Closed')
+                    ->where('headcount', '>=', 100)
+                    ->where('headcount', '<=', 500)
+                    ->count();
+
+                $closedEnterprise = SoftwareHandover::whereYear('created_at', $selectedYear)
+                    ->whereMonth('created_at', $month)
+                    ->where('status_handover', 'Closed')
+                    ->where('headcount', '>=', 501)
+                    ->count();
+
                 $ongoingCount = $openCount + $delayCount + $inactiveCount;
                 $totalCount = $closedCount + $ongoingCount;
 
@@ -74,7 +131,17 @@ class SoftwareHandoverAnalysisV2 extends Page
                     'month' => Carbon::create()->month($month)->format('M'),
                     'closed' => $closedCount,
                     'ongoing' => $ongoingCount,
-                    'total' => $totalCount
+                    'total' => $totalCount,
+                    // Add size breakdowns
+                    'small' => $small,
+                    'medium' => $medium,
+                    'large' => $large,
+                    'enterprise' => $enterprise,
+                    // Add closed size breakdowns
+                    'closed_small' => $closedSmall,
+                    'closed_medium' => $closedMedium,
+                    'closed_large' => $closedLarge,
+                    'closed_enterprise' => $closedEnterprise,
                 ];
             }
         } catch (Exception $e) {
@@ -242,5 +309,122 @@ class SoftwareHandoverAnalysisV2 extends Page
 
         // If no data available for testing, uncomment this line:
         // return rand(5, 20); // Random data for visualization testing
+    }
+
+    public function openMonthlyHandoverDetailsSlideOver($month, $type = 'new')
+    {
+        // Convert short month name to month number
+        $monthMap = [
+            'Jan' => 1, 'Feb' => 2, 'Mar' => 3, 'Apr' => 4, 'May' => 5, 'Jun' => 6,
+            'Jul' => 7, 'Aug' => 8, 'Sep' => 9, 'Oct' => 10, 'Nov' => 11, 'Dec' => 12
+        ];
+
+        $monthNumber = $monthMap[$month] ?? null;
+
+        if (!$monthNumber) {
+            $this->handoversList = collect();
+            $this->slideOverTitle = 'Invalid Month Selected';
+            $this->showSlideOver = true;
+            return;
+        }
+
+        $year = $this->selectedTargetYear ?? now()->year;
+
+        // Query for handovers based on month, year and type (new or closed)
+        $query = \App\Models\SoftwareHandover::whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNumber);
+
+        if ($type === 'closed') {
+            // For closed projects, use status_handover = Closed
+            $query->where('status_handover', 'Closed');
+            $this->slideOverTitle = "Closed Projects - {$month} {$year}";
+        } else {
+            // For new projects, show all projects from this month regardless of status
+            // This matches what's shown in the tooltip (all projects)
+            $this->slideOverTitle = "New Projects - {$month} {$year}";
+        }
+
+        $handovers = $query->get();
+
+        // Group handovers by company size
+        $groupedHandovers = $handovers->groupBy(function ($handover) {
+            if ($handover->headcount >= 1 && $handover->headcount <= 24) {
+                return 'Small (1-24)';
+            } elseif ($handover->headcount >= 25 && $handover->headcount <= 99) {
+                return 'Medium (25-99)';
+            } elseif ($handover->headcount >= 100 && $handover->headcount <= 500) {
+                return 'Large (100-500)';
+            } elseif ($handover->headcount >= 501) {
+                return 'Enterprise (501 and Above';
+            } else {
+                return 'Unknown';
+            }
+        });
+
+        // Sort the groups in a logical order
+        $sortOrder = ['Small (1-24)', 'Medium (25-99)', 'Large (100-500)', 'Enterprise (501 and Above)', 'Unknown'];
+        $sortedGroups = collect();
+
+        foreach ($sortOrder as $size) {
+            if ($groupedHandovers->has($size)) {
+                $sortedGroups[$size] = $groupedHandovers[$size];
+            }
+        }
+
+        $this->handoversList = $sortedGroups;
+        $this->showSlideOver = true;
+    }
+
+    public function openSalespersonHandoversSlideOver($salesperson)
+    {
+        // Query for handovers with the selected salesperson
+        if ($salesperson === 'Others') {
+            // For "Others", exclude both Rank 1 and Rank 2 salespeople
+            $rank1Salespeople = ['Joshua Ho', 'Vince Leong', 'Wan Amirul Muim'];
+            $rank2Salespeople = ['Yasmin', 'Muhammad Khoirul Bariah', 'Abdul Aziz', 'Farhanah Jamil'];
+            $excludeSalespeople = array_merge($rank1Salespeople, $rank2Salespeople);
+
+            $query = \App\Models\SoftwareHandover::where(function($q) use ($excludeSalespeople) {
+                $q->whereNotIn('salesperson', $excludeSalespeople)
+                ->orWhereNull('salesperson')
+                ->orWhere('salesperson', '');
+            });
+
+            $this->slideOverTitle = "Projects by Other Salespersons";
+        } else {
+            // For named salespersons, get their specific handovers
+            $query = \App\Models\SoftwareHandover::where('salesperson', $salesperson);
+            $this->slideOverTitle = "Projects by {$salesperson}";
+        }
+
+        $handovers = $query->get();
+
+        // Group handovers by company size, similar to the monthly slide-over
+        $groupedHandovers = $handovers->groupBy(function ($handover) {
+            if ($handover->headcount >= 1 && $handover->headcount <= 24) {
+                return 'Small (1-24)';
+            } elseif ($handover->headcount >= 25 && $handover->headcount <= 99) {
+                return 'Medium (25-99)';
+            } elseif ($handover->headcount >= 100 && $handover->headcount <= 500) {
+                return 'Large (100-500)';
+            } elseif ($handover->headcount >= 501) {
+                return 'Enterprise (501 and Above)';
+            } else {
+                return 'Unknown';
+            }
+        });
+
+        // Sort the groups in a logical order
+        $sortOrder = ['Small (1-24)', 'Medium (25-99)', 'Large (100-500)', 'Enterprise (501 and Above)', 'Unknown'];
+        $sortedGroups = collect();
+
+        foreach ($sortOrder as $size) {
+            if ($groupedHandovers->has($size)) {
+                $sortedGroups[$size] = $groupedHandovers[$size];
+            }
+        }
+
+        $this->handoversList = $sortedGroups;
+        $this->showSlideOver = true;
     }
 }

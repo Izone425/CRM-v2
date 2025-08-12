@@ -310,7 +310,6 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s, visibility 0.2s;
-            z-index: 10;
             white-space: nowrap;
             pointer-events: none;
         }
@@ -328,31 +327,420 @@
             visibility: visible;
         }
 
-        color: white;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.2s, visibility 0.2s;
-        z-index: 10;
-        white-space: nowrap;
-        pointer-events: none;
-    }
+        /* Make bar-fill position relative so tooltip positioning works */
+        .bar-fill {
+            position: relative;
+            height: 100%;
+            border-radius: 6px;
+        }
 
-    /* Make bar-fill position relative so tooltip positioning works */
-    .bar-fill {
-        position: relative;
-        height: 100%;
-        border-radius: 6px;
-    }
+        /* Show tooltip on hover */
+        .bar-fill:hover .horizontal-bar-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
 
-    /* Show tooltip on hover */
-    .bar-fill:hover .horizontal-bar-tooltip {
-        opacity: 1;
-        visibility: visible;
-    }
+        .target-container {
+            width: 100%;
+            height: 160px;
+            position: relative;
+        }
+
+        .target-chart {
+            width: 95%;
+            height: 120px;
+            position: relative;
+            border-left: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            margin-left: 35px;
+            margin-bottom: 30px;
+        }
+
+        .month-label {
+            position: absolute;
+            bottom: -25px;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            text-align: center;
+            width: 40px;
+        }
+
+        .new-projects-bar {
+            position: absolute;
+            bottom: 0;
+            background-color: #10b981; /* Green */
+            border-radius: 3px 3px 0 0;
+        }
+
+        .closed-projects-bar {
+            position: absolute;
+            bottom: 0;
+            background-color: #f59e0b; /* Amber/Yellow */
+            border-radius: 3px 3px 0 0;
+        }
+
+        .target-line {
+            position: absolute;
+            height: 3px;
+            background-color: #ef4444; /* Red */
+            z-index: 3;
+            width: 6%; /* Fixed width for target line */
+        }
+
+        .target-value {
+            color: #ef4444;
+            position: absolute;
+            top: -5px;
+            left: 105%;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .target-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .target-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .new-projects-bar,
+        .closed-projects-bar {
+            cursor: pointer;
+        }
+
+        .bar-tooltip {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+        }
+
+        .new-projects-bar:hover .bar-tooltip,
+        .closed-projects-bar:hover .bar-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .target-color { background-color: #ef4444; }
+        .new-color { background-color: #10b981; }
+        .closed-color { background-color: #f59e0b; }
+
+        /* Fixed dimensions for module chart */
+        .module-container {
+            width: 100%;
+            height: 150px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .module-chart {
+            width: 93%;
+            height: 120px;
+            position: relative;
+            border-left: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            margin-left: 35px;
+            margin-bottom: 30px;
+        }
+
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            height: 1px;
+            width: 100%;
+            background-color: #f3f4f6;
+        }
+
+        .quarter-label {
+            position: absolute;
+            bottom: -25px;
+            transform: translateX(-50%);
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            text-align: center;
+            width: 60px;
+        }
+
+        .line-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border: 2px solid white;
+            cursor: pointer;
+        }
+
+        .value-indicator {
+            position: absolute;
+            left: -35px;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #6b7280;
+            width: 30px;
+            text-align: right;
+        }
+
+        .point-tooltip {
+            position: absolute;
+            background-color: rgba(0,0,0,0.85);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            transform: translate(-50%, -120%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        .line-point:hover + .point-tooltip {
+            opacity: 1;
+        }
+
+        .module-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .ta-color { background-color: #8b5cf6; stroke: #8b5cf6; }
+        .tl-color { background-color: #ef4444; stroke: #ef4444; }
+        .tc-color { background-color: #10b981; stroke: #10b981; }
+        .tp-color { background-color: #3b82f6; stroke: #3b82f6; }
+
+        .svg-line {
+            fill: none;
+            stroke-width: 3.5px; /* Change from 0.5px to a consistent 2px */
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            vector-effect: non-scaling-stroke; /* This is the key addition */
+        }
+
+        .line-point {
+            position: absolute;
+            width: 8px; /* Changed from 10px to 8px */
+            height: 8px; /* Changed from 10px to 8px */
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border: 2px solid white;
+            cursor: pointer;
+        }
+
+        .legend-color {
+            width: 8px; /* Changed from 10px to 8px */
+            height: 8px; /* Changed from 10px to 8px */
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .chart-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tooltip-divider {
+            height: 1px;
+            background-color: rgba(255, 255, 255, 0.5);
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        /* Make the tooltip slightly wider to accommodate the content better */
+        .bar-tooltip {
+            min-width: 110px;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .cursor-pointer:hover {
+            transform: scale(1.02);
+            transition: all 0.2s;
+        }
+
+        .slide-over-modal {
+            height: 100vh !important;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            margin-top: 55px; /* Add this to push modal down */
+            max-height: calc(100vh - 55px); /* Reduce maximum height */
+            border-radius: 12px 0 0 0; /* Round top-left corner */
+        }
+
+        .slide-over-header {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            z-index: 50;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.25rem 1.5rem; /* Increase padding for better visibility */
+            min-height: 70px;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px 0 0 0; /* Match the modal's border radius */
+        }
+
+        .slide-over-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            height: calc(100vh - 64px); /* Calculate remaining height */
+            padding-bottom: 80px; /* Add bottom padding for scroll space */
+        }
+
+        /* Company item styles */
+        .company-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #2563eb;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .company-item:hover {
+            transform: translateY(-2px);
+            background-color: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1e40af;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Group header styles */
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            border-radius: 0.375rem 0.375rem 0 0;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .group-header:hover {
+            background: linear-gradient(to right, #1d4ed8, #3b82f6);
+        }
+
+        .group-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: white;
+            color: #2563eb;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+        }
+
+        .group-content {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+            border: 1px dashed #d1d5db;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            width: 3rem;
+            height: 3rem;
+            color: #9ca3af;
+            margin-bottom: 1rem;
+        }
     </style>
 
     <div class="dashboard-container">
@@ -384,121 +772,6 @@
                     <option value="2024">2024&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
                 </select>
             </div>
-
-            <style>
-                .target-container {
-                    width: 100%;
-                    height: 160px;
-                    position: relative;
-                }
-
-                .target-chart {
-                    width: 95%;
-                    height: 120px;
-                    position: relative;
-                    border-left: 1px solid #e5e7eb;
-                    border-bottom: 1px solid #e5e7eb;
-                    margin-left: 35px;
-                    margin-bottom: 30px;
-                }
-
-                .month-label {
-                    position: absolute;
-                    bottom: -25px;
-                    transform: translateX(-50%);
-                    font-size: 12px;
-                    font-weight: 500;
-                    color: #6b7280;
-                    text-align: center;
-                    width: 40px;
-                }
-
-                .new-projects-bar {
-                    position: absolute;
-                    bottom: 0;
-                    background-color: #10b981; /* Green */
-                    border-radius: 3px 3px 0 0;
-                }
-
-                .closed-projects-bar {
-                    position: absolute;
-                    bottom: 0;
-                    background-color: #f59e0b; /* Amber/Yellow */
-                    border-radius: 3px 3px 0 0;
-                }
-
-                .target-line {
-                    position: absolute;
-                    height: 3px;
-                    background-color: #ef4444; /* Red */
-                    z-index: 3;
-                    width: 6%; /* Fixed width for target line */
-                }
-
-                .target-value {
-                    color: #ef4444;
-                    position: absolute;
-                    top: -5px;
-                    left: 105%;
-                    font-weight: 600;
-                    font-size: 11px;
-                }
-
-                .target-legend {
-                    display: flex;
-                    justify-content: center;
-                    gap: 20px;
-                    padding: 10px 0;
-                }
-
-                .target-legend-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    font-size: 13px;
-                    font-weight: 500;
-                }
-
-                .legend-box {
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 2px;
-                }
-
-                .new-projects-bar,
-                .closed-projects-bar {
-                    cursor: pointer;
-                }
-
-                .bar-tooltip {
-                    position: absolute;
-                    top: -40px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background-color: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    font-weight: 500;
-                    white-space: nowrap;
-                    z-index: 10;
-                    opacity: 0;
-                    visibility: hidden;
-                    transition: opacity 0.2s, visibility 0.2s;
-                    pointer-events: none;
-                }
-
-                .new-projects-bar:hover .bar-tooltip,
-                .closed-projects-bar:hover .bar-tooltip {
-                    opacity: 1;
-                    visibility: visible;
-                }
-
-                .target-color { background-color: #ef4444; }
-                .new-color { background-color: #10b981; }
-                .closed-color { background-color: #f59e0b; }
-            </style>
 
             <div class="target-container">
                 <div class="target-chart">
@@ -543,7 +816,7 @@
                     @endforeach
 
                     <!-- Target line - single continuous line across the chart at the 100 mark -->
-                    <div style="position: absolute; left: 0; right: 0; bottom: {{ $targetHeight }}px; height: 2px; background-color: #ef4444; z-index: 3;">
+                    <div style="position: absolute; left: 0; right: 0; bottom: {{ $targetHeight }}px; height: 2px; background-color: #ef4444;">
                         <span style="position: absolute; right: -40px; top: -8px; color: #ef4444; font-weight: 600; font-size: 12px;">Target</span>
                     </div>
 
@@ -573,13 +846,27 @@
                         <div class="month-label" style="left: {{ $monthCenter }}%">{{ $month }}</div>
 
                         <!-- New projects bar (green) with tooltip -->
-                        <div class="new-projects-bar" style="left: {{ $newBarX }}%; height: {{ $newHeight }}px; width: {{ $barWidth }}%;">
-                            <div class="bar-tooltip">New: {{ $newProjects }}</div>
+                        <div class="cursor-pointer new-projects-bar" style="left: {{ $newBarX }}%; height: {{ $newHeight }}px; width: {{ $barWidth }}%;" wire:click="openMonthlyHandoverDetailsSlideOver('{{ $month }}', 'new')">
+                            <div class="bar-tooltip">
+                                New: {{ $newProjects }}
+                                <div class="tooltip-divider"></div>
+                                Small: {{ $monthData['small'] ?? 0 }}<br>
+                                Medium: {{ $monthData['medium'] ?? 0 }}<br>
+                                Large: {{ $monthData['large'] ?? 0 }}<br>
+                                Enterprise: {{ $monthData['enterprise'] ?? 0 }}
+                            </div>
                         </div>
 
                         <!-- Closed projects bar (yellow) with tooltip -->
-                        <div class="closed-projects-bar" style="left: {{ $closedBarX }}%; height: {{ $closedHeight }}px; width: {{ $barWidth }}%;">
-                            <div class="bar-tooltip">Closed: {{ $closedProjects }}</div>
+                        <div class="cursor-pointer closed-projects-bar" style="left: {{ $closedBarX }}%; height: {{ $closedHeight }}px; width: {{ $barWidth }}%;" wire:click="openMonthlyHandoverDetailsSlideOver('{{ $month }}', 'closed')">
+                            <div class="bar-tooltip">
+                                Closed: {{ $closedProjects }}
+                                <div class="tooltip-divider"></div>
+                                Small: {{ $monthData['closed_small'] ?? 0 }}<br>
+                                Medium: {{ $monthData['closed_medium'] ?? 0 }}<br>
+                                Large: {{ $monthData['closed_large'] ?? 0 }}<br>
+                                Enterprise: {{ $monthData['closed_enterprise'] ?? 0 }}
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -630,7 +917,9 @@
                         @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
-                                <div class="circular-progress" style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 5] }};">
+                                <div class="cursor-pointer circular-progress"
+                                    style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 5] }};"
+                                    wire:click="openSalespersonHandoversSlideOver('{{ $person->salesperson }}')">
                                     <div class="inner">
                                         <span class="value">{{ $person->total }}</span>
                                     </div>
@@ -664,7 +953,9 @@
                         @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
-                                <div class="circular-progress" style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 4] }};">
+                                <div class="cursor-pointer circular-progress"
+                                    style="--percentage: {{ $percentage }}; --color: {{ $colors[$index % 4] }};"
+                                    wire:click="openSalespersonHandoversSlideOver('{{ $person->salesperson }}')">
                                     <div class="inner">
                                         <span class="value">{{ $person->total }}</span>
                                     </div>
@@ -822,161 +1113,6 @@
                         </div>
                     </div>
                 </div>
-
-                <style>
-                    /* Fixed dimensions for module chart */
-                    .module-container {
-                        width: 100%;
-                        height: 150px;
-                        position: relative;
-                        margin-top: 10px;
-                    }
-
-                    .module-chart {
-                        width: 93%;
-                        height: 120px;
-                        position: relative;
-                        border-left: 1px solid #e5e7eb;
-                        border-bottom: 1px solid #e5e7eb;
-                        margin-left: 35px;
-                        margin-bottom: 30px;
-                    }
-
-                    .grid-lines {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                        pointer-events: none;
-                    }
-
-                    .grid-line {
-                        height: 1px;
-                        width: 100%;
-                        background-color: #f3f4f6;
-                    }
-
-                    .quarter-label {
-                        position: absolute;
-                        bottom: -25px;
-                        transform: translateX(-50%);
-                        font-size: 12px;
-                        font-weight: 500;
-                        color: #6b7280;
-                        text-align: center;
-                        width: 60px;
-                    }
-
-                    .line-point {
-                        position: absolute;
-                        width: 10px;
-                        height: 10px;
-                        border-radius: 50%;
-                        transform: translate(-50%, -50%);
-                        z-index: 3;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                        border: 2px solid white;
-                        cursor: pointer;
-                    }
-
-                    .value-indicator {
-                        position: absolute;
-                        left: -35px;
-                        transform: translateY(-50%);
-                        font-size: 11px;
-                        color: #6b7280;
-                        width: 30px;
-                        text-align: right;
-                    }
-
-                    .point-tooltip {
-                        position: absolute;
-                        background-color: rgba(0,0,0,0.85);
-                        color: white;
-                        padding: 4px 8px;
-                        border-radius: 4px;
-                        font-size: 12px;
-                        font-weight: 500;
-                        transform: translate(-50%, -120%);
-                        z-index: 10;
-                        pointer-events: none;
-                        opacity: 0;
-                        transition: opacity 0.2s;
-                        white-space: nowrap;
-                    }
-
-                    .line-point:hover + .point-tooltip {
-                        opacity: 1;
-                    }
-
-                    .module-legend {
-                        display: flex;
-                        justify-content: center;
-                        gap: 20px;
-                        flex-wrap: wrap;
-                        padding: 10px 0;
-                    }
-
-                    .legend-item {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        font-size: 13px;
-                        font-weight: 500;
-                    }
-
-                    .legend-color {
-                        width: 10px;
-                        height: 10px;
-                        border-radius: 50%;
-                        flex-shrink: 0;
-                    }
-
-                    .ta-color { background-color: #8b5cf6; stroke: #8b5cf6; }
-                    .tl-color { background-color: #ef4444; stroke: #ef4444; }
-                    .tc-color { background-color: #10b981; stroke: #10b981; }
-                    .tp-color { background-color: #3b82f6; stroke: #3b82f6; }
-
-                    .svg-line {
-                        fill: none;
-                        stroke-width: 3.5px; /* Change from 0.5px to a consistent 2px */
-                        stroke-linecap: round;
-                        stroke-linejoin: round;
-                        vector-effect: non-scaling-stroke; /* This is the key addition */
-                    }
-
-                    .line-point {
-                        position: absolute;
-                        width: 8px; /* Changed from 10px to 8px */
-                        height: 8px; /* Changed from 10px to 8px */
-                        border-radius: 50%;
-                        transform: translate(-50%, -50%);
-                        z-index: 3;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                        border: 2px solid white;
-                        cursor: pointer;
-                    }
-
-                    .legend-color {
-                        width: 8px; /* Changed from 10px to 8px */
-                        height: 8px; /* Changed from 10px to 8px */
-                        border-radius: 50%;
-                        flex-shrink: 0;
-                    }
-
-                    .chart-svg {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        z-index: 2;
-                    }
-                </style>
 
                 <div class="module-container">
                     <div class="module-chart">
@@ -1199,6 +1335,116 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div
+        x-data="{ open: @entangle('showSlideOver'), expandedGroups: {} }"
+        x-show="open"
+        @keydown.window.escape="open = false"
+        class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+        <div
+            class="w-full h-full max-w-md overflow-hidden slide-over-modal"
+            @click.away="open = false"
+        >
+            <!-- Header -->
+            <div class="slide-over-header">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                    <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+                </div>
+            </div>
+
+            <!-- Scrollable content -->
+            <div class="slide-over-content">
+                @if ($handoversList instanceof \Illuminate\Support\Collection && $handoversList->isEmpty())
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
+                        </svg>
+                        <p>No data found for this selection.</p>
+                    </div>
+                @elseif ($handoversList instanceof \Illuminate\Support\Collection && $handoversList->first() instanceof \Illuminate\Support\Collection)
+                    <!-- Grouped display -->
+                    @foreach ($handoversList as $companySize => $handovers)
+                        <div class="mb-4">
+                            <!-- Group header -->
+                            <div
+                                class="group-header"
+                                x-on:click="expandedGroups['{{ $companySize }}'] = !expandedGroups['{{ $companySize }}']"
+                            >
+                                <div class="flex items-center">
+                                    <span class="group-badge">{{ $handovers->count() }}</span>
+                                    <span>{{ $companySize }}</span>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform"
+                                    :class="expandedGroups['{{ $companySize }}'] ? 'transform rotate-180' : ''"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+
+                            <!-- Group content (collapsible) -->
+                            <div class="group-content" x-show="expandedGroups['{{ $companySize }}']" x-collapse>
+                                @foreach ($handovers as $handover)
+                                    @php
+                                        try {
+                                            // Use company_name directly from SoftwareHandover model
+                                            $companyName = $handover->company_name ?? 'N/A';
+                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 30, '...'));
+                                            $encryptedId = \App\Classes\Encryptor::encrypt($handover->id);
+                                        } catch (\Exception $e) {
+                                            $shortened = 'Error loading company';
+                                            $encryptedId = '#';
+                                            $companyName = 'Error: ' . $e->getMessage();
+                                        }
+                                    @endphp
+
+                                    <div class="company-item">
+                                        {{ $shortened }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <!-- Regular flat list -->
+                    @forelse ($handoversList as $handover)
+                        @php
+                            try {
+                                // Use company_name directly from SoftwareHandover model
+                                $companyName = $handover->company_name ?? 'N/A';
+                                $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 30, '...'));
+                                $encryptedId = \App\Classes\Encryptor::encrypt($handover->id);
+                            } catch (\Exception $e) {
+                                $shortened = 'Error loading company';
+                                $encryptedId = '#';
+                                $companyName = 'Error: ' . $e->getMessage();
+                            }
+                        @endphp
+
+                        <div class="company-item">
+                            {{ $shortened }}
+                        </div>
+                    @empty
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
+                            </svg>
+                            <p>No company data available.</p>
+                        </div>
+                    @endforelse
+                @endif
             </div>
         </div>
     </div>

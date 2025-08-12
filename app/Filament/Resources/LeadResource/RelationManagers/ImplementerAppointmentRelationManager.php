@@ -442,14 +442,19 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 TextColumn::make('review_session_count')
                     ->label('REVIEW SESSIONS')
                     ->getStateUsing(function ($record) {
-                        // If the current record is not an IMPLEMENTATION REVIEW SESSION, show dash
-                        if ($record->type !== 'IMPLEMENTATION REVIEW SESSION' || $record->status == 'Cancelled') {
+                        // Skip cancelled sessions
+                        if ($record->status == 'Cancelled') {
                             return '-';
                         }
 
-                        // For IMPLEMENTATION REVIEW SESSION, count review sessions for this lead that aren't cancelled
-                        $reviewSessions = \App\Models\ImplementerAppointment::where('lead_id', $record->lead_id)
-                            ->where('type', 'IMPLEMENTATION REVIEW SESSION')
+                        // For weekly follow-up sessions, return week number if available
+                        if ($record->type === 'WEEKLY FOLLOW UP SESSION' && $record->selected_week) {
+                            return $record->selected_week;
+                        }
+
+                        // Get all appointments of this specific type for this lead that aren't cancelled
+                        $sessions = \App\Models\ImplementerAppointment::where('lead_id', $record->lead_id)
+                            ->where('type', $record->type)
                             ->where('status', '!=', 'Cancelled')
                             ->orderBy('date', 'asc')
                             ->orderBy('start_time', 'asc')
@@ -458,7 +463,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                         // Find position of current record in the sorted list
                         $position = 0;
-                        foreach ($reviewSessions as $index => $session) {
+                        foreach ($sessions as $index => $session) {
                             if ($session->id === $record->id) {
                                 $position = $index + 1; // +1 because we want to start counting from 1, not 0
                                 break;
