@@ -81,10 +81,6 @@
             <h2>APPOINTMENT CANCELLED</h2>
         </div>
         <div class="content">
-            <div class="cancelled-banner">
-                This appointment has been cancelled
-            </div>
-
             <p>Dear Customer,</p>
 
             <p>Please be informed that the following appointment has been <strong>cancelled</strong>:</p>

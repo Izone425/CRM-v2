@@ -90,6 +90,13 @@ class ImplementerCalendar extends Component
 
     public $hasKickOffMeeting = false;
 
+    public $showOnsiteRequestModal = false;
+    public $onsiteDayType = '';
+    public $onsiteCategory = '';
+    public $onsiteRemarks = '';
+    public $selectedOnsiteSessions = [];
+    public $implementerCompanies = [];
+
     public function mount()
     {
         // Load all implementers
@@ -1044,8 +1051,276 @@ class ImplementerCalendar extends Component
             }
 
             $this->showImplementerRequestModal = true;
-        } else {
+        } elseif ($type === 'implementation_session') {
             $this->showImplementationSessionModal = true;
+        } elseif ($type === 'onsite_request') {
+            // Load companies assigned to the current implementer
+            $this->loadImplementerCompanies();
+            // Show the onsite request modal
+            $this->showOnsiteRequestModal = true;
+        }
+    }
+
+    private function loadImplementerCompanies()
+    {
+        // Get the implementer name
+        $implementer = User::find($this->bookingImplementerId);
+        if (!$implementer) {
+            return;
+        }
+
+        // Get software handovers assigned to this implementer with Open or Delay status
+        $query = \App\Models\CompanyDetail::select(
+                'company_details.id',
+                'company_details.company_name',
+                'software_handovers.id as handover_id',
+                'software_handovers.status_handover as status',
+                'software_handovers.lead_id as lead_id'
+            )
+            ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
+            ->where('software_handovers.implementer', $implementer->name)
+            ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
+
+        // Execute the query with sorting by handover ID in descending order
+        $companies = $query->orderBy('software_handovers.id', 'desc')
+            ->orderBy('software_handovers.status_handover')
+            ->orderBy('company_details.company_name')
+            ->get();
+
+        // Format the company data for the dropdown
+        $this->implementerCompanies = [];
+
+        foreach ($companies as $company) {
+            $this->implementerCompanies[$company->id] = [
+                'name' => $company->company_name,
+                'handover_id' => str_pad($company->handover_id, 6, '0', STR_PAD_LEFT),
+                'status' => $company->status,
+                'lead_id' => $company->lead_id
+            ];
+        }
+    }
+
+    public function updateOnsiteSessions()
+    {
+        // Clear previously selected sessions
+        $this->selectedOnsiteSessions = [];
+
+        // Get all available session slots for the selected day
+        $dayOfWeek = strtolower(Carbon::parse($this->bookingDate)->format('l'));
+        $sessionSlots = $this->getSessionSlots($dayOfWeek, $this->bookingDate, $this->bookingImplementerId);
+
+        // Based on the day type, select appropriate sessions
+        switch ($this->onsiteDayType) {
+            case 'FULL_DAY':
+                // Select all sessions
+                foreach ($sessionSlots as $sessionName => $session) {
+                    $this->selectedOnsiteSessions[] = [
+                        'name' => $sessionName,
+                        'start' => $session['formatted_start'],
+                        'end' => $session['formatted_end'],
+                        'start_time' => $session['start_time'],
+                        'end_time' => $session['end_time']
+                    ];
+                }
+                break;
+
+            case 'HALF_DAY_MORNING':
+                // Select morning sessions (1 & 2)
+                if (isset($sessionSlots['SESSION 1'])) {
+                    $this->selectedOnsiteSessions[] = [
+                        'name' => 'SESSION 1',
+                        'start' => $sessionSlots['SESSION 1']['formatted_start'],
+                        'end' => $sessionSlots['SESSION 1']['formatted_end'],
+                        'start_time' => $sessionSlots['SESSION 1']['start_time'],
+                        'end_time' => $sessionSlots['SESSION 1']['end_time']
+                    ];
+                }
+
+                if (isset($sessionSlots['SESSION 2'])) {
+                    $this->selectedOnsiteSessions[] = [
+                        'name' => 'SESSION 2',
+                        'start' => $sessionSlots['SESSION 2']['formatted_start'],
+                        'end' => $sessionSlots['SESSION 2']['formatted_end'],
+                        'start_time' => $sessionSlots['SESSION 2']['start_time'],
+                        'end_time' => $sessionSlots['SESSION 2']['end_time']
+                    ];
+                }
+                break;
+
+            case 'HALF_DAY_EVENING':
+                // Select afternoon sessions (3, 4, 5)
+                $afternoonSessions = ['SESSION 3', 'SESSION 4', 'SESSION 5'];
+                foreach ($afternoonSessions as $sessionName) {
+                    if (isset($sessionSlots[$sessionName])) {
+                        $this->selectedOnsiteSessions[] = [
+                            'name' => $sessionName,
+                            'start' => $sessionSlots[$sessionName]['formatted_start'],
+                            'end' => $sessionSlots[$sessionName]['formatted_end'],
+                            'start_time' => $sessionSlots[$sessionName]['start_time'],
+                            'end_time' => $sessionSlots[$sessionName]['end_time']
+                        ];
+                    }
+                }
+                break;
+        }
+    }
+
+    public function submitOnsiteRequest()
+    {
+        // Validate form inputs
+        $this->validate([
+            'onsiteDayType' => 'required|in:FULL_DAY,HALF_DAY_MORNING,HALF_DAY_EVENING',
+            'onsiteCategory' => 'required|string',
+            'selectedCompany' => 'required|exists:company_details,id',
+            'requiredAttendees' => 'required|string',  // Changed from onsiteAttendees to requiredAttendees
+        ]);
+
+        // Ensure we have sessions selected
+        if (empty($this->selectedOnsiteSessions)) {
+            Notification::make()
+                ->title('No sessions selected')
+                ->danger()
+                ->body('Please select a day type to specify which sessions to book')
+                ->send();
+            return;
+        }
+
+        // Get company details
+        $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+        if (!$companyDetail) {
+            Notification::make()
+                ->title('Company not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Get implementer details
+        $implementer = User::find($this->bookingImplementerId);
+        if (!$implementer) {
+            Notification::make()
+                ->title('Implementer not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Find the software handover ID
+            $leadId = $companyDetail->lead_id;
+
+            if ($leadId) {
+                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
+
+            // Create one appointment for each selected session
+            $createdAppointments = [];
+
+            foreach ($this->selectedOnsiteSessions as $session) {
+                $appointment = new \App\Models\ImplementerAppointment();
+
+                $appointment->fill([
+                    'lead_id' => $leadId,
+                    'type' => $this->onsiteCategory,
+                    'appointment_type' => 'ONSITE', // Always ONSITE for onsite requests
+                    'date' => $this->bookingDate,
+                    'start_time' => $session['start_time'],
+                    'end_time' => $session['end_time'],
+                    'implementer' => $implementer->name,
+                    'causer_id' => auth()->user()->id,
+                    'title' => $this->onsiteCategory . ' | ' . $companyDetail->company_name . ' | ' . $session['name'],
+                    'status' => 'New',
+                    'request_status' => 'PENDING',
+                    'required_attendees' => $this->requiredAttendees, // Already correct
+                    'software_handover_id' => $softwareHandover->id,
+                ]);
+
+                $appointment->save();
+                $createdAppointments[] = $appointment;
+            }
+
+            DB::commit();
+
+            // Send email notification
+            try {
+                // Get authenticated user's email for sender
+                $authUser = auth()->user();
+                $senderEmail = $authUser->email;
+                $senderName = $authUser->name;
+
+                // Recipients
+                $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
+                $ccRecipients = [$senderEmail]; // CC implementer
+
+                // Format session information for email
+                $sessionInfo = [];
+                foreach ($this->selectedOnsiteSessions as $session) {
+                    $sessionInfo[] = "{$session['name']}: {$session['start']} - {$session['end']}";
+                }
+
+                $emailData = [
+                    'implementerId' => 'IMP_' . str_pad($implementer->id, 6, '0', STR_PAD_LEFT),
+                    'implementerName' => strtoupper($implementer->name),
+                    'requestDateTime' => Carbon::now()->format('d F Y h:i A'),
+                    'companyName' => $companyDetail->company_name, // Use direct company details instead
+                    'onsiteCategory' => $this->onsiteCategory,
+                    'dateAndDay' => Carbon::parse($this->bookingDate)->format('d F Y / l'),
+                    'dayType' => str_replace('_', ' ', $this->onsiteDayType),
+                    'sessions' => implode('<br>', $sessionInfo),
+                    'attendees' => $this->requiredAttendees,
+                    'remarks' => $this->onsiteRemarks ?? 'No additional remarks',
+                ];
+
+                \Illuminate\Support\Facades\Mail::send(
+                    'emails.implementer_onsite_request',
+                    ['content' => $emailData],
+                    function ($message) use ($recipients, $ccRecipients, $senderEmail, $senderName, $implementer) {
+                        $message->from($senderEmail, $senderName)
+                            ->to($recipients)
+                            ->cc($ccRecipients)
+                            ->subject("ONSITE REQUEST: " . strtoupper($implementer->name));
+                    }
+                );
+
+                Notification::make()
+                    ->title('Onsite request submitted successfully')
+                    ->success()
+                    ->body('Email notification has been sent')
+                    ->send();
+
+            } catch (\Exception $e) {
+                Log::error("Email sending failed for onsite request: Error: {$e->getMessage()}");
+
+                Notification::make()
+                    ->title('Request submitted but email failed')
+                    ->warning()
+                    ->body('Error sending email: ' . $e->getMessage())
+                    ->send();
+            }
+
+            // Close modal and reset form
+            $this->showOnsiteRequestModal = false;
+            $this->reset([
+                'onsiteDayType',
+                'onsiteCategory',
+                'selectedCompany',
+                'requiredAttendees',
+                'onsiteRemarks',
+                'selectedOnsiteSessions'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Notification::make()
+                ->title('Error submitting request')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
         }
     }
 
@@ -1557,7 +1832,6 @@ class ImplementerCalendar extends Component
                     $onlineMeeting = $response->getOnlineMeeting();
                     if ($onlineMeeting) {
                         $meetingId = null;
-                        $meetingPassword = null;
 
                         // Extract Conference ID if available
                         if (method_exists($onlineMeeting, 'getConferenceId')) {
@@ -1772,10 +2046,32 @@ class ImplementerCalendar extends Component
 
     public function cancelBooking()
     {
+        // Close all modals
         $this->showBookingModal = false;
         $this->showImplementerRequestModal = false;
         $this->showImplementationSessionModal = false;
-        $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType', 'requestSessionType', 'selectedYear', 'selectedWeek']);
+        $this->showOnsiteRequestModal = false;
+
+        // Reset all form fields
+        $this->reset([
+            // Existing fields
+            'selectedCompany',
+            'appointmentType',
+            'requiredAttendees',
+            'remarks',
+            'implementationDemoType',
+            'requestSessionType',
+            'selectedYear',
+            'selectedWeek',
+
+            // Onsite request fields
+            'onsiteDayType',
+            'onsiteCategory',
+            'selectedCompany',
+            'requiredAttendees',
+            'onsiteRemarks',
+            'selectedOnsiteSessions'
+        ]);
     }
 
     private function getSessionSlots($dayOfWeek, $date = null, $implementerId = null)

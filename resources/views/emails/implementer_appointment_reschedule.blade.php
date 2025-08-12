@@ -102,7 +102,7 @@
         </div>
 
         <div class="content">
-            <p class="greeting">Dear {{ $content['leadOwnerName'] }},</p>
+            <p class="greeting">Dear Customer,</p>
 
             <div class="notice">
                 <strong>NOTICE:</strong> The implementation appointment for {{ $content['lead']['company'] }} has been rescheduled.
@@ -118,18 +118,6 @@
                 <tr>
                     <th>Company Name</th>
                     <td>{{ $content['lead']['company'] }}</td>
-                </tr>
-                <tr>
-                    <th>Contact Person</th>
-                    <td>{{ $content['lead']['pic'] }}</td>
-                </tr>
-                <tr>
-                    <th>Contact Number</th>
-                    <td>{{ $content['lead']['phone'] }}</td>
-                </tr>
-                <tr>
-                    <th>Email</th>
-                    <td>{{ $content['lead']['email'] }}</td>
                 </tr>
                 <tr>
                     <th>Implementer</th>

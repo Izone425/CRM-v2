@@ -427,4 +427,66 @@ class SoftwareHandoverAnalysisV2 extends Page
         $this->handoversList = $sortedGroups;
         $this->showSlideOver = true;
     }
+
+    public function getYesterdayHandoversByModule(): array
+    {
+        $yesterday = now()->subDay()->format('Y-m-d');
+
+        // Query for yesterday's module data
+        $data = SoftwareHandover::where('created_at', 'like', "{$yesterday}%")
+            ->get();
+
+        // Initialize counts
+        $counts = [
+            'ta' => 0,
+            'tl' => 0,
+            'tc' => 0,
+            'tp' => 0
+        ];
+
+        // Count each module
+        foreach ($data as $handover) {
+            if ($handover->ta) $counts['ta']++;
+            if ($handover->tl) $counts['tl']++;
+            if ($handover->tc) $counts['tc']++;
+            if ($handover->tp) $counts['tp']++;
+        }
+
+        return $counts;
+    }
+
+    public function getTodayHandoversByModule(): array
+    {
+        $today = now()->format('Y-m-d');
+
+        // Query for today's module data
+        $data = SoftwareHandover::where('created_at', 'like', "{$today}%")
+            ->get();
+
+        // Initialize counts
+        $counts = [
+            'ta' => 0,
+            'tl' => 0,
+            'tc' => 0,
+            'tp' => 0
+        ];
+
+        // Count each module
+        foreach ($data as $handover) {
+            if ($handover->ta) $counts['ta']++;
+            if ($handover->tl) $counts['tl']++;
+            if ($handover->tc) $counts['tc']++;
+            if ($handover->tp) $counts['tp']++;
+        }
+
+        return $counts;
+    }
+
+    public function getAllSalespersonHandovers(): int
+    {
+        $baseQuery = SoftwareHandover::query();
+
+        // Get the total count of all handovers
+        return $baseQuery->count();
+    }
 }

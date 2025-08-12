@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ImplementerDashboard;
 
+use App\Filament\Actions\ImplementerActions;
 use App\Models\ImplementerAppointment;
 use App\Models\SoftwareHandover;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Support\Colors\Color;
+use Filament\Tables\Actions\ActionGroup;
 use Livewire\Attributes\On;
 
 class SessionTomorrow extends Component implements HasForms, HasTable
@@ -94,6 +96,17 @@ class SessionTomorrow extends Component implements HasForms, HasTable
         return $table
             ->query($this->getAppointments())
             ->columns([
+                TextColumn::make('implementer')
+                    ->label('IMPLEMENTER')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('session')
+                    ->label('SESSION')
+                    ->formatStateUsing(function ($state, $record) {
+                        return "{$state}";
+                    }),
+
                 TextColumn::make('software_handover_id')
                     ->label('SW ID')
                     ->formatStateUsing(function ($state, $record) {
@@ -120,9 +133,6 @@ class SessionTomorrow extends Component implements HasForms, HasTable
                         return 'SW_' . $yearDigits . '0' . str_pad($numericId, 3, '0', STR_PAD_LEFT);
                     }),
 
-                TextColumn::make('type')
-                    ->label('SESSION TYPE'),
-
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('COMPANY NAME')
                     ->searchable()
@@ -142,22 +152,14 @@ class SessionTomorrow extends Component implements HasForms, HasTable
                     ->openUrlInNewTab()
                     ->color(Color::hex('#338cf0')),
 
-                TextColumn::make('implementer')
-                    ->label('IMPLEMENTER')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('session')
-                    ->label('SESSION')
-                    ->formatStateUsing(function ($state, $record) {
-                        $startTime = Carbon::parse($record->start_time)->format('h:i A');
-                        $endTime = Carbon::parse($record->end_time)->format('h:i A');
-                        return "{$state}: {$startTime} - {$endTime}";
-                    }),
-
-                TextColumn::make('status')
-                    ->label('STATUS')
-                    ->formatStateUsing(fn ($state) => strtoupper($state ?? 'N/A')),
+                TextColumn::make('type')
+                    ->label('SESSION TYPE'),
+            ])
+            ->actions([
+                ActionGroup::make([
+                    ImplementerActions::rescheduleAppointmentAction(),
+                    ImplementerActions::cancelAppointmentAction(),
+                ])->button()
             ])
             ->filters([
                 // Add any needed filters here

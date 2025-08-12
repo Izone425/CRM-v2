@@ -1763,7 +1763,7 @@
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2">
+                    <div class="grid gap-4 mt-4 md:grid-cols-3" style="display:column">
                         <!-- Option 1: Implementer Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementer_request')">
                             <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTER REQUEST</h4>
@@ -1779,11 +1779,156 @@
                                 Book an implementation session with a client (Implementation Review Session or Kick Off Meeting Session).
                             </p>
                         </div>
+
+                        <!-- Option 3: Onsite Request -->
+                        <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('onsite_request')">
+                            <h4 class="mb-2 text-lg font-semibold text-center">ONSITE REQUEST</h4>
+                            <p class="text-sm text-gray-600">
+                                Request for onsite training, kick-off meeting, implementation review, proof of concept or business trip.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer">
+                <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Add new Onsite Request Modal -->
+@if($showOnsiteRequestModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-body">
+                <h3 class="modal-title">
+                    Onsite Request: {{ $bookingSession }} for {{ \Carbon\Carbon::parse($bookingDate)->format('j F Y') }}
+                </h3>
+
+                <div class="modal-form">
+                    <!-- Day Type Category -->
+                    <div class="form-group">
+                        <label for="onsiteDayType" class="form-label">Day Type Category <span class="text-red-600">*</span></label>
+                        <select wire:model="onsiteDayType" id="onsiteDayType" class="form-select" wire:change="updateOnsiteSessions">
+                            <option value="">-- Select Day Type --</option>
+                            <option value="FULL_DAY">Full Day (All Sessions)</option>
+                            <option value="HALF_DAY_MORNING">Half Day Morning (Sessions 1 & 2)</option>
+                            <option value="HALF_DAY_EVENING">Half Day Evening (Sessions 3, 4 & 5)</option>
+                        </select>
+                        @error('onsiteDayType')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Selected Sessions Display -->
+                    <div class="form-group">
+                        <label class="form-label">Selected Sessions</label>
+                        <div class="p-3 rounded-md bg-gray-50">
+                            @if(empty($selectedOnsiteSessions))
+                                <p class="italic text-gray-500">Please select a day type first</p>
+                            @else
+                                @foreach($selectedOnsiteSessions as $session)
+                                    <div class="mb-1 last:mb-0">
+                                        <span class="font-medium">{{ $session['name'] }}</span>:
+                                        {{ $session['start'] }} - {{ $session['end'] }}
+                                    </div>
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Onsite Category -->
+                    <div class="form-group">
+                        <label for="onsiteCategory" class="form-label">Onsite Category <span class="text-red-600">*</span></label>
+                        <select wire:model="onsiteCategory" id="onsiteCategory" class="form-select">
+                            <option value="">-- Select Onsite Category --</option>
+                            <option value="ONSITE TRAINING">Onsite Training</option>
+                            <option value="ONSITE KICK OFF MEETING">Onsite Kick Off Meeting</option>
+                            <option value="ONSITE IMPLEMENTATION REVIEW SESSION">Onsite Implementation Review Session</option>
+                            <option value="ONSITE PROOF OF CONCEPT">Onsite Proof Of Concept</option>
+                            <option value="ONSITE BUSINESS TRIP">Onsite Business Trip</option>
+                        </select>
+                        @error('onsiteCategory')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Company selection -->
+                    <div class="form-group">
+                        <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
+
+                        <!-- Company dropdown (only open/delay projects) -->
+                        <select wire:model="selectedCompany" id="selectedCompany" class="form-select">
+                            <option value="">-- Select a company --</option>
+
+                            <!-- Open Projects Group -->
+                            <optgroup label="Open Projects">
+                                @foreach($filteredOpenDelayCompanies as $id => $data)
+                                    @if($data['status'] === 'Open')
+                                        <option value="{{ $id }}">
+                                            SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                            @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                            @endif
+                                            @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                ({{ $data['system_setting_count'] }}/4 System Setting)
+                                            @endif
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
+
+                            <!-- Delay Projects Group -->
+                            <optgroup label="Delay Projects">
+                                @foreach($filteredOpenDelayCompanies as $id => $data)
+                                    @if($data['status'] === 'Delay')
+                                        <option value="{{ $id }}">
+                                            SW_{{ $data['handover_id'] }} | {{ $data['name'] }}
+                                            @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                ({{ $data['data_migration_count'] }}/2 Data Migration)
+                                            @endif
+                                            @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                ({{ $data['system_setting_count'] }}/4 System Setting)
+                                            @endif
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
+                        </select>
+                        @error('selectedCompany')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Required Attendees -->
+                    <div class="form-group">
+                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
+                        <input
+                            type="text"
+                            wire:model="requiredAttendees"
+                            id="requiredAttendees"
+                            class="form-input"
+                            placeholder="email1@example.com;email2@example.com"
+                        >
+                        <!-- <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
+                            Load from Software Handover
+                        </button> -->
+                        <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
+                        @error('requiredAttendees')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button wire:click="submitOnsiteRequest" type="button" class="btn btn-primary">
+                    Submit Request
+                </button>
                 <button wire:click="cancelBooking" type="button" class="btn btn-secondary">
                     Cancel
                 </button>
