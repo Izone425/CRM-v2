@@ -250,20 +250,20 @@ class SoftwareHandoverAnalysis extends Page
             if ($headcount === null) {
                 return 'Unknown';
             } elseif ($headcount >= 1 && $headcount <= 24) {
-                return '1-24';
+                return 'Small';
             } elseif ($headcount >= 25 && $headcount <= 99) {
-                return '25-99';
+                return 'Medium';
             } elseif ($headcount >= 100 && $headcount <= 500) {
-                return '100-500';
+                return 'Large';
             } elseif ($headcount > 500) {
-                return '501 and Above';
+                return 'Enterprise';
             } else {
                 return 'Unknown';
             }
         });
 
         // Sort groups in a logical order
-        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortOrder = ['Small', 'Medium', 'Large', 'Enterprise', 'Unknown'];
         $sortedGroups = collect();
 
         foreach ($sortOrder as $size) {

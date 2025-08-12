@@ -117,7 +117,7 @@
             </a>
 
             <!-- Leads Section -->
-            @if(in_array(auth()->user()->role_id, [1, 2, 3, 4, 5]))
+            @if(in_array(auth()->user()->role_id, [1, 2, 3]))
                 <a href="{{ route('filament.admin.resources.leads.index') }}"
                     title="Leads"
                     class="sidebar-item {{ request()->routeIs('filament.admin.resources.leads.*') ? 'active' : '' }}">
@@ -622,6 +622,50 @@
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
                                     <i class="bi bi-dot"></i>
                                     <span>Hardware Handover Flow</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-list-ol"></i>
+                                <span>Implementer Audit List</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Project Sequence</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="nested-dropdown">
+                            <div class="sidebar-item nested-dropdown-trigger">
+                                <i class="bi bi-calendar-week-fill"></i>
+                                <span>Implementer - Calendar</span>
+                                <i class="bi bi-chevron-down ms-auto"></i>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Implementer - Session</span>
+                                </a>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Implementer - Request Count</span>
+                                </a>
+                            </div>
+
+                            <div class="nested-dropdown-content">
+                                <a href="{{ route('filament.admin.pages.implementer-request-list') }}" class="sidebar-item">
+                                    <i class="bi bi-dot"></i>
+                                    <span>Implementer - Request List</span>
                                 </a>
                             </div>
                         </div>

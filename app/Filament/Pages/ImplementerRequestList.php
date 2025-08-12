@@ -25,7 +25,7 @@ class ImplementerRequestList extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-list';
+    protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
     protected static ?string $navigationLabel = 'Implementer Request List';
     protected static ?int $navigationSort = 17;
     protected static string $view = 'filament.pages.implementer-request-list';
@@ -53,7 +53,6 @@ class ImplementerRequestList extends Page implements HasTable
 
                 TextColumn::make('implementer')
                     ->label('Implementer')
-
                     ->searchable()
                     ->sortable(),
 
@@ -81,19 +80,68 @@ class ImplementerRequestList extends Page implements HasTable
 
                 TextColumn::make('type')
                     ->label('Session Type')
-                    ->formatStateUsing(function ($state) {
-                        switch ($state) {
-                            case 'DATA MIGRATION SESSION':
-                                return 'Data Migration';
-                            case 'SYSTEM SETTING SESSION':
-                                return 'System Setting';
-                            case 'WEEKLY FOLLOW UP SESSION':
-                                return 'Weekly Follow Up';
-                            default:
-                                return $state;
+                    ->searchable(),
+
+                TextColumn::make('session_count')
+                    ->label('Count')
+                    ->getStateUsing(function ($record) {
+                        // Skip cancelled sessions
+                        if ($record->status == 'Cancelled') {
+                            return '-';
+                        }
+
+                        // For weekly follow-up sessions, return week number if available
+                        if ($record->type === 'WEEKLY FOLLOW UP SESSION' && $record->selected_week) {
+                            return "W{$record->selected_week}";
+                        }
+
+                        // If no lead_id, we can't determine the count
+                        if (!$record->lead_id) {
+                            return '-';
+                        }
+
+                        // Get all appointments of this specific type for this lead that aren't cancelled
+                        $sessions = ImplementerAppointment::where('lead_id', $record->lead_id)
+                            ->where('type', $record->type)
+                            ->where('status', '!=', 'Cancelled')
+                            ->orderBy('date', 'asc')
+                            ->orderBy('start_time', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+                        // Find position of current record in the sorted list
+                        $position = 0;
+                        foreach ($sessions as $index => $session) {
+                            if ($session->id === $record->id) {
+                                $position = $index + 1; // +1 because we want to start counting from 1, not 0
+                                break;
+                            }
+                        }
+
+                        // Get total count
+                        $totalCount = $sessions->count();
+
+                        // Return position and max counts for specific session types
+                        if ($record->type === 'DATA MIGRATION SESSION') {
+                            return "{$position}/2";
+                        } elseif ($record->type === 'SYSTEM SETTING SESSION') {
+                            return "{$position}/4";
+                        } else {
+                            return $position > 0 ? "{$position}/{$totalCount}" : '-';
                         }
                     })
-                    ->searchable(),
+                    ->alignCenter()
+                    ->badge()
+                    ->color(function ($record, $state) {
+                        if ($state === '-') return 'gray';
+
+                        return match ($record->type) {
+                            'DATA MIGRATION SESSION' => 'warning',
+                            'SYSTEM SETTING SESSION' => 'info',
+                            'WEEKLY FOLLOW UP SESSION' => 'purple',
+                            default => 'primary',
+                        };
+                    }),
 
                 TextColumn::make('request_status')
                     ->label('Status')

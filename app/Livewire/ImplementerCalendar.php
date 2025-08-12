@@ -945,7 +945,8 @@ class ImplementerCalendar extends Component
                 'company_details.id',
                 'company_details.company_name',
                 'software_handovers.id as handover_id',
-                'software_handovers.status_handover as status'
+                'software_handovers.status_handover as status',
+                'software_handovers.lead_id as lead_id'
             )
             ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
             ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
@@ -965,11 +966,32 @@ class ImplementerCalendar extends Component
         $this->filteredOpenDelayCompanies = [];
 
         foreach ($companies as $company) {
-            $this->filteredOpenDelayCompanies[$company->id] = [
-                'name' => $company->company_name,
-                'handover_id' => str_pad($company->handover_id, 6, '0', STR_PAD_LEFT),
-                'status' => $company->status
-            ];
+            // Check how many DATA MIGRATION SESSION appointments exist for this software handover
+            $dataMigrationSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $company->lead_id)
+                ->where('type', 'DATA MIGRATION SESSION')
+                ->where('status', '!=', 'Cancelled')
+                ->count();
+
+            // Check how many SYSTEM SETTING SESSION appointments exist for this software handover
+            $systemSettingSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $company->lead_id)
+                ->where('type', 'SYSTEM SETTING SESSION')
+                ->where('status', '!=', 'Cancelled')
+                ->count();
+
+            // Only add to dropdown if:
+            // - It's not for DATA MIGRATION SESSION OR if it has less than 2 DATA MIGRATION SESSIONs
+            // - It's not for SYSTEM SETTING SESSION OR if it has less than 4 SYSTEM SETTING SESSIONs
+            if (($this->requestSessionType !== 'DATA MIGRATION SESSION' || $dataMigrationSessionCount < 2) &&
+                ($this->requestSessionType !== 'SYSTEM SETTING SESSION' || $systemSettingSessionCount < 4)) {
+
+                $this->filteredOpenDelayCompanies[$company->id] = [
+                    'name' => $company->company_name,
+                    'handover_id' => str_pad($company->handover_id, 6, '0', STR_PAD_LEFT),
+                    'status' => $company->status,
+                    'data_migration_count' => $dataMigrationSessionCount,
+                    'system_setting_count' => $systemSettingSessionCount
+                ];
+            }
         }
     }
 
@@ -1227,6 +1249,38 @@ class ImplementerCalendar extends Component
                 $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
                     ->orderBy('id', 'desc')
                     ->value('id');
+
+                if ($this->requestSessionType === 'DATA MIGRATION SESSION') {
+                    $dataMigrationSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
+                        ->where('type', 'DATA MIGRATION SESSION')
+                        ->where('status', '!=', 'Cancelled')
+                        ->count();
+
+                    if ($dataMigrationSessionCount >= 2) {
+                        Notification::make()
+                            ->title('Maximum data migration sessions reached')
+                            ->warning()
+                            ->body('This software handover already has 2 DATA MIGRATION SESSION appointments.')
+                            ->send();
+                        return;
+                    }
+                }
+
+                if ($this->requestSessionType === 'SYSTEM SETTING SESSION') {
+                    $systemSettingSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
+                        ->where('type', 'SYSTEM SETTING SESSION')
+                        ->where('status', '!=', 'Cancelled')
+                        ->count();
+
+                    if ($systemSettingSessionCount >= 4) {
+                        Notification::make()
+                            ->title('Maximum system setting sessions reached')
+                            ->warning()
+                            ->body('This software handover already has 4 SYSTEM SETTING SESSION appointments.')
+                            ->send();
+                        return;
+                    }
+                }
             }
 
             $title = $this->requestSessionType . ' | IMPLEMENTER REQUEST | ' . $companyName;
@@ -1377,6 +1431,38 @@ class ImplementerCalendar extends Component
                 ->danger()
                 ->send();
             return;
+        }
+
+        if ($this->implementationDemoType === 'DATA MIGRATION SESSION') {
+            $dataMigrationSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
+                ->where('type', 'DATA MIGRATION SESSION')
+                ->where('status', '!=', 'Cancelled')
+                ->count();
+
+            if ($dataMigrationSessionCount >= 2) {
+                Notification::make()
+                    ->title('Maximum data migration sessions reached')
+                    ->warning()
+                    ->body('This software handover already has 2 DATA MIGRATION SESSION appointments.')
+                    ->send();
+                return;
+            }
+        }
+
+        if ($this->implementationDemoType === 'SYSTEM SETTING SESSION') {
+            $systemSettingSessionCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
+                ->where('type', 'SYSTEM SETTING SESSION')
+                ->where('status', '!=', 'Cancelled')
+                ->count();
+
+            if ($systemSettingSessionCount >= 4) {
+                Notification::make()
+                    ->title('Maximum system setting sessions reached')
+                    ->warning()
+                    ->body('This software handover already has 4 SYSTEM SETTING SESSION appointments.')
+                    ->send();
+                return;
+            }
         }
 
         // Get implementer name
