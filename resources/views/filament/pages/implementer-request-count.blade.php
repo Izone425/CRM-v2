@@ -1,6 +1,6 @@
 <x-filament::page>
     <div class="p-6 bg-white rounded-lg shadow">
-        <div class="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2" style="margin-bottom:10px;">
             <!-- Year Filter -->
             <div>
                 <label for="year" class="block mb-2 text-sm font-medium text-gray-700">Year</label>
@@ -50,6 +50,10 @@
                 color: #4338ca; /* Indigo */
                 font-weight: bold;
             }
+            .current-week {
+                background-color: #f8aea1 !important; /* Light amber background */
+                border-left: 4px solid #ec5b41; /* Amber left border */
+            }
         </style>
 
         <!-- Stats Table -->
@@ -67,9 +71,14 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($weeklyStats as $week)
-                        <tr class="{{ $loop->even ? 'bg-gray-50' : 'bg-white' }}">
+                        <tr class="{{ $loop->even ? 'bg-gray-50' : 'bg-white' }} {{ $week['week_number'] === $currentWeekNumber ? 'current-week' : '' }}">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900 implementer-table-cell">Week {{ $week['week_number'] }}</div>
+                                <div class="text-sm font-medium text-gray-900 implementer-table-cell">
+                                    Week {{ $week['week_number'] }}
+                                    @if($week['week_number'] === $currentWeekNumber)
+                                        <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Current</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900 implementer-table-cell">{{ $week['date_range'] }}</div>

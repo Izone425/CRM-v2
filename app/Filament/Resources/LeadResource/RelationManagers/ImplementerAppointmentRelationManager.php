@@ -428,7 +428,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
         return $table
             ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
-            // ->headerActions($this->headerActions())
+            ->headerActions($this->headerActions())
             ->columns([
                 TextColumn::make('implementer')
                     ->label('IMPLEMENTER')

@@ -32,14 +32,42 @@ class ImplementerRequestList extends Page implements HasTable
 
     public function getTableQuery(): Builder
     {
-        return ImplementerAppointment::query()
+        $query = ImplementerAppointment::query()
             ->whereIn('type', ['DATA MIGRATION SESSION', 'SYSTEM SETTING SESSION', 'WEEKLY FOLLOW UP SESSION'])
             ->orderBy('date', 'desc')
             ->orderBy('start_time', 'asc');
+
+        // Check user permissions
+        $currentUser = auth()->user();
+        $hasAdminAccess = $currentUser->id === 26 || $currentUser->role_id === 3;
+
+        // If not admin, restrict to viewing only their own data
+        if (!$hasAdminAccess) {
+            $query->where('implementer', $currentUser->name);
+        }
+
+        return $query;
     }
 
     public function table(Table $table): Table
     {
+        // Check user permissions
+        $currentUser = auth()->user();
+        $hasAdminAccess = $currentUser->id === 26 || $currentUser->role_id === 3;
+
+        $implementerOptions = [];
+
+        // Only admins can filter by implementer
+        if ($hasAdminAccess) {
+            $implementerOptions = User::whereIn('role_id', [4, 5])
+                ->orderBy('name')
+                ->pluck('name', 'name')
+                ->toArray();
+        } else {
+            // Non-admins can only see themselves in the filter
+            $implementerOptions = [$currentUser->name => $currentUser->name];
+        }
+
         return $table
             ->query($this->getTableQuery())
             ->columns([
@@ -64,6 +92,23 @@ class ImplementerRequestList extends Page implements HasTable
                         return $date->format('j F Y') . ' / ' . $dayName;
                     })
                     ->sortable(),
+
+                TextColumn::make('session')
+                    ->label('Session')
+                    ->formatStateUsing(function ($state, ImplementerAppointment $record) {
+                        $slotCode = $record->session;
+
+                        // Format the time in 12-hour format with AM/PM
+                        $formattedStartTime = Carbon::parse($record->start_time)->format('h:i A');
+                        $formattedEndTime = Carbon::parse($record->end_time)->format('h:i A');
+
+                        // Combine slot code with formatted time
+                        return "{$slotCode} ({$formattedStartTime} - {$formattedEndTime})";
+                    }),
+
+                TextColumn::make('type')
+                    ->label('Session Type')
+                    ->searchable(),
 
                 TextColumn::make('session')
                     ->label('Session')

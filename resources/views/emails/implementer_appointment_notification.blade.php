@@ -139,10 +139,6 @@
         <li class="file-item">Data Migration Template: <a href="{{ route('implementer.files', 'import-user-example.xlsx') }}" target="_blank">Import User Sample.xlsx</a></li>
 
         <li class="file-item">Data Migration Guide (PDF): <a href="{{ route('implementer.files', 'data-migration-explaination.pdf') }}" target="_blank">Import User File Guideline.pdf</a></li>
-
-        <li class="file-item">Import Leave Balance Template: <a href="{{ route('implementer.files', 'user-leave-balance-template.xlsx') }}" target="_blank">User Leave Balance.xlsx</a></li>
-
-        <li class="file-item">Import Leave Balance Guide (PDF): <a href="{{ route('implementer.files', 'user-leave-balance-guideline.pdf') }}" target="_blank">Import leave balance guideline.pdf</a></li>
     </ul>
     <p>Looking forward to have you in our Kick-Off Meeting session.</p>
 </body>

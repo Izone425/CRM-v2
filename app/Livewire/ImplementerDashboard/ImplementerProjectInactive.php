@@ -119,14 +119,13 @@ class ImplementerProjectInactive extends Component implements HasForms, HasTable
             ->paginated([5])
             ->filters([
                 // Add this new filter for status
-                SelectFilter::make('status')
+                SelectFilter::make('status_handover')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
-                        'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Open' => 'Open',
+                        'Delay' => 'Delay',
+                        'InActive' => 'InActive',
+                        'Closed' => 'Closed',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),

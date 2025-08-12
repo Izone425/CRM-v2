@@ -782,7 +782,15 @@ class CompanyTabs
                         Action::make('assign_reseller')
                             ->label('Assign Reseller')
                             ->icon('heroicon-o-link')
-                            ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                            ->visible(function (Lead $lead) {
+                                // First check if user has appropriate role
+                                if (!in_array(auth()->user()->role_id, [1, 2, 3])) {
+                                    return false;
+                                }
+
+                                // Then apply the original condition
+                                return !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson));
+                            })
                             ->modalHeading('Assign Reseller to Lead')
                             ->modalSubmitActionLabel('Assign')
                             ->form([

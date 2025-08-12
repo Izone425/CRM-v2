@@ -22,6 +22,14 @@ class ImplementerRequestCount extends Page
     public function mount(): void
     {
         $this->selectedYear = (int) date('Y');
+
+        // Set default selected implementer to the current user if they're not an admin
+        $currentUser = auth()->user();
+        $hasAdminAccess = $currentUser->id === 26 || $currentUser->role_id === 3;
+
+        if (!$hasAdminAccess && in_array($currentUser->role_id, [4, 5])) {
+            $this->selectedImplementer = $currentUser->name;
+        }
     }
 
     protected function getViewData(): array
@@ -30,6 +38,7 @@ class ImplementerRequestCount extends Page
             'years' => $this->getAvailableYears(),
             'implementers' => $this->getImplementers(),
             'weeklyStats' => $this->getWeeklyImplementerStats(),
+            'currentWeekNumber' => $this->getCurrentWeekNumber(), // Add this line
         ];
     }
 
@@ -46,13 +55,29 @@ class ImplementerRequestCount extends Page
 
     protected function getImplementers(): array
     {
-        $implementers = User::whereIn('role_id', [4, 5])
-            ->orderBy('name')
-            ->get()
-            ->pluck('name', 'name')
-            ->toArray();
+        // Check if current user has admin access (user_id 26 or role_id 3)
+        $currentUser = auth()->user();
+        $hasAdminAccess = $currentUser->id === 26 || $currentUser->role_id === 3;
 
-        return ['all' => 'All Implementers'] + $implementers;
+        // If user has admin access, show all implementers
+        if ($hasAdminAccess) {
+            $implementers = User::whereIn('role_id', [4, 5])
+                ->orderBy('name')
+                ->get()
+                ->pluck('name', 'name')
+                ->toArray();
+
+            return ['all' => 'All Implementers'] + $implementers;
+        }
+        // Otherwise, only show the current user
+        else {
+            // For implementers, only return their own name
+            if (in_array($currentUser->role_id, [4, 5])) {
+                return [$currentUser->name => $currentUser->name];
+            }
+            // For other users, don't show any implementers
+            return [];
+        }
     }
 
     protected function getWeeklyImplementerStats(): array
@@ -100,8 +125,19 @@ class ImplementerRequestCount extends Page
             ->where('status', '!=', 'Cancelled')
             ->whereIn('type', ['DATA MIGRATION SESSION', 'SYSTEM SETTING SESSION', 'WEEKLY FOLLOW UP SESSION']);
 
-        // Filter by implementer if needed
-        if ($this->selectedImplementer !== 'all') {
+        // Check user permissions
+        $currentUser = auth()->user();
+        $hasAdminAccess = $currentUser->id === 26 || $currentUser->role_id === 3;
+
+        // If not admin and is an implementer, restrict to own data
+        if (!$hasAdminAccess && in_array($currentUser->role_id, [4, 5])) {
+            // Force filter by the current user's name
+            $query->where('implementer', $currentUser->name);
+            // Override selected implementer to ensure it's the current user
+            $this->selectedImplementer = $currentUser->name;
+        }
+        // Otherwise, apply normal filter
+        else if ($this->selectedImplementer !== 'all') {
             $query->where('implementer', $this->selectedImplementer);
         }
 
@@ -156,5 +192,27 @@ class ImplementerRequestCount extends Page
         }
 
         return $weeklyStats;
+    }
+
+    protected function getCurrentWeekNumber(): ?int
+    {
+        // Only calculate current week if we're viewing the current year
+        if ($this->selectedYear !== (int) date('Y')) {
+            return null;
+        }
+
+        $currentDate = Carbon::now();
+
+        // Find which week number in our array corresponds to the current date
+        foreach ($this->getWeeklyImplementerStats() as $weekNumber => $weekData) {
+            $weekStart = Carbon::parse(explode(' - ', $weekData['date_range'])[0] . ' ' . $this->selectedYear);
+            $weekEnd = Carbon::parse(explode(' - ', $weekData['date_range'])[1] . ' ' . $this->selectedYear);
+
+            if ($currentDate->between($weekStart, $weekEnd)) {
+                return $weekNumber;
+            }
+        }
+
+        return null;
     }
 }
