@@ -279,7 +279,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
 
                             // Update the software handover record
                             $record->update([
-                                'completed_at' => now(),
+                                // 'completed_at' => now(),
                                 'data_migrated' => true
                             ]);
 
@@ -295,7 +295,7 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                                 if ($hardwareHandover) {
                                     $hardwareHandover->update([
                                         'status' => 'Completed Migration',
-                                        'completed_at' => now(),
+                                        // 'completed_at' => now(),
                                         'updated_at' => now(),
                                     ]);
 

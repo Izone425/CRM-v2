@@ -1767,25 +1767,16 @@
                         <!-- Option 1: Implementer Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementer_request')">
                             <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTER REQUEST</h4>
-                            <p class="text-sm text-gray-600">
-                                Submit a request for Data Migration Session, System Setting Session, or Weekly Follow Up Session.
-                            </p>
                         </div>
 
                         <!-- Option 2: Implementation Session -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementation_session')">
                             <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTATION SESSION</h4>
-                            <p class="text-sm text-gray-600">
-                                Book an implementation session with a client (Implementation Review Session or Kick Off Meeting Session).
-                            </p>
                         </div>
 
                         <!-- Option 3: Onsite Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('onsite_request')">
                             <h4 class="mb-2 text-lg font-semibold text-center">ONSITE REQUEST</h4>
-                            <p class="text-sm text-gray-600">
-                                Request for onsite training, kick-off meeting, implementation review, proof of concept or business trip.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -2232,10 +2223,11 @@
                         <div class="form-group">
                             <label for="implementationDemoType" class="form-label">Demo Type <span class="text-red-600">*</span></label>
                             <select wire:model="implementationDemoType" id="implementationDemoType" class="form-select" {{ isset($hasKickOffMeeting) && $hasKickOffMeeting ? 'disabled' : '' }}>
-                                @if((!isset($hasKickOffMeeting) || !$hasKickOffMeeting) && auth()->user()->role_id == 3)
+                                @if((!$hasKickOffMeeting))
                                     <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
+                                @else
+                                    <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
                                 @endif
-                                <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
                             </select>
                             @if(isset($hasKickOffMeeting) && $hasKickOffMeeting)
                                 <p class="mt-1 text-xs text-gray-500">This company already had a Kick Off Meeting Session.</p>

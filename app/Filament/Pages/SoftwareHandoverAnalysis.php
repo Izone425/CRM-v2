@@ -63,6 +63,7 @@ class SoftwareHandoverAnalysis extends Page
     private function getBaseQuery()
     {
         $query = SoftwareHandover::query()
+            ->where('status', '=', 'Completed')
             ->where('implementer', '!=', null);
         return $query;
     }
@@ -291,7 +292,9 @@ class SoftwareHandoverAnalysis extends Page
     public function openAllHandoversSlideOver()
     {
         // Get handovers with company size
-        $handovers = SoftwareHandover::select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+        $handovers = $this->getBaseQuery()
+            ->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')
+            ->get();
 
         // Group handovers by company size
         $this->handoverList = $this->groupHandoversByCompanySize($handovers);
@@ -304,7 +307,7 @@ class SoftwareHandoverAnalysis extends Page
     // For "CLOSED" status handovers
     public function openClosedHandoversSlideOver($implementer = null)
     {
-        $query = SoftwareHandover::query()->where('status_handover', 'CLOSED');
+        $query = $this->getBaseQuery()->where('status_handover', 'CLOSED');
 
         if ($implementer) {
             $query->where('implementer', $implementer);
@@ -503,64 +506,75 @@ class SoftwareHandoverAnalysis extends Page
 
         try {
             for ($month = 1; $month <= 12; $month++) {
-                // Get total handovers created in this month (regardless of status)
-                $totalCount = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                // Get total handovers created in this month (with completed status)
+                $totalCount = $this->getBaseQuery()
+                    ->whereYear('completed_at', $selectedYear)
                     ->whereMonth('completed_at', $month)
                     ->count();
 
                 // Get only closed projects with go_live_date in this month
-                $closedProject = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                $closedProject = $this->getBaseQuery()
+                    ->whereYear('go_live_date', $selectedYear)
                     ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->count();
 
                 // Get company size data for all handovers created in this month
-                $small = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                $small = $this->getBaseQuery()
+                    ->whereYear('completed_at', $selectedYear)
                     ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 1)
                     ->where('headcount', '<=', 24)
                     ->count();
 
-                $medium = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                // Update all other queries in this method similarly...
+                $medium = $this->getBaseQuery()
+                    ->whereYear('completed_at', $selectedYear)
                     ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 25)
                     ->where('headcount', '<=', 99)
                     ->count();
 
-                $large = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                $large = $this->getBaseQuery()
+                    ->whereYear('completed_at', $selectedYear)
                     ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 100)
                     ->where('headcount', '<=', 500)
                     ->count();
 
-                $enterprise = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                $enterprise = $this->getBaseQuery()
+                    ->whereYear('completed_at', $selectedYear)
                     ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 501)
                     ->count();
 
                 // Get company size data for closed handovers with go_live_date in this month
-                $closedSmall = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                $closedSmall = $this->getBaseQuery()
+                    ->whereYear('go_live_date', $selectedYear)
                     ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 1)
                     ->where('headcount', '<=', 24)
                     ->count();
 
-                $closedMedium = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                $closedMedium = $this->getBaseQuery()
+                    ->whereYear('go_live_date', $selectedYear)
                     ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 25)
                     ->where('headcount', '<=', 99)
                     ->count();
 
-                $closedLarge = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                $closedLarge = $this->getBaseQuery()
+                    ->whereYear('go_live_date', $selectedYear)
                     ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 100)
                     ->where('headcount', '<=', 500)
                     ->count();
 
-                $closedEnterprise = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                $closedEnterprise = $this->getBaseQuery()
+                    ->whereYear('go_live_date', $selectedYear)
                     ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 501)
@@ -592,7 +606,8 @@ class SoftwareHandoverAnalysis extends Page
 
     public function getHandoversBySalesPerson()
     {
-        return SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
+        return $this->getBaseQuery()
+            ->select('salesperson', DB::raw('count(*) as total'))
             ->whereNotNull('salesperson')
             ->where('salesperson', '!=', '')
             ->groupBy('salesperson')
@@ -613,20 +628,22 @@ class SoftwareHandoverAnalysis extends Page
         $excludeSalespeople = array_merge($rank1Salespeople, $rank2Salespeople);
 
         // Get the count for the specified Rank 1 salespeople
-        $rank1Data = SoftwareHandover::select('salesperson', DB::raw('count(*) as total'))
+        $rank1Data = $this->getBaseQuery()
+            ->select('salesperson', DB::raw('count(*) as total'))
             ->whereIn('salesperson', $rank1Salespeople)
             ->groupBy('salesperson')
             ->orderByDesc('total')
             ->get();
 
         // Get the count for all other salespeople excluding both Rank 1 and Rank 2
-        $othersCount = SoftwareHandover::where(function($query) use ($excludeSalespeople) {
-            // Include records where salesperson is not in excluded list
-            $query->whereNotIn('salesperson', $excludeSalespeople)
-                // Or include records where salesperson is null or empty
-                ->orWhereNull('salesperson')
-                ->orWhere('salesperson', '');
-        })->count();
+        $othersCount = $this->getBaseQuery()
+            ->where(function($query) use ($excludeSalespeople) {
+                // Include records where salesperson is not in excluded list
+                $query->whereNotIn('salesperson', $excludeSalespeople)
+                    // Or include records where salesperson is null or empty
+                    ->orWhereNull('salesperson')
+                    ->orWhere('salesperson', '');
+            })->count();
 
         // Add "Others" as a new entry in the collection with a sequence field
         $rank1Data->push((object)[
@@ -656,43 +673,48 @@ class SoftwareHandoverAnalysis extends Page
     public function getHandoversByStatus()
     {
         return [
-            'open' => SoftwareHandover::where('status_handover', 'OPEN')->count(),
-            'delay' => SoftwareHandover::where('status_handover', 'DELAY')->count(),
-            'inactive' => SoftwareHandover::where('status_handover', 'INACTIVE')->count(),
-            'closed' => SoftwareHandover::where('status_handover', 'CLOSED')->count(),
+            'open' => $this->getBaseQuery()->where('status_handover', 'OPEN')->count(),
+            'delay' => $this->getBaseQuery()->where('status_handover', 'DELAY')->count(),
+            'inactive' => $this->getBaseQuery()->where('status_handover', 'INACTIVE')->count(),
+            'closed' => $this->getBaseQuery()->where('status_handover', 'CLOSED')->count(),
         ];
     }
 
     public function getHandoversByCompanySize()
     {
         $sizes = [
-            'Small' => SoftwareHandover::where('headcount', '>=', 1)
+            'Small' => $this->getBaseQuery()
+                ->where('headcount', '>=', 1)
                 ->where('headcount', '<=', 24)
                 ->count(),
 
-            'Medium' => SoftwareHandover::where('headcount', '>=', 25)
+            'Medium' => $this->getBaseQuery()
+                ->where('headcount', '>=', 25)
                 ->where('headcount', '<=', 99)
                 ->count(),
 
-            'Large' => SoftwareHandover::where('headcount', '>=', 100)
+            'Large' => $this->getBaseQuery()
+                ->where('headcount', '>=', 100)
                 ->where('headcount', '<=', 500)
                 ->count(),
 
-            'Enterprise' => SoftwareHandover::where('headcount', '>=', 501)
+            'Enterprise' => $this->getBaseQuery()
+                ->where('headcount', '>=', 501)
                 ->count(),
         ];
 
         return $sizes;
     }
 
+
     public function getHandoversByModule()
     {
         // Count each module where its value is 1
         return [
-            'ta' => SoftwareHandover::where('ta', 1)->count(),
-            'tl' => SoftwareHandover::where('tl', 1)->count(),
-            'tc' => SoftwareHandover::where('tc', 1)->count(),
-            'tp' => SoftwareHandover::where('tp', 1)->count(),
+            'ta' => $this->getBaseQuery()->where('ta', 1)->count(),
+            'tl' => $this->getBaseQuery()->where('tl', 1)->count(),
+            'tc' => $this->getBaseQuery()->where('tc', 1)->count(),
+            'tp' => $this->getBaseQuery()->where('tp', 1)->count(),
         ];
     }
 
@@ -771,14 +793,16 @@ class SoftwareHandoverAnalysis extends Page
         // Query for handovers based on month, year and type (new or closed)
         if ($type === 'closed') {
             // For closed projects, use go_live_date and status_handover = Closed
-            $query = \App\Models\SoftwareHandover::whereYear('go_live_date', $year)
+            $query = $this->getBaseQuery()
+                ->whereYear('go_live_date', $year)
                 ->whereMonth('go_live_date', $monthNumber)
                 ->where('status_handover', 'Closed');
 
             $this->slideOverTitle = "Closed Projects - {$month} {$year}";
         } else {
             // For new projects, show all projects from this month regardless of status
-            $query = \App\Models\SoftwareHandover::whereYear('completed_at', $year)
+            $query = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
                 ->whereMonth('completed_at', $monthNumber);
 
             $this->slideOverTitle = "New Projects - {$month} {$year}";
@@ -824,7 +848,7 @@ class SoftwareHandoverAnalysis extends Page
             $rank2Salespeople = ['Yasmin', 'Muhammad Khoirul Bariah', 'Abdul Aziz', 'Farhanah Jamil'];
             $excludeSalespeople = array_merge($rank1Salespeople, $rank2Salespeople);
 
-            $query = \App\Models\SoftwareHandover::where(function($q) use ($excludeSalespeople) {
+            $query = $this->getBaseQuery()->where(function($q) use ($excludeSalespeople) {
                 $q->whereNotIn('salesperson', $excludeSalespeople)
                 ->orWhereNull('salesperson')
                 ->orWhere('salesperson', '');
@@ -833,7 +857,7 @@ class SoftwareHandoverAnalysis extends Page
             $this->slideOverTitle = "Projects by Other Salespersons";
         } else {
             // For named salespersons, get their specific handovers
-            $query = \App\Models\SoftwareHandover::where('salesperson', $salesperson);
+            $query = $this->getBaseQuery()->where('salesperson', $salesperson);
             $this->slideOverTitle = "Projects by {$salesperson}";
         }
 
@@ -873,7 +897,8 @@ class SoftwareHandoverAnalysis extends Page
         $yesterday = now()->subDay()->format('Y-m-d');
 
         // Query for yesterday's module data
-        $data = SoftwareHandover::where('completed_at', 'like', "{$yesterday}%")
+        $data = $this->getBaseQuery()
+            ->where('completed_at', 'like', "{$yesterday}%")
             ->get();
 
         // Initialize counts
@@ -900,7 +925,8 @@ class SoftwareHandoverAnalysis extends Page
         $today = now()->format('Y-m-d');
 
         // Query for today's module data
-        $data = SoftwareHandover::where('completed_at', 'like', "{$today}%")
+        $data = $this->getBaseQuery()
+            ->where('completed_at', 'like', "{$today}%")
             ->get();
 
         // Initialize counts
@@ -924,9 +950,6 @@ class SoftwareHandoverAnalysis extends Page
 
     public function getAllSalespersonHandovers(): int
     {
-        $baseQuery = SoftwareHandover::query();
-
-        // Get the total count of all handovers
-        return $baseQuery->count();
+        return $this->getBaseQuery()->count();
     }
 }

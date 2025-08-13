@@ -1147,7 +1147,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ->default(fn ($record) =>
                                             optional(optional($record)->lead?->follow_up_date)->addDays(7) ?? now()->addDays(7)
                                         )
-                                        ->minDate(now())
+                                        ->minDate(now()->subDay())
                                         ->reactive(),
                                         // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
 
@@ -1598,7 +1598,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ->native(false)
                                         ->displayFormat('d M Y')
                                         ->weekStartsOnMonday()
-                                        ->minDate(now())
+                                        ->minDate(now()->subDay())
                                         ->default(fn() => now()->nextWeekday())
                                         ->columnSpan(1),
 

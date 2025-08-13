@@ -77,6 +77,7 @@ class ImplementerProjectAll extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
         $query =  SoftwareHandover::query()
+            ->where('status', '=', 'Completed')
             ->orderBy('id', 'desc');
 
         if ($this->selectedUser === 'all-implementer') {
