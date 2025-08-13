@@ -70,6 +70,8 @@ class ImplementerRequestList extends Page implements HasTable
 
         return $table
             ->query($this->getTableQuery())
+            ->defaultPaginationPageOption(50)
+            ->paginationPageOptions([25, 50, 100, 'all'])
             ->columns([
                 TextColumn::make('id')
                     ->label('NO')

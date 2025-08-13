@@ -196,15 +196,15 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
-        if (in_array('data_file', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Data Files')
-                ->schema(DataFileTabs::getSchema());
-        }
+        // if (in_array('data_file', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Data Files')
+        //         ->schema(DataFileTabs::getSchema());
+        // }
 
-        if (in_array('implementer_service_form', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Service Form')
-                ->schema(ImplementerServiceFormTabs::getSchema());
-        }
+        // if (in_array('implementer_service_form', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Service Form')
+        //         ->schema(ImplementerServiceFormTabs::getSchema());
+        // }
 
         if (in_array('other_form', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Other Form')
@@ -251,10 +251,10 @@ class LeadResource extends Resource
                 ->schema(RepairAppointmentTabs::getSchema());
         }
 
-        if (in_array('ticketing', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Ticketing')
-                ->schema(TicketingTabs::getSchema());
-        }
+        // if (in_array('ticketing', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Ticketing')
+        //         ->schema(TicketingTabs::getSchema());
+        // }
 
         return $form
             ->schema([
