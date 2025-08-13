@@ -762,6 +762,7 @@
         .stat-card2:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            overflow: visible;
         }
 
         .stat-icon {
@@ -828,6 +829,30 @@
         .tp-card .stat-icon {
             background-color: rgba(191,131,255,255);
             color: white;
+        }
+
+        .module-tooltip {
+            position: absolute;
+            top: 0;
+            right: 75px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+            pointer-events: none;
+            transform: translate(-5px, -120%);
+        }
+
+        .stat-card2:hover .module-tooltip {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
 
@@ -1019,7 +1044,7 @@
                                 <div class="salesperson-name">{{ $person->salesperson }}</div>
                                 <div class="salesperson-rank">
                                     @if($person->salesperson === 'Others')
-                                        Others
+                                        Top 1
                                     @else
                                         Top {{ $index + 1 }}
                                     @endif
@@ -1199,83 +1224,90 @@
                 @endphp
 
                 <!-- TimeTec Attendance Card -->
-                <div class="stat-card2 ta-card" style="background-color: rgba(255,226,230,255)">
-
+                <div class="stat-card2 ta-card" style="background-color: rgba(255,226,230,255); position: relative;">
                     <div class="stat-content">
                         <div class="stat-icon">
                             <i class="fas fa-clock"></i>
                         </div>
                         <br>
-                        <h3 class="stat-value">{{ $moduleData['ta'] }}</h3>
+                        <h3 class="stat-value" title="TimeTec Attendance">{{ $moduleData['ta'] }}</h3>
                         <p class="stat-label">TimeTec Attendance</p>
                         @php
                             $taChange = $todayData['ta'] - $yesterdayData['ta'];
                             $taDirection = $taChange >= 0 ? 'up' : 'down';
                             $taChangeAbs = abs($taChange);
+                            $taPercentage = $totalModules > 0 ? round(($moduleData['ta'] / $this->getAllSalespersonHandovers()) * 100, 1) : 0;
                         @endphp
                         <span class="stat-trend stat-trend-{{ $taDirection }}">
                             <i class="fas fa-arrow-{{ $taDirection }}"></i> {{ $taChangeAbs }} from yesterday
                         </span>
+                        <div class="module-tooltip">{{ $taPercentage }}%</div>
                     </div>
                 </div>
 
                 <!-- TimeTec Leave Card -->
-                <div class="stat-card2 tl-card" style="background-color: rgba(255,244,222,255)">
+                <div class="stat-card2 tl-card" style="background-color: rgba(255,244,222,255); position: relative;">
                     <div class="stat-content">
                         <div class="stat-icon">
                             <i class="fas fa-calendar"></i>
                         </div>
                         <br>
-                        <h3 class="stat-value">{{ $moduleData['tl'] }}</h3>
+                        <h3 class="stat-value" title="TimeTec Leave">{{ $moduleData['tl'] }}</h3>
                         <p class="stat-label">TimeTec Leave</p>
                         @php
                             $tlChange = $todayData['tl'] - $yesterdayData['tl'];
                             $tlDirection = $tlChange >= 0 ? 'up' : 'down';
                             $tlChangeAbs = abs($tlChange);
+                            $tlPercentage = $totalModules > 0 ? round(($moduleData['tl'] / $this->getAllSalespersonHandovers()) * 100, 1) : 0;
                         @endphp
                         <span class="stat-trend stat-trend-{{ $tlDirection }}">
                             <i class="fas fa-arrow-{{ $tlDirection }}"></i> {{ $tlChangeAbs }} from yesterday
                         </span>
+                        <div class="module-tooltip">{{ $tlPercentage }}%</div>
                     </div>
                 </div>
 
                 <!-- TimeTec Claim Card -->
-                <div class="stat-card2 tc-card" style="background-color: rgba(220,252,231,255)">
+                <div class="stat-card2 tc-card" style="background-color: rgba(220,252,231,255); position: relative;">
                     <div class="stat-content">
                         <div class="stat-icon">
                             <i class="fas fa-receipt"></i>
                         </div>
                         <br>
-                        <h3 class="stat-value">{{ $moduleData['tc'] }}</h3>
+                        <h3 class="stat-value" title="TimeTec Claim">{{ $moduleData['tc'] }}</h3>
                         <p class="stat-label">TimeTec Claim</p>
                         @php
                             $tcChange = $todayData['tc'] - $yesterdayData['tc'];
                             $tcDirection = $tcChange >= 0 ? 'up' : 'down';
                             $tcChangeAbs = abs($tcChange);
+                            $tcPercentage = $totalModules > 0 ? round(($moduleData['tc'] / $this->getAllSalespersonHandovers()) * 100, 1) : 0;
                         @endphp
                         <span class="stat-trend stat-trend-{{ $tcDirection }}">
                             <i class="fas fa-arrow-{{ $tcDirection }}"></i> {{ $tcChangeAbs }} from yesterday
                         </span>
+                        <div class="module-tooltip">{{ $tcPercentage }}%</div>
                     </div>
                 </div>
 
                 <!-- TimeTec Payroll Card -->
-                <div class="stat-card2 tp-card" style="background-color: rgba(244,232,255,255)">
+                <div class="stat-card2 tp-card" style="background-color: rgba(244,232,255,255); position: relative;">
                     <div class="stat-content">
                         <div class="stat-icon">
                             <i class="fas fa-money-check-alt"></i>
                         </div>
                         <br>
-                        <h3 class="stat-value">{{ $moduleData['tp'] }}</h3>
+                        <h3 class="stat-value" title="TimeTec Payroll">{{ $moduleData['tp'] }}</h3>
                         <p class="stat-label">TimeTec Payroll</p>
                         @php
                             $tpChange = $todayData['tp'] - $yesterdayData['tp'];
                             $tpDirection = $tpChange >= 0 ? 'up' : 'down';
                             $tpChangeAbs = abs($tpChange);
+                            $tpPercentage = $totalModules > 0 ? round(($moduleData['tp'] / $this->getAllSalespersonHandovers()) * 100, 1) : 0;
                         @endphp
                         <span class="stat-trend stat-trend-{{ $tpDirection }}">
                             <i class="fas fa-arrow-{{ $tpDirection }}"></i> {{ $tpChangeAbs }} from yesterday
                         </span>
+                        <div class="module-tooltip">{{ $tpPercentage }}%</div>
                     </div>
                 </div>
             </div>
