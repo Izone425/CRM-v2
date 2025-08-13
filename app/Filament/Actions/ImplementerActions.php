@@ -568,6 +568,7 @@ class ImplementerActions
                         Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $data, $companyName) {
                             $message->from($senderEmail, $senderName)
                                 ->to($recipients)
+                                ->cc($senderEmail)
                                 ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$companyName} | " . Carbon::parse($data['date'])->format('d/m/Y'));
                         });
 
@@ -805,10 +806,10 @@ class ImplementerActions
 
             // Get company name with fallback
             $companyName = 'N/A';
-            if ($appointment->lead && $appointment->lead->companyDetail) {
-                $companyName = $appointment->lead->companyDetail->company_name;
-            } elseif ($appointment->softwareHandover) {
+            if ($appointment->softwareHandover) {
                 $companyName = $appointment->softwareHandover->company_name ?? 'N/A';
+            } elseif ($appointment->lead && $appointment->lead->companyDetail) {
+                $companyName = $appointment->lead->companyDetail->company_name;
             }
 
             // Format dates for email
@@ -837,6 +838,7 @@ class ImplementerActions
                 function ($message) use ($recipients, $senderEmail, $senderName, $appointment, $companyName, $appointmentDate) {
                     $message->from($senderEmail, $senderName)
                         ->to($recipients)
+                        ->cc($senderEmail)
                         ->subject("CANCELLED: TIMETEC IMPLEMENTATION APPOINTMENT | {$appointment->type} | {$companyName} | {$appointmentDate}");
                 }
             );

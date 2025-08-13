@@ -624,9 +624,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
                             ];
                         }),
+
+                    self::rescheduleAppointmentAction(),
+
                     Tables\Actions\Action::make('appointment_cancel')
                         ->visible(fn (ImplementerAppointment $appointment) =>
-                            now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7))
+                            now()->lte(Carbon::parse($appointment->date)->addDays(7)) && $appointment->status !== 'Cancelled'
                         )
                         ->label(__('Cancel Appointment'))
                         ->modalHeading('Cancel Implementation Appointment')
@@ -764,138 +767,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ->danger()
                                 ->send();
                         }),
-
-                    // Tables\Actions\Action::make('reschedule_appointment')
-                    //     ->label('Reschedule')
-                    //     ->icon('heroicon-o-clock')
-                    //     ->color('warning')
-                    //     ->modalHeading('Reschedule Implementation Appointment')
-                    //     ->form($this->defaultForm())
-                    //     ->visible(fn (ImplementerAppointment $record) =>
-                    //         $record->status !== 'Cancelled' && $record->status !== 'Completed'
-                    //     )
-                    //     ->action(function (array $data, ImplementerAppointment $record) {
-                    //         // Store the previous appointment details for the notification
-                    //         $oldDate = Carbon::parse($record->date)->format('d/m/Y');
-                    //         $oldStartTime = Carbon::parse($record->start_time)->format('h:i A');
-                    //         $oldEndTime = Carbon::parse($record->end_time)->format('h:i A');
-
-                    //         // Process required attendees from form data
-                    //         $requiredAttendeesInput = $data['required_attendees'] ?? '';
-                    //         $attendeeEmails = [];
-                    //         if (!empty($requiredAttendeesInput)) {
-                    //             $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
-                    //         }
-
-                    //         // Update the appointment with new schedule
-                    //         $record->update([
-                    //             'date' => $data['date'],
-                    //             'start_time' => $data['start_time'],
-                    //             'end_time' => $data['end_time'],
-                    //             'remarks' => $data['remarks'],
-                    //             'type' => $data['type'] ?? $record->type,
-                    //             'appointment_type' => $data['appointment_type'] ?? $record->appointment_type,
-                    //             'implementer' => $data['implementer'] ?? $record->implementer,
-                    //             'session' => $data['session'] ?? $record->session,
-                    //             'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
-                    //             'updated_at' => now(),
-                    //         ]);
-
-                    //         // Log the activity
-                    //         ActivityLog::create([
-                    //             'user_id' => auth()->id(),
-                    //             'action' => 'Rescheduled Implementation Appointment',
-                    //             'description' => "Rescheduled implementation appointment from {$oldDate} {$oldStartTime}-{$oldEndTime} to " .
-                    //                              Carbon::parse($data['date'])->format('d/m/Y') . " " .
-                    //                              Carbon::parse($data['start_time'])->format('h:i A') . "-" .
-                    //                              Carbon::parse($data['end_time'])->format('h:i A'),
-                    //             'subject_type' => ImplementerAppointment::class,
-                    //             'subject_id' => $record->id,
-                    //         ]);
-
-                    //         // Send email notification about the rescheduled appointment
-                    //         $lead = $this->ownerRecord;
-
-                    //         $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                    //         // $recipients = ['zilih.ng@timeteccloud.com']; // Admin email
-
-                    //         // Add the lead owner's email if available
-                    //         // $leadOwner = User::where('name', $lead->lead_owner)->first();
-                    //         // if ($leadOwner && !empty($leadOwner->email)) {
-                    //         //     $recipients[] = $leadOwner->email;
-                    //         // }
-
-                    //         // // Add company contact email if available
-                    //         // if (!empty($lead->companyDetail->email)) {
-                    //         //     $recipients[] = $lead->companyDetail->email;
-                    //         // }
-
-                    //         // Add required attendees from the form input
-                    //         if (!empty($attendeeEmails)) {
-                    //             foreach ($attendeeEmails as $email) {
-                    //                 if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
-                    //                     $recipients[] = $email;
-                    //                 }
-                    //             }
-                    //         }
-
-                    //         // Ensure recipients are unique
-                    //         $viewName = 'emails.implementer_appointment_reschedule';
-
-                    //         $recipients = array_unique($recipients);
-                    //         $authUser = auth()->user();
-                    //         $senderEmail = $authUser->email;
-                    //         $senderName = $authUser->name;
-                    //         // Prepare email content with reschedule reason
-                    //         $emailContent = [
-                    //             'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                    //             'lead' => [
-                    //                 'company' => $lead->companyDetail->company_name ?? 'N/A',
-                    //                 'implementerName' => $record->implementer ?? 'N/A',
-                    //                 'date' => Carbon::parse($data['date'])->format('d/m/Y'),
-                    //                 'startTime' => Carbon::parse($data['start_time'])->format('h:i A'),
-                    //                 'endTime' => Carbon::parse($data['end_time'])->format('h:i A'),
-                    //                 'oldDate' => $oldDate,
-                    //                 'oldStartTime' => $oldStartTime,
-                    //                 'oldEndTime' => $oldEndTime,
-                    //                 'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                    //                 'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                    //                 'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                    //                 'rescheduleReason' => $data['reschedule_reason'] ?? 'No reason provided',
-                    //             ],
-                    //         ];
-
-                    //         try {
-                    //             // Send email with template and custom subject format
-                    //             if (count($recipients) > 0) {
-                    //                 \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
-                    //                     $message->from($senderEmail, $senderName)
-                    //                         ->to($recipients)
-                    //                         ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$lead->companyDetail->company_name} | " . Carbon::parse($data['date'])->format('d/m/Y'));
-                    //                 });
-
-                    //                 Notification::make()
-                    //                     ->title('Implementation appointment notification sent')
-                    //                     ->success()
-                    //                     ->body('Email notification sent to administrator and required attendees')
-                    //                     ->send();
-                    //             }
-                    //         } catch (\Exception $e) {
-                    //             // Handle email sending failure
-                    //             Log::error("Email sending failed for implementation appointment: Error: {$e->getMessage()}");
-
-                    //             Notification::make()
-                    //                 ->title('Email Notification Failed')
-                    //                 ->danger()
-                    //                 ->body('Could not send email notification: ' . $e->getMessage())
-                    //                 ->send();
-                    //         }
-
-                    //         Notification::make()
-                    //             ->title('Implementation Appointment Rescheduled Successfully')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
                 ])->icon('heroicon-m-list-bullet')
                 ->size(ActionSize::Small)
                 ->color('primary')
@@ -1139,6 +1010,356 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     $this->dispatch('refresh');
                 }),
         ];
+    }
+
+    public static function rescheduleAppointmentAction()
+    {
+        return Action::make('reschedule_appointment')
+            ->label('Reschedule')
+            ->icon('heroicon-o-clock')
+            ->color('warning')
+            ->modalHeading('Reschedule Implementation Appointment')
+            ->form(function (?ImplementerAppointment $record = null) {
+                if (!$record) {
+                    return [
+                        TextInput::make('error')
+                            ->label('Error')
+                            ->default('No appointment record found.')
+                            ->disabled(),
+                    ];
+                }
+
+                return [
+                    Grid::make(3)
+                        ->schema([
+                            DatePicker::make('date')
+                                ->required()
+                                ->label('DATE (MONDAY-THURSDAY/FRIDAY)')
+                                ->default(function ($record = null) {
+                                    return $record ? $record->date : Carbon::today()->toDateString();
+                                })
+                                ->reactive()
+                                ->columnSpan(1),
+
+                            Select::make('session')
+                                ->label('SESSION')
+                                ->options(function (callable $get) {
+                                    $date = $get('date');
+                                    if (!$date) return [];
+
+                                    $selectedDate = Carbon::parse($date);
+                                    $dayOfWeek = $selectedDate->dayOfWeek;
+
+                                    // Friday sessions (dayOfWeek = 5)
+                                    if ($dayOfWeek === 5) {
+                                        return [
+                                            'SESSION 1' => 'SESSION 1 (0930 - 1030)',
+                                            'SESSION 2' => 'SESSION 2 (1100 - 1200)',
+                                            'SESSION 4' => 'SESSION 4 (1530 - 1630)',
+                                            'SESSION 5' => 'SESSION 5 (1700 - 1800)',
+                                        ];
+                                    }
+                                    // Monday to Thursday sessions (dayOfWeek = 1-4)
+                                    else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
+                                        return [
+                                            'SESSION 1' => 'SESSION 1 (0930 - 1030)',
+                                            'SESSION 2' => 'SESSION 2 (1100 - 1200)',
+                                            'SESSION 3' => 'SESSION 3 (1400 - 1500)',
+                                            'SESSION 4' => 'SESSION 4 (1530 - 1630)',
+                                            'SESSION 5' => 'SESSION 5 (1700 - 1800)',
+                                        ];
+                                    }
+
+                                    // Weekend or invalid date
+                                    return ['NO_SESSIONS' => 'No sessions available on weekends'];
+                                })
+                                ->default(function (callable $get, $record = null) {
+                                    // If editing existing record, use its session value
+                                    if ($record && $record->session) {
+                                        return $record->session;
+                                    }
+
+                                    // For new records, select a default based on the day
+                                    $date = $get('date');
+                                    if (!$date) return null;
+
+                                    return 'SESSION 1';
+                                })
+                                ->columnSpan(2)
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    // Set the start_time and end_time based on selected session
+                                    $times = [
+                                        'SESSION 1' => ['09:30', '10:30'],
+                                        'SESSION 2' => ['11:00', '12:00'],
+                                        'SESSION 3' => ['14:00', '15:00'],
+                                        'SESSION 4' => ['15:30', '16:30'], // Friday has different time
+                                        'SESSION 5' => ['17:00', '18:00'], // Friday has different time
+                                    ];
+
+                                    // Friday has different times for sessions 4 and 5
+                                    $date = $get('date');
+                                    if ($date) {
+                                        $carbonDate = Carbon::parse($date);
+                                        if ($carbonDate->dayOfWeek === 5) { // Friday
+                                            $times['SESSION 4'] = ['15:00', '16:00'];
+                                            $times['SESSION 5'] = ['16:30', '17:30'];
+                                        }
+                                    }
+
+                                    if (isset($times[$state])) {
+                                        $set('start_time', $times[$state][0]);
+                                        $set('end_time', $times[$state][1]);
+                                        $set('start_time_display', $times[$state][0]);
+                                        $set('end_time_display', $times[$state][1]);
+                                    }
+                                }),
+
+                            // Hidden time fields
+                            Hidden::make('start_time_display')->default('09:30'),
+                            Hidden::make('end_time_display')->default('10:30'),
+                            Hidden::make('start_time')->default('09:30'),
+                            Hidden::make('end_time')->default('10:30'),
+                        ]),
+
+                    Grid::make(3)
+                        ->schema([
+                            Select::make('type')
+                                ->options(function ($record = null) {
+                                    if (!$record) return ['KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION'];
+
+                                    // Retrieve software handover information first
+                                    $softwareHandover = null;
+                                    if ($record->software_handover_id) {
+                                        $softwareHandover = SoftwareHandover::find($record->software_handover_id);
+                                    }
+
+                                    // Check if there are any existing kick-off meetings that are completed or scheduled
+                                    $hasKickoffAppointment = ImplementerAppointment::where('lead_id', $record->lead_id)
+                                        ->where('software_handover_id', $record->software_handover_id ?? 0)
+                                        ->where('type', 'KICK OFF MEETING SESSION')
+                                        ->whereIn('status', ['Done', 'New']) // Check for completed or scheduled kick-offs
+                                        ->exists();
+
+                                    // Also check if kick_off_meeting exists in the software handover record as a backup
+                                    $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
+
+                                    // If either condition is true, allow implementation review sessions
+                                    if ($hasKickoffAppointment || $hasKickoffMeeting) {
+                                        return [
+                                            'IMPLEMENTATION REVIEW SESSION' => 'IMPLEMENTATION REVIEW SESSION',
+                                        ];
+                                    } else {
+                                        return [
+                                            'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
+                                        ];
+                                    }
+                                })
+                                ->default(function ($record = null) {
+                                    if (!$record) return 'KICK OFF MEETING SESSION';
+                                    return $record->type;
+                                })
+                                ->required()
+                                ->label('SESSION TYPE')
+                                ->disabled() // Disable the field
+                                ->dehydrated(true),
+
+                            Select::make('appointment_type')
+                                ->options([
+                                    'ONLINE' => 'ONLINE',
+                                    'ONSITE' => 'ONSITE',
+                                    'INHOUSE' => 'INHOUSE',
+                                ])
+                                ->disabled()
+                                ->required()
+                                ->dehydrated(true)
+                                ->default(function ($record = null) {
+                                    if (!$record) return 'ONLINE';
+                                    return $record->appointment_type;
+                                })
+                                ->label('APPOINTMENT TYPE'),
+
+                            Select::make('implementer')
+                                ->label('IMPLEMENTER')
+                                ->options(function ($record = null) {
+                                    if (!$record) {
+                                        return User::whereIn('role_id', [4, 5])
+                                            ->orderBy('name')
+                                            ->get()
+                                            ->mapWithKeys(function ($tech) {
+                                                return [$tech->name => $tech->name];
+                                            })
+                                            ->toArray();
+                                    }
+
+                                    // If we found a record with an implementer, only show that implementer
+                                    if ($record->implementer) {
+                                        return [$record->implementer => $record->implementer];
+                                    }
+
+                                    // Fallback: show all implementers (role_id 4 or 5)
+                                    return User::whereIn('role_id', [4, 5])
+                                        ->orderBy('name')
+                                        ->get()
+                                        ->mapWithKeys(function ($tech) {
+                                            return [$tech->name => $tech->name];
+                                        })
+                                        ->toArray();
+                                })
+                                ->default(function ($record = null) {
+                                    if (!$record) return null;
+                                    return $record->implementer;
+                                })
+                                ->searchable()
+                                ->required()
+                                ->disabled() // Always disable for reschedule
+                                ->dehydrated(true)
+                                ->placeholder('Select an implementer'),
+                        ]),
+
+                    TextInput::make('required_attendees')
+                        ->label('REQUIRED ATTENDEES')
+                        ->default(function() use ($record) {
+                            if (!$record) return '';
+
+                            // Try to decode JSON if it exists
+                            if (!empty($record->required_attendees)) {
+                                try {
+                                    $attendees = json_decode($record->required_attendees, true);
+                                    if (is_array($attendees)) {
+                                        return implode(';', $attendees);
+                                    }
+                                    return $record->required_attendees;
+                                } catch (\Exception $e) {
+                                    return $record->required_attendees;
+                                }
+                            }
+                            return '';
+                        })
+                        ->disabled()
+                        ->dehydrated(true)
+                        ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+
+                    Textarea::make('remarks')
+                        ->label('REMARKS')
+                        ->rows(3)
+                        ->default($record->remarks ?? '')
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+
+                    Hidden::make('type')
+                        ->default($record->type ?? 'KICK OFF MEETING SESSION'),
+                ];
+            })
+            ->visible(fn (ImplementerAppointment $record) =>
+                $record->status !== 'Cancelled' && $record->status !== 'Completed'
+            )
+            ->action(function (array $data, ImplementerAppointment $record) {
+                // Store the previous appointment details for the notification
+                $oldDate = Carbon::parse($record->date)->format('d/m/Y');
+                $oldStartTime = Carbon::parse($record->start_time)->format('h:i A');
+                $oldEndTime = Carbon::parse($record->end_time)->format('h:i A');
+
+                // Process required attendees from form data
+                $requiredAttendeesInput = $data['required_attendees'] ?? '';
+                $attendeeEmails = [];
+                if (!empty($requiredAttendeesInput)) {
+                    $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
+                }
+
+                // Update the appointment with new schedule
+                $record->update([
+                    'date' => $data['date'],
+                    'start_time' => $data['start_time'],
+                    'end_time' => $data['end_time'],
+                    'remarks' => $data['remarks'],
+                    'type' => $data['type'] ?? $record->type,
+                    'appointment_type' => $data['appointment_type'] ?? $record->appointment_type,
+                    'implementer' => $data['implementer'] ?? $record->implementer,
+                    'session' => $data['session'] ?? $record->session,
+                    'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
+                    'updated_at' => now(),
+                ]);
+
+                // Get company name with fallback
+                $companyName = 'N/A';
+                if ($record->lead && $record->lead->companyDetail) {
+                    $companyName = $record->lead->companyDetail->company_name;
+                } elseif ($record->softwareHandover) {
+                    $companyName = $record->softwareHandover->company_name ?? 'N/A';
+                }
+
+                $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Always include admin
+
+                // Add required attendees from the form input
+                if (!empty($attendeeEmails)) {
+                    foreach ($attendeeEmails as $email) {
+                        if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
+                            $recipients[] = $email;
+                        }
+                    }
+                }
+
+                // Ensure recipients are unique
+                $viewName = 'emails.implementer_appointment_reschedule';
+
+                $recipients = array_unique($recipients);
+                $authUser = auth()->user();
+                $senderEmail = $authUser->email;
+                $senderName = $authUser->name;
+
+                // Prepare email content with reschedule reason
+                $emailContent = [
+                    'lead' => [
+                        'company' => $companyName,
+                        'implementerName' => $record->implementer ?? 'N/A',
+                        'date' => Carbon::parse($data['date'])->format('d/m/Y'),
+                        'startTime' => Carbon::parse($data['start_time'])->format('h:i A'),
+                        'endTime' => Carbon::parse($data['end_time'])->format('h:i A'),
+                        'oldDate' => $oldDate,
+                        'oldStartTime' => $oldStartTime,
+                        'oldEndTime' => $oldEndTime,
+                        'rescheduleReason' => $data['reschedule_reason'] ?? 'No reason provided',
+                    ],
+                ];
+
+                // Update Teams meeting
+                self::updateTeamsMeeting($record, $data, $companyName);
+
+                try {
+                    // Send email with template and custom subject format
+                    if (count($recipients) > 0) {
+                        Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $data, $companyName) {
+                            $message->from($senderEmail, $senderName)
+                                ->to($recipients)
+                                ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$companyName} | " . Carbon::parse($data['date'])->format('d/m/Y'));
+                        });
+
+                        Notification::make()
+                            ->title('Implementation appointment notification sent')
+                            ->success()
+                            ->body('Email notification sent to administrator and required attendees')
+                            ->send();
+                    }
+                } catch (\Exception $e) {
+                    // Handle email sending failure
+                    Log::error("Email sending failed for implementation appointment: Error: {$e->getMessage()}");
+
+                    Notification::make()
+                        ->title('Email Notification Failed')
+                        ->danger()
+                        ->body('Could not send email notification: ' . $e->getMessage())
+                        ->send();
+                }
+
+                Notification::make()
+                    ->title('Implementation Appointment Rescheduled Successfully')
+                    ->success()
+                    ->send();
+
+                // Dispatch the refresh event
+                \Filament\Facades\Filament::dispatchToLivewireComponents('refresh-repair-appointments');
+            });
     }
 
     private function isJson($string) {

@@ -32,16 +32,16 @@ class SoftwareHandoverAnalysis extends Page
     public $slideOverTitleV2 = 'Software Handovers';
     public $handoversList = [];
 
-    public static function canAccess(): bool
-    {
-        $user = auth()->user();
+    // public static function canAccess(): bool
+    // {
+    //     $user = auth()->user();
 
-        if (!$user || !($user instanceof \App\Models\User)) {
-            return false;
-        }
+    //     if (!$user || !($user instanceof \App\Models\User)) {
+    //         return false;
+    //     }
 
-        return $user->hasRouteAccess('filament.admin.pages.software-handover-analysis');
-    }
+    //     return $user->hasRouteAccess('filament.admin.pages.software-handover-analysis');
+    // }
 
     public function mount()
     {

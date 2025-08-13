@@ -29,7 +29,7 @@
 
                                         @php
                                             $softwareHandover = \App\Models\SoftwareHandover::where('id', $followUp->subject_id)->first();
-                                            $followUpDate = $softwareHandover ? $softwareHandover->follow_up_date : null;
+                                            $followUpDate = $followUp->follow_up_date ? \Carbon\Carbon::parse($followUp->follow_up_date)->format('Y-m-d') : null;
                                         @endphp
 
                                         @if($followUpDate)
