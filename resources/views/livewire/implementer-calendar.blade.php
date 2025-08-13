@@ -2038,7 +2038,7 @@
         <div class="modal-container" x-data="{ showConfirmation: false }">
             <div class="modal-body">
                 <h3 class="modal-title">
-                    Implementation Appointment Details
+                    Implementation Session Details
                 </h3>
 
                 <div class="grid grid-cols-1 gap-4 modal-form md:grid-cols-2">
@@ -2150,7 +2150,7 @@
                 @if($currentAppointment && $currentAppointment->status !== 'Cancelled')
                 <button @click="showConfirmation = true" type="button" class="btn"
                     style="background-color: #ef4444; color: white;">
-                    Cancel Demo
+                    Cancel Session
                 </button>
                 @endif
                 <button wire:click="closeAppointmentDetails" type="button" class="btn btn-secondary">
