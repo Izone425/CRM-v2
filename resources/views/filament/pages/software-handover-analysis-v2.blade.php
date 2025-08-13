@@ -996,11 +996,15 @@
                         : {{ array_sum(array_column($this->getHandoversBySalesPersonRank2()->toArray(), 'total')) }};
                 }
             }">
+                @php
+                    $totalCount = $this->getAllSalespersonHandovers();
+                    $salespersonData = $this->getHandoversBySalesPerson();
+                @endphp
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-user-tie"></i>
                         <span>by Salesperson</span>
-                        <span class="total-count" x-text="'| Project Count (' + totalCount + ')'"></span>
+                        <span class="total-count">| Project Count ({{ $totalCount }})</span>
                     </div>
                     <div class="toggle-container">
                         <button

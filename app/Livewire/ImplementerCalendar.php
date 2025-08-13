@@ -283,6 +283,7 @@ class ImplementerCalendar extends Component
                     function ($message) use ($recipients, $senderEmail, $senderName, $companyName, $appointment) {
                         $message->from($senderEmail, $senderName)
                             ->to($recipients)
+                            ->cc($senderEmail)
                             ->subject("CANCELLED: TIMETEC IMPLEMENTER APPOINTMENT | {$appointment->type} | {$companyName}");
                     }
                 );

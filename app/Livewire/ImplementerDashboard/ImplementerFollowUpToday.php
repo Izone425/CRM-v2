@@ -279,7 +279,7 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                                     }
                                     return $today->addDays($daysUntilNextTuesday);
                                 })
-                                ->minDate(now())
+                                ->minDate(now()->subDay())
                                 ->required(),
 
                             RichEditor::make('notes')

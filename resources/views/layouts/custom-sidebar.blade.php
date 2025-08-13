@@ -1185,7 +1185,7 @@
                             </a>
                         </div>
                     </div>
-                    {{-- <div class="nested-dropdown">
+                    <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-calendar-week-fill"></i>
                             <span>Follow Up Template</span>
@@ -1205,7 +1205,7 @@
                                 <span>By Implementer</span>
                             </a>
                         </div>
-                    </div> --}}
+                    </div>
                 </div>
             </div>
             @endif
