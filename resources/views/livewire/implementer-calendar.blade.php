@@ -1776,7 +1776,7 @@
 
                         <!-- Option 3: Onsite Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('onsite_request')">
-                            <h4 class="mb-2 text-lg font-semibold text-center">ONSITE REQUEST</h4>
+                            <h4 class="mb-2 text-lg font-semibold text-center">ONSITE<br> REQUEST</h4>
                         </div>
                     </div>
                 </div>

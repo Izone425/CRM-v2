@@ -181,7 +181,7 @@ class SoftwareHandoverResource extends Resource
                                     ]),
                             ]),
 
-                        Section::make('Training Information')
+                        Section::make('Project Information')
                             ->columnSpan(1)
                             ->schema([
                                 Select::make('implementer')
@@ -371,7 +371,7 @@ class SoftwareHandoverResource extends Resource
                                     $canSetClosed = ($user->role_id == 3 || $user->id == 26);
 
                                     // First check if go_live_date has been selected or user has special permission
-                                    if (!empty($get('go_live_date')) || $canSetClosed) {
+                                    if (!empty($get('go_live_date')) && $canSetClosed) {
                                         // Include Closed option
                                         return [
                                             'Open' => 'Open',

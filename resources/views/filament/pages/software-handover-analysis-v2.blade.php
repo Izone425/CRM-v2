@@ -425,7 +425,7 @@
 
         .bar-tooltip {
             position: absolute;
-            top: -40px;
+            top: -120px;
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0, 0, 0, 0.8);
@@ -610,7 +610,7 @@
 
         /* Make the tooltip slightly wider to accommodate the content better */
         .bar-tooltip {
-            min-width: 110px;
+            min-width: 100px;
         }
 
         .cursor-pointer {
