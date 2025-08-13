@@ -970,8 +970,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     }
 
                     // Set up email recipients for notification
-                    // $recipients = ['admin.timetec.hr@timeteccloud.com']; // Always include admin
-                    $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                    $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
 
                     // Add required attendees if they have valid emails
                     foreach ($attendeeEmails as $email) {

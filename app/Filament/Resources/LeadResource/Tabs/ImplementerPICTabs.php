@@ -96,7 +96,7 @@ class ImplementerPICTabs
                                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                         ->afterStateHydrated(fn($state) => Str::upper($state))
                                                         ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                        ->disabled(),
+                                                        ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5])),
 
                                                     TextInput::make("original_pics.{$index}.position")
                                                         ->label('Position')
@@ -104,18 +104,18 @@ class ImplementerPICTabs
                                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                         ->afterStateHydrated(fn($state) => Str::upper($state))
                                                         ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                        ->disabled(),
+                                                        ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5])),
 
                                                     TextInput::make("original_pics.{$index}.pic_phone_impl")
                                                         ->label('Phone Number')
                                                         ->default($pic['pic_phone_impl'] ?? '')
                                                         ->tel()
-                                                        ->disabled(),
+                                                        ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5])),
 
                                                     TextInput::make("original_pics.{$index}.pic_email_impl")
                                                         ->label('Email')
                                                         ->default($pic['pic_email_impl'] ?? '')
-                                                        ->disabled(),
+                                                        ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5])),
 
                                                     Select::make("original_pics.{$index}.status")
                                                         ->label('Status')
@@ -164,12 +164,27 @@ class ImplementerPICTabs
                                         if (isset($picData['original_data'])) {
                                             // Restore the original data and update only the status
                                             $originalData = json_decode($picData['original_data'], true);
+                                            if (in_array(auth()->user()->role_id, [3, 5])) {
+                                                // For users with role_id 3 or 5, also update these fields using the correct field names
+                                                $originalData['pic_name_impl'] = $picData['pic_name_impl'] ?? $originalData['pic_name_impl'];
+                                                $originalData['position'] = $picData['position'] ?? $originalData['position'];
+                                                $originalData['pic_phone_impl'] = $picData['pic_phone_impl'] ?? $originalData['pic_phone_impl'];
+                                                $originalData['pic_email_impl'] = $picData['pic_email_impl'] ?? $originalData['pic_email_impl'];
+                                            }
+
                                             $originalData['status'] = $picData['status'];
                                             $originalPics[$index] = $originalData;
                                         } else {
                                             // If original_data is missing, just update the status directly
                                             if (isset($originalPics[$index])) {
                                                 $originalPics[$index]['status'] = $picData['status'];
+                                                if (in_array(auth()->user()->role_id, [3, 5])) {
+                                                    // For users with role_id 3 or 5, also update these fields
+                                                    $originalPics[$index]['pic_name_impl'] = $picData['pic_name_impl'] ?? $originalPics[$index]['pic_name_impl'];
+                                                    $originalPics[$index]['position'] = $picData['position'] ?? $originalPics[$index]['position'];
+                                                    $originalPics[$index]['pic_phone_impl'] = $picData['pic_phone_impl'] ?? $originalPics[$index]['pic_phone_impl'];
+                                                    $originalPics[$index]['pic_email_impl'] = $picData['pic_email_impl'] ?? $originalPics[$index]['pic_email_impl'];
+                                                }
                                             } else {
                                                 // Create minimal record with status if nothing exists at this index
                                                 $originalPics[$index] = [
@@ -357,22 +372,42 @@ class ImplementerPICTabs
                                                         TextInput::make("new_pics.{$index}.name")
                                                             ->label('Name')
                                                             ->default($pic['name'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.position")
                                                             ->label('Position')
                                                             ->default($pic['position'] ?? '')
-                                                            ->disabled(),
+                                                            ->maxLength(255)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.hp_number")
                                                             ->label('Phone Number')
                                                             ->default($pic['hp_number'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->tel()
+                                                            ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
+                                                            ->maxLength(20)
+                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.email")
                                                             ->label('Email')
                                                             ->default($pic['email'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->email()
+                                                            ->maxLength(255)
+                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->columnSpan(1),
 
                                                         Select::make("new_pics.{$index}.status")
                                                             ->label('Status')
@@ -415,16 +450,34 @@ class ImplementerPICTabs
                                         foreach ($data['new_pics'] as $index => $picData) {
                                             // Check if original_data exists before trying to use it
                                             if (isset($picData['original_data'])) {
-                                                // Restore the original data and update only the status
+                                                // Restore the original data and update fields
                                                 $originalData = json_decode($picData['original_data'], true);
+
+                                                // If user has appropriate role, update all fields
+                                                if (in_array(auth()->user()->role_id, [3, 5])) {
+                                                    $originalData['name'] = $picData['name'] ?? $originalData['name'];
+                                                    $originalData['position'] = $picData['position'] ?? $originalData['position'];
+                                                    $originalData['hp_number'] = $picData['hp_number'] ?? $originalData['hp_number'];
+                                                    $originalData['email'] = $picData['email'] ?? $originalData['email'];
+                                                }
+
+                                                // Always update status
                                                 $originalData['status'] = $picData['status'];
                                                 $additionalPics[$index] = $originalData;
                                             } else {
-                                                // If original_data is missing, just update the status directly
+                                                // If original_data is missing, just update directly
                                                 if (isset($additionalPics[$index])) {
                                                     $additionalPics[$index]['status'] = $picData['status'];
+
+                                                    // If user has appropriate role, update other fields too
+                                                    if (in_array(auth()->user()->role_id, [3, 5])) {
+                                                        $additionalPics[$index]['name'] = $picData['name'] ?? $additionalPics[$index]['name'];
+                                                        $additionalPics[$index]['position'] = $picData['position'] ?? $additionalPics[$index]['position'];
+                                                        $additionalPics[$index]['hp_number'] = $picData['hp_number'] ?? $additionalPics[$index]['hp_number'];
+                                                        $additionalPics[$index]['email'] = $picData['email'] ?? $additionalPics[$index]['email'];
+                                                    }
                                                 } else {
-                                                    // Create minimal record with status if nothing exists at this index
+                                                    // Create minimal record if nothing exists at this index
                                                     $additionalPics[$index] = [
                                                         'status' => $picData['status'],
                                                         'name' => $picData['name'] ?? 'Unknown',

@@ -175,6 +175,7 @@ class ImplementerFollowUpRelationManager extends RelationManager
                                         // Otherwise use next Tuesday from today
                                         return now()->next(Carbon::TUESDAY);
                                     })
+                                    ->minDate(now())
                                     ->reactive(),
 
                                 Forms\Components\Select::make('status')

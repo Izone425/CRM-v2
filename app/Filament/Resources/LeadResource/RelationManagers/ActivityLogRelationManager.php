@@ -1147,6 +1147,7 @@ class ActivityLogRelationManager extends RelationManager
                                         ->default(fn ($record) =>
                                             optional(optional($record)->lead?->follow_up_date)->addDays(7) ?? now()->addDays(7)
                                         )
+                                        ->minDate(now())
                                         ->reactive(),
                                         // ->minDate(fn ($record) => $record->lead->follow_up_date ? Carbon::parse($record->lead->follow_up_date)->startOfDay() : now()->startOfDay()) // Ensure it gets from DB
 

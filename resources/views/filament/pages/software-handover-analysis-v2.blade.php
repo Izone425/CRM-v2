@@ -741,6 +741,95 @@
             color: #9ca3af;
             margin-bottom: 1rem;
         }
+
+        .mini-charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 200px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 16px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            margin: 4px 0;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-trend {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .stat-trend-up {
+            color: #10b981;
+        }
+
+        .stat-trend-down {
+            color: #ef4444;
+        }
+
+        /* Module-specific styling */
+        .ta-card .stat-icon {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        .tl-card .stat-icon {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .tc-card .stat-icon {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .tp-card .stat-icon {
+            background-color: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
     </style>
 
     <div class="dashboard-container">
@@ -907,13 +996,14 @@
                 <div class="salesperson-metrics" x-show="rankView === 'rank1'">
                     @php
                         $rank1Data = $this->getHandoversBySalesPersonRank1();
-                        $totalHandovers = max(array_sum(array_column($rank1Data->toArray(), 'total')), 1);
+                        $totalAllHandovers = $this->getAllSalespersonHandovers();
                         $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#8b5cf6']; // Added an extra color for Others
                     @endphp
 
                     @foreach($rank1Data as $index => $person)
                         @php
-                            $percentage = round(($person->total / $totalHandovers) * 100, 1);
+                            // Safely calculate percentage with fallback to zero if division by zero would occur
+                            $percentage = $totalAllHandovers > 0 ? round(($person->total / $totalAllHandovers) * 100, 1) : 0;
                         @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
@@ -943,13 +1033,14 @@
                 <div class="salesperson-metrics" x-show="rankView === 'rank2'" x-cloak>
                     @php
                         $rank2Data = $this->getHandoversBySalesPersonRank2();
-                        $totalHandovers = max(array_sum(array_column($rank2Data->toArray(), 'total')), 1);
+                        $totalAllHandovers = $this->getAllSalespersonHandovers();
                         $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316'];
                     @endphp
 
                     @foreach($rank2Data as $index => $person)
                         @php
-                            $percentage = round(($person->total / $totalHandovers) * 100, 1);
+                            // Safely calculate percentage with fallback to zero if division by zero would occur
+                            $percentage = $totalAllHandovers > 0 ? round(($person->total / $totalAllHandovers) * 100, 1) : 0;
                         @endphp
                         <div class="salesperson-metric">
                             <div class="metric-chart">
@@ -1037,7 +1128,7 @@
             <!-- Section 4: Company Size -->
             <div class="mini-chart-card" style='flex: 1;'>
                 <div class="card-header">
-                    <div class="card-title" style="padding-bottom: 10px;">
+                    <div class="card-title">
                         <i class="fas fa-building"></i>
                         <span>by Company Size</span>
                         @php
@@ -1086,253 +1177,101 @@
                     </div>
                 </div>
             </div>
+            <!-- Section 5: Modules -->
+            <div class="mini-charts-container" style="flex: 2;">
+                @php
+                    $moduleData = $this->getHandoversByModule();
+                    $totalModules = array_sum($moduleData);
 
-            <div class="mini-chart-card" style="flex: 2;">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-chart-line"></i>
-                        <span>by TimeTec Module</span>
-                        <span class="total-count">| Project Count ({{ $totalStatus }})</span>
+                    // Get yesterday and today data (these should be methods in your component)
+                    $yesterdayData = $this->getYesterdayHandoversByModule() ?? [
+                        'ta' => 0,
+                        'tl' => 0,
+                        'tc' => 0,
+                        'tp' => 0
+                    ];
+
+                    $todayData = $this->getTodayHandoversByModule() ?? [
+                        'ta' => 0,
+                        'tl' => 0,
+                        'tc' => 0,
+                        'tp' => 0
+                    ];
+                @endphp
+
+                <!-- TimeTec Attendance Card -->
+                <div class="stat-card ta-card" style="background-color: rgba(139, 92, 246, 0.15)">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
                     </div>
-                    <div class="module-legend">
-                        <div class="legend-item">
-                            <div class="legend-color ta-color"></div>
-                            <span>TimeTec Attendance</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color tl-color"></div>
-                            <span>TimeTec Leave</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color tc-color"></div>
-                            <span>TimeTec Claim</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color tp-color"></div>
-                            <span>TimeTec Payroll</span>
-                        </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">{{ $moduleData['ta'] }}</h3>
+                        <p class="stat-label">TimeTec Attendance</p>
+                        @php
+                            $taChange = $todayData['ta'] - $yesterdayData['ta'];
+                            $taDirection = $taChange >= 0 ? 'up' : 'down';
+                            $taChangeAbs = abs($taChange);
+                        @endphp
+                        <span class="stat-trend stat-trend-{{ $taDirection }}">
+                            <i class="fas fa-arrow-{{ $taDirection }}"></i> {{ $taChangeAbs }} from yesterday
+                        </span>
                     </div>
                 </div>
 
-                <div class="module-container">
-                    <div class="module-chart">
+                <!-- TimeTec Leave Card -->
+                <div class="stat-card tl-card" style="background-color: rgba(239, 68, 68, 0.15)">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">{{ $moduleData['tl'] }}</h3>
+                        <p class="stat-label">TimeTec Leave</p>
                         @php
-                            $moduleData = $this->getModulesByQuarter();
-                            $maxValue = 0;
-
-                            // Find max value for scaling
-                            foreach ($moduleData as $item) {
-                                $maxValue = max(
-                                    $maxValue,
-                                    $item['ta'] ?? 0,
-                                    $item['tl'] ?? 0,
-                                    $item['tc'] ?? 0,
-                                    $item['tp'] ?? 0
-                                );
-                            }
-                            // Set a minimum max value to prevent division by zero
-                            $maxValue = max(10, ceil($maxValue * 1.1)); // Add 10% padding
+                            $tlChange = $todayData['tl'] - $yesterdayData['tl'];
+                            $tlDirection = $tlChange >= 0 ? 'up' : 'down';
+                            $tlChangeAbs = abs($tlChange);
                         @endphp
+                        <span class="stat-trend stat-trend-{{ $tlDirection }}">
+                            <i class="fas fa-arrow-{{ $tlDirection }}"></i> {{ $tlChangeAbs }} from yesterday
+                        </span>
+                    </div>
+                </div>
 
-                        <!-- Grid lines -->
-                        <div class="grid-lines">
-                            @for ($i = 0; $i < 5; $i++)
-                                <div class="grid-line"></div>
-                                <div class="value-indicator" style="top: {{ $i * 25 }}%">
-                                    {{ ceil($maxValue * (1 - $i/4)) }}
-                                </div>
-                            @endfor
-                        </div>
+                <!-- TimeTec Claim Card -->
+                <div class="stat-card tc-card" style="background-color: rgba(16, 185, 129, 0.15)">
+                    <div class="stat-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">{{ $moduleData['tc'] }}</h3>
+                        <p class="stat-label">TimeTec Claim</p>
+                        @php
+                            $tcChange = $todayData['tc'] - $yesterdayData['tc'];
+                            $tcDirection = $tcChange >= 0 ? 'up' : 'down';
+                            $tcChangeAbs = abs($tcChange);
+                        @endphp
+                        <span class="stat-trend stat-trend-{{ $tcDirection }}">
+                            <i class="fas fa-arrow-{{ $tcDirection }}"></i> {{ $tcChangeAbs }} from yesterday
+                        </span>
+                    </div>
+                </div>
 
-                        <!-- Quarter labels -->
-                        @foreach ($moduleData as $index => $item)
-                            @php
-                                $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                            @endphp
-                            <div class="quarter-label" style="left: {{ $x }}%">{{ $item['quarter'] }}</div>
-                        @endforeach
-
-                        <!-- SVG for curved lines -->
-                        <svg class="chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <!-- TimeTec Attendance path -->
-                            <path class="svg-line ta-color" d="
-                                @php
-                                    $points = [];
-                                    foreach ($moduleData as $index => $item) {
-                                        $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                        $y = 100 - ((($item['ta'] ?? 0) / $maxValue) * 100);
-                                        $y = max(0, min(100, $y));
-                                        $points[] = ['x' => $x, 'y' => $y];
-                                    }
-
-                                    // Generate SVG path with curved lines
-                                    $path = '';
-                                    foreach ($points as $index => $point) {
-                                        if ($index === 0) {
-                                            $path .= "M{$point['x']} {$point['y']}";
-                                        } else {
-                                            $prevPoint = $points[$index - 1];
-                                            // Calculate control points for smooth curve
-                                            $cpx1 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy1 = $prevPoint['y'];
-                                            $cpx2 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy2 = $point['y'];
-
-                                            $path .= " C{$cpx1} {$cpy1}, {$cpx2} {$cpy2}, {$point['x']} {$point['y']}";
-                                        }
-                                    }
-                                    echo $path;
-                                @endphp
-                            "/>
-
-                            <!-- TimeTec Leave path -->
-                            <path class="svg-line tl-color" d="
-                                @php
-                                    $points = [];
-                                    foreach ($moduleData as $index => $item) {
-                                        $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                        $y = 100 - ((($item['tl'] ?? 0) / $maxValue) * 100);
-                                        $y = max(0, min(100, $y));
-                                        $points[] = ['x' => $x, 'y' => $y];
-                                    }
-
-                                    // Generate SVG path with curved lines
-                                    $path = '';
-                                    foreach ($points as $index => $point) {
-                                        if ($index === 0) {
-                                            $path .= "M{$point['x']} {$point['y']}";
-                                        } else {
-                                            $prevPoint = $points[$index - 1];
-                                            // Calculate control points for smooth curve
-                                            $cpx1 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy1 = $prevPoint['y'];
-                                            $cpx2 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy2 = $point['y'];
-
-                                            $path .= " C{$cpx1} {$cpy1}, {$cpx2} {$cpy2}, {$point['x']} {$point['y']}";
-                                        }
-                                    }
-                                    echo $path;
-                                @endphp
-                            "/>
-
-                            <!-- TimeTec Claim path -->
-                            <path class="svg-line tc-color" d="
-                                @php
-                                    $points = [];
-                                    foreach ($moduleData as $index => $item) {
-                                        $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                        $y = 100 - ((($item['tc'] ?? 0) / $maxValue) * 100);
-                                        $y = max(0, min(100, $y));
-                                        $points[] = ['x' => $x, 'y' => $y];
-                                    }
-
-                                    // Generate SVG path with curved lines
-                                    $path = '';
-                                    foreach ($points as $index => $point) {
-                                        if ($index === 0) {
-                                            $path .= "M{$point['x']} {$point['y']}";
-                                        } else {
-                                            $prevPoint = $points[$index - 1];
-                                            // Calculate control points for smooth curve
-                                            $cpx1 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy1 = $prevPoint['y'];
-                                            $cpx2 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy2 = $point['y'];
-
-                                            $path .= " C{$cpx1} {$cpy1}, {$cpx2} {$cpy2}, {$point['x']} {$point['y']}";
-                                        }
-                                    }
-                                    echo $path;
-                                @endphp
-                            "/>
-
-                            <!-- TimeTec Payroll path -->
-                            <path class="svg-line tp-color" d="
-                                @php
-                                    $points = [];
-                                    foreach ($moduleData as $index => $item) {
-                                        $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                        $y = 100 - ((($item['tp'] ?? 0) / $maxValue) * 100);
-                                        $y = max(0, min(100, $y));
-                                        $points[] = ['x' => $x, 'y' => $y];
-                                    }
-
-                                    // Generate SVG path with curved lines
-                                    $path = '';
-                                    foreach ($points as $index => $point) {
-                                        if ($index === 0) {
-                                            $path .= "M{$point['x']} {$point['y']}";
-                                        } else {
-                                            $prevPoint = $points[$index - 1];
-                                            // Calculate control points for smooth curve
-                                            $cpx1 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy1 = $prevPoint['y'];
-                                            $cpx2 = $prevPoint['x'] + ($point['x'] - $prevPoint['x']) / 2;
-                                            $cpy2 = $point['y'];
-
-                                            $path .= " C{$cpx1} {$cpy1}, {$cpx2} {$cpy2}, {$point['x']} {$point['y']}";
-                                        }
-                                    }
-                                    echo $path;
-                                @endphp
-                            "/>
-                        </svg>
-
-                        <!-- Data points -->
-                        <div class="data-points">
-                            <!-- TimeTec Attendance points -->
-                            @foreach ($moduleData as $index => $item)
-                                @php
-                                    $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                    $y = 100 - ((($item['ta'] ?? 0) / $maxValue) * 100);
-                                    $y = max(0, min(100, $y));
-                                @endphp
-                                <div class="line-point ta-color" style="left: {{ $x }}%; top: {{ $y }}%"></div>
-                                <div class="point-tooltip" style="left: {{ $x }}%; top: {{ $y }}%">
-                                    {{ $item['quarter'] }}: {{ $item['ta'] ?? 0 }}
-                                </div>
-                            @endforeach
-
-                            <!-- TimeTec Leave points -->
-                            @foreach ($moduleData as $index => $item)
-                                @php
-                                    $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                    $y = 100 - ((($item['tl'] ?? 0) / $maxValue) * 100);
-                                    $y = max(0, min(100, $y));
-                                @endphp
-                                <div class="line-point tl-color" style="left: {{ $x }}%; top: {{ $y }}%"></div>
-                                <div class="point-tooltip" style="left: {{ $x }}%; top: {{ $y }}%">
-                                    {{ $item['quarter'] }}: {{ $item['tl'] ?? 0 }}
-                                </div>
-                            @endforeach
-
-                            <!-- TimeTec Claim points -->
-                            @foreach ($moduleData as $index => $item)
-                                @php
-                                    $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                    $y = 100 - ((($item['tc'] ?? 0) / $maxValue) * 100);
-                                    $y = max(0, min(100, $y));
-                                @endphp
-                                <div class="line-point tc-color" style="left: {{ $x }}%; top: {{ $y }}%"></div>
-                                <div class="point-tooltip" style="left: {{ $x }}%; top: {{ $y }}%">
-                                    {{ $item['quarter'] }}: {{ $item['tc'] ?? 0 }}
-                                </div>
-                            @endforeach
-
-                            <!-- TimeTec Payroll points -->
-                            @foreach ($moduleData as $index => $item)
-                                @php
-                                    $x = ($index / max(1, count($moduleData) - 1)) * 100;
-                                    $y = 100 - ((($item['tp'] ?? 0) / $maxValue) * 100);
-                                    $y = max(0, min(100, $y));
-                                @endphp
-                                <div class="line-point tp-color" style="left: {{ $x }}%; top: {{ $y }}%"></div>
-                                <div class="point-tooltip" style="left: {{ $x }}%; top: {{ $y }}%">
-                                    {{ $item['quarter'] }}: {{ $item['tp'] ?? 0 }}
-                                </div>
-                            @endforeach
-                        </div>
+                <!-- TimeTec Payroll Card -->
+                <div class="stat-card tp-card" style="background-color: rgba(59, 130, 246, 0.15)">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-check-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">{{ $moduleData['tp'] }}</h3>
+                        <p class="stat-label">TimeTec Payroll</p>
+                        @php
+                            $tpChange = $todayData['tp'] - $yesterdayData['tp'];
+                            $tpDirection = $tpChange >= 0 ? 'up' : 'down';
+                            $tpChangeAbs = abs($tpChange);
+                        @endphp
+                        <span class="stat-trend stat-trend-{{ $tpDirection }}">
+                            <i class="fas fa-arrow-{{ $tpDirection }}"></i> {{ $tpChangeAbs }} from yesterday
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1448,202 +1387,4 @@
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait a moment before rendering charts to ensure containers are fully loaded
-            setTimeout(() => {
-                // Console log to check if data is coming through
-                console.log('Quarterly Module Data:', @json($this->getModulesByQuarter()));
-
-                // MODULE QUARTERLY CHART (SECTION 5)
-                const quarterlyModuleData = @json($this->getModulesByQuarter());
-                const quarters = quarterlyModuleData.map(item => item.quarter);
-
-                const moduleQuarterlyChart = document.getElementById('moduleQuarterlyChart');
-                if (moduleQuarterlyChart) {
-                    const moduleChart = new Chart(moduleQuarterlyChart, {
-                        type: 'line',
-                        data: {
-                            labels: quarters,
-                            datasets: [
-                                {
-                                    label: 'TimeTec Attendance',
-                                    data: quarterlyModuleData.map(item => item.ta),
-                                    borderColor: '#8b5cf6', // Purple
-                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    pointRadius: 4,
-                                    pointBackgroundColor: '#8b5cf6'
-                                },
-                                {
-                                    label: 'TimeTec Leave',
-                                    data: quarterlyModuleData.map(item => item.tl),
-                                    borderColor: '#ef4444', // Red
-                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    pointRadius: 4,
-                                    pointBackgroundColor: '#ef4444'
-                                },
-                                {
-                                    label: 'TimeTec Claim',
-                                    data: quarterlyModuleData.map(item => item.tc),
-                                    borderColor: '#10b981', // Green
-                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    pointRadius: 4,
-                                    pointBackgroundColor: '#10b981'
-                                },
-                                {
-                                    label: 'TimeTec Payroll',
-                                    data: quarterlyModuleData.map(item => item.tp),
-                                    borderColor: '#3b82f6', // Blue
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    pointRadius: 4,
-                                    pointBackgroundColor: '#3b82f6'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    grid: {
-                                        display: false
-                                    }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    grid: {
-                                        color: '#f3f4f6'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        boxWidth: 12,
-                                        usePointStyle: true,
-                                        pointStyle: 'circle',
-                                    }
-                                },
-                                tooltip: {
-                                    mode: 'index',
-                                    intersect: false
-                                }
-                            }
-                        }
-                    });
-
-                    // Handle window resize events to ensure chart stays properly sized
-                    window.addEventListener('resize', function() {
-                        // Use setTimeout to debounce the resize event
-                        clearTimeout(window.resizedFinished);
-                        window.resizedFinished = setTimeout(function() {
-                            moduleChart.resize();
-                        }, 250);
-                    });
-
-                    // Trigger initial resize to ensure proper display
-                    setTimeout(() => {
-                        moduleChart.resize();
-                    }, 100);
-                } else {
-                    console.error('moduleQuarterlyChart container not found');
-                }
-
-                // SALESPERSON CHART
-                const salespersonChart = document.getElementById('salespersonChart');
-                if (salespersonChart) {
-                    const salespersonData = @json($this->getHandoversBySalesPerson());
-                    const salespersonNames = salespersonData.map(item => item.salesperson);
-                    const salespersonCounts = salespersonData.map(item => item.total);
-                    const colorsList = ['#3b82f6', '#06b6d4', '#10b981', '#f97316'];
-
-                    const personChart = new Chart(salespersonChart, {
-                        type: 'doughnut',
-                        data: {
-                            labels: salespersonNames,
-                            datasets: [
-                                {
-                                    data: salespersonCounts,
-                                    backgroundColor: colorsList,
-                                    borderColor: '#ffffff',
-                                    borderWidth: 2,
-                                    hoverOffset: 10
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '60%',
-                            plugins: {
-                                legend: {
-                                    position: 'right',
-                                    labels: {
-                                        boxWidth: 12,
-                                        usePointStyle: true,
-                                        pointStyle: 'circle',
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const label = context.label || '';
-                                            const value = context.raw;
-                                            return `${label}: ${value}`;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    // Handle resize for this chart as well
-                    window.addEventListener('resize', function() {
-                        clearTimeout(window.personChartResized);
-                        window.personChartResized = setTimeout(function() {
-                            personChart.resize();
-                        }, 250);
-                    });
-                }
-
-                // Handle Alpine.js interactions with charts
-                document.addEventListener('alpine:initialized', () => {
-                    // When Alpine components initialize, check if we need to refresh charts
-                    setTimeout(() => {
-                        if (moduleChart) moduleChart.resize();
-                        if (personChart) personChart.resize();
-                    }, 100);
-                });
-
-                // Handle tab visibility changes
-                document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible') {
-                        // User returned to the tab, resize charts
-                        setTimeout(() => {
-                            if (moduleChart) moduleChart.resize();
-                            if (personChart) personChart.resize();
-                        }, 100);
-                    }
-                });
-
-                // Fix chart display on page load complete
-                window.addEventListener('load', function() {
-                    setTimeout(() => {
-                        if (moduleChart) moduleChart.resize();
-                        if (personChart) personChart.resize();
-                    }, 100);
-                });
-            }, 200); // Small delay to ensure DOM is ready
-        });
-    </script>
 </x-filament-panels::page>

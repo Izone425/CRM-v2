@@ -45,7 +45,7 @@ class AdminRepairDashboard extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench';
     protected static ?string $navigationLabel = 'Repair Dashboard';
-    protected static ?string $title = 'Admin Repair Dashboard';
+    protected static ?string $title = 'Onsite Repair System';
     protected static ?int $navigationSort = 4;
 
     protected static string $view = 'filament.pages.admin-repair-dashboard';

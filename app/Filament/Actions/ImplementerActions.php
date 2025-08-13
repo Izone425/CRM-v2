@@ -525,8 +525,7 @@ class ImplementerActions
                     $companyName = $record->softwareHandover->company_name ?? 'N/A';
                 }
 
-                // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Always include admin
-                $recipients = ['zilih.ng@timeteccloud.com']; // Always include admin
+                $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Always include admin
 
                 // Add required attendees from the form input
                 if (!empty($attendeeEmails)) {
@@ -786,8 +785,7 @@ class ImplementerActions
     private static function sendCancellationEmail($appointment)
     {
         try {
-            // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
-            $recipients = ['zilih.ng@timeteccloud.com'];
+            $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
 
             // Add required attendees from appointment if available
             if (!empty($appointment->required_attendees)) {

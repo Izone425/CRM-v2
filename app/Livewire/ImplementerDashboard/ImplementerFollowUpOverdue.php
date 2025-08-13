@@ -278,6 +278,7 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                                     }
                                     return $today->addDays($daysUntilNextTuesday);
                                 })
+                                ->minDate(now())
                                 ->required(),
 
                             RichEditor::make('notes')

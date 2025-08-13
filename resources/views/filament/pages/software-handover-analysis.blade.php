@@ -1,4 +1,3 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/software-handover-analysis.blade.php -->
 <x-filament-panels::page>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -6,8 +5,8 @@
         .stats-container {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .stat-card {
@@ -324,368 +323,446 @@
             border-top: none;
             border-radius: 0 0 0.375rem 0.375rem;
         }
+
+        .analysis-tabs {
+            display: flex;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .analysis-tab {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .analysis-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            font-weight: 600;
+        }
+
+        .analysis-tab:hover:not(.active) {
+            color: #4b5563;
+            border-bottom-color: #d1d5db;
+        }
+
+        .analysis-tab-content {
+            display: none;
+        }
+
+        .analysis-tab-content.active {
+            display: block;
+        }
     </style>
 
-    @php
-        $stats = $this->getStatusCounts();
-    @endphp
-    <!-- Module Stats Cards -->
-    <div class="stats-container">
-        <!-- Total Stats -->
-        <div class="stat-card module-chart-1 clickable" wire:click="openAllHandoversSlideOver">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Total</div>
-                <div class="stat-value">{{ $stats['total'] }}</div>
-            </div>
-        </div>
+    <div x-data="{
+            activeTab: 'analysis1',
+            switchTab(tab) {
+                this.activeTab = tab;
+                // Store preference in local storage
+                localStorage.setItem('preferredAnalysisTab', tab);
 
-        <!-- Closed Stats -->
-        <div class="stat-card module-chart-2 clickable" wire:click="openStatusHandoversSlideOver('CLOSED')">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Closed</div>
-                <div class="stat-value">{{ $stats['closed'] }}</div>
-            </div>
-        </div>
+                // Trigger an event that can be caught by Livewire
+                window.dispatchEvent(new CustomEvent('analysis-tab-changed', { detail: { tab } }));
+            },
+            initTabs() {
+                // Get preferred tab from local storage or default to analysis1
+                const savedTab = localStorage.getItem('preferredAnalysisTab');
+                if (savedTab) {
+                    this.activeTab = savedTab;
+                }
+            }
+        }" x-init="initTabs()">
 
-        <!-- Ongoing Stats -->
-        <div class="stat-card module-chart-3 clickable" wire:click="openAllHandoversSlideOver">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Ongoing</div>
-                <div class="stat-value">{{ $stats['ongoing'] }}</div>
-            </div>
+    <!-- Tab Navigation -->
+    <div class="analysis-tabs">
+        <div @click="switchTab('analysis1')"
+            :class="{'analysis-tab': true, 'active': activeTab === 'analysis1'}">
+            <i class="fas fa-chart-bar"></i>
+            Analysis by Implementer
         </div>
-
-        <!-- Open Stats -->
-        <div class="stat-card module-chart-4 clickable" wire:click="openStatusHandoversSlideOver('OPEN')">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Open</div>
-                <div class="stat-value">{{ $stats['open'] }}</div>
-            </div>
+        <div @click="switchTab('analysis2')"
+            :class="{'analysis-tab': true, 'active': activeTab === 'analysis2'}">
+            <i class="fas fa-chart-line"></i>
+            Analysis by Statistic
         </div>
-
-        <!-- Delay Stats -->
-        <div class="stat-card module-chart-5 clickable" wire:click="openStatusHandoversSlideOver('DELAY')">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Delay</div>
-                <div class="stat-value">{{ $stats['delay'] }}</div>
-            </div>
-        </div>
-
-        <!-- Inactive Stats -->
-        <div class="stat-card module-chart-6 clickable" wire:click="openStatusHandoversSlideOver('INACTIVE')">
-            <div class="stat-card-header"></div>
-            <div class="stat-card-content">
-                <div class="stat-title">Inactive</div>
-                <div class="stat-value">{{ $stats['inactive'] }}</div>
-            </div>
+        <div @click="switchTab('analysis3')"
+            :class="{'analysis-tab': true, 'active': activeTab === 'analysis3'}">
+            <i class="bi bi-pie-chart"></i>
+            Analysis by Company Size
         </div>
     </div>
 
-    <!-- Implementation Status Table -->
-    <h2 class="tier-heading">Implementation Status by Implementer</h2>
+    <div :class="{'analysis-tab-content': true, 'active': activeTab === 'analysis1'}" id="analysis1Content">
+        @php
+            $stats = $this->getStatusCounts();
+        @endphp
+        <!-- Module Stats Cards -->
+        <div class="stats-container">
+            <!-- Total Stats -->
+                <div class="stat-card module-chart-1 clickable" wire:click="openAllHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Total</div>
+                        <div class="stat-value">{{ $stats['total'] }}</div>
+                    </div>
+                </div>
 
-    <div class="mb-8 overflow-x-auto">
-        <table class="implementer-table">
-            <thead>
-                <tr>
-                    <th colspan="2" class="status-header col-group-end" style='background-color: #ffff00'>COUNT BY IMPLEMENTER</th>
-                    <th colspan="2" class="status-header col-group-end" style='background-color: #f1a983'>STATUS</th>
-                    <th colspan="3" class="status-ongoing-header" style='background-color: #0f9ed5'>STATUS - ONGOING</th>
-                </tr>
-                <tr>
-                    <td class="tier-header" style="width:28%;">Active Implementer / Tier 1</td>
-                    <td style="width:12%; background-color: #f2f25e" class="col-group-end">TOTAL</td>
-                    <td style="width:12%; background-color: #fbe2d5">CLOSED</td>
-                    <td style="width:12%; background-color: #fbe2d5" class="col-group-end">ONGOING</td>
-                    <td style="width:12%; background-color: #caedfb">OPEN</td>
-                    <td style="width:12%; background-color: #caedfb">DELAY</td>
-                    <td style="width:12%; background-color: #caedfb">INACTIVE</td>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($this->getTier1Implementers() as $implementer)
+                <!-- Closed Stats -->
+                <div class="stat-card module-chart-2 clickable" wire:click="openClosedHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Closed</div>
+                        <div class="stat-value">{{ $stats['closed'] }}</div>
+                    </div>
+                </div>
+
+                <!-- Ongoing Stats -->
+                <div class="stat-card module-chart-3 clickable" wire:click="openOngoingHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Ongoing</div>
+                        <div class="stat-value">{{ $stats['ongoing'] }}</div>
+                    </div>
+                </div>
+
+                <!-- Open Stats -->
+                <div class="stat-card module-chart-4 clickable" wire:click="openOpenHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Open</div>
+                        <div class="stat-value">{{ $stats['open'] }}</div>
+                    </div>
+                </div>
+
+                <!-- Delay Stats -->
+                <div class="stat-card module-chart-5 clickable" wire:click="openDelayHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Delay</div>
+                        <div class="stat-value">{{ $stats['delay'] }}</div>
+                    </div>
+                </div>
+
+                <!-- Inactive Stats -->
+                <div class="stat-card module-chart-6 clickable" wire:click="openInactiveHandoversSlideOver">
+                    <div class="stat-card-header"></div>
+                    <div class="stat-card-content">
+                        <div class="stat-title">Inactive</div>
+                        <div class="stat-value">{{ $stats['inactive'] }}</div>
+                    </div>
+                </div>
+        </div>
+
+        <div class="mb-8 overflow-x-auto">
+            <table class="implementer-table">
+                <thead>
                     <tr>
-                        <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $implementer }}
+                        <th colspan="2" class="status-header col-group-end" style='background-color: #ffff00'>Count By Implementer</th>
+                        <th colspan="2" class="status-header col-group-end" style='background-color: #f1a983'>Status</th>
+                        <th colspan="3" class="status-ongoing-header" style='background-color: #0f9ed5'>Status - OnGoing</th>
+                    </tr>
+                    <tr>
+                        <td class="tier-header" style="width:28%;">Active Implementer / Tier 1</td>
+                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
+                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
+                        <td style="width:12%; background-color: #caedfb">Open</td>
+                        <td style="width:12%; background-color: #caedfb">Delay</td>
+                        <td style="width:12%; background-color: #caedfb">InActive</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($this->getTier1Implementers() as $implementer)
+                        <tr>
+                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $implementer }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerTotal($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
+                                {{ $this->getImplementerClosedCount($implementer) }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerOngoingCount($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
+                                {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
+                                {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
+                                {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    <!-- Tier 2 -->
+                    <tr>
+                        <td class="tier-header">Active Implementer / Tier 2</td>
+                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
+                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
+                        <td style="width:12%; background-color: #caedfb">Open</td>
+                        <td style="width:12%; background-color: #caedfb">Delay</td>
+                        <td style="width:12%; background-color: #caedfb">InActive</td>
+                    </tr>
+                    @foreach($this->getTier2Implementers() as $implementer)
+                        <tr>
+                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $implementer }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerTotal($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
+                                {{ $this->getImplementerClosedCount($implementer) }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerOngoingCount($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
+                                {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
+                                {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
+                                {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    <!-- Tier 3 -->
+                    <tr>
+                        <td class="tier-header">Active Implementer / Tier 3</td>
+                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
+                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
+                        <td style="width:12%; background-color: #caedfb">Open</td>
+                        <td style="width:12%; background-color: #caedfb">Delay</td>
+                        <td style="width:12%; background-color: #caedfb">InActive</td>
+                    </tr>
+                    @foreach($this->getTier3Implementers() as $implementer)
+                        <tr>
+                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $implementer }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerTotal($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
+                                {{ $this->getImplementerClosedCount($implementer) }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
+                                {{ $this->getImplementerOngoingCount($implementer) }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
+                                {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
+                                {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
+                                {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    <!-- Inactive -->
+                    <tr>
+                        <td class="tier-header">InActive Implementers</td>
+                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
+                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
+                        <td style="width:12%; background-color: #caedfb">Open</td>
+                        <td style="width:12%; background-color: #caedfb">Delay</td>
+                        <td style="width:12%; background-color: #caedfb">InActive</td>
+                    </tr>
+                    @foreach($this->getInactiveImplementers() as $implementer)
+                        <tr>
+                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
+                                {{ $implementer['name'] }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
+                                {{ $implementer['total'] }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'CLOSED')">
+                                {{ $implementer['closed'] }}
+                            </td>
+                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer['dbName'] }}')">
+                                {{ $implementer['ongoing'] }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'OPEN')">
+                                {{ $implementer['open'] }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'DELAY')">
+                                {{ $implementer['delay'] }}
+                            </td>
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'INACTIVE')">
+                                {{ $implementer['inactive'] }}
+                            </td>
+                        </tr>
+                    @endforeach
+
+                    <!-- Total Row -->
+                    <tr class="total-row">
+                        <td>TOTAL</td>
+                        <td class="col-group-end clickable" wire:click="openAllHandoversSlideOver()">
+                            {{ $stats['total'] }}
                         </td>
-                        <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerTotal($implementer) }}
+                        <td class="clickable" wire:click="openClosedHandoversSlideOver()">
+                            {{ $stats['closed'] }}
                         </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
-                            {{ $this->getImplementerClosedCount($implementer) }}
+                        <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver()">
+                            {{ $stats['ongoing'] }}
                         </td>
-                        <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerOngoingCount($implementer) }}
+                        <td class="clickable" wire:click="openOpenHandoversSlideOver()">
+                            {{ $stats['open'] }}
                         </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
-                            {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
+                        <td class="clickable" wire:click="openDelayHandoversSlideOver()">
+                            {{ $stats['delay'] }}
                         </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
-                            {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
-                            {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
+                        <td class="clickable" wire:click="openInactiveHandoversSlideOver()">
+                            {{ $stats['inactive'] }}
                         </td>
                     </tr>
-                @endforeach
+                </tbody>
+            </table>
+        </div>
 
-                <!-- Tier 2 -->
-                <tr>
-                    <td class="tier-header">Active Implementer / Tier 2</td>
-                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
-                    <td style='background-color: #fbe2d5'>CLOSED</td>
-                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
-                    <td style='background-color: #caedfb'>OPEN</td>
-                    <td style='background-color: #caedfb'>DELAY</td>
-                    <td style='background-color: #caedfb'>INACTIVE</td>
-                </tr>
-                @foreach($this->getTier2Implementers() as $implementer)
-                    <tr>
-                        <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $implementer }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerTotal($implementer) }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
-                            {{ $this->getImplementerClosedCount($implementer) }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerOngoingCount($implementer) }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
-                            {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
-                            {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
-                            {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
-                        </td>
-                    </tr>
-                @endforeach
-
-                <!-- Tier 3 -->
-                <tr>
-                    <td class="tier-header">Active Implementer / Tier 3</td>
-                    <td style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
-                    <td style='background-color: #fbe2d5'>CLOSED</td>
-                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
-                    <td style='background-color: #caedfb'>OPEN</td>
-                    <td style='background-color: #caedfb'>DELAY</td>
-                    <td style='background-color: #caedfb'>INACTIVE</td>
-                </tr>
-                @foreach($this->getTier3Implementers() as $implementer)
-                    <tr>
-                        <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $implementer }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerTotal($implementer) }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
-                            {{ $this->getImplementerClosedCount($implementer) }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
-                            {{ $this->getImplementerOngoingCount($implementer) }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
-                            {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
-                            {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
-                            {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
-                        </td>
-                    </tr>
-                @endforeach
-
-                <!-- Inactive -->
-                <tr>
-                    <td class="tier-header">Inactive Implementers</td>
-                    <th style='background-color: #f2f25e' class="col-group-end">TOTAL</td>
-                    <td style='background-color: #fbe2d5'>CLOSED</td>
-                    <td style='background-color: #fbe2d5' class="col-group-end">ONGOING</td>
-                    <td style='background-color: #caedfb'>OPEN</td>
-                    <td style='background-color: #caedfb'>DELAY</td>
-                    <td style='background-color: #caedfb'>INACTIVE</td>
-                </tr>
-                @foreach($this->getInactiveImplementers() as $implementer)
-                    <tr>
-                        <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                            {{ $implementer['name'] }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                            {{ $implementer['total'] }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'CLOSED')">
-                            {{ $implementer['closed'] }}
-                        </td>
-                        <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                            {{ $implementer['ongoing'] }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'OPEN')">
-                            {{ $implementer['open'] }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'DELAY')">
-                            {{ $implementer['delay'] }}
-                        </td>
-                        <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'INACTIVE')">
-                            {{ $implementer['inactive'] }}
-                        </td>
-                    </tr>
-                @endforeach
-
-                <!-- Total Row -->
-                <tr class="total-row">
-                    <td>TOTAL</td>
-                    <td class="col-group-end clickable" wire:click="openAllHandoversSlideOver()">
-                        {{ $stats['total'] }}
-                    </td>
-                    <td class="clickable" wire:click="openStatusHandoversSlideOver('CLOSED')">
-                        {{ $stats['closed'] }}
-                    </td>
-                    <td class="col-group-end clickable" wire:click="openAllHandoversSlideOver()">
-                        {{ $stats['ongoing'] }}
-                    </td>
-                    <td class="clickable" wire:click="openStatusHandoversSlideOver('OPEN')">
-                        {{ $stats['open'] }}
-                    </td>
-                    <td class="clickable" wire:click="openStatusHandoversSlideOver('DELAY')">
-                        {{ $stats['delay'] }}
-                    </td>
-                    <td class="clickable" wire:click="openStatusHandoversSlideOver('INACTIVE')">
-                        {{ $stats['inactive'] }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div
-        x-data="{ open: @entangle('showSlideOver'), expandedGroups: {} }"
-        x-show="open"
-        @keydown.window.escape="open = false"
-        class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-100"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-    >
         <div
-            class="w-full h-full max-w-md overflow-hidden slide-over-modal"
-            @click.away="open = false"
+            x-data="{ open: @entangle('showSlideOver'), expandedGroups: {} }"
+            x-show="open"
+            @keydown.window.escape="open = false"
+            class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-100"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
         >
-            <!-- Header -->
-            <div class="slide-over-header">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
-                    <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+            <div
+                class="w-full h-full max-w-md overflow-hidden slide-over-modal"
+                @click.away="open = false"
+            >
+                <!-- Header -->
+                <div class="slide-over-header">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
+                        <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Scrollable content -->
+            <div class="slide-over-content">
+                    @if (empty($handoverList) || count($handoverList) === 0)
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
+                            </svg>
+                            <p>No handovers found for this selection.</p>
+                        </div>
+                    @elseif ($handoverList instanceof \Illuminate\Support\Collection && $handoverList->first() instanceof \Illuminate\Support\Collection)
+                        <!-- Grouped display -->
+                        @foreach ($handoverList as $companySize => $handovers)
+                            <div class="mb-4">
+                                <!-- Group header -->
+                                <div
+                                    class="group-header"
+                                    x-on:click="expandedGroups['{{ $companySize }}'] = !expandedGroups['{{ $companySize }}']"
+                                >
+                                    <div class="flex items-center">
+                                        <span class="group-badge">{{ $handovers->count() }}</span>
+                                        <span>{{ $companySize }}</span>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform"
+                                        :class="expandedGroups['{{ $companySize }}'] ? 'transform rotate-180' : ''"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+
+                                <!-- Group content (collapsible) -->
+                                <div class="group-content" x-show="expandedGroups['{{ $companySize }}']" x-collapse>
+                                    @foreach ($handovers as $handover)
+                                        @php
+                                            try {
+                                                $companyName = $handover->company_name ?? 'N/A';
+                                                $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
+                                                $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
+                                            } catch (\Exception $e) {
+                                                $shortened = 'Error loading company';
+                                                $encryptedId = null;
+                                                $companyName = 'Error: ' . $e->getMessage();
+                                            }
+                                        @endphp
+
+                                        @if ($encryptedId)
+                                            <a href="{{ url('admin/leads/' . $encryptedId) }}"
+                                                target="_blank"
+                                                title="{{ $companyName }}"
+                                                class="company-item has-lead">
+                                                {{ $shortened }}
+                                                <i class="ml-1 text-xs fas fa-external-link-alt"></i>
+                                            </a>
+                                        @else
+                                            <div class="company-item no-lead">
+                                                {{ $shortened }}
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <!-- Legacy non-grouped display as fallback -->
+                        @foreach ($handoverList as $handover)
+                            @php
+                                try {
+                                    $companyName = $handover->company_name ?? 'N/A';
+                                    $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
+                                    $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
+                                } catch (\Exception $e) {
+                                    $shortened = 'Error loading company';
+                                    $encryptedId = null;
+                                    $companyName = 'Error: ' . $e->getMessage();
+                                }
+                            @endphp
+
+                            @if ($encryptedId)
+                                <a href="{{ url('admin/leads/' . $encryptedId) }}"
+                                    target="_blank"
+                                    title="{{ $companyName }}"
+                                    class="company-item has-lead">
+                                    {{ $shortened }}
+                                    <i class="ml-1 text-xs fas fa-external-link-alt"></i>
+                                </a>
+                            @else
+                                <div class="company-item no-lead">
+                                    {{ $shortened }}
+                                </div>
+                            @endif
+                        @endforeach
+                    @endif
                 </div>
             </div>
-
-            <!-- Scrollable content -->
-           <div class="slide-over-content">
-                @if (empty($handoverList) || count($handoverList) === 0)
-                    <div class="empty-state">
-                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 14h.01M20 4v7a4 4 0 01-4 4H8a4 4 0 01-4-4V4m0 0h16M4 4v2m16-2v2" />
-                        </svg>
-                        <p>No handovers found for this selection.</p>
-                    </div>
-                @elseif ($handoverList instanceof \Illuminate\Support\Collection && $handoverList->first() instanceof \Illuminate\Support\Collection)
-                    <!-- Grouped display -->
-                    @foreach ($handoverList as $companySize => $handovers)
-                        <div class="mb-4">
-                            <!-- Group header -->
-                            <div
-                                class="group-header"
-                                x-on:click="expandedGroups['{{ $companySize }}'] = !expandedGroups['{{ $companySize }}']"
-                            >
-                                <div class="flex items-center">
-                                    <span class="group-badge">{{ $handovers->count() }}</span>
-                                    <span>{{ $companySize }}</span>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform"
-                                    :class="expandedGroups['{{ $companySize }}'] ? 'transform rotate-180' : ''"
-                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-
-                            <!-- Group content (collapsible) -->
-                            <div class="group-content" x-show="expandedGroups['{{ $companySize }}']" x-collapse>
-                                @foreach ($handovers as $handover)
-                                    @php
-                                        try {
-                                            $companyName = $handover->company_name ?? 'N/A';
-                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
-                                            $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
-                                        } catch (\Exception $e) {
-                                            $shortened = 'Error loading company';
-                                            $encryptedId = null;
-                                            $companyName = 'Error: ' . $e->getMessage();
-                                        }
-                                    @endphp
-
-                                    @if ($encryptedId)
-                                        <a href="{{ url('admin/leads/' . $encryptedId) }}"
-                                            target="_blank"
-                                            title="{{ $companyName }}"
-                                            class="company-item has-lead">
-                                            {{ $shortened }}
-                                            <i class="ml-1 text-xs fas fa-external-link-alt"></i>
-                                        </a>
-                                    @else
-                                        <div class="company-item no-lead">
-                                            {{ $shortened }}
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-                @else
-                    <!-- Legacy non-grouped display as fallback -->
-                    @foreach ($handoverList as $handover)
-                        @php
-                            try {
-                                $companyName = $handover->company_name ?? 'N/A';
-                                $shortened = strtoupper(\Illuminate\Support\Str::limit($companyName, 40, '...'));
-                                $encryptedId = $handover->lead_id ? \App\Classes\Encryptor::encrypt($handover->lead_id) : null;
-                            } catch (\Exception $e) {
-                                $shortened = 'Error loading company';
-                                $encryptedId = null;
-                                $companyName = 'Error: ' . $e->getMessage();
-                            }
-                        @endphp
-
-                        @if ($encryptedId)
-                            <a href="{{ url('admin/leads/' . $encryptedId) }}"
-                                target="_blank"
-                                title="{{ $companyName }}"
-                                class="company-item has-lead">
-                                {{ $shortened }}
-                                <i class="ml-1 text-xs fas fa-external-link-alt"></i>
-                            </a>
-                        @else
-                            <div class="company-item no-lead">
-                                {{ $shortened }}
-                            </div>
-                        @endif
-                    @endforeach
-                @endif
-            </div>
         </div>
     </div>
-
+    <div :class="{'analysis-tab-content': true, 'active': activeTab === 'analysis2'}" id="analysis2Content">
+        @include('filament.pages.software-handover-analysis-v2')
+    </div>
 </x-filament-panels::page>

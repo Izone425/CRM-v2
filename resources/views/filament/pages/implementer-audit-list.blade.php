@@ -246,7 +246,7 @@
     <div x-data="{ selectedGroup: 'small_medium' }">
         <!-- Toggle UI -->
         <div class="flex items-center mb-6">
-            <h2 class="mr-4 text-xl font-bold">Implementer Audit</h2>
+            <h2 class="mr-4 text-xl font-bold">Project Sequence</h2>
             <div class="toggle-group">
                 <button
                     class="toggle-btn"

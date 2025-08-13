@@ -17,6 +17,11 @@ class ListSoftwareHandovers extends ListRecords
         ];
     }
 
+    public function getTitle(): string
+    {
+        return '';
+    }
+
     public function getBreadcrumbs(): array
     {
         return [];

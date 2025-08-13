@@ -52,6 +52,7 @@ class ImplementerFollowUpTabs
                                             }
                                             return $today->addDays($daysUntilNextTuesday);
                                         })
+                                        ->minDate(now())
                                         ->required(),
 
                                     RichEditor::make('notes')

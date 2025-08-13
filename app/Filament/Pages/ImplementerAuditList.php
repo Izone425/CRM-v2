@@ -55,22 +55,22 @@ class ImplementerAuditList extends Page
 
         // Calculate stats for each implementer
         foreach ($this->implementers as $implementer) {
-            // Get small company assignments (1-24)
+            // Get small company assignments (1-24 headcount)
             $smallAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 666)
                 ->where('implementer', $implementer)
-                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-                ->where('leads.company_size', '1-24')
+                ->where('headcount', '>=', 1)
+                ->where('headcount', '<=', 24)
                 ->count();
 
-            // Get medium company assignments (25-99)
+            // Get medium company assignments (25-99 headcount)
             $mediumAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 666)
                 ->where('implementer', $implementer)
-                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-                ->where('leads.company_size', '25-99')
+                ->where('headcount', '>=', 25)
+                ->where('headcount', '<=', 99)
                 ->count();
 
             // Get latest assignment
@@ -78,6 +78,12 @@ class ImplementerAuditList extends Page
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 666)
                 ->where('implementer', $implementer)
+                ->where(function($query) {
+                    $query->where(function($q) {
+                        $q->where('headcount', '>=', 1)
+                          ->where('headcount', '<=', 99);
+                    });
+                })
                 ->orderBy('completed_at', 'desc')
                 ->first();
 
@@ -113,8 +119,8 @@ class ImplementerAuditList extends Page
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
-                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-                ->where('leads.company_size', '100-500')
+                ->where('headcount', '>=', 100)
+                ->where('headcount', '<=', 500)
                 ->count();
 
             // Enterprise companies (501 and Above)
@@ -122,8 +128,7 @@ class ImplementerAuditList extends Page
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
-                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-                ->where('leads.company_size', '501 and Above')
+                ->where('headcount', '>=', 501)
                 ->count();
 
             $totalAssignments = $largeAssignments + $enterpriseAssignments;
@@ -134,8 +139,7 @@ class ImplementerAuditList extends Page
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 599)
                 ->where('implementer', $implementer)
-                ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-                ->whereIn('leads.company_size', ['100-500', '501 and Above'])
+                ->where('headcount', '>=', 100)
                 ->orderBy('completed_at', 'desc')
                 ->first();
 
@@ -157,16 +161,15 @@ class ImplementerAuditList extends Page
             ->whereNotNull('completed_at')
             ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
-            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->where('leads.company_size', '100-500')
+            ->where('headcount', '>=', 100)
+            ->where('headcount', '<=', 500)
             ->count();
 
         $totalEnterprise = SoftwareHandover::query()
             ->whereNotNull('completed_at')
             ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
-            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->where('leads.company_size', '501 and Above')
+            ->where('headcount', '>=', 501)
             ->count();
 
         $totalAssignments = $totalLarge + $totalEnterprise;
@@ -175,19 +178,19 @@ class ImplementerAuditList extends Page
             ->whereNotNull('completed_at')
             ->where('software_handovers.id', '>=', 599)
             ->whereIn('implementer', $this->largeImplementers)
-            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->whereIn('leads.company_size', ['100-500', '501 and Above'])
-            ->orderBy('software_handovers.completed_at', 'desc')
-            ->select('software_handovers.*', 'leads.company_size', 'leads.id as lead_id')
+            ->where('headcount', '>=', 100)
+            ->orderBy('completed_at', 'desc')
             ->first();
 
         $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
-        $latestHandoverId = $latestHandover ? 'SW_250' . $latestHandover->id : '-';
+        $latestHandoverId = $latestHandover ? $this->formatHandoverId($latestHandover) : '-';
 
         $latestCompanyName = '-';
         if ($latestHandover && $latestHandover->lead_id) {
             $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
             $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
+        } elseif ($latestHandover) {
+            $latestCompanyName = $latestHandover->company_name ?? '-';
         }
 
         $this->largeStatsData['overall'] = [
@@ -201,6 +204,18 @@ class ImplementerAuditList extends Page
         ];
     }
 
+    private function formatHandoverId($handover)
+    {
+        // Extract the year from created_at (or use completed_at if that's more appropriate)
+        $year = Carbon::parse($handover->created_at)->format('y');
+
+        // Format ID to ensure 4 digits (pad with zeros if needed)
+        $formattedId = str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+
+        // Combine into final format: SW_25XXXX
+        return "SW_{$year}{$formattedId}";
+    }
+
     private function calculateOverallStats()
     {
         // Total assignments (all time, small & medium only)
@@ -208,8 +223,12 @@ class ImplementerAuditList extends Page
             ->whereNotNull('completed_at')
             ->where('software_handovers.id', '>=', 666)
             ->whereIn('implementer', $this->implementers)
-            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->whereIn('leads.company_size', ['1-24', '25-99'])
+            ->where(function($query) {
+                $query->where(function($q) {
+                    $q->where('headcount', '>=', 1)
+                      ->where('headcount', '<=', 99);
+                });
+            })
             ->count();
 
         // Latest software handover assigned (small & medium only)
@@ -217,20 +236,25 @@ class ImplementerAuditList extends Page
             ->whereNotNull('completed_at')
             ->where('software_handovers.id', '>=', 666)
             ->whereIn('implementer', $this->implementers)
-            ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->whereIn('leads.company_size', ['1-24', '25-99'])
-            ->orderBy('software_handovers.completed_at', 'desc')
-            ->select('software_handovers.*', 'leads.company_size', 'leads.id as lead_id')
+            ->where(function($query) {
+                $query->where(function($q) {
+                    $q->where('headcount', '>=', 1)
+                      ->where('headcount', '<=', 99);
+                });
+            })
+            ->orderBy('completed_at', 'desc')
             ->first();
 
         $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
-        $latestHandoverId = $latestHandover ? 'SW_' . $latestHandover->id : '-';
+        $latestHandoverId = $latestHandover ? $this->formatHandoverId($latestHandover) : '-';
 
         // Get company name from company_details using lead_id
         $latestCompanyName = '-';
         if ($latestHandover && $latestHandover->lead_id) {
             $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
             $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
+        } elseif ($latestHandover) {
+            $latestCompanyName = $latestHandover->company_name ?? '-';
         }
 
         $this->statsData['overall'] = [
