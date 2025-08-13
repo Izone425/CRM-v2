@@ -503,86 +503,72 @@ class SoftwareHandoverAnalysis extends Page
 
         try {
             for ($month = 1; $month <= 12; $month++) {
-                // Get counts by status with optimized separate queries
-                $closedCount = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                // Get total handovers created in this month (regardless of status)
+                $totalCount = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                    ->whereMonth('completed_at', $month)
+                    ->count();
+
+                // Get only closed projects with go_live_date in this month
+                $closedProject = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                    ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->count();
 
-                $openCount = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
-                    ->where('status_handover', 'Open')
-                    ->count();
-
-                $delayCount = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
-                    ->where('status_handover', 'Delay')
-                    ->count();
-
-                $inactiveCount = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
-                    ->where('status_handover', 'InActive')
-                    ->count();
-
-                // Get company size data for all handovers in this month
-                $small = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                // Get company size data for all handovers created in this month
+                $small = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                    ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 1)
                     ->where('headcount', '<=', 24)
                     ->count();
 
-                $medium = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $medium = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                    ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 25)
                     ->where('headcount', '<=', 99)
                     ->count();
 
-                $large = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $large = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                    ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 100)
                     ->where('headcount', '<=', 500)
                     ->count();
 
-                $enterprise = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $enterprise = SoftwareHandover::whereYear('completed_at', $selectedYear)
+                    ->whereMonth('completed_at', $month)
                     ->where('headcount', '>=', 501)
                     ->count();
 
-                // Get company size data for closed handovers only
-                $closedSmall = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                // Get company size data for closed handovers with go_live_date in this month
+                $closedSmall = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                    ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 1)
                     ->where('headcount', '<=', 24)
                     ->count();
 
-                $closedMedium = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $closedMedium = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                    ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 25)
                     ->where('headcount', '<=', 99)
                     ->count();
 
-                $closedLarge = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $closedLarge = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                    ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 100)
                     ->where('headcount', '<=', 500)
                     ->count();
 
-                $closedEnterprise = SoftwareHandover::whereYear('created_at', $selectedYear)
-                    ->whereMonth('created_at', $month)
+                $closedEnterprise = SoftwareHandover::whereYear('go_live_date', $selectedYear)
+                    ->whereMonth('go_live_date', $month)
                     ->where('status_handover', 'Closed')
                     ->where('headcount', '>=', 501)
                     ->count();
-
-                $ongoingCount = $openCount + $delayCount + $inactiveCount;
-                $totalCount = $closedCount + $ongoingCount;
 
                 $monthlyData[] = [
                     'month' => Carbon::create()->month($month)->format('M'),
-                    'closed' => $closedCount,
-                    'ongoing' => $ongoingCount,
+                    'closed' => $closedProject,
                     'total' => $totalCount,
                     // Add size breakdowns
                     'small' => $small,
@@ -755,8 +741,8 @@ class SoftwareHandoverAnalysis extends Page
         // Query the database to count handovers where the specified module is true/1
         // in the specified quarter
         return SoftwareHandover::where($moduleCode, 1)  // Using 1 instead of true for database compatibility
-            ->whereYear('created_at', $year)
-            ->whereIn(DB::raw('MONTH(created_at)'), $months)
+            ->whereYear('completed_at', $year)
+            ->whereIn(DB::raw('MONTH(completed_at)'), $months)
             ->count();
 
         // If no data available for testing, uncomment this line:
@@ -783,16 +769,18 @@ class SoftwareHandoverAnalysis extends Page
         $year = $this->selectedTargetYear ?? now()->year;
 
         // Query for handovers based on month, year and type (new or closed)
-        $query = \App\Models\SoftwareHandover::whereYear('created_at', $year)
-            ->whereMonth('created_at', $monthNumber);
-
         if ($type === 'closed') {
-            // For closed projects, use status_handover = Closed
-            $query->where('status_handover', 'Closed');
+            // For closed projects, use go_live_date and status_handover = Closed
+            $query = \App\Models\SoftwareHandover::whereYear('go_live_date', $year)
+                ->whereMonth('go_live_date', $monthNumber)
+                ->where('status_handover', 'Closed');
+
             $this->slideOverTitle = "Closed Projects - {$month} {$year}";
         } else {
             // For new projects, show all projects from this month regardless of status
-            // This matches what's shown in the tooltip (all projects)
+            $query = \App\Models\SoftwareHandover::whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $monthNumber);
+
             $this->slideOverTitle = "New Projects - {$month} {$year}";
         }
 
@@ -807,14 +795,14 @@ class SoftwareHandoverAnalysis extends Page
             } elseif ($handover->headcount >= 100 && $handover->headcount <= 500) {
                 return 'Large (100-500)';
             } elseif ($handover->headcount >= 501) {
-                return 'Enterprise (501 and Above';
+                return 'Enterprise (501+)';
             } else {
                 return 'Unknown';
             }
         });
 
         // Sort the groups in a logical order
-        $sortOrder = ['Small (1-24)', 'Medium (25-99)', 'Large (100-500)', 'Enterprise (501 and Above)', 'Unknown'];
+        $sortOrder = ['Small (1-24)', 'Medium (25-99)', 'Large (100-500)', 'Enterprise (501+)', 'Unknown'];
         $sortedGroups = collect();
 
         foreach ($sortOrder as $size) {
@@ -885,7 +873,7 @@ class SoftwareHandoverAnalysis extends Page
         $yesterday = now()->subDay()->format('Y-m-d');
 
         // Query for yesterday's module data
-        $data = SoftwareHandover::where('created_at', 'like', "{$yesterday}%")
+        $data = SoftwareHandover::where('completed_at', 'like', "{$yesterday}%")
             ->get();
 
         // Initialize counts
@@ -912,7 +900,7 @@ class SoftwareHandoverAnalysis extends Page
         $today = now()->format('Y-m-d');
 
         // Query for today's module data
-        $data = SoftwareHandover::where('created_at', 'like', "{$today}%")
+        $data = SoftwareHandover::where('completed_at', 'like', "{$today}%")
             ->get();
 
         // Initialize counts
