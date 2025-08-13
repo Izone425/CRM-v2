@@ -172,10 +172,9 @@ class FetchZohoLeads extends Command
                     $leadSource = 'Google AdWords';
                 }
 
-                if (empty($leadSource) && !empty($lead['referrername2'])) {
+                if (empty($leadSource) && !empty($lead['referrername2']) && empty($lead['GCLID']) && empty($lead['leadchain0__Social_Lead_ID'])) {
                     $referrerName = $lead['referrername2'];
-                    if ($referrerName === 'https://www.timeteccloud.com/grant' ||
-                        $referrerName === 'https://www.timeteccloud.com/request-demo') {
+                    if (strpos($referrerName, 'https://www') !== false) {
                         $leadSource = 'Website';
                     }
                 }

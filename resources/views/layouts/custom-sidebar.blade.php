@@ -1091,27 +1091,6 @@
                         </div>
                     </div>
 
-                    <!-- Project -->
-                    <div class="nested-dropdown">
-                        <div class="sidebar-item nested-dropdown-trigger">
-                            <i class="bi bi-kanban"></i>
-                            <span>Project</span>
-                            <i class="bi bi-chevron-down ms-auto"></i>
-                        </div>
-
-                        <div class="nested-dropdown-content">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Dashboard</span>
-                            </a>
-
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="sidebar-item">
-                                <i class="bi bi-dot"></i>
-                                <span>Analysis</span>
-                            </a>
-                        </div>
-                    </div>
-
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-bookmarks-fill"></i>
@@ -1146,7 +1125,7 @@
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-three-dots"></i>
-                            <span>Other</span>
+                            <span>Project Request</span>
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </div>
 
@@ -1166,7 +1145,7 @@
                     <div class="nested-dropdown">
                         <div class="sidebar-item nested-dropdown-trigger">
                             <i class="bi bi-list-ol"></i>
-                            <span>Implementer Audit List</span>
+                            <span>Implementer - Audit List</span>
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </div>
 

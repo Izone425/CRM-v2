@@ -530,8 +530,7 @@ class SoftwareHandoverResource extends Resource
 
                 TextColumn::make('status_handover')
                     ->label('Status')
-                    ->toggleable()
-                    ->formatStateUsing(fn($state) => strtoupper($state ?? '')),
+                    ->toggleable(),
 
                 TextColumn::make('ta')
                     ->label('TA')
@@ -815,7 +814,35 @@ class SoftwareHandoverResource extends Resource
                         }
                         return null;
                     }),
+                Filter::make('go_live_date')
+                    ->form([
+                        DateRangePicker::make('date_range')
+                            ->label('Go Live Date')
+                            ->placeholder('Select date range'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range from the "start - end" format
+                            [$start, $end] = explode(' - ', $data['date_range']);
 
+                            // Ensure valid dates
+                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                            // Apply the filter to completed_at instead of created_at
+                            $query->whereBetween('go_live_date', [$startDate, $endDate]);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range for display
+                            [$start, $end] = explode(' - ', $data['date_range']);
+
+                            return 'Go Live Date: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
+                                ' - ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                        }
+                        return null;
+                    }),
                 // New salesperson filter
                 Tables\Filters\SelectFilter::make('salesperson')
                     ->label('Salesperson')

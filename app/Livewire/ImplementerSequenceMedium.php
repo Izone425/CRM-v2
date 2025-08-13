@@ -106,7 +106,8 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
             ->where('software_handovers.id', '>=', 666)
             ->whereIn('implementer', $allowedImplementers)
             ->join('leads', 'software_handovers.lead_id', '=', 'leads.id')
-            ->where('leads.company_size', '25-99')
+            ->where('headcount', '>=', 25)
+            ->where('headcount', '<=', 99)
             ->select('software_handovers.*'); // Important to select only from software_handovers to avoid column conflicts
 
         // If a specific user is selected (for filtering)
@@ -177,10 +178,11 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                             return $filename;
                         }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // Format ID with year-based prefix and pad with zeros to ensure 4 digits
+                        $year = Carbon::parse($record->created_at)->format('y');
+                        return 'SW_' . $year . str_pad($record->id, 4, '0', STR_PAD_LEFT);
                     })
-                    ->color('primary') // Makes it visually appear as a link
+                    ->color('primary')
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
@@ -196,7 +198,9 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
-                    ->searchable()
+                    ->searchable(query: function ($query, $search) {
+                        return $query->where('software_handovers.company_name', 'like', "%{$search}%");
+                    })
                     ->formatStateUsing(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 
@@ -206,7 +210,7 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
 
                         if ($company) {
                             $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
-                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+                            $encryptedId = Encryptor::encrypt($company->lead_id);
 
                             return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
@@ -217,8 +221,8 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                                 </a>');
                         }
 
-                        $shortened = strtoupper(Str::limit($state, 20, '...'));
-                        return "<span title='{$state}'>{$shortened}</span>";
+                        $shortened = strtoupper(Str::limit($state, 30, '...'));
+                        return new HtmlString("<span title='" . e($state) . "'>{$shortened}</span>");
                     })
                     ->html(),
 
