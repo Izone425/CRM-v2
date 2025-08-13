@@ -341,11 +341,23 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
+                        ->form([
+                            \Filament\Forms\Components\Textarea::make('inactive_reason')
+                                ->label('Inactive Reason')
+                                ->placeholder('Please explain why this project is inactive')
+                                ->rows(3)
+                                ->maxLength(500)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->required()
+                        ])
                         ->modalHeading('Mark Project as Inactive')
                         ->modalDescription('Are you sure you want to mark this project as inactive?')
                         ->modalSubmitActionLabel('Yes, Mark as Inactive')
-                        ->action(function (SoftwareHandover $record) {
+                        ->action(function (SoftwareHandover $record, array $data) {
                             $record->status_handover = 'InActive';
+                            $record->inactive_reason = $data['inactive_reason'];
                             $record->save();
 
                             // Send notification
