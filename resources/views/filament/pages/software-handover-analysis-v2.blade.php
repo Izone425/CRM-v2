@@ -1,4 +1,3 @@
-<x-filament-panels::page>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -132,19 +131,19 @@
         }
 
         .bar-fill-open {
-            background-color: #10b981;
-        }
-
-        .bar-fill-delay {
             background-color: #3b82f6;
         }
 
+        .bar-fill-delay {
+            background-color: #f97316;
+        }
+
         .bar-fill-inactive {
-            background-color: #eab308;
+            background-color: #6a7282;
         }
 
         .bar-fill-closed {
-            background-color: #ef4444;
+            background-color: #10b981;
         }
 
         .bar-fill-small {
@@ -370,14 +369,14 @@
         .new-projects-bar {
             position: absolute;
             bottom: 0;
-            background-color: #10b981; /* Green */
+            background-color: #84cc16; /* Green */
             border-radius: 3px 3px 0 0;
         }
 
         .closed-projects-bar {
             position: absolute;
             bottom: 0;
-            background-color: #f59e0b; /* Amber/Yellow */
+            background-color: #eab308; /* Amber/Yellow */
             border-radius: 3px 3px 0 0;
         }
 
@@ -450,8 +449,8 @@
         }
 
         .target-color { background-color: #ef4444; }
-        .new-color { background-color: #10b981; }
-        .closed-color { background-color: #f59e0b; }
+        .new-color { background-color: #84cc16; }
+        .closed-color { background-color: #eab308; }
 
         /* Fixed dimensions for module chart */
         .module-container {
@@ -748,7 +747,7 @@
             gap: 16px;
         }
 
-        .stat-card {
+        .stat-card2 {
             display: flex;
             align-items: center;
             flex: 1;
@@ -760,7 +759,7 @@
             transition: all 0.2s ease;
         }
 
-        .stat-card:hover {
+        .stat-card2:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
@@ -812,23 +811,23 @@
 
         /* Module-specific styling */
         .ta-card .stat-icon {
-            background-color: rgba(139, 92, 246, 0.15);
-            color: #8b5cf6;
+            background-color: rgba(250,90,124,255);
+            color: white;
         }
 
         .tl-card .stat-icon {
-            background-color: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
+            background-color: rgba(254,148,122,255);
+            color: white;
         }
 
         .tc-card .stat-icon {
-            background-color: rgba(16, 185, 129, 0.15);
-            color: #10b981;
+            background-color: rgba(59,215,85,255);
+            color: white;
         }
 
         .tp-card .stat-icon {
-            background-color: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
+            background-color: rgba(191,131,255,255);
+            color: white;
         }
     </style>
 
@@ -997,7 +996,7 @@
                     @php
                         $rank1Data = $this->getHandoversBySalesPersonRank1();
                         $totalAllHandovers = $this->getAllSalespersonHandovers();
-                        $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#8b5cf6']; // Added an extra color for Others
+                        $colors = ['#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#8b5cf6']; // Added an extra color for Others
                     @endphp
 
                     @foreach($rank1Data as $index => $person)
@@ -1034,7 +1033,7 @@
                     @php
                         $rank2Data = $this->getHandoversBySalesPersonRank2();
                         $totalAllHandovers = $this->getAllSalespersonHandovers();
-                        $colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316'];
+                        $colors = ['#f59e0b', '#ef4444', '#ec4899', '#c026d3'];
                     @endphp
 
                     @foreach($rank2Data as $index => $person)
@@ -1200,11 +1199,13 @@
                 @endphp
 
                 <!-- TimeTec Attendance Card -->
-                <div class="stat-card ta-card" style="background-color: rgba(139, 92, 246, 0.15)">
-                    <div class="stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
+                <div class="stat-card2 ta-card" style="background-color: rgba(255,226,230,255)">
+
                     <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <br>
                         <h3 class="stat-value">{{ $moduleData['ta'] }}</h3>
                         <p class="stat-label">TimeTec Attendance</p>
                         @php
@@ -1219,11 +1220,12 @@
                 </div>
 
                 <!-- TimeTec Leave Card -->
-                <div class="stat-card tl-card" style="background-color: rgba(239, 68, 68, 0.15)">
-                    <div class="stat-icon">
-                        <i class="fas fa-calendar"></i>
-                    </div>
+                <div class="stat-card2 tl-card" style="background-color: rgba(255,244,222,255)">
                     <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <br>
                         <h3 class="stat-value">{{ $moduleData['tl'] }}</h3>
                         <p class="stat-label">TimeTec Leave</p>
                         @php
@@ -1238,11 +1240,12 @@
                 </div>
 
                 <!-- TimeTec Claim Card -->
-                <div class="stat-card tc-card" style="background-color: rgba(16, 185, 129, 0.15)">
-                    <div class="stat-icon">
-                        <i class="fas fa-receipt"></i>
-                    </div>
+                <div class="stat-card2 tc-card" style="background-color: rgba(220,252,231,255)">
                     <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <br>
                         <h3 class="stat-value">{{ $moduleData['tc'] }}</h3>
                         <p class="stat-label">TimeTec Claim</p>
                         @php
@@ -1257,11 +1260,12 @@
                 </div>
 
                 <!-- TimeTec Payroll Card -->
-                <div class="stat-card tp-card" style="background-color: rgba(59, 130, 246, 0.15)">
-                    <div class="stat-icon">
-                        <i class="fas fa-money-check-alt"></i>
-                    </div>
+                <div class="stat-card2 tp-card" style="background-color: rgba(244,232,255,255)">
                     <div class="stat-content">
+                        <div class="stat-icon">
+                            <i class="fas fa-money-check-alt"></i>
+                        </div>
+                        <br>
                         <h3 class="stat-value">{{ $moduleData['tp'] }}</h3>
                         <p class="stat-label">TimeTec Payroll</p>
                         @php
@@ -1387,4 +1391,3 @@
             </div>
         </div>
     </div>
-</x-filament-panels::page>

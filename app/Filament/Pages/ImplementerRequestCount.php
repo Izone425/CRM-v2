@@ -34,11 +34,14 @@ class ImplementerRequestCount extends Page
 
     protected function getViewData(): array
     {
+        $weeklyStats = $this->getWeeklyImplementerStats();
+
         return [
             'years' => $this->getAvailableYears(),
             'implementers' => $this->getImplementers(),
-            'weeklyStats' => $this->getWeeklyImplementerStats(),
-            'currentWeekNumber' => $this->getCurrentWeekNumber(), // Add this line
+            'weeklyStats' => $weeklyStats,
+            'currentWeekNumber' => $this->getCurrentWeekNumber(),
+            'totals' => $this->calculateTotals($weeklyStats), // Add this line to include totals
         ];
     }
 
@@ -214,5 +217,25 @@ class ImplementerRequestCount extends Page
         }
 
         return null;
+    }
+
+    protected function calculateTotals(array $weeklyStats): array
+    {
+        $totals = [
+            'data_migration_count' => 0,
+            'system_setting_count' => 0,
+            'weekly_follow_up_count' => 0,
+            'total_sessions' => 0,
+        ];
+
+        // Sum up all values
+        foreach ($weeklyStats as $week) {
+            $totals['data_migration_count'] += $week['data_migration_count'];
+            $totals['system_setting_count'] += $week['system_setting_count'];
+            $totals['weekly_follow_up_count'] += $week['weekly_follow_up_count'];
+            $totals['total_sessions'] += $week['total_sessions'];
+        }
+
+        return $totals;
     }
 }

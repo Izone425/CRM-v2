@@ -54,6 +54,16 @@
                 background-color: #f8aea1 !important; /* Light amber background */
                 border-left: 4px solid #ec5b41; /* Amber left border */
             }
+            .total-row {
+                background-color: #e5e7eb !important;
+                border-top: 2px solid #9ca3af;
+                font-weight: bold;
+            }
+
+            .total-cell {
+                font-size: 20px !important;
+                font-weight: bold !important;
+            }
         </style>
 
         <!-- Stats Table -->
@@ -105,6 +115,33 @@
                             </td>
                         </tr>
                     @endforeach
+                    <tr class="total-row">
+                        <td class="px-6 py-4 whitespace-nowrap" colspan="2">
+                            <div class="text-sm text-gray-900 implementer-table-cell total-cell">
+                                TOTAL
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-sm implementer-table-cell data-migration-cell total-cell">
+                                {{ $totals['data_migration_count'] }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-sm implementer-table-cell system-setting-cell total-cell">
+                                {{ $totals['system_setting_count'] }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-sm implementer-table-cell weekly-follow-up-cell total-cell">
+                                {{ $totals['weekly_follow_up_count'] }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center whitespace-nowrap">
+                            <div class="text-sm implementer-table-cell total-sessions-cell total-cell">
+                                {{ $totals['total_sessions'] }}
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
