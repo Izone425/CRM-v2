@@ -56,7 +56,7 @@ class ImplementerCalendar extends Component
 
     public array $appointmentTypes = [
         "KICK OFF MEETING SESSION",
-        "IMPLEMENTATION REVIEW SESSION",
+        "REVIEW SESSION",
         "DATA MIGRATION SESSION",
         "SYSTEM SETTING SESSION",
         "WEEKLY FOLLOW UP SESSION"
@@ -82,7 +82,7 @@ class ImplementerCalendar extends Component
     public $selectedWeek;
     public $availableYears = [];
     public $availableWeeks = [];
-    public $implementationDemoType = 'IMPLEMENTATION REVIEW SESSION';
+    public $implementationDemoType = 'REVIEW SESSION';
     public $filteredOpenDelayCompanies = [];
     public $showAppointmentDetailsModal = false;
     public $currentAppointment = null;
@@ -315,7 +315,7 @@ class ImplementerCalendar extends Component
 
                 if ($hasKickOffMeeting) {
                     // If company already had a kick off meeting, restrict to implementation review only
-                    $this->implementationDemoType = "IMPLEMENTATION REVIEW SESSION";
+                    $this->implementationDemoType = "REVIEW SESSION";
                     $this->hasKickOffMeeting = true;
                 } else {
                     // If no kick off meeting yet, default to kick off meeting
@@ -403,7 +403,7 @@ class ImplementerCalendar extends Component
         $this->totalAppointments = [
             "ALL" => 0,
             "Kick Off Meeting Session" => 0,
-            "Implementation Review Session" => 0,
+            "REVIEW SESSION" => 0,
             "Data Migration Session" => 0,
             "System Setting Session" => 0,
             "Weekly Follow Up Session" => 0
@@ -418,8 +418,8 @@ class ImplementerCalendar extends Component
             ->where('type', 'Kick Off Meeting Session')
             ->where('status', '!=', 'Cancelled')->count();
 
-        $this->totalAppointments["Implementation Review Session"] = $query->clone()
-            ->where('type', 'Implementation Review Session')
+        $this->totalAppointments["REVIEW SESSION"] = $query->clone()
+            ->where('type', 'REVIEW SESSION')
             ->where('status', '!=', 'Cancelled')->count();
 
         $this->totalAppointments["Data Migration Session"] = $query->clone()
@@ -703,7 +703,7 @@ class ImplementerCalendar extends Component
                                 } else if (in_array($appointment->type, ['DATA MIGRATION SESSION', 'SYSTEM SETTING SESSION', 'WEEKLY FOLLOW UP SESSION'])) {
                                     // Yellow for these specific session types
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
-                                } else if (in_array($appointment->type, ['KICK OFF MEETING SESSION', 'IMPLEMENTATION REVIEW SESSION'])) {
+                                } else if (in_array($appointment->type, ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])) {
                                     // Red for implementation sessions
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
                                 } else {
@@ -858,7 +858,7 @@ class ImplementerCalendar extends Component
 
         $result = [
             'KICK OFF MEETING SESSION' => 0,
-            'IMPLEMENTATION REVIEW SESSION' => 0,
+            'REVIEW SESSION' => 0,
             'DATA MIGRATION SESSION' => 0,
             'SYSTEM SETTING SESSION' => 0,
             'WEEKLY FOLLOW UP SESSION' => 0,
@@ -915,7 +915,7 @@ class ImplementerCalendar extends Component
         $this->requiredAttendees = '';
         $this->remarks = '';
         $this->requestSessionType = '';
-        $this->implementationDemoType = 'IMPLEMENTATION REVIEW SESSION';
+        $this->implementationDemoType = 'REVIEW SESSION';
 
         // Store booking details
         $this->bookingImplementerId = $implementerId;
@@ -1755,7 +1755,7 @@ class ImplementerCalendar extends Component
             // Count existing appointments for this company
             $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
                 ->where('status', '!=', 'Cancelled')
-                ->where('type', 'IMPLEMENTATION REVIEW SESSION')  // Only count implementation review sessions
+                ->where('type', 'REVIEW SESSION')  // Only count REVIEW SESSIONs
                 ->count();
 
             // Create appointment
@@ -1998,7 +1998,7 @@ class ImplementerCalendar extends Component
                         'remarks' => $this->remarks ?? null,
                     ];
 
-                    if($this->implementationDemoType === 'IMPLEMENTATION REVIEW SESSION') {
+                    if($this->implementationDemoType === 'REVIEW SESSION') {
                         $this->implementationDemoType = 'REVIEW SESSION';
                     }
 

@@ -174,9 +174,10 @@ class AdminPanelProvider extends PanelProvider
                 </style>
                 HTML
             )
-            ->navigation(false)
+            // ->navigation(false)
             ->darkMode(false)
             // ->sidebarCollapsibleOnDesktop()
+            ->sidebarWidth('4rem')
             // ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->resources([  // Manually registering specific resources
                 LeadResource::class,
@@ -261,24 +262,6 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->navigationGroups([
-                NavigationGroup::make()
-                    ->label('Sales Forecast')
-                    ->icon('heroicon-s-arrow-trending-up')
-                    ->collapsed(),
-                NavigationGroup::make()
-                    ->label('Calendar')
-                    ->icon('heroicon-s-calendar-days')
-                    ->collapsed(),
-                NavigationGroup::make()
-                    ->label('Analysis')
-                    ->icon('heroicon-s-chart-bar')
-                    ->collapsed(),
-                NavigationGroup::make()
-                    ->label('Settings')
-                    ->icon('heroicon-s-adjustments-horizontal')
-                    ->collapsed(),
-            ])
             ->authMiddleware([
                 Authenticate::class,
             ])
@@ -287,21 +270,4 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->maxContentWidth(MaxWidth::Full);
     }
-
-    // public function boot()
-    // {
-    //     Filament::serving(function () {
-    //         $newMessages = ChatMessage::where('is_from_customer', true)
-    //             ->where('is_read', false)
-    //             ->count();
-
-    //         if ($newMessages > 0) {
-    //             Notification::make()
-    //                 ->title('New Messages')
-    //                 ->body("You have $newMessages unread messages.")
-    //                 ->success()
-    //                 ->send();
-    //         }
-    //     });
-    // }
 }

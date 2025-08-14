@@ -37,7 +37,7 @@ class ImplementationSession extends Page implements HasTable
     public function getStatusCount(?string $status = null): int
     {
         $query = ImplementerAppointment::query()
-            ->where('type', 'IMPLEMENTATION REVIEW SESSION');
+            ->where('type', 'REVIEW SESSION');
 
         // Filter by status if provided
         if ($status !== null) {
@@ -52,7 +52,7 @@ class ImplementationSession extends Page implements HasTable
         return $table
             ->query(
                 ImplementerAppointment::query()
-                    ->where('type', 'IMPLEMENTATION REVIEW SESSION')
+                    ->where('type', 'REVIEW SESSION')
                     ->orderBy('created_at', 'desc')
             )
             ->defaultPaginationPageOption(50)
@@ -157,7 +157,7 @@ class ImplementationSession extends Page implements HasTable
                     ->getStateUsing(function ($record) {
                         // Count number of implementation sessions for this software handover
                         return ImplementerAppointment::where('software_handover_id', $record->software_handover_id)
-                            ->where('type', 'IMPLEMENTATION REVIEW SESSION')
+                            ->where('type', 'REVIEW SESSION')
                             ->count();
                     }),
 

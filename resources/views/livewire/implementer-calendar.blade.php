@@ -1053,7 +1053,7 @@
 
                 @foreach ([
                     'KICK OFF MEETING SESSION' => '#71eb71',
-                    'IMPLEMENTATION REVIEW SESSION' => '#ffff5cbf',
+                    'REVIEW SESSION' => '#ffff5cbf',
                     'DATA MIGRATION SESSION' => '#f86f6f',
                     'SYSTEM SETTING SESSION' => '#aed6f1',
                     'WEEKLY FOLLOW UP SESSION' => '#d2b4de'
@@ -1839,7 +1839,7 @@
                             <option value="">-- Select Onsite Category --</option>
                             <option value="ONSITE TRAINING">Onsite Training</option>
                             <option value="ONSITE KICK OFF MEETING">Onsite Kick Off Meeting</option>
-                            <option value="ONSITE IMPLEMENTATION REVIEW SESSION">Onsite Implementation Review Session</option>
+                            <option value="ONSITE REVIEW SESSION">Onsite REVIEW SESSION</option>
                             <option value="ONSITE PROOF OF CONCEPT">Onsite Proof Of Concept</option>
                             <option value="ONSITE BUSINESS TRIP">Onsite Business Trip</option>
                         </select>
@@ -2226,7 +2226,7 @@
                                 @if((!$hasKickOffMeeting))
                                     <option value="KICK OFF MEETING SESSION">KICK OFF MEETING SESSION</option>
                                 @else
-                                    <option value="IMPLEMENTATION REVIEW SESSION">IMPLEMENTATION REVIEW SESSION</option>
+                                    <option value="REVIEW SESSION">REVIEW SESSION</option>
                                 @endif
                             </select>
                             @if(isset($hasKickOffMeeting) && $hasKickOffMeeting)

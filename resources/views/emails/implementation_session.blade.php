@@ -65,13 +65,13 @@
     </style>
 </head>
 <body>
-    <p class="greeting">Dear Customer,<br>Kindly find the details for our Implementation Review Session below:</p>
+    <p class="greeting">Dear Customer,<br>Kindly find the details for our Review Session below:</p>
 
-    <div class="section-header">* Implementation Review Session details:</div>
+    <div class="section-header">* Review Session details:</div>
     <div class="remark-box">
         <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['date'])->format('d M Y, l') }}</div>
         <div><strong>Time:</strong> {{ $content['startTime'] }} – {{ $content['endTime'] }}</div>
-        <div><strong>Meeting Type:</strong> Implementation Review Session</div>
+        <div><strong>Meeting Type:</strong> Review Session</div>
     </div>
 
     <div class="section-header">* Microsoft Teams meeting details:</div>
@@ -85,6 +85,6 @@
         <div><strong>Email:</strong> <a href="mailto:{{ $content['implementerEmail'] }}">{{ $content['implementerEmail'] }}</a></div>
     </div>
 
-    <p class="signature">Looking forward to have you in our Implementation Review Session.</p>
+    <p class="signature">Looking forward to have you in our Review Session.</p>
 </body>
 </html>

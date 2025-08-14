@@ -254,10 +254,10 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // Also check if kick_off_meeting exists in the software handover record as a backup
                         $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
 
-                        // If either condition is true, allow implementation review sessions
+                        // If either condition is true, allow REVIEW SESSIONs
                         if ($hasKickoffAppointment || $hasKickoffMeeting) {
                             return [
-                                'IMPLEMENTATION REVIEW SESSION' => 'IMPLEMENTATION REVIEW SESSION',
+                                'REVIEW SESSION' => 'REVIEW SESSION',
                             ];
                         } else {
                             return [
@@ -286,7 +286,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                         // Set default based on whether any kick-off meeting exists
                         return ($hasKickoffAppointment || $hasKickoffMeeting)
-                            ? 'IMPLEMENTATION REVIEW SESSION'
+                            ? 'REVIEW SESSION'
                             : 'KICK OFF MEETING SESSION';
                     })
                     ->required()
@@ -1145,10 +1145,10 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                     // Also check if kick_off_meeting exists in the software handover record as a backup
                                     $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
 
-                                    // If either condition is true, allow implementation review sessions
+                                    // If either condition is true, allow REVIEW SESSIONs
                                     if ($hasKickoffAppointment || $hasKickoffMeeting) {
                                         return [
-                                            'IMPLEMENTATION REVIEW SESSION' => 'IMPLEMENTATION REVIEW SESSION',
+                                            'REVIEW SESSION' => 'REVIEW SESSION',
                                         ];
                                     } else {
                                         return [
@@ -1332,6 +1332,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $data, $companyName) {
                             $message->from($senderEmail, $senderName)
                                 ->to($recipients)
+                                ->cc($senderEmail)
                                 ->subject("TIMETEC IMPLEMENTATION APPOINTMENT | {$data['type']} | {$companyName} | " . Carbon::parse($data['date'])->format('d/m/Y'));
                         });
 
@@ -1366,5 +1367,74 @@ class ImplementerAppointmentRelationManager extends RelationManager
         if (!is_string($string)) return false;
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Update Teams meeting for an implementer appointment
+     *
+     * @param ImplementerAppointment $record
+     * @param array $data
+     * @param string $companyName
+     * @return void
+     */
+    private static function updateTeamsMeeting(ImplementerAppointment $record, array $data, string $companyName)
+    {
+        try {
+            $accessToken = MicrosoftGraphService::getAccessToken();
+            $graph = new Graph();
+            $graph->setAccessToken($accessToken);
+
+            $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+            $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+            $implementer = User::where('name', $record->implementer)->first();
+            $organizerEmail = $implementer->email ?? null;
+
+            if (!$organizerEmail) {
+                Notification::make()
+                    ->title('Missing Organizer Email')
+                    ->danger()
+                    ->body('Implementer email is not available.')
+                    ->send();
+                return;
+            }
+
+            if ($record->event_id) {
+                $meetingUpdatePayload = [
+                    'start' => ['dateTime' => $startTime, 'timeZone' => 'Asia/Kuala_Lumpur'],
+                    'end' => ['dateTime' => $endTime, 'timeZone' => 'Asia/Kuala_Lumpur'],
+                    'subject' => 'TIMETEC | ' . $companyName,
+                ];
+
+                $response = $graph->createRequest("PATCH", "/users/$organizerEmail/events/{$record->event_id}")
+                    ->attachBody($meetingUpdatePayload)
+                    ->execute();
+
+                $eventData = $response->getBody(); // associative array
+
+                // Extract the meeting details
+                $joinUrl = $eventData['onlineMeeting']['joinUrl'] ?? null;
+                $eventId = $eventData['id'] ?? $record->event_id;
+
+                // Update the record with the meeting details
+                $record->update([
+                    'event_id' => $eventId,
+                    'meeting_link' => $joinUrl,
+                ]);
+
+                Notification::make()
+                    ->title('Meeting Updated')
+                    ->success()
+                    ->body('The implementation appointment and Teams meeting have been updated.')
+                    ->send();
+            }
+        } catch (\Exception $e) {
+            Log::error('Teams Meeting Reschedule Failed: ' . $e->getMessage());
+            Notification::make()
+                ->title('Rescheduling Failed')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+        }
     }
 }
