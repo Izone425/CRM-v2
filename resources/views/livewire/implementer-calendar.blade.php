@@ -1806,9 +1806,25 @@
                         <label for="onsiteDayType" class="form-label">Day Type Category <span class="text-red-600">*</span></label>
                         <select wire:model="onsiteDayType" id="onsiteDayType" class="form-select" wire:change="updateOnsiteSessions">
                             <option value="">-- Select Day Type --</option>
-                            <option value="FULL_DAY">Full Day (All Sessions)</option>
-                            <option value="HALF_DAY_MORNING">Half Day Morning (Sessions 1 & 2)</option>
-                            <option value="HALF_DAY_EVENING">Half Day Evening (Sessions 3, 4 & 5)</option>
+                            @php $availableDayTypes = $this->getAvailableDayTypes(); @endphp
+
+                            @if($availableDayTypes['FULL_DAY'])
+                                <option value="FULL_DAY">Full Day (All Sessions)</option>
+                            @else
+                                <option value="FULL_DAY" disabled>Full Day (Not Available - Sessions Already Booked)</option>
+                            @endif
+
+                            @if($availableDayTypes['HALF_DAY_MORNING'])
+                                <option value="HALF_DAY_MORNING">Half Day Morning (Sessions 1 & 2)</option>
+                            @else
+                                <option value="HALF_DAY_MORNING" disabled>Half Day Morning (Not Available - Sessions Already Booked)</option>
+                            @endif
+
+                            @if($availableDayTypes['HALF_DAY_EVENING'])
+                                <option value="HALF_DAY_EVENING">Half Day Evening (Sessions 3, 4 & 5)</option>
+                            @else
+                                <option value="HALF_DAY_EVENING" disabled>Half Day Evening (Not Available - Sessions Already Booked)</option>
+                            @endif
                         </select>
                         @error('onsiteDayType')
                             <span class="form-error">{{ $message }}</span>

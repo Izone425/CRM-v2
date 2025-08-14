@@ -294,6 +294,132 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                 ->button()
                 ->color('warning')
                 ->label('Actions')
+            ])
+            ->bulkActions([
+                \Filament\Tables\Actions\BulkAction::make('batchApprove')
+                    ->label('Approve Selected')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Approve Selected Requests')
+                    ->modalDescription('Are you sure you want to approve all selected requests? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Approve All')
+                    ->visible(function() {
+                        $user = auth()->user();
+                        return $user->role_id === 3 || $user->id === 26; // Admin or specific user
+                    })
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if ($record->request_status === 'PENDING') {
+                                $record->update(['request_status' => 'APPROVED']);
+                                $count++;
+                            }
+                        }
+
+                        Notification::make()
+                            ->title("$count requests approved successfully")
+                            ->success()
+                            ->send();
+
+                        $this->dispatch('refresh-implementer-tables');
+                    }),
+
+                \Filament\Tables\Actions\BulkAction::make('batchReject')
+                    ->label('Reject Selected')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(function() {
+                        $user = auth()->user();
+                        return $user->role_id === 3 || $user->id === 26;
+                    })
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('remark')
+                            ->label('Rejection Reason')
+                            ->placeholder('Please provide a reason for rejection')
+                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                            ->required()
+                            ->maxLength(500)
+                    ])
+                    ->modalHeading('Reject Selected Requests')
+                    ->modalDescription('Please provide a reason for rejecting these requests. This action cannot be undone.')
+                    ->modalSubmitActionLabel('Reject All Selected')
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if ($record->request_status === 'PENDING') {
+                                $record->update([
+                                    'status' => 'Cancelled',
+                                    'request_status' => 'REJECTED',
+                                    'remarks' => $data['remark'],
+                                ]);
+                                $count++;
+
+                                // Log rejection
+                                info('Implementer request rejected (batch)', [
+                                    'record_id' => $record->id,
+                                    'remark' => $data['remark'],
+                                    'rejected_by' => auth()->id(),
+                                    'rejected_at' => now(),
+                                ]);
+                            }
+                        }
+
+                        Notification::make()
+                            ->title("$count requests rejected successfully")
+                            ->warning()
+                            ->body('Reason: ' . $data['remark'])
+                            ->send();
+
+                        $this->dispatch('refresh-implementer-tables');
+                    }),
+
+                \Filament\Tables\Actions\BulkAction::make('batchCancel')
+                    ->label('Cancel Selected')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->visible(function() {
+                        $user = auth()->user();
+                        return !($user->role_id === 3 || $user->id === 26);
+                    })
+                    ->modalHeading('Cancel Selected Requests')
+                    ->modalDescription('Are you sure you want to cancel all selected requests? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Cancel All')
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                        $count = 0;
+                        $errors = 0;
+
+                        foreach ($records as $record) {
+                            try {
+                                // Cancel appointment using existing method
+                                $this->cancelAppointment($record->id);
+                                $count++;
+                            } catch (\Exception $e) {
+                                Log::error('Failed to cancel appointment in batch: ' . $e->getMessage(), [
+                                    'record_id' => $record->id
+                                ]);
+                                $errors++;
+                            }
+                        }
+
+                        if ($count > 0) {
+                            Notification::make()
+                                ->title("$count appointments cancelled successfully")
+                                ->success()
+                                ->send();
+                        }
+
+                        if ($errors > 0) {
+                            Notification::make()
+                                ->title("$errors appointments failed to cancel")
+                                ->danger()
+                                ->send();
+                        }
+                    })
             ]);
     }
 

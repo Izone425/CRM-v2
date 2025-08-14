@@ -1103,6 +1103,25 @@ class ImplementerCalendar extends Component
 
     public function updateOnsiteSessions()
     {
+        // First check if the selected day type is still available
+        $availableDayTypes = $this->getAvailableDayTypes();
+
+        if (!empty($this->onsiteDayType) && !isset($availableDayTypes[$this->onsiteDayType]) ||
+            !empty($this->onsiteDayType) && isset($availableDayTypes[$this->onsiteDayType]) && !$availableDayTypes[$this->onsiteDayType]) {
+            // Reset the selection if it's no longer available
+            $this->onsiteDayType = '';
+            $this->selectedOnsiteSessions = [];
+
+            // Notify the user
+            Notification::make()
+                ->title('Day type not available')
+                ->warning()
+                ->body('One or more sessions in this day type are already booked. Please select another option.')
+                ->send();
+
+            return;
+        }
+
         // Clear previously selected sessions
         $this->selectedOnsiteSessions = [];
 
@@ -1115,54 +1134,74 @@ class ImplementerCalendar extends Component
             case 'FULL_DAY':
                 // Select all sessions
                 foreach ($sessionSlots as $sessionName => $session) {
-                    $this->selectedOnsiteSessions[] = [
-                        'name' => $sessionName,
-                        'start' => $session['formatted_start'],
-                        'end' => $session['formatted_end'],
-                        'start_time' => $session['start_time'],
-                        'end_time' => $session['end_time']
-                    ];
+                    // Only add if the session is available
+                    if (!isset($session['booked']) || !$session['booked']) {
+                        // Check if it's not on leave/holiday
+                        if (!in_array($session['status'] ?? '', ['leave', 'holiday', 'past'])) {
+                            $this->selectedOnsiteSessions[] = [
+                                'name' => $sessionName,
+                                'start' => $session['formatted_start'],
+                                'end' => $session['formatted_end'],
+                                'start_time' => $session['start_time'],
+                                'end_time' => $session['end_time']
+                            ];
+                        }
+                    }
                 }
                 break;
 
             case 'HALF_DAY_MORNING':
                 // Select morning sessions (1 & 2)
-                if (isset($sessionSlots['SESSION 1'])) {
-                    $this->selectedOnsiteSessions[] = [
-                        'name' => 'SESSION 1',
-                        'start' => $sessionSlots['SESSION 1']['formatted_start'],
-                        'end' => $sessionSlots['SESSION 1']['formatted_end'],
-                        'start_time' => $sessionSlots['SESSION 1']['start_time'],
-                        'end_time' => $sessionSlots['SESSION 1']['end_time']
-                    ];
-                }
+                foreach (['SESSION 1', 'SESSION 2'] as $morningSession) {
+                    if (isset($sessionSlots[$morningSession]) &&
+                        (!isset($sessionSlots[$morningSession]['booked']) || !$sessionSlots[$morningSession]['booked']) &&
+                        !in_array($sessionSlots[$morningSession]['status'] ?? '', ['leave', 'holiday', 'past'])) {
 
-                if (isset($sessionSlots['SESSION 2'])) {
-                    $this->selectedOnsiteSessions[] = [
-                        'name' => 'SESSION 2',
-                        'start' => $sessionSlots['SESSION 2']['formatted_start'],
-                        'end' => $sessionSlots['SESSION 2']['formatted_end'],
-                        'start_time' => $sessionSlots['SESSION 2']['start_time'],
-                        'end_time' => $sessionSlots['SESSION 2']['end_time']
-                    ];
+                        $this->selectedOnsiteSessions[] = [
+                            'name' => $morningSession,
+                            'start' => $sessionSlots[$morningSession]['formatted_start'],
+                            'end' => $sessionSlots[$morningSession]['formatted_end'],
+                            'start_time' => $sessionSlots[$morningSession]['start_time'],
+                            'end_time' => $sessionSlots[$morningSession]['end_time']
+                        ];
+                    }
                 }
                 break;
 
             case 'HALF_DAY_EVENING':
                 // Select afternoon sessions (3, 4, 5)
                 $afternoonSessions = ['SESSION 3', 'SESSION 4', 'SESSION 5'];
-                foreach ($afternoonSessions as $sessionName) {
-                    if (isset($sessionSlots[$sessionName])) {
+                if ($dayOfWeek === 'friday') {
+                    // No SESSION 3 on Friday
+                    $afternoonSessions = ['SESSION 4', 'SESSION 5'];
+                }
+
+                foreach ($afternoonSessions as $afternoonSession) {
+                    if (isset($sessionSlots[$afternoonSession]) &&
+                        (!isset($sessionSlots[$afternoonSession]['booked']) || !$sessionSlots[$afternoonSession]['booked']) &&
+                        !in_array($sessionSlots[$afternoonSession]['status'] ?? '', ['leave', 'holiday', 'past'])) {
+
                         $this->selectedOnsiteSessions[] = [
-                            'name' => $sessionName,
-                            'start' => $sessionSlots[$sessionName]['formatted_start'],
-                            'end' => $sessionSlots[$sessionName]['formatted_end'],
-                            'start_time' => $sessionSlots[$sessionName]['start_time'],
-                            'end_time' => $sessionSlots[$sessionName]['end_time']
+                            'name' => $afternoonSession,
+                            'start' => $sessionSlots[$afternoonSession]['formatted_start'],
+                            'end' => $sessionSlots[$afternoonSession]['formatted_end'],
+                            'start_time' => $sessionSlots[$afternoonSession]['start_time'],
+                            'end_time' => $sessionSlots[$afternoonSession]['end_time']
                         ];
                     }
                 }
                 break;
+        }
+
+        // If no sessions were added (all are booked), reset the day type
+        if (empty($this->selectedOnsiteSessions)) {
+            $this->onsiteDayType = '';
+
+            Notification::make()
+                ->title('No available sessions')
+                ->warning()
+                ->body('There are no available sessions for the selected day type. Please select another option.')
+                ->send();
         }
     }
 
@@ -1254,8 +1293,8 @@ class ImplementerCalendar extends Component
                 $senderName = $authUser->name;
 
                 // Recipients
-                $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
-                $ccRecipients = [$senderEmail]; // CC implementer
+                // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
+                $recipients = []; // Main recipient
 
                 // Format session information for email
                 $sessionInfo = [];
@@ -1279,10 +1318,10 @@ class ImplementerCalendar extends Component
                 \Illuminate\Support\Facades\Mail::send(
                     'emails.implementer_onsite_request',
                     ['content' => $emailData],
-                    function ($message) use ($recipients, $ccRecipients, $senderEmail, $senderName, $implementer) {
+                    function ($message) use ($recipients, $senderEmail, $senderName, $implementer) {
                         $message->from($senderEmail, $senderName)
                             ->to($recipients)
-                            ->cc($ccRecipients)
+                            ->cc($senderEmail)
                             ->subject("ONSITE REQUEST: " . strtoupper($implementer->name));
                     }
                 );
@@ -1323,6 +1362,101 @@ class ImplementerCalendar extends Component
                 ->body($e->getMessage())
                 ->send();
         }
+    }
+
+    public function getAvailableDayTypes()
+    {
+        $dayOfWeek = strtolower(Carbon::parse($this->bookingDate)->format('l'));
+        $date = $this->bookingDate;
+        $implementer = User::find($this->bookingImplementerId);
+
+        if (!$implementer) {
+            return [
+                'FULL_DAY' => false,
+                'HALF_DAY_MORNING' => false,
+                'HALF_DAY_EVENING' => false
+            ];
+        }
+
+        // Initialize all day types as available
+        $availableDayTypes = [
+            'FULL_DAY' => true,
+            'HALF_DAY_MORNING' => true,
+            'HALF_DAY_EVENING' => true
+        ];
+
+        // Get all session time slots for the day
+        $sessionSlots = $this->getSessionSlots($dayOfWeek);
+
+        // Check for public holiday
+        $isPublicHoliday = PublicHoliday::where('date', $date)->exists();
+        if ($isPublicHoliday) {
+            return [
+                'FULL_DAY' => false,
+                'HALF_DAY_MORNING' => false,
+                'HALF_DAY_EVENING' => false
+            ];
+        }
+
+        // Check for leave
+        $leave = UserLeave::where('user_id', $this->bookingImplementerId)
+            ->where('date', $date)
+            ->where('status', 'Approved')
+            ->first();
+
+        if ($leave) {
+            if ($leave->session === 'full') {
+                return [
+                    'FULL_DAY' => false,
+                    'HALF_DAY_MORNING' => false,
+                    'HALF_DAY_EVENING' => false
+                ];
+            } elseif ($leave->session === 'am') {
+                $availableDayTypes['HALF_DAY_MORNING'] = false;
+                $availableDayTypes['FULL_DAY'] = false;
+            } elseif ($leave->session === 'pm') {
+                $availableDayTypes['HALF_DAY_EVENING'] = false;
+                $availableDayTypes['FULL_DAY'] = false;
+            }
+        }
+
+        // Get existing active appointments directly from database
+        $existingAppointments = \App\Models\ImplementerAppointment::where('implementer', $implementer->name)
+            ->where('date', $date)
+            ->where('status', '!=', 'Cancelled')
+            ->get();
+
+        // Define which sessions belong to which day type
+        $morningSessionTimes = ['09:30:00', '11:00:00'];
+        $eveningSessionTimes = ($dayOfWeek === 'friday')
+            ? ['15:00:00', '16:30:00']  // Friday times
+            : ['14:00:00', '15:30:00', '17:00:00'];  // Mon-Thu times
+
+        // Check morning sessions (SESSION 1 and SESSION 2)
+        foreach ($morningSessionTimes as $timeSlot) {
+            foreach ($existingAppointments as $appointment) {
+                $appointmentStartTime = Carbon::parse($appointment->start_time)->format('H:i:s');
+                if ($appointmentStartTime == $timeSlot) {
+                    $availableDayTypes['HALF_DAY_MORNING'] = false;
+                    $availableDayTypes['FULL_DAY'] = false;
+                    break 2; // Break out of both loops
+                }
+            }
+        }
+
+        // Check evening sessions
+        foreach ($eveningSessionTimes as $timeSlot) {
+            foreach ($existingAppointments as $appointment) {
+                $appointmentStartTime = Carbon::parse($appointment->start_time)->format('H:i:s');
+                if ($appointmentStartTime == $timeSlot) {
+                    $availableDayTypes['HALF_DAY_EVENING'] = false;
+                    $availableDayTypes['FULL_DAY'] = false;
+                    break 2; // Break out of both loops
+                }
+            }
+        }
+
+        return $availableDayTypes;
     }
 
     // Add method to handle session type change in implementer request
