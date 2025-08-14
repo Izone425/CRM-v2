@@ -348,10 +348,10 @@ class ImplementerActions
                                     // Also check if kick_off_meeting exists in the software handover record as a backup
                                     $hasKickoffMeeting = $softwareHandover && !empty($softwareHandover->kick_off_meeting);
 
-                                    // If either condition is true, allow implementation review sessions
+                                    // If either condition is true, allow REVIEW SESSIONs
                                     if ($hasKickoffAppointment || $hasKickoffMeeting) {
                                         return [
-                                            'IMPLEMENTATION REVIEW SESSION' => 'IMPLEMENTATION REVIEW SESSION',
+                                            'REVIEW SESSION' => 'REVIEW SESSION',
                                         ];
                                     } else {
                                         return [
@@ -380,7 +380,7 @@ class ImplementerActions
 
                                     // Set default based on whether any kick-off meeting exists
                                     return ($hasKickoffAppointment || $hasKickoffMeeting)
-                                        ? 'IMPLEMENTATION REVIEW SESSION'
+                                        ? 'REVIEW SESSION'
                                         : 'KICK OFF MEETING SESSION';
                                 })
                                 ->required()

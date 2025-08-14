@@ -14,7 +14,7 @@ class SalesForecast extends Page
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
     protected static string $view = 'filament.pages.sales-forecast';
     protected static ?string $navigationLabel = 'Sales Forecast - Salesperson';
-    protected static ?string $navigationGroup = 'Sales Forecast';
+    protected static ?string $navigationGroup = 'Analysis';
     protected static ?string $title = '';
     protected static ?int $navigationSort = 9;
 
