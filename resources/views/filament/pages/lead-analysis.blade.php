@@ -293,9 +293,13 @@
                 <div>
                     <select wire:model="selectedUser" id="userFilter" class="mt-1 border-gray-300 rounded-md shadow-sm">
                         <option value="">All Salespersons</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}</option>
-                        @endforeach
+                        <option value="timetec_hr">All TimeTec HR Salespersons</option>
+                        <option value="non_timetec_hr">All Non-TimeTec HR Salespersons</option>
+                        <optgroup label="Individual Salespersons">
+                            @foreach ($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </optgroup>
                     </select>
                 </div>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

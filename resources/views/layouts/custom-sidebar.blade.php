@@ -128,8 +128,16 @@
                 </a>
             @endif
 
-            <!-- Lead Owner Section (with nested dropdowns) -->
+            <a href="{{ route('filament.admin.pages.department-calendar') }}"
+                title="Department Calendar"
+                class="sidebar-item {{ request()->routeIs('filament.admin.page.department-calendar') ? 'active' : '' }}">
+                <div class="sidebar-icon">
+                    <i class="bi bi-calendar"></i>
+                </div>
+                <div class="sidebar-label">HR Calendar</div>
+            </a>
 
+            <!-- Lead Owner Section (with nested dropdowns) -->
             @if(
                 (auth()->user()->hasAccessToAny([
                     'filament.admin.pages.monthly-calendar',

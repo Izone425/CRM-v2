@@ -58,23 +58,33 @@ class ImplementerPICTabs
                             ->modalWidth('5xl')
                             ->modalHeading('Update Original PIC Status')
                             ->modalDescription('You can only update the status of original PICs to "Resign". All other fields cannot be edited.')
+                            ->visible(function ($record) {
+                                // Get the software handover for this lead
+                                $swHandover = SoftwareHandover::where('lead_id', $record->id)
+                                    ->orderBy('created_at', 'desc')
+                                    ->first();
+
+                                // Check if handover exists and has implementation_pics
+                                if (!$swHandover || empty($swHandover->implementation_pics)) {
+                                    return false;
+                                }
+
+                                // Decode the PICs if needed
+                                $originalPics = [];
+                                if (is_string($swHandover->implementation_pics)) {
+                                    $originalPics = json_decode($swHandover->implementation_pics, true) ?? [];
+                                } else {
+                                    $originalPics = $swHandover->implementation_pics ?? [];
+                                }
+
+                                // Only show button if there are PICs
+                                return count($originalPics) > 0;
+                            })
                             ->form(function ($record) {
                                 // Get the software handover for this lead
                                 $swHandover = SoftwareHandover::where('lead_id', $record->id)
                                 ->orderBy('created_at', 'desc')  // Order by creation date, most recent first
                                 ->first();
-
-                                if (!$swHandover || !$swHandover->implementation_pics) {
-                                    return [
-                                        Section::make('No PICs Found')
-                                            ->schema([
-                                                View::make('components.empty-state-message')
-                                                    ->viewData([
-                                                        'message' => 'No original PICs found in the software handover.'
-                                                    ])
-                                            ])
-                                    ];
-                                }
 
                                 $originalPics = [];
                                 if (is_string($swHandover->implementation_pics)) {
@@ -342,17 +352,31 @@ class ImplementerPICTabs
                                 ->modalWidth('5xl')
                                 ->modalHeading('Update New PIC Status')
                                 ->modalDescription('You can only update the status of new PICs.')
+                                ->visible(function ($record) {
+                                    // Check if record exists, has companyDetail, and has additional_pic
+                                    if (!$record || !$record->companyDetail || empty($record->companyDetail->additional_pic)) {
+                                        return false;
+                                    }
+
+                                    // Decode the PICs if needed
+                                    $additionalPics = [];
+                                    if (is_string($record->companyDetail->additional_pic)) {
+                                        $additionalPics = json_decode($record->companyDetail->additional_pic, true) ?? [];
+                                    } else {
+                                        $additionalPics = $record->companyDetail->additional_pic ?? [];
+                                    }
+
+                                    // Only show button if there are PICs
+                                    return count($additionalPics) > 0;
+                                })
                                 ->form(function ($record) {
                                     if (!$record || !$record->companyDetail || empty($record->companyDetail->additional_pic)) {
-                                        return [
-                                            Section::make('No PICs Found')
-                                                ->schema([
-                                                    View::make('components.empty-state-message')
-                                                        ->viewData([
-                                                            'message' => 'No additional PICs found for this lead.'
-                                                        ])
-                                                ])
-                                        ];
+                                        Notification::make()
+                                            ->title('No PICs Found')
+                                            ->body('No original PICs found in the software handover.')
+                                            ->warning()
+                                            ->send();
+                                        return;
                                     }
 
                                     $additionalPics = [];

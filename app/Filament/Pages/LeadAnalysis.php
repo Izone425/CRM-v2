@@ -48,7 +48,8 @@ class LeadAnalysis extends Page
     public $leadList = [];
 
     public $slideOverTitle = 'Leads';
-
+    public $timetecHRCount;
+    public $nonTimetecHRCount;
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -62,7 +63,15 @@ class LeadAnalysis extends Page
 
     public function mount()
     {
-        $this->users = User::where('role_id', 2)->get(); // Fetch all salespersons
+        // Instead of just fetching all salespersons, get them with the is_timetec_hr attribute
+        $this->users = User::where('role_id', 2)->get(); // Keep the original query for individual users
+
+        // Count total TimeTec HR and Non-TimeTec HR salespersons for display in the filter
+        $this->timetecHRCount = User::where('role_id', 2)->where('is_timetec_hr', true)->count();
+        $this->nonTimetecHRCount = User::where('role_id', 2)->where(function($query) {
+            $query->where('is_timetec_hr', false)->orWhereNull('is_timetec_hr');
+        })->count();
+
         $this->currentDate = Carbon::now();
 
         $authUser = auth()->user();
@@ -122,8 +131,28 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        // Handle the new filter options
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -132,17 +161,19 @@ class LeadAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
+        // Rest of your existing code...
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
             $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
         }
+
         // Fetch filtered leads
         $leads = $query->get();
 
         // ✅ Store Active and Inactive Leads as Class Properties
         $this->totalLeads = $leads->count();
-        $this->activeLeads = $leads->where('categories', 'Active')->count();  // Added class property
-        $this->inactiveLeads = $leads->where('categories', 'Inactive')->count();  // Added class property
+        $this->activeLeads = $leads->where('categories', 'Active')->count();
+        $this->inactiveLeads = $leads->where('categories', 'Inactive')->count();
 
         // Calculate Active & Inactive Percentage
         $this->activePercentage = $this->totalLeads > 0 ? round(($this->activeLeads / $this->totalLeads) * 100, 2) : 0;
@@ -164,7 +195,6 @@ class LeadAnalysis extends Page
 
         $this->companySizeData = array_merge($defaultCompanySizes, $companySizeCounts);
     }
-
     /**
      * Fetches active leads and their breakdown by stages
      */
@@ -174,7 +204,27 @@ class LeadAnalysis extends Page
         $query = Lead::where('categories', 'Active'); // Filter only Active leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -212,7 +262,27 @@ class LeadAnalysis extends Page
         $query = Lead::where('categories', 'Inactive'); // Filter only Inactive leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -250,7 +320,27 @@ class LeadAnalysis extends Page
         $query = Lead::where('stage', 'Transfer'); // Filter only Transfer leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -290,7 +380,27 @@ class LeadAnalysis extends Page
         $query = Lead::where('stage', 'Follow Up'); // Filter only Follow Up leads
 
         // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -329,7 +439,27 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('categories', 'Active');
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -353,7 +483,27 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('categories', 'Inactive');
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -394,7 +544,27 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('company_size', $companySize);
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -417,7 +587,27 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Active')->where('stage', $stage);
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -440,7 +630,27 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Inactive')->where('lead_status', $status);
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -463,7 +673,27 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Transfer')->where('lead_status', $status);
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 
@@ -486,7 +716,27 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Follow Up')->where('lead_status', $status);
 
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+        if ($this->selectedUser === 'timetec_hr') {
+            // Get all TimeTec HR salesperson IDs
+            $timetecUserIds = User::where('role_id', 2)
+                ->where('is_timetec_hr', true)
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $timetecUserIds);
+        }
+        elseif ($this->selectedUser === 'non_timetec_hr') {
+            // Get all non-TimeTec HR salesperson IDs
+            $nonTimetecUserIds = User::where('role_id', 2)
+                ->where(function($query) {
+                    $query->where('is_timetec_hr', false)
+                        ->orWhereNull('is_timetec_hr');
+                })
+                ->pluck('id')
+                ->toArray();
+            $query->whereIn('salesperson', $nonTimetecUserIds);
+        }
+        // Original logic for individual salesperson
+        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
 

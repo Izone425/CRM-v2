@@ -910,8 +910,7 @@ class QuotationResource extends Resource
                         ->modalWidth(MaxWidth::Medium)
                         ->visible(function(Quotation $quotation) {
                             // First, check if the quotation is not already accepted and lead status is closed
-                            if ($quotation->status === QuotationStatusEnum::accepted ||
-                                $quotation->lead?->lead_status !== 'Closed') {
+                            if ($quotation->status === QuotationStatusEnum::accepted) {
                                 return false;
                             }
 
