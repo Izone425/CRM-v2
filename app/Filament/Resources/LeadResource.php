@@ -206,10 +206,10 @@ class LeadResource extends Resource
         //         ->schema(ImplementerServiceFormTabs::getSchema());
         // }
 
-        if (in_array('other_form', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Other Form')
-                ->schema(OtherFormTabs::getSchema());
-        }
+        // if (in_array('other_form', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Other Form')
+        //         ->schema(OtherFormTabs::getSchema());
+        // }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Prospect Follow Up')
