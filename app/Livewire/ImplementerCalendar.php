@@ -948,7 +948,7 @@ class ImplementerCalendar extends Component
             $currentUserName = auth()->user()->name;
         }
 
-        // Base query to get companies with Open or Delay status
+        // Base query to get companies with Open or Delay status - CASE INSENSITIVE
         $query = \App\Models\CompanyDetail::select(
                 'company_details.id',
                 'company_details.company_name',
@@ -957,14 +957,16 @@ class ImplementerCalendar extends Component
                 'software_handovers.lead_id as lead_id'
             )
             ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
-            ->whereIn('software_handovers.status_handover', ['Open', 'Delay']);
+            ->where(function($q) {
+                $q->whereRaw('LOWER(software_handovers.status_handover) IN (?, ?)', ['open', 'delay']);
+            });
 
         // Filter by implementer if the current user is an implementer
         if ($currentUserName) {
             $query->where('software_handovers.implementer', $currentUserName);
         }
 
-        // Execute the query with sorting by handover ID in descending order
+        // Execute the query with sorting
         $companies = $query->orderBy('software_handovers.id', 'desc')
             ->orderBy('software_handovers.status_handover')
             ->orderBy('company_details.company_name')
@@ -1915,8 +1917,8 @@ class ImplementerCalendar extends Component
                     $endDateTime = Carbon::parse($this->bookingDate . ' ' . $this->bookingEndTime);
 
                     $meetingTitle = "{$this->implementationDemoType} | {$companyDetail->company_name}";
-                    $meetingBody = "Implementation session scheduled by {$implementer->name}.\n\n" .
-                                "Session: {$this->bookingSession}\n";
+                    $meetingBody = "Implementation session scheduled by {$implementer->name}";
+
 
                     // Create Teams meeting through Microsoft Graph API
                     $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();

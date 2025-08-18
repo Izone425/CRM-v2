@@ -199,6 +199,55 @@ Route::get('/file/{filepath}', function ($filepath) {
     return response()->file($path);
 })->where('filepath', '.*')->name('file.serve');
 
+Route::post('/api/call-logs', function (Request $request) {
+    // Your existing POST handler code
+    Log::info('Incoming Call Log Data:', $request->all());
+    try {
+        $validated = $request->validate([
+            'caller_number' => 'required|string',
+            'receiver_number' => 'required|string',
+            'call_duration' => 'required|integer',
+            'call_status' => 'required|string',
+            'call_type' => 'required|string',
+            'started_at' => 'required|date',
+            'call_recording_url' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+        $callLog = \App\Models\CallLog::create($validated);
+        return response()->json([
+            'success' => true,
+            'message' => 'Call log saved successfully',
+            'data' => $callLog
+        ], 201);
+    } catch (\Exception $e) {
+        Log::error('Error saving call log: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to save call log',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// For retrieving call logs (GET)
+Route::get('/api/call-logs', function (Request $request) {
+    try {
+        $callLogs = \App\Models\CallLog::latest()->paginate(50);
+        return response()->json([
+            'success' => true,
+            'message' => 'Call logs retrieved successfully',
+            'data' => $callLogs
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error retrieving call logs: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve call logs',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Route::get('/zoho/auth', function (Request $request) {
 //     $clientId = env('ZOHO_CLIENT_ID');
 //     $clientSecret = env('ZOHO_CLIENT_SECRET');

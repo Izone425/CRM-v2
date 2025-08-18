@@ -946,7 +946,7 @@
                             <li class="flex items-center px-3 py-2 hover:bg-gray-100">
                                 <input type="checkbox" wire:model.live="allImplementersSelected"
                                     class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
-                                    @if (auth()->user()->role_id == 4 || auth()->user()->role_id == 5) disabled @endif />
+                                    @if (auth()->user()->role_id != 3 && auth()->user()->id != 26) disabled @endif />
                                 <label class="block ml-3 text-sm font-medium text-gray-700"
                                     style="padding-left: 10px;">
                                     All Implementers
@@ -959,7 +959,7 @@
                                     <input type="checkbox" wire:model.live="selectedImplementers"
                                         value="{{ $row['name'] }}"
                                         class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
-                                        @if (auth()->user()->role_id == 4 || auth()->user()->role_id == 5) disabled @endif />
+                                        @if (auth()->user()->role_id != 3 && auth()->user()->id != 26) disabled @endif />
                                     <label for="checkbox-{{ $row['id'] }}"
                                         class="block ml-3 text-sm font-medium text-gray-700"
                                         style="padding-left: 10px;">

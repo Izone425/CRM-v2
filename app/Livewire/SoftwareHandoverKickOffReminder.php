@@ -751,6 +751,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
                                         $message->from($senderEmail, $senderName)
                                             ->to($recipients)
+                                            ->cc($senderEmail)
                                             ->bcc('admin.timetec.hr@timeteccloud.com')
                                             ->subject("KICK-OFF MEETING SESSION | {$lead->companyDetail->company_name}");
                                     });

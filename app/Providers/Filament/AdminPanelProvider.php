@@ -174,7 +174,7 @@ class AdminPanelProvider extends PanelProvider
                 </style>
                 HTML
             )
-            ->navigation(false)
+            // ->navigation(false)
             ->darkMode(false)
             // ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('4rem')
