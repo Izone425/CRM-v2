@@ -204,11 +204,16 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
                         'New' => 'New',
-                        'Approved' => 'Approved',
                         'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Pending Stock' => 'Pending Stock',
+                        'Pending Migration' => 'Pending Migration',
+                        'Completed Migration' => 'Completed Migration',
+                        'Pending Payment' => 'Pending Payment',
+                        'Completed: Internal Installation' => 'Completed: Internal Installation',
+                        'Completed: External Installation' => 'Completed: External Installation',
+                        'Completed: Courier' => 'Completed: Courier',
+                        'Completed: Self Pick Up' => 'Completed: Self Pick Up',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),

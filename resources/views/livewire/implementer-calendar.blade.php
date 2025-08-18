@@ -779,6 +779,49 @@
         .text-sm {
             font-size: 0.875rem;
         }
+
+        .calendar-container {
+            position: relative;
+            height: calc(140vh - 350px);
+            overflow-y: auto;
+            margin-bottom: 2rem;
+            scrollbar-width: none;
+        }
+
+        .calendar-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: var(--bg-color-white);
+            display: grid;
+            grid-template-columns: 0.5fr repeat(5, 1fr);
+            gap: 1px;
+            background: var(--bg-color-border);
+            border-radius: 17px 17px 0 0; /* Rounded only at top */
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Ensure the header row stays visible */
+        .header-row {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+        }
+
+        /* Make summary section sticky below header if needed */
+        .summary-section {
+            position: sticky;
+            top: 71px; /* Adjust based on your header height */
+            z-index: 19;
+            background: white;
+        }
+
+        /* Lower z-index for calendar body so headers appear on top */
+        .calendar-body {
+            position: relative;
+            z-index: 1;
+        }
     </style>
 
 
@@ -1100,643 +1143,448 @@
 <br>
 
 <!-- Calendar Section -->
-<div class="calendar-header">
-    <div class="header-row">
-        <div class="header"
-            style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
-            <div>{{ $currentMonth }}</div>
-        </div>
-        <div class="header">
-            <div class="flex">
-                <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
-                <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
-                    <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
-                    <div>{{ $weekDays[0]['day'] }}</div>
-                </span>
+<div class="calendar-container">
+    <div class="calendar-header">
+        <div class="header-row" style="position: sticky; top: 0; z-index: 10; background-color: white;">
+            <div class="header"
+                style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
+                <div>{{ $currentMonth }}</div>
             </div>
-        </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[1]['date'] }}</div>
-            <div>{{ $weekDays[1]['day'] }}</div>
-        </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[2]['date'] }}</div>
-            <div>{{ $weekDays[2]['day'] }}</div>
-        </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[3]['date'] }}</div>
-            <div>{{ $weekDays[3]['day'] }}</div>
-        </div>
-        <div class="header">
-            <div class="flex">
-                <div class="flex-1" @if ($weekDays[4]['today']) style="background-color: lightblue;" @endif>
-                    <div class="header-date">{{ $weekDays[4]['date'] }}</div>
-                    <div>{{ $weekDays[4]['day'] }}</div>
+            <div class="header">
+                <div class="flex">
+                    <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
+                        <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
+                        <div>{{ $weekDays[0]['day'] }}</div>
+                    </span>
                 </div>
-                <button wire:click="nextWeek" style="width: 10%;"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[1]['date'] }}</div>
+                <div>{{ $weekDays[1]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[2]['date'] }}</div>
+                <div>{{ $weekDays[2]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="header-date">{{ $weekDays[3]['date'] }}</div>
+                <div>{{ $weekDays[3]['day'] }}</div>
+            </div>
+            <div class="header">
+                <div class="flex">
+                    <div class="flex-1" @if ($weekDays[4]['today']) style="background-color: lightblue;" @endif>
+                        <div class="header-date">{{ $weekDays[4]['date'] }}</div>
+                        <div>{{ $weekDays[4]['day'] }}</div>
+                    </div>
+                    <button wire:click="nextWeek" style="width: 10%;"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Dropdown -->
-    <div class="dropdown-summary"></div>
+    <div class="calendar-body">
+        <div style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;"></div>
 
-    @if (auth()->user()->role_id !== 4 && auth()->user()->role_id !== 5 && $showDropdown == true)
-        <!-- No Appointment -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:var(--text-demo-red)">
-                <i class="fa-solid fa-x" style="font-size: 1.4rem;color:white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newAppointmentCount[$day]['noAppointment'] < 6)
-                        @foreach ($rows as $implementer)
-                            @if ($implementer['newAppointment'][$day] == 0)
-                                <img data-tooltip="{{ $implementer['implementerName'] }}"
-                                    src="{{ $implementer['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newAppointment'][$day] == 0)
-                                <img data-tooltip="{{ $rows[$i]['implementerName'] }}"
-                                    src="{{ $rows[$i]['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $implementer)
-                                    @if ($implementer['newAppointment'][$day] == 0)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $implementer['implementerAvatar'] }}"
-                                                alt="Implementer Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $implementer['implementerName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $implementer['implementerName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
+        @for($day = 1; $day <= 5; $day++)
+            @if (isset($holidays[$day]))
+                <div style="position: absolute; background-color: #C2C2C2; left: calc(({{ $day - 0.5 }}/5.5)*100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                    <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                    <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays[$day]['name'] }}</div>
                 </div>
-            </div>
-        @endforeach
-
-        <!-- 1 Appointment -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:#e6e632">
-                <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newAppointmentCount[$day]['oneAppointment'] < 6)
-                        @foreach ($rows as $implementer)
-                            @if ($implementer['newAppointment'][$day] == 1)
-                                <img data-tooltip="{{ $implementer['implementerName'] }}"
-                                    src="{{ $implementer['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newAppointment'][$day] == 1)
-                                <img data-tooltip="{{ $rows[$i]['implementerName'] }}"
-                                    src="{{ $rows[$i]['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $implementer)
-                                    @if ($implementer['newAppointment'][$day] == 1)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $implementer['implementerAvatar'] }}"
-                                                alt="Implementer Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $implementer['implementerName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $implementer['implementerName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
-
-        <!-- 2+ Appointments -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color: #30ad2a">
-                <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newAppointmentCount[$day]['multipleAppointment'] < 6)
-                        @foreach ($rows as $implementer)
-                            @if ($implementer['newAppointment'][$day] >= 2)
-                                <img data-tooltip="{{ $implementer['implementerName'] }}"
-                                    src="{{ $implementer['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newAppointment'][$day] >= 2)
-                                <img data-tooltip="{{ $rows[$i]['implementerName'] }}"
-                                    src="{{ $rows[$i]['implementerAvatar'] }}" alt="Implementer Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $implementer)
-                                    @if ($implementer['newAppointment'][$day] >= 2)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $implementer['implementerAvatar'] }}"
-                                                alt="Implementer Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $implementer['implementerName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $implementer['implementerName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
-
-        <!-- On Leave -->
-        <div class="summary-cell">
-            <img src={{ asset('img/leave-icon-white.svg') }} alt="TT Leave Icon">
-        </div>
-        @for ($day = 1; $day < 6; $day++)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @foreach ($leaves as $leave)
-                        @if ($leave['day_of_week'] == $day)
-                            <img src="{{ $leave['implementerAvatar'] }}" alt="Implementer Avatar"
-                                data-tooltip="{{ $leave['implementerName'] }}" @mouseover="show($event)"
-                                @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                </div>
-            </div>
+            @endif
         @endfor
-    @endif
-</div>
-
-<div class="calendar-body">
-    <div style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;"></div>
-
-    @for($day = 1; $day <= 5; $day++)
-        @if (isset($holidays[$day]))
-            <div style="position: absolute; background-color: #C2C2C2; left: calc(({{ $day - 0.5 }}/5.5)*100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+        <!-- Public Holidays -->
+        @if (isset($holidays['1']))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
                 <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays[$day]['name'] }}</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
             </div>
         @endif
-    @endfor
-    <!-- Public Holidays -->
-    @if (isset($holidays['1']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['2']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['3']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['4']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['5']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
-        </div>
-    @endif
+        @if (isset($holidays['2']))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['3']))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['4']))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
+            </div>
+        @endif
+        @if (isset($holidays['5']))
+            <div style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
+                <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
+                <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
+            </div>
+        @endif
 
-    <!-- Implementer Rows -->
-    @foreach ($rows as $row)
-        <div class="time">
-            <div class="flex-container">
-                <div class="image-container">
-                    <img style="border-radius: 50%;" src="{{ $row['implementerAvatar'] }}"
-                        data-tooltip="{{ $row['implementerName'] }}" @mouseover="show($event)"
-                        @mousemove="updatePosition($event)" @mouseout="hide()">
+        <!-- Implementer Rows -->
+        @foreach ($rows as $row)
+            <div class="time">
+                <div class="flex-container">
+                    <div class="image-container">
+                        <img style="border-radius: 50%;" src="{{ $row['implementerAvatar'] }}"
+                            data-tooltip="{{ $row['implementerName'] }}" @mouseover="show($event)"
+                            @mousemove="updatePosition($event)" @mouseout="hide()">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="day {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full' ? 'full-leave' : '' }}
-                    {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am' ? 'leave-am' : '' }}
-                    {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm' ? 'leave-pm' : '' }}">
-                @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full')
-                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
-                        <div style="flex:1; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                            <div style="font-size: 0.8rem;font-style: italic;">
-                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                            </div>
-                            <div style="font-size: 0.8rem;">
-                                {{ $row['leave'][$loop->iteration]['status'] }} | Full Day
+            @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+                <div class="day {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full' ? 'full-leave' : '' }}
+                        {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am' ? 'leave-am' : '' }}
+                        {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm' ? 'leave-pm' : '' }}">
+                    @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full')
+                        <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                            <div style="flex:1; text-align: center;">
+                                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                                <div style="font-size: 0.8rem;font-style: italic;">
+                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                                </div>
+                                <div style="font-size: 0.8rem;">
+                                    {{ $row['leave'][$loop->iteration]['status'] }} | Full Day
+                                </div>
                             </div>
                         </div>
-                    </div>
-                @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am')
-                    <!-- AM Leave Notice -->
-                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
-                        <div style="flex:1; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold;">AM Leave</div>
-                            <div style="font-size: 0.8rem;font-style: italic;">
-                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                            </div>
-                            <div style="font-size: 0.8rem;">
-                                {{ $row['leave'][$loop->iteration]['status'] }} | Half AM
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Display Session Slots (Only PM sessions will be shown) -->
-                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
-                    @if(isset($row[$daySessionSlots]))
-                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
-                            <!-- Standard session slot display code -->
-                            @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
-                        @endforeach
-                    @endif
-
-                @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
-                    <!-- Display Session Slots (Only AM sessions will be shown) -->
-                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
-                    @if(isset($row[$daySessionSlots]))
-                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
-                            <!-- Standard session slot display code -->
-                            @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
-                        @endforeach
-                    @endif
-
-                    <!-- PM Leave Notice -->
-                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
-                        <div style="flex:1; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold;">PM Leave</div>
-                            <div style="font-size: 0.8rem;font-style: italic;">
-                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                            </div>
-                            <div style="font-size: 0.8rem;">
-                                {{ $row['leave'][$loop->iteration]['status'] }} | Half PM
+                    @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am')
+                        <!-- AM Leave Notice -->
+                        <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                            <div style="flex:1; text-align: center;">
+                                <div style="font-size: 1.2rem; font-weight: bold;">AM Leave</div>
+                                <div style="font-size: 0.8rem;font-style: italic;">
+                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                                </div>
+                                <div style="font-size: 0.8rem;">
+                                    {{ $row['leave'][$loop->iteration]['status'] }} | Half AM
+                                </div>
                             </div>
                         </div>
-                    </div>
-                @else
-                    <!-- Display all Session Slots (no leave) -->
-                    @php $daySessionSlots = $day . 'SessionSlots'; @endphp
-                    @if(isset($row[$daySessionSlots]))
-                        @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
-                            @if(isset($sessionDetails['status']))
-                                @php
-                                    // Determine card style based on session status
-                                    $cardStyle = '';
-                                    $isClickable = true;
 
-                                    if ($sessionDetails['status'] === 'past') {
-                                        $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
-                                        $isClickable = false;
-                                    } elseif ($sessionDetails['status'] === 'leave') {
-                                        $cardStyle = 'background-color: #E9EBF0;';
-                                        $isClickable = false;
-                                    } elseif ($sessionDetails['status'] === 'holiday') {
-                                        $cardStyle = 'background-color: #C2C2C2;';
-                                        $isClickable = false;
-                                    } elseif ($sessionDetails['status'] === 'available') {
-                                        $cardStyle = 'background-color: #C6FEC3;';
-                                    } elseif ($sessionDetails['status'] === 'implementation_session') {
-                                        $cardStyle = 'background-color: #FEE2E2;';
-                                    } elseif ($sessionDetails['status'] === 'implementer_request') {
-                                        $cardStyle = 'background-color: #FEF9C3;';
-                                    } elseif ($sessionDetails['status'] === 'cancelled') {
-                                        // For cancelled appointments after 12am, still show grey
-                                        if (Carbon\Carbon::now()->format('Y-m-d') > Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'])->format('Y-m-d')) {
+                        <!-- Display Session Slots (Only PM sessions will be shown) -->
+                        @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                        @if(isset($row[$daySessionSlots]))
+                            @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                                <!-- Standard session slot display code -->
+                                @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
+                            @endforeach
+                        @endif
+
+                    @elseif (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
+                        <!-- Display Session Slots (Only AM sessions will be shown) -->
+                        @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                        @if(isset($row[$daySessionSlots]))
+                            @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                                <!-- Standard session slot display code -->
+                                @include('partials.session-slot', ['sessionDetails' => $sessionDetails, 'sessionName' => $sessionName, 'row' => $row, 'weekDays' => $weekDays, 'loop' => $loop])
+                            @endforeach
+                        @endif
+
+                        <!-- PM Leave Notice -->
+                        <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                            <div style="flex:1; text-align: center;">
+                                <div style="font-size: 1.2rem; font-weight: bold;">PM Leave</div>
+                                <div style="font-size: 0.8rem;font-style: italic;">
+                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                                </div>
+                                <div style="font-size: 0.8rem;">
+                                    {{ $row['leave'][$loop->iteration]['status'] }} | Half PM
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <!-- Display all Session Slots (no leave) -->
+                        @php $daySessionSlots = $day . 'SessionSlots'; @endphp
+                        @if(isset($row[$daySessionSlots]))
+                            @foreach($row[$daySessionSlots] as $sessionName => $sessionDetails)
+                                @if(isset($sessionDetails['status']))
+                                    @php
+                                        // Determine card style based on session status
+                                        $cardStyle = '';
+                                        $isClickable = true;
+
+                                        if ($sessionDetails['status'] === 'past') {
                                             $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
                                             $isClickable = false;
-                                        } else {
-                                            // For same-day cancellations, check if current time is past the session time
-                                            $sessionStartTime = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'] . ' ' . $sessionDetails['start_time']);
-                                            if (Carbon\Carbon::now() > $sessionStartTime) {
+                                        } elseif ($sessionDetails['status'] === 'leave') {
+                                            $cardStyle = 'background-color: #E9EBF0;';
+                                            $isClickable = false;
+                                        } elseif ($sessionDetails['status'] === 'holiday') {
+                                            $cardStyle = 'background-color: #C2C2C2;';
+                                            $isClickable = false;
+                                        } elseif ($sessionDetails['status'] === 'available') {
+                                            $cardStyle = 'background-color: #C6FEC3;';
+                                        } elseif ($sessionDetails['status'] === 'implementation_session') {
+                                            $cardStyle = 'background-color: #FEE2E2;';
+                                        } elseif ($sessionDetails['status'] === 'implementer_request') {
+                                            $cardStyle = 'background-color: #FEF9C3;';
+                                        } elseif ($sessionDetails['status'] === 'cancelled') {
+                                            // For cancelled appointments after 12am, still show grey
+                                            if (Carbon\Carbon::now()->format('Y-m-d') > Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'])->format('Y-m-d')) {
                                                 $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
                                                 $isClickable = false;
                                             } else {
-                                                // If it's still in the future, mark as available (green)
-                                                $cardStyle = 'background-color: #C6FEC3;';
-                                                $isClickable = true;
+                                                // For same-day cancellations, check if current time is past the session time
+                                                $sessionStartTime = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'] . ' ' . $sessionDetails['start_time']);
+                                                if (Carbon\Carbon::now() > $sessionStartTime) {
+                                                    $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
+                                                    $isClickable = false;
+                                                } else {
+                                                    // If it's still in the future, mark as available (green)
+                                                    $cardStyle = 'background-color: #C6FEC3;';
+                                                    $isClickable = true;
+                                                }
                                             }
+                                        }
+                                    @endphp
+
+                                    @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
+                                        <!-- Display Booked Session with standardized format -->
+                                        <div class="appointment-card" style="{{ $cardStyle }}"
+                                            wire:click="showAppointmentDetails({{ $sessionDetails['appointment']->id ?? 'null' }})">
+                                            <div class="appointment-card-bar"></div>
+                                            <div class="appointment-card-info">
+                                                <div class="appointment-demo-type">
+                                                    {{ str_replace(' SESSION', '', $sessionDetails['appointment']->type) }}
+                                                </div>
+                                                <div class="appointment-appointment-type">
+                                                    {{ $sessionDetails['appointment']->appointment_type }}
+                                                    @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
+                                                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
+                                                    @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
+                                                        | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
+                                                    @endif
+                                                </div>
+                                                <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
+                                                    @if($sessionDetails['appointment']->lead_id)
+                                                        <a target="_blank" rel="noopener noreferrer" href="{{ $sessionDetails['appointment']->url }}">
+                                                            {{ $sessionDetails['appointment']->company_name }}
+                                                        </a>
+                                                    @else
+                                                        {{ $sessionDetails['appointment']->company_name ?? $sessionDetails['appointment']->title ?? 'N/A' }}
+                                                    @endif
+                                                </div>
+                                                <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
+                                                    {{ $sessionDetails['appointment']->end_time }}</div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <!-- Display Available Slot -->
+                                        <div class="available-session-card" style="{{ $cardStyle }}"
+                                            @if($isClickable)
+                                                wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')"
+                                            @endif>
+                                            <div class="available-session-bar"></div>
+                                            <div class="available-session-info">
+                                                @if($sessionDetails['status'] === 'leave')
+                                                    <div class="available-session-name">ON LEAVE</div>
+                                                @elseif($sessionDetails['status'] === 'holiday')
+                                                    <div class="available-session-name">PUBLIC HOLIDAY</div>
+                                                @elseif($sessionDetails['status'] === 'past')
+                                                    <div class="available-session-name">PAST SESSION</div>
+                                                @elseif($sessionDetails['status'] === 'cancelled' && !$isClickable)
+                                                    <div class="available-session-name">CANCELLED SESSION</div>
+                                                @elseif(($sessionDetails['status'] === 'available' && isset($sessionDetails['wasCancelled']) && $sessionDetails['wasCancelled']))
+                                                    <div class="available-session-name">{{ $sessionName }}<br>AVAILABLE SLOT</div>
+                                                @else
+                                                    <div class="available-session-name">{{ $sessionName }}<br>AVAILABLE SLOT</div>
+                                                @endif
+                                                <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
+                            @endforeach
+                        @endif
+                    @endif
+
+                    <div x-data="{ expanded: false }">
+                        @if (count($row[$day . 'Appointments']) <= 0)
+                            <!-- No extra appointments to display beyond the session slots -->
+                        @elseif (count($row[$day . 'Appointments']) <= 4)
+                            <!-- Existing appointments that might not be tied to standard session slots -->
+                            @foreach ($row[$day . 'Appointments'] as $appointment)
+                                @php
+                                    // Check if this appointment is already shown in a session slot
+                                    $isSessionAppointment = false;
+                                    $daySessionSlots = $day . 'SessionSlots';
+
+                                    foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                        if (isset($sessionDetails['appointment']) &&
+                                            $sessionDetails['appointment']->id == $appointment->id) {
+                                            $isSessionAppointment = true;
+                                            break;
                                         }
                                     }
                                 @endphp
 
-                                @if(isset($sessionDetails['booked']) && $sessionDetails['booked'])
-                                    <!-- Display Booked Session with standardized format -->
-                                    <div class="appointment-card" style="{{ $cardStyle }}"
-                                        wire:click="showAppointmentDetails({{ $sessionDetails['appointment']->id ?? 'null' }})">
-                                        <div class="appointment-card-bar"></div>
-                                        <div class="appointment-card-info">
-                                            <div class="appointment-demo-type">
-                                                {{ str_replace(' SESSION', '', $sessionDetails['appointment']->type) }}
-                                            </div>
-                                            <div class="appointment-appointment-type">
-                                                {{ $sessionDetails['appointment']->appointment_type }}
-                                                @if($sessionDetails['status'] === 'implementer_request' && $sessionDetails['appointment']->request_status)
-                                                    | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->request_status }}</span>
-                                                @elseif($sessionDetails['status'] === 'implementation_session' && $sessionDetails['appointment']->status)
-                                                    | <span style="text-transform:uppercase">{{ $sessionDetails['appointment']->status }}</span>
-                                                @endif
-                                            </div>
-                                            <div class="appointment-company-name" title="{{ $sessionDetails['appointment']->company_name }}">
-                                                @if($sessionDetails['appointment']->lead_id)
-                                                    <a target="_blank" rel="noopener noreferrer" href="{{ $sessionDetails['appointment']->url }}">
-                                                        {{ $sessionDetails['appointment']->company_name }}
-                                                    </a>
-                                                @else
-                                                    {{ $sessionDetails['appointment']->company_name ?? $sessionDetails['appointment']->title ?? 'N/A' }}
-                                                @endif
-                                            </div>
-                                            <div class="appointment-time">{{ $sessionDetails['appointment']->start_time }} -
-                                                {{ $sessionDetails['appointment']->end_time }}</div>
-                                        </div>
-                                    </div>
-                                @else
-                                    <!-- Display Available Slot -->
-                                    <div class="available-session-card" style="{{ $cardStyle }}"
-                                        @if($isClickable)
-                                            wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')"
-                                        @endif>
+                                @if (!$isSessionAppointment)
+                                    <div class="available-session-card"
+                                        @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                        @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                        @else style="background-color: var(--bg-demo-red)" @endif
+                                        wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
                                         <div class="available-session-bar"></div>
                                         <div class="available-session-info">
-                                            @if($sessionDetails['status'] === 'leave')
-                                                <div class="available-session-name">ON LEAVE</div>
-                                            @elseif($sessionDetails['status'] === 'holiday')
-                                                <div class="available-session-name">PUBLIC HOLIDAY</div>
-                                            @elseif($sessionDetails['status'] === 'past')
-                                                <div class="available-session-name">PAST SESSION</div>
-                                            @elseif($sessionDetails['status'] === 'cancelled' && !$isClickable)
-                                                <div class="available-session-name">CANCELLED SESSION</div>
-                                            @elseif(($sessionDetails['status'] === 'available' && isset($sessionDetails['wasCancelled']) && $sessionDetails['wasCancelled']))
-                                                <div class="available-session-name">{{ $sessionName }}<br>AVAILABLE SLOT</div>
-                                            @else
-                                                <div class="available-session-name">{{ $sessionName }}<br>AVAILABLE SLOT</div>
-                                            @endif
-                                            <div class="available-session-time">{{ $sessionDetails['formatted_start'] }} - {{ $sessionDetails['formatted_end'] }}</div>
+                                            <!-- Appointment content -->
+                                            <div class="appointment-demo-type">
+                                                {{ str_replace(' SESSION', '', $appointment->type) }}
+                                            </div>
+                                            <!-- Rest of appointment content -->
                                         </div>
                                     </div>
                                 @endif
-                            @endif
-                        @endforeach
-                    @endif
-                @endif
+                            @endforeach
+                        @else
+                            <!-- Keep existing expand/collapse logic for many appointments -->
+                            <template x-if="!expanded">
+                                <div>
+                                    @php $shownCount = 0; @endphp
+                                    @foreach ($row[$day . 'Appointments'] as $appointment)
+                                        @php
+                                            // Check if this appointment is already shown in a session slot
+                                            $isSessionAppointment = false;
+                                            $daySessionSlots = $day . 'SessionSlots';
 
-                <div x-data="{ expanded: false }">
-                    @if (count($row[$day . 'Appointments']) <= 0)
-                        <!-- No extra appointments to display beyond the session slots -->
-                    @elseif (count($row[$day . 'Appointments']) <= 4)
-                        <!-- Existing appointments that might not be tied to standard session slots -->
-                        @foreach ($row[$day . 'Appointments'] as $appointment)
-                            @php
-                                // Check if this appointment is already shown in a session slot
-                                $isSessionAppointment = false;
-                                $daySessionSlots = $day . 'SessionSlots';
+                                            foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                                if (isset($sessionDetails['appointment']) &&
+                                                    $sessionDetails['appointment']->id == $appointment->id) {
+                                                    $isSessionAppointment = true;
+                                                    break;
+                                                }
+                                            }
+                                        @endphp
 
-                                foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
-                                    if (isset($sessionDetails['appointment']) &&
-                                        $sessionDetails['appointment']->id == $appointment->id) {
-                                        $isSessionAppointment = true;
-                                        break;
-                                    }
-                                }
-                            @endphp
+                                        @if (!$isSessionAppointment && $shownCount < 3)
+                                            @php $shownCount++; @endphp
+                                            <div class="available-session-card"
+                                                @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                                @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                                @else style="background-color: var(--bg-demo-red)" @endif
+                                                wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
+                                                <div class="available-session-bar"></div>
+                                                <div class="available-session-info">
+                                                    <div class="appointment-demo-type">
+                                                        {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                    </div>
+                                                    <div class="appointment-appointment-type">
+                                                        {{ $appointment->appointment_type }}
+                                                        @if(isset($appointment->request_status) && $appointment->request_status)
+                                                            | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="appointment-company-name">
+                                                        @if($appointment->lead_id)
+                                                            <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                                {{ $appointment->company_name }}
+                                                            </a>
+                                                        @else
+                                                            {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
+                                                        @endif
+                                                    </div>
+                                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                                        {{ $appointment->end_time }}</div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
 
-                            @if (!$isSessionAppointment)
-                                <div class="available-session-card"
-                                    @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                    @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                    @else style="background-color: var(--bg-demo-red)" @endif
-                                    wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
-                                    <div class="available-session-bar"></div>
-                                    <div class="available-session-info">
-                                        <!-- Appointment content -->
-                                        <div class="appointment-demo-type">
-                                            {{ str_replace(' SESSION', '', $appointment->type) }}
-                                        </div>
-                                        <!-- Rest of appointment content -->
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
-                    @else
-                        <!-- Keep existing expand/collapse logic for many appointments -->
-                        <template x-if="!expanded">
-                            <div>
-                                @php $shownCount = 0; @endphp
-                                @foreach ($row[$day . 'Appointments'] as $appointment)
                                     @php
-                                        // Check if this appointment is already shown in a session slot
-                                        $isSessionAppointment = false;
-                                        $daySessionSlots = $day . 'SessionSlots';
-
-                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
-                                            if (isset($sessionDetails['appointment']) &&
-                                                $sessionDetails['appointment']->id == $appointment->id) {
-                                                $isSessionAppointment = true;
-                                                break;
+                                        // Count how many non-session slot appointments there are
+                                        $nonSessionSlotCount = 0;
+                                        foreach ($row[$day . 'Appointments'] as $appointment) {
+                                            $isSessionAppointment = false;
+                                            foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                                if (isset($sessionDetails['appointment']) &&
+                                                    $sessionDetails['appointment']->id == $appointment->id) {
+                                                    $isSessionAppointment = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (!$isSessionAppointment) {
+                                                $nonSessionSlotCount++;
                                             }
                                         }
                                     @endphp
 
-                                    @if (!$isSessionAppointment && $shownCount < 3)
-                                        @php $shownCount++; @endphp
-                                        <div class="available-session-card"
-                                            @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                            @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                            @else style="background-color: var(--bg-demo-red)" @endif
-                                            wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
-                                            <div class="available-session-bar"></div>
-                                            <div class="available-session-info">
-                                                <div class="appointment-demo-type">
-                                                    {{ str_replace(' SESSION', '', $appointment->type) }}
-                                                </div>
-                                                <div class="appointment-appointment-type">
-                                                    {{ $appointment->appointment_type }}
-                                                    @if(isset($appointment->request_status) && $appointment->request_status)
-                                                        | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
-                                                    @endif
-                                                </div>
-                                                <div class="appointment-company-name">
-                                                    @if($appointment->lead_id)
-                                                        <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                            {{ $appointment->company_name }}
-                                                        </a>
-                                                    @else
-                                                        {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
-                                                    @endif
-                                                </div>
-                                                <div class="appointment-time">{{ $appointment->start_time }} -
-                                                    {{ $appointment->end_time }}</div>
-                                            </div>
+                                    @if($nonSessionSlotCount > 3)
+                                        <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
+                                            @click="expanded = true">
+                                            +{{ $nonSessionSlotCount - 3 }} more
                                         </div>
                                     @endif
-                                @endforeach
+                                </div>
+                            </template>
 
-                                @php
-                                    // Count how many non-session slot appointments there are
-                                    $nonSessionSlotCount = 0;
-                                    foreach ($row[$day . 'Appointments'] as $appointment) {
-                                        $isSessionAppointment = false;
-                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
-                                            if (isset($sessionDetails['appointment']) &&
-                                                $sessionDetails['appointment']->id == $appointment->id) {
-                                                $isSessionAppointment = true;
-                                                break;
+                            <template x-if="expanded">
+                                <div>
+                                    @foreach ($row[$day . 'Appointments'] as $appointment)
+                                        @php
+                                            // Check if this appointment is already shown in a session slot
+                                            $isSessionAppointment = false;
+                                            $daySessionSlots = $day . 'SessionSlots';
+
+                                            foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
+                                                if (isset($sessionDetails['appointment']) &&
+                                                    $sessionDetails['appointment']->id == $appointment->id) {
+                                                    $isSessionAppointment = true;
+                                                    break;
+                                                }
                                             }
-                                        }
-                                        if (!$isSessionAppointment) {
-                                            $nonSessionSlotCount++;
-                                        }
-                                    }
-                                @endphp
+                                        @endphp
 
-                                @if($nonSessionSlotCount > 3)
+                                        @if (!$isSessionAppointment)
+                                            <div class="available-session-card"
+                                                @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                                @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
+                                                @else style="background-color: var(--bg-demo-red)" @endif
+                                                wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
+                                                <div class="available-session-bar"></div>
+                                                <div class="available-session-info">
+                                                    <div class="appointment-demo-type">
+                                                        {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                    </div>
+                                                    <div class="appointment-appointment-type">
+                                                        {{ $appointment->appointment_type }}
+                                                        @if(isset($appointment->request_status) && $appointment->request_status)
+                                                            | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="appointment-company-name">
+                                                        @if($appointment->lead_id)
+                                                            <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                                {{ $appointment->company_name }}
+                                                            </a>
+                                                        @else
+                                                            {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
+                                                        @endif
+                                                    </div>
+                                                    <div class="appointment-time">{{ $appointment->start_time }} -
+                                                        {{ $appointment->end_time }}</div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+
                                     <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                        @click="expanded = true">
-                                        +{{ $nonSessionSlotCount - 3 }} more
+                                        @click="expanded = false">
+                                        Show less
                                     </div>
-                                @endif
-                            </div>
-                        </template>
-
-                        <template x-if="expanded">
-                            <div>
-                                @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    @php
-                                        // Check if this appointment is already shown in a session slot
-                                        $isSessionAppointment = false;
-                                        $daySessionSlots = $day . 'SessionSlots';
-
-                                        foreach ($row[$daySessionSlots] ?? [] as $sessionDetails) {
-                                            if (isset($sessionDetails['appointment']) &&
-                                                $sessionDetails['appointment']->id == $appointment->id) {
-                                                $isSessionAppointment = true;
-                                                break;
-                                            }
-                                        }
-                                    @endphp
-
-                                    @if (!$isSessionAppointment)
-                                        <div class="available-session-card"
-                                            @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
-                                            @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                            @else style="background-color: var(--bg-demo-red)" @endif
-                                            wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
-                                            <div class="available-session-bar"></div>
-                                            <div class="available-session-info">
-                                                <div class="appointment-demo-type">
-                                                    {{ str_replace(' SESSION', '', $appointment->type) }}
-                                                </div>
-                                                <div class="appointment-appointment-type">
-                                                    {{ $appointment->appointment_type }}
-                                                    @if(isset($appointment->request_status) && $appointment->request_status)
-                                                        | <span style="text-transform:uppercase">{{ $appointment->request_status }}</span>
-                                                    @endif
-                                                </div>
-                                                <div class="appointment-company-name">
-                                                    @if($appointment->lead_id)
-                                                        <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                            {{ $appointment->company_name }}
-                                                        </a>
-                                                    @else
-                                                        {{ $appointment->company_name ?? $appointment->title ?? 'N/A' }}
-                                                    @endif
-                                                </div>
-                                                <div class="appointment-time">{{ $appointment->start_time }} -
-                                                    {{ $appointment->end_time }}</div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                @endforeach
-
-                                <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                    @click="expanded = false">
-                                    Show less
                                 </div>
-                            </div>
-                        </template>
-                    @endif
+                            </template>
+                        @endif
+                    </div>
                 </div>
-            </div>
+            @endforeach
         @endforeach
-    @endforeach
+    </div>
 </div>
 
 <!-- Global tooltip container -->

@@ -142,9 +142,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
                         'New' => 'New',
-                        'Approved' => 'Approved',
                         'Rejected' => 'Rejected',
                         'Completed' => 'Completed',
                     ])

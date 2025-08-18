@@ -32,8 +32,10 @@ use App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
+use App\Filament\Resources\LeadResource\Tabs\CommercialItemTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
 use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
+use App\Filament\Resources\LeadResource\Tabs\HandoverDetailTabs;
 use App\Filament\Resources\LeadResource\Tabs\HardwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerFollowUpTabs;
@@ -114,13 +116,11 @@ class LeadResource extends Resource
                     ];
                 } else {
                     $activeTabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                    'prospect_follow_up', 'commercial_items', 'software_handover', 'hardware_handover'];
                 }
             } elseif ($user->role_id === 2) { // Salesperson
                 $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                    'prospect_follow_up', 'commercial_items', 'software_handover', 'hardware_handover'];
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -216,25 +216,30 @@ class LeadResource extends Resource
                 ->schema(ProspectFollowUpTabs::getSchema());
         }
 
-        if (in_array('quotation', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Quotation')
-                ->schema(QuotationTabs::getSchema());
+        if (in_array('commercial_items', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Commercial Items')
+                ->schema(CommercialItemTabs::getSchema());
         }
 
-        if (in_array('proforma_invoice', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Proforma Invoice')
-                ->schema(ProformaInvoiceTabs::getSchema());
+        if (in_array('handover_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Handover Details')
+                ->schema(HandoverDetailTabs::getSchema());
         }
 
-        if (in_array('invoice', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Invoice')
-                ->schema([]);
-        }
+        // if (in_array('quotation', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Quotation')
+        //         ->schema(QuotationTabs::getSchema());
+        // }
 
-        if (in_array('debtor_follow_up', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Debtor Follow Up')
-                ->schema([]);
-        }
+        // if (in_array('proforma_invoice', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Proforma Invoice')
+        //         ->schema(ProformaInvoiceTabs::getSchema());
+        // }
+
+        // if (in_array('invoice', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Invoice')
+        //         ->schema([]);
+        // }
 
         if (in_array('software_handover', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Software Handover')
