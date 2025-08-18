@@ -194,10 +194,10 @@ class ImplementerRequestList extends Page implements HasTable
                     ->label('Status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'Pending' => 'warning',
-                        'Approved' => 'success',
-                        'Rejected' => 'danger',
-                        'Cancelled' => 'gray',
+                        'PENDING' => 'warning',
+                        'APPROVED' => 'success',
+                        'REJECTED' => 'danger',
+                        'CANCELLED' => 'gray',
                         default => 'primary',
                     })
                     ->searchable(),

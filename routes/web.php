@@ -204,14 +204,14 @@ Route::post('/api/call-logs', function (Request $request) {
     Log::info('Incoming Call Log Data:', $request->all());
     try {
         $validated = $request->validate([
+            'caller_name' => 'required|string',
             'caller_number' => 'required|string',
             'receiver_number' => 'required|string',
             'call_duration' => 'required|integer',
             'call_status' => 'required|string',
             'call_type' => 'required|string',
-            'started_at' => 'required|date',
-            'call_recording_url' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date',
         ]);
         $callLog = \App\Models\CallLog::create($validated);
         return response()->json([

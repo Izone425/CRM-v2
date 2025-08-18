@@ -70,13 +70,11 @@ class ViewLeadRecord extends ViewRecord
                 return ['company', 'quotation', 'repair_appointment']; // Admin Repair view
             } else {
                 return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                    'prospect_follow_up', 'commercial_items', 'handover_details'];
             }
         } elseif ($user->role_id === 2) { // Salesperson
             return ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                'prospect_follow_up', 'commercial_items', 'handover_details'];
         } elseif ($user->role_id === 4) { // Implementer
             return ['company', 'implementer_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -90,7 +88,7 @@ class ViewLeadRecord extends ViewRecord
         } else { // Manager (role_id = 3) or others
             return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                'debtor_follow_up', 'handover_details'];
         }
     }
 
@@ -229,7 +227,7 @@ class ViewLeadRecord extends ViewRecord
                         case 'lead_owner':
                             $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                                 'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                                'debtor_follow_up', 'handover_details'];
                             break;
                         case 'implementer':
                             $tabs = ['company', 'implementer_handover','implementer_pic_details',
@@ -244,14 +242,12 @@ class ViewLeadRecord extends ViewRecord
                             break;
                         case 'salesperson':
                             $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                                'prospect_follow_up', 'commercial_items', 'handover_details'];
                             break;
                         case 'manager':
                         default:
                             $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                                'debtor_follow_up', 'software_handover', 'hardware_handover'];
+                                'prospect_follow_up', 'commercial_items', 'handover_details'];
                             break;
                     }
 
