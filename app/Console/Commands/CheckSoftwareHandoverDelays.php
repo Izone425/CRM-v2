@@ -48,7 +48,7 @@ class CheckSoftwareHandoverDelays extends Command
 
             // If more than 60 weekdays, mark as Delay
             if ($weekdaysDifference > 60) {
-                $handover->status_handover = 'DELAY';
+                $handover->status_handover = 'Delay';
                 $handover->saveQuietly(); // Save without triggering events
                 $count++;
 

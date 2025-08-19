@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-class WeeklyCalendarV2 extends Component
+class SalespersonCalendarV2 extends Component
 {
 
     public $tableArray;
@@ -44,7 +44,7 @@ class WeeklyCalendarV2 extends Component
             return false;
         }
 
-        return $user->hasRouteAccess('filament.admin.pages.weekly-calendar-v2');
+        return $user->hasRouteAccess('filament.admin.pages.salesperson-calendar-v2');
     }
 
     public function mount()
@@ -257,6 +257,6 @@ class WeeklyCalendarV2 extends Component
         }
         else
             $this->disablePrevWeek = false;
-        return view('livewire.weekly-calendar-v2');
+        return view('livewire.salesperson-calendar-v2');
     }
 }

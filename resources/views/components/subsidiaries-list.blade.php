@@ -1,13 +1,16 @@
 @php
-    // Get the current lead record using various methods
+    // Get the current lead ID from the form context
     $lead = null;
 
-    // Check if we're in a Filament form context using different possible variable names
+    // Check if we're in a Filament form context
     if (isset($getRecord) && method_exists($getRecord, 'subsidiaries')) {
+        // Direct model record from Filament
         $lead = $getRecord;
     } elseif (isset($getRecord) && is_numeric($getRecord)) {
+        // We have an ID instead of a model
         $lead = \App\Models\Lead::find($getRecord);
     } elseif (isset($record) && method_exists($record, 'subsidiaries')) {
+        // Alternative Filament naming
         $lead = $record;
     } else {
         // Try to get from URL param if not in livewire component
@@ -28,26 +31,14 @@
         }
     }
 
-    // Get subsidiaries if lead is found
+    // Safety check before trying to call subsidiaries()
     $subsidiaries = collect([]);
     if ($lead instanceof \App\Models\Lead) {
         $subsidiaries = $lead->subsidiaries()->orderBy('created_at', 'desc')->get();
     }
-
-    // Define table headers
-    $headers = [
-        ['label' => 'Company Name'],
-        ['label' => 'Reg. Number'],
-        ['label' => 'Contact Name'],
-        ['label' => 'Contact Number'],
-        ['label' => 'Email'],
-        ['label' => 'State'],
-        ['label' => 'Industry'],
-        ['label' => 'Added On'],
-    ];
 @endphp
 
-<div class="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
+<div class="overflow-hidden bg-white rounded-lg shadow-sm">
     @if($subsidiaries->isEmpty())
         <div class="p-6 text-center text-gray-500">
             <div class="text-lg font-semibold">No subsidiaries found</div>
@@ -58,16 +49,20 @@
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        @foreach ($headers as $header)
-                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                {{ $header['label'] }}
-                            </th>
-                        @endforeach
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Company Name</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Reg. Number</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Contact Name</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Contact Number</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Email</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">State</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Industry</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Added On</th>
+                        <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach ($subsidiaries as $subsidiary)
-                        <tr class="hover:bg-gray-50">
+                        <tr>
                             <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">{{ $subsidiary->company_name }}</td>
                             <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->register_number }}</td>
                             <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->name }}</td>

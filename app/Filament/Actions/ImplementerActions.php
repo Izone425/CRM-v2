@@ -594,10 +594,11 @@ class ImplementerActions
                     ->success()
                     ->send();
 
-                // Refresh the Livewire component if it has a refreshData method
                 if (method_exists($livewire, 'refreshData')) {
                     $livewire->refreshData();
                 }
+
+                $livewire->dispatch('refresh-salesperson-tables');
             });
     }
 
@@ -760,7 +761,11 @@ class ImplementerActions
                     'event_id' => $eventId,
                     'meeting_link' => $joinUrl,
                 ]);
-
+                Log::info('Teams meeting updated successfully', [
+                    'event_id' => $eventId,
+                    'join_url' => $joinUrl,
+                    'implementer' => $organizerEmail,
+                ]);
                 Notification::make()
                     ->title('Meeting Updated')
                     ->success()

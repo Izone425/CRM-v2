@@ -208,7 +208,7 @@ Route::post('/api/call-logs', function (Request $request) {
             'caller_number' => 'required|string',
             'receiver_number' => 'required|string',
             'call_duration' => 'required|integer',
-            'call_status' => 'required|string',
+            // 'call_status' => 'required|string',
             'call_type' => 'required|string',
             'start_time' => 'required|date',
             'end_time' => 'required|date',

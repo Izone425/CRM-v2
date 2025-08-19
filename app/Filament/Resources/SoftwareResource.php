@@ -36,11 +36,12 @@ use Filament\Support\Colors\Color;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class SoftwareHandoverResource extends Resource
+class SoftwareResource extends Resource
 {
     protected static ?string $model = SoftwareHandover::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // protected static ?string $slug = 'software/project-list';
 
     public static function form(Form $form): Form
     {
@@ -1166,7 +1167,7 @@ class SoftwareHandoverResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSoftwareHandovers::route('/'),
+            'index' => Pages\ListSoftwareHandovers::route('/project-list'),
             // 'view' => Pages\ViewSoftwareHandover::route('/{record}'),
             // 'create' => Pages\CreateSoftwareHandover::route('/create'),
             'edit' => Pages\EditSoftwareHandover::route('/{record}/edit'),

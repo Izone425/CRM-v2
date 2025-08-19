@@ -24,7 +24,9 @@ use App\Filament\Pages\KickOffMeetingSession;
 use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
+use App\Filament\Pages\OnsiteRepairList;
 use App\Filament\Pages\ProformaInvoices;
+use App\Filament\Pages\ProjectAnalysis;
 use App\Filament\Pages\ProjectCategoryClosed;
 use App\Filament\Pages\ProjectCategoryDelay;
 use App\Filament\Pages\ProjectCategoryInactive;
@@ -39,6 +41,9 @@ use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
 use App\Filament\Pages\SalespersonAppointment;
 use App\Filament\Pages\SalespersonAuditList;
+use App\Filament\Pages\SalespersonCalendarV1;
+use App\Filament\Pages\SalespersonCalendarV2;
+use App\Filament\Pages\SalespersonLeadSequence;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\SoftwareHandoverAnalysisV2;
@@ -47,6 +52,7 @@ use App\Filament\Pages\TechnicianCalendar;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
 use App\Filament\Pages\WeeklyCalendarV2;
+use App\Filament\Pages\Whatsapp;
 use App\Filament\Resources\AdminRepairResource;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
@@ -66,6 +72,7 @@ use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\RoleResource;
 use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
+use App\Filament\Resources\SoftwareResource;
 use App\Filament\Resources\SparePartResource;
 use App\Filament\Resources\TrainingBookingResource;
 use App\Filament\Widgets\LeadChartWidget;
@@ -189,7 +196,7 @@ class AdminPanelProvider extends PanelProvider
                 InvalidLeadReasonResource::class,
                 UserResource::class,
                 ResellerResource::class,
-                SoftwareHandoverResource::class,
+                SoftwareResource::class,
                 RoleResource::class,
                 SoftwareAttachmentResource::class,
                 HardwareAttachmentResource::class,
@@ -203,14 +210,14 @@ class AdminPanelProvider extends PanelProvider
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 // Pages\Dashboard::class,
-                Calendar::class,
-                WeeklyCalendarV2::class,
+                SalespersonCalendarV1::class,
+                SalespersonCalendarV2::class,
                 MonthlyCalendar::class,
                 TechnicianCalendar::class,
                 DemoRanking::class,
                 DashboardForm::class,
                 ProformaInvoices::class,
-                ChatRoom::class,
+                Whatsapp::class,
                 LeadAnalysis::class,
                 DemoAnalysis::class,
                 MarketingAnalysis::class,
@@ -223,18 +230,18 @@ class AdminPanelProvider extends PanelProvider
                 SearchLead::class,
                 HardwareDashboardAll::class,
                 HardwareDashboardPendingStock::class,
-                AdminRepairDashboard::class,
+                OnsiteRepairList::class,
                 TrainingCalendar::class,
                 TrainingCalendarBulkManagement::class,
                 ImplementerCalendar::class,
                 ImplementerDataFile::class,
-                SoftwareHandoverAnalysis::class,
+                ProjectAnalysis::class,
                 DemoAnalysisTableForm::class,
                 TechnicianAppointment::class,
                 SalespersonAppointment::class,
                 ImplementerAuditList::class,
-                SalespersonAuditList::class,
-                DepartmentCalendar::class,
+                SalespersonLeadSequence::class,
+                Calendar::class,
                 ImplementerRequestCount::class,
                 ImplementerRequestList::class,
                 ProjectCategoryOpen::class,

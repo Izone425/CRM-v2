@@ -680,9 +680,17 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
                                     $meetingInfo = $onlineMeeting->getOnlineMeeting();
 
+                                    $eventId = $onlineMeeting->getId();
+
                                     // Only try to get the join URL if meetingInfo exists
                                     if ($meetingInfo) {
                                         $meetingLink = $meetingInfo->getJoinUrl() ?? 'Will be provided separately';
+
+                                        // Update the appointment with meeting link and event ID
+                                        $appointment->update([
+                                            'meeting_link' => $meetingLink,
+                                            'event_id' => $eventId
+                                        ]);
                                     }
 
                                     Notification::make()
@@ -772,16 +780,6 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     ->body('Could not send email notification: ' . $e->getMessage())
                                     ->send();
                             }
-
-                            // Create activity log entry
-                            \App\Models\ActivityLog::create([
-                                'user_id' => auth()->id(),
-                                'causer_id' => auth()->id(),
-                                'action' => 'Created Kick-Off Meeting',
-                                'description' => "Created kick-off meeting for {$lead->companyDetail->company_name} with {$data['implementer']}",
-                                'subject_type' => get_class($appointment),
-                                'subject_id' => $appointment->id,
-                            ]);
 
                             Notification::make()
                                 ->title('Implementer Appointment Added Successfully')

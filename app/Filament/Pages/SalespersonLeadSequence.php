@@ -8,10 +8,10 @@ use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 
-class SalespersonAuditList extends Page
+class SalespersonLeadSequence extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static string $view = 'filament.pages.salesperson-audit-list';
+    protected static string $view = 'filament.pages.salesperson-lead-sequence';
     protected static ?string $navigationLabel = 'Salesperson Audit List';
     protected static ?string $title = '';
 

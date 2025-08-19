@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Resources\LeadResource\Tabs;
 
 use App\Models\ActivityLog;
@@ -7,6 +6,7 @@ use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\SoftwareHandover;
 use App\Models\HardwareHandover;
+use App\Models\Industry;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions\Action;
@@ -15,6 +15,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\View;
 use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -35,7 +36,9 @@ class CommercialItemTabs
                 ->tabs([
                     Tabs\Tab::make('Subsidiary Details')
                         ->schema([
-
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager::class)
+                                ->columnSpanFull(),
                         ]),
 
                     Tabs\Tab::make('Quotation')
