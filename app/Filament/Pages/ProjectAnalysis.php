@@ -10,12 +10,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
-class SoftwareHandoverAnalysis extends Page
+class ProjectAnalysis extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-chart-pie';
     protected static ?string $navigationGroup = 'Analysis';
-    protected static string $view = 'filament.pages.software-handover-analysis';
-    protected static ?string $navigationLabel = 'Software Handover Analysis';
+    protected static string $view = 'filament.pages.project-analysis';
+    protected static ?string $navigationLabel = 'Project Analysis';
     protected static ?int $navigationSort = 2;
     protected static ?string $title = '';
 
@@ -31,6 +31,7 @@ class SoftwareHandoverAnalysis extends Page
     public $showSlideOverV2 = false;
     public $slideOverTitleV2 = 'Software Handovers';
     public $handoversList = [];
+    protected static ?string $slug = 'software/project-analysis';
 
     // public static function canAccess(): bool
     // {

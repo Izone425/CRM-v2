@@ -2065,7 +2065,6 @@ class ImplementerCalendar extends Component
                 'end_time' => $this->bookingEndTime,
                 'implementer' => $implementer->name,
                 'causer_id' => auth()->user()->id,
-                'implementer_assigned_date' => now(),
                 'title' => $this->implementationDemoType . ' | ' . $this->appointmentType . ' | TIMETEC IMPLEMENTER | ' . $companyDetail->company_name,
                 'status' => 'New',
                 'session' => $this->bookingSession,
@@ -2366,14 +2365,14 @@ class ImplementerCalendar extends Component
             }
 
             // Check if the session is in the past (before current time)
-            // foreach ($standardSessions as $key => $session) {
-            //     $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+            foreach ($standardSessions as $key => $session) {
+                $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
 
-            //     // If session is in the past, mark it as past
-            //     if ($sessionStart < $currentTime) {
-            //         $standardSessions[$key]['status'] = 'past';
-            //     }
-            // }
+                // If session is in the past, mark it as past
+                if ($sessionStart < $currentTime) {
+                    $standardSessions[$key]['status'] = 'past';
+                }
+            }
 
             // Process any cancelled appointments
             // This will mark the session as cancelled but still display it in the calendar
@@ -2388,31 +2387,26 @@ class ImplementerCalendar extends Component
 
                     foreach ($standardSessions as $key => $session) {
                         if ($session['start_time'] === $appointmentStartTime) {
-                            $standardSessions[$key]['status'] = 'available';
-                            $standardSessions[$key]['booked'] = false;
-                            $standardSessions[$key]['appointment'] = null;
-                            $standardSessions[$key]['wasCancelled'] = true;
-
                             // Get the session start time as Carbon object
-                            // $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+                            $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
 
-                            // // If the current day is past the session day, mark as past
-                            // if (Carbon::now()->format('Y-m-d') > $formattedDate) {
-                            //     $standardSessions[$key]['status'] = 'past';
-                            // }
-                            // // If the session is in the past on the same day, mark as past
-                            // elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
-                            //     $standardSessions[$key]['status'] = 'past';
-                            // }
-                            // // If the session is still in the future, make it available
-                            // else {
-                            //     $standardSessions[$key]['status'] = 'available';
-                            //     // Important: Remove any association with the cancelled appointment
-                            //     $standardSessions[$key]['booked'] = false;
-                            //     $standardSessions[$key]['appointment'] = null;
-                            //     // Add explicit wasCancelled flag here
-                            //     $standardSessions[$key]['wasCancelled'] = true;
-                            // }
+                            // If the current day is past the session day, mark as past
+                            if (Carbon::now()->format('Y-m-d') > $formattedDate) {
+                                $standardSessions[$key]['status'] = 'past';
+                            }
+                            // If the session is in the past on the same day, mark as past
+                            elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
+                                $standardSessions[$key]['status'] = 'past';
+                            }
+                            // If the session is still in the future, make it available
+                            else {
+                                $standardSessions[$key]['status'] = 'available';
+                                // Important: Remove any association with the cancelled appointment
+                                $standardSessions[$key]['booked'] = false;
+                                $standardSessions[$key]['appointment'] = null;
+                                // Add explicit wasCancelled flag here
+                                $standardSessions[$key]['wasCancelled'] = true;
+                            }
                         }
                     }
                 }

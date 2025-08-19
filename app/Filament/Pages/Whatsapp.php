@@ -16,12 +16,12 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
-class ChatRoom extends Page
+class Whatsapp extends Page
 {
     use WithFileUploads;
 
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
-    protected static string $view = 'filament.pages.chat-room';
+    protected static string $view = 'filament.pages.whatsapp';
     protected ?string $heading = '';
     protected static ?int $navigationSort = 7;
     protected static ?string $navigationLabel = 'Whatsapp';

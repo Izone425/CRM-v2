@@ -39,8 +39,8 @@ class RoleResource extends Resource
         'sales_forecast_summary' => 'filament.admin.pages.sales-forecast-summary',
 
         // Calendar
-        'calendar' => 'filament.admin.pages.calendar',
-        'weekly_calendar_v2' => 'filament.admin.pages.weekly-calendar-v2',
+        'calendar' => 'filament.admin.pages.salesperson-calendar-v1',
+        'weekly_calendar_v2' => 'filament.admin.pages.salesperson-calendar-v2',
         'monthly_calendar' => 'filament.admin.pages.monthly-calendar',
         'demo_ranking' => 'filament.admin.pages.demo-ranking',
 

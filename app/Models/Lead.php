@@ -282,6 +282,11 @@ class Lead extends Model
         return $this->hasOne(Reseller::class);
     }
 
+    public function subsidiaries()
+    {
+        return $this->hasMany(Subsidiary::class);
+    }
+
     public function salespersonUser()
     {
         return $this->belongsTo(User::class, 'salesperson');

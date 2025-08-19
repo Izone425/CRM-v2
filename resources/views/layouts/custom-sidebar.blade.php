@@ -298,7 +298,7 @@
             margin-right: 0.75rem;
             width: 2rem;
             height: 2rem;
-            background-color: #F3F4F6;
+            /* background-color: #F3F4F6; */
             border-radius: 0.5rem;
             display: flex;
             align-items: center;
@@ -306,9 +306,9 @@
             transition: background-color 0.2s;
         }
 
-        .menu-item:hover .menu-icon-wrapper {
+        /* .menu-item:hover .menu-icon-wrapper {
             background-color: #E5E7EB;
-        }
+        } */
 
         .menu-item.active .menu-icon-wrapper {
             background-color: rgba(255, 255, 255, 0.2);
@@ -513,7 +513,7 @@
         }
 
         .icon-link[data-section="dashboard"] .icon { color: #6366F1; /* icon-gradient-1 */ }
-        .icon-link[data-section="leads"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
+        .icon-link[data-section="handover"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
         .icon-link[data-section="hrcalendar"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
         .icon-link[data-section="salesadmin"] .icon { color: #06B6D4; /* icon-gradient-3 */ }
         .icon-link[data-section="salesperson"] .icon { color: #14B8A6; /* icon-gradient-4 */ }
@@ -532,38 +532,16 @@
         <div class="icon-sidebar">
             <!-- Icon Sidebar Header with App Logo -->
             <div class="icon-header">
-                <div class="icon-logo" id="expand-sidebar">
-                    <i class="bi bi-people"></i>
-                </div>
+                <a href="{{ route('filament.admin.pages.dashboard-form') }}" class="icon-logo" id="expand-sidebar" title="Dashboard">
+                    <i class="bi bi-grid"></i>
+                </a>
             </div>
 
-            <!-- Icon Sidebar Content -->
             <div class="icon-content">
-                <!-- Dashboard Icon -->
-                <div title="Dashboard">
-                    <a href="{{ route('filament.admin.pages.dashboard-form') }}" class="icon-link dashboard" title="Dashboard" data-section="dashboard">
-                        <i class="bi bi-grid icon"></i>
-                    </a>
-                </div>
-
-                @if(in_array(auth()->user()->role_id, [1, 2, 3]))
-                    <div title="Leads">
-                        <a href="{{ route('filament.admin.resources.leads.index') }}" class="icon-link dashboard" title="Leads" data-section="leads">
-                            <i class="bi bi-bullseye icon"></i>
-                        </a>
-                    </div>
-                @endif
-
-                <div title="HR Calendar">
-                    <a href="{{ route('filament.admin.pages.department-calendar') }}" class="icon-link dashboard" title="HR Calendar" data-section="hrcalendar">
-                        <i class="bi bi-calendar-check icon"></i>
-                    </a>
-                </div>
-
                 @if(
                     (auth()->user()->hasAccessToAny([
                         'filament.admin.pages.monthly-calendar',
-                        'filament.admin.pages.weekly-calendar-v2',
+                        'filament.admin.pages.salesperson-calendar-v2',
                         'filament.admin.pages.chat-room',
                         'filament.admin.pages.sales-admin-analysis-v1',
                         'filament.admin.pages.sales-admin-analysis-v2',
@@ -572,7 +550,7 @@
                         'filament.admin.pages.future-enhancement'
                     ]) && (auth()->user()->role_id == 1 || auth()->user()->role_id == 3))
                 )
-                    <div class="icon-link" data-section="salesadmin" title="Sales Admin">
+                    <div class="icon-link" data-section="salesadmin" title="SalesAdmin">
                         <div class="icon-wrapper">
                             <i class="bi bi-people icon"></i>
                         </div>
@@ -594,6 +572,16 @@
                     <div class="icon-link" data-section="salesperson" title="Sales Person">
                         <div class="icon-wrapper">
                             <i class="bi bi-currency-dollar icon"></i>
+                        </div>
+                    </div>
+                @endif
+
+                @if(
+                    (auth()->user()->additional_role == 1 || in_array(auth()->user()->role_id, [2,3,4,5,6,7,8]))
+                )
+                    <div class="icon-link" data-section="handover" title="Handover">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-arrows-angle-contract icon"></i>
                         </div>
                     </div>
                 @endif
@@ -680,8 +668,7 @@
             <div class="expanded-header">
                 <div class="header-left">
                     <div class="app-name">
-                        <span class="app-title">HR CRM</span>
-                        <span class="app-subtitle">Management System</span>
+                        <span class="app-title">TimeTec HR</span>
                     </div>
                 </div>
                 <button class="back-button" id="collapse-sidebar">
@@ -693,24 +680,42 @@
             <div class="sidebar-content">
                 <!-- Sales Admin Section -->
                 <div id="salesadmin-section" class="section-content">
-                    <div class="section-heading">Sales Admin</div>
-
                     <!-- Calendar Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-calendar-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-calendar-range menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
                             <span class="menu-text">Calendar</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
                         <div class="submenu" id="salesadmin-calendar-submenu">
-                            <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
-                                <span class="module-font">SalesPerson - Calendar V1</span>
+                            <a href="{{ route('filament.admin.pages.salesperson-calendar-v1') }}" class="submenu-item">
+                                <span class="module-font">Version 1</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.weekly-calendar-v2') }}" class="submenu-item">
-                                <span class="module-font">SalesPerson - Calendar V2</span>
+                            <a href="{{ route('filament.admin.pages.salesperson-calendar-v2') }}" class="submenu-item">
+                                <span class="module-font">Version 2</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
+                                <span class="module-font">All Calendar</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Salesperson Audit List Section -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-audit-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Audit List</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="salesadmin-audit-submenu">
+                            <a href="{{ route('filament.admin.pages.salesperson-lead-sequence') }}" class="submenu-item">
+                                <span class="module-font">Lead Sequence</span>
                             </a>
                         </div>
                     </div>
@@ -719,14 +724,14 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-prospects-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-chat-square-text menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Prospects Automation</span>
+                            <span class="menu-text">Automation</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
                         <div class="submenu" id="salesadmin-prospects-submenu">
-                            <a href="{{ route('filament.admin.pages.chat-room') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.whatsapp') }}" class="submenu-item">
                                 <span class="module-font">WhatsApp</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
@@ -741,7 +746,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-analysis-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-graph-up menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
                             <span class="menu-text">Analysis</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -749,13 +754,13 @@
 
                         <div class="submenu" id="salesadmin-analysis-submenu">
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v1') }}" class="submenu-item">
-                                <span class="module-font">Sales Admin - Leads</span>
+                                <span class="module-font">Leads</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v2') }}" class="submenu-item">
-                                <span class="module-font">Sales Admin - Performance</span>
+                                <span class="module-font">Performance</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v3') }}" class="submenu-item">
-                                <span class="module-font">Sales Admin - Action Task</span>
+                                <span class="module-font">Action Task</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
                             <a href="{{ route('filament.admin.pages.demo-ranking') }}" class="submenu-item">
@@ -765,57 +770,21 @@
                         </div>
                     </div>
 
-                    <!-- Partnership Section -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                     <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-partnership-submenu">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="leads-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-people menu-icon"></i>
+                               <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Partnership</span>
+                            <span class="menu-text">Leads</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
-                        <div class="submenu" id="salesadmin-partnership-submenu">
-                            <div class="submenu-item">
-                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Tele-Marketing Section -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-telemarketing-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-telephone menu-icon"></i>
-                            </div>
-                            <span class="menu-text">Tele-Marketing</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
-
-                        <div class="submenu" id="salesadmin-telemarketing-submenu">
-                            <div class="submenu-item">
-                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-
-                    <!-- Salesperson Audit List Section -->
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-audit-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-list-ol menu-icon"></i>
-                            </div>
-                            <span class="menu-text">Salesperson Audit List</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
-
-                        <div class="submenu" id="salesadmin-audit-submenu">
-                            <a href="{{ route('filament.admin.pages.salesperson-audit-list') }}" class="submenu-item">
-                                <span class="module-font">Lead Sequence</span>
+                        <div class="submenu" id="leads-submenu">
+                            <a href="{{ route('filament.admin.resources.leads.index') }}" class="submenu-item">
+                                <span class="module-font">All Leads</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.search-lead') }}" class="submenu-item">
+                                <span class="module-font">Search Leads</span>
                             </a>
                         </div>
                     </div>
@@ -823,31 +792,44 @@
 
                 <!-- SalesPerson Section -->
                 <div id="salesperson-section" class="section-content">
-                    <div class="section-heading">Sales Person</div>
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.search-lead'))
-                        <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.search-lead') }}" class="menu-item">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-search menu-icon"></i>
-                                </div>
-                                <span class="menu-text">Search Lead</span>
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="leads-submenu-salesperson">
+                            <div class="menu-icon-wrapper">
+                               <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Leads</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="leads-submenu-salesperson">
+                            <a href="{{ route('filament.admin.resources.leads.index') }}" class="submenu-item">
+                                <span class="module-font">All Leads</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.search-lead') }}" class="submenu-item">
+                                <span class="module-font">Search Leads</span>
                             </a>
                         </div>
-                    @endif
+                    </div>
 
                     <!-- Calendar Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="calendar-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-calendar-range menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
                             <span class="menu-text">Calendar</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
                         <div class="submenu" id="calendar-submenu">
+                            <a href="{{ route('filament.admin.pages.salesperson-calendar-v1') }}" class="submenu-item">
+                                <span class="module-font">SalesPerson Calendar</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="submenu-item">
+                                <span class="module-font">Implementer Calendar</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
-                                <span class="module-font">SalesPerson - Calendar V1</span>
+                                <span class="module-font">All Calendar</span>
                             </a>
                         </div>
                     </div>
@@ -856,9 +838,9 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="commercial-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-briefcase menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Commercial Part</span>
+                            <span class="menu-text">Commercial Item</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -886,7 +868,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="analysis-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-graph-up menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
                             <span class="menu-text">Analysis</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -896,9 +878,19 @@
                             <a href="{{ route('filament.admin.pages.lead-analysis') }}" class="submenu-item">
                                 <span class="module-font">Lead Analysis</span>
                             </a>
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Lead Analysis - Summary</span>
+                                </a>
+                            @endif
                             <a href="{{ route('filament.admin.pages.demo-analysis') }}" class="submenu-item">
                                 <span class="module-font">Demo Analysis</span>
                             </a>
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Demo Analysis - Summary</span>
+                                </a>
+                            @endif
                         </div>
                     </div>
 
@@ -906,41 +898,106 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="forecast-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-graph-up-arrow menu-icon"></i>
+                                <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Forecast</span>
+                            <span class="menu-text">Sales</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
                         <div class="submenu" id="forecast-submenu">
                             <a href="{{ route('filament.admin.pages.sales-forecast') }}" class="submenu-item">
-                                <span class="module-font">Forecast - Salesperson</span>
+                                <span class="module-font">Forecast</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
                                     <span class="module-font">Forecast - Summary</span>
                                 </a>
                             @endif
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
+                                    <span class="module-font">Revenue - By Year</span>
+                                </a>
+                            @endif
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
+                                    <span class="module-font">Revenue - By Month</span>
+                                </a>
+                            @endif
                         </div>
                     </div>
 
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                        <div class="menu-block">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-dot"></i>
+                                </div>
+                                <span class="menu-text">Pricing</span>
+                            </a>
+                        </div>
+                    @endif
+
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                        <div class="menu-block">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-dot"></i>
+                                </div>
+                                <span class="menu-text">Policy</span>
+                            </a>
+                        </div>
+                    @endif
+
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                        <div class="menu-block">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-dot"></i>
+                                </div>
+                                <span class="menu-text">Request</span>
+                            </a>
+                        </div>
+                    @endif
+
+                    <!-- Salesperson Request Section -->
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-dot"></i>
+                                </div>
+                                <span class="menu-text">Salesperson Request</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="request-submenu">
+                                <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="submenu-item">
+                                    <span class="module-font">Internal Task Request</span>
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Handover Section -->
+                <div id="handover-section" class="section-content">
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
                         <!-- Software Handover Section -->
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="software-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-box-arrow-right menu-icon"></i>
+                                    <i class="bi bi-dot"></i>
                                 </div>
                                 <span class="menu-text">Software Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
                             </div>
 
                             <div class="submenu" id="software-submenu">
-                                <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="submenu-item">
-                                    <span class="module-font">Dashboard</span>
+                                <a href="{{ route('filament.admin.resources.software.index') }}" class="submenu-item">
+                                    <span class="module-font">Project List</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.software-handover-analysis') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
+                                <a href="{{ route('filament.admin.pages.software.project-analysis') }}" class="submenu-item">
+                                    <span class="module-font">Project Analysis</span>
                                 </a>
                             </div>
                         </div>
@@ -949,7 +1006,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="hardware-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-cpu menu-icon"></i>
+                                    <i class="bi bi-dot"></i>
                                 </div>
                                 <span class="menu-text">Hardware Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -962,15 +1019,16 @@
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="submenu-item">
                                     <span class="module-font">Dashboard - Pending Stock</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Device Stock Information</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Device Purchase Information</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
+                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                        <span class="module-font">Device Stock Information</span>
+                                    </a>
+                                @endif
+                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                        <span class="module-font">Device Purchase Information</span>
+                                    </a>
+                                @endif
                             </div>
                         </div>
 
@@ -978,126 +1036,23 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="repair-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tools menu-icon"></i>
+                                    <i class="bi bi-dot"></i>
                                 </div>
                                 <span class="menu-text">Repair Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
                             </div>
 
                             <div class="submenu" id="repair-submenu">
-                                <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="submenu-item">
-                                    <span class="module-font">Dashboard</span>
+                                <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
+                                    <span class="module-font">OnSite Repair List</span>
                                 </a>
+                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                        <span class="module-font">InHouse Repair List</span>
+                                    </a>
+                                @endif
                                 <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
                                     <span class="module-font">Technician Calendar</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Salesperson Request Section -->
-                        @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
-                            <div class="menu-block">
-                                <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
-                                    <div class="menu-icon-wrapper">
-                                        <i class="bi bi-diagram-3-fill menu-icon"></i>
-                                    </div>
-                                    <span class="menu-text">Salesperson Request</span>
-                                    <i class="bi bi-chevron-down menu-arrow"></i>
-                                </div>
-
-                                <div class="submenu" id="request-submenu">
-                                    <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="submenu-item">
-                                        <span class="module-font">Internal Task Request</span>
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Sales Pricing Section -->
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="pricing-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-coin menu-icon"></i>
-                                </div>
-                                <span class="menu-text">Sales Pricing</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
-                            </div>
-
-                            <div class="submenu" id="pricing-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Software</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Hardware</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Door Access Accessories</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Others</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Sales Information Section -->
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="info-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-info-circle-fill menu-icon"></i>
-                                </div>
-                                <span class="menu-text">Sales Information</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
-                            </div>
-
-                            <div class="submenu" id="info-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Sales Policy</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Hardware Handover Flow</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Implementer Audit List Section -->
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="audit-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-list-ol menu-icon"></i>
-                                </div>
-                                <span class="menu-text">Implementer Audit List</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
-                            </div>
-
-                            <div class="submenu" id="audit-submenu">
-                                <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="submenu-item">
-                                    <span class="module-font">Project Sequence</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- Implementer Calendar Section -->
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-calendar-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-calendar-week-fill menu-icon"></i>
-                                </div>
-                                <span class="menu-text">Implementer - Calendar</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
-                            </div>
-
-                            <div class="submenu" id="implementer-calendar-submenu">
-                                <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="submenu-item">
-                                    <span class="module-font">Implementer - Session</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="submenu-item">
-                                    <span class="module-font">Implementer - Request Count</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.implementer-request-list') }}" class="submenu-item">
-                                    <span class="module-font">Implementer - Request List</span>
                                 </a>
                             </div>
                         </div>
@@ -1119,10 +1074,10 @@
                         </div>
 
                         <div class="submenu" id="admin-software-submenu">
-                            <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.resources.software.index') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.software-handover-analysis') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.software.project-analysis') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
                             </a>
                         </div>
@@ -1168,7 +1123,7 @@
                         </div>
 
                         <div class="submenu" id="admin-repair-submenu">
-                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
@@ -1343,10 +1298,10 @@
                         </div>
 
                         <div class="submenu" id="implementer-software-submenu">
-                            <a href="{{ route('filament.admin.resources.software-handovers.index') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.resources.software.index') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.software-handover-analysis') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.software.project-analysis') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
                             </a>
                         </div>
@@ -1392,7 +1347,7 @@
                         </div>
 
                         <div class="submenu" id="implementer-repair-submenu">
-                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
@@ -1601,7 +1556,7 @@
                         </div>
 
                         <div class="submenu" id="support-repair-submenu">
-                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
@@ -1629,7 +1584,7 @@
                         </div>
 
                         <div class="submenu" id="technician-repair-submenu">
-                            <a href="{{ route('filament.admin.pages.admin-repair-dashboard') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.technician-appointment') }}" class="submenu-item">
@@ -1796,7 +1751,7 @@
             const expandedSidebar = document.getElementById('expanded-sidebar');
             const iconLinks = document.querySelectorAll('.icon-link');
             const sectionContents = document.querySelectorAll('.section-content');
-            const dashboardIcon = document.querySelector('.icon-link.dashboard');
+            const dashboardIcon = document.querySelector('.icon-logo');
 
             // Function to show a specific section and hide others
             function showSection(sectionId) {

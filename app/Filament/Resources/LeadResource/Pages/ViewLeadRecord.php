@@ -87,8 +87,7 @@ class ViewLeadRecord extends ViewRecord
             return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
             return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                'debtor_follow_up', 'handover_details'];
+                'prospect_follow_up', 'commercial_items', 'handover_details'];
         }
     }
 

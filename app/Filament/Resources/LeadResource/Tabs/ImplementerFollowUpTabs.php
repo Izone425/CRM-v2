@@ -70,19 +70,19 @@ class ImplementerFollowUpTabs
                                                 ->default(false)
                                                 ->live(onBlur: true),
 
-                                            Select::make('follow_up_count')
-                                                ->label('Follow-up Count')
-                                                ->inlineLabel()
-                                                ->required()
-                                                ->options([
-                                                    0 => '0',
-                                                    1 => '1',
-                                                    2 => '2',
-                                                    3 => '3',
-                                                    4 => '4',
-                                                    5 => '5',
-                                                ])
-                                                ->default(1),
+                                            // Select::make('follow_up_count')
+                                            //     ->label('Follow-up Count')
+                                            //     ->inlineLabel()
+                                            //     ->required()
+                                            //     ->options([
+                                            //         0 => '0',
+                                            //         1 => '1',
+                                            //         2 => '2',
+                                            //         3 => '3',
+                                            //         4 => '4',
+                                            //         5 => '5',
+                                            //     ])
+                                            //     ->default(1),
                                         ]),
 
                                     Fieldset::make('Email Details')

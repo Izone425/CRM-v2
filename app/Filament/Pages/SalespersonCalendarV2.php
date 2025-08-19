@@ -7,13 +7,13 @@ use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\View;
 
-class WeeklyCalendarV2 extends Page
+class SalespersonCalendarV2 extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
     protected static ?string $navigationGroup = 'Calendar';
     protected static ?string $navigationLabel = "Weekly Calendar V2";
 
-    protected static string $view = 'filament.pages.weekly-calendar-v2';
+    protected static string $view = 'filament.pages.salesperson-calendar-v2';
 
     public function getTitle(): string | Htmlable
     {
@@ -28,6 +28,6 @@ class WeeklyCalendarV2 extends Page
             return false;
         }
 
-        return $user->hasRouteAccess('filament.admin.pages.weekly-calendar-v2');
+        return $user->hasRouteAccess('filament.admin.pages.salesperson-calendar-v2');
     }
 }

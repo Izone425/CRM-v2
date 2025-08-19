@@ -31,6 +31,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelati
 use App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\CommercialItemTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
@@ -116,11 +117,11 @@ class LeadResource extends Resource
                     ];
                 } else {
                     $activeTabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'commercial_items', 'software_handover', 'hardware_handover'];
+                    'prospect_follow_up', 'commercial_items', 'handover_details'];
                 }
             } elseif ($user->role_id === 2) { // Salesperson
                 $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'commercial_items', 'software_handover', 'hardware_handover'];
+                    'prospect_follow_up', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -135,7 +136,7 @@ class LeadResource extends Resource
                 $activeTabs = [
                     'lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'software_handover', 'hardware_handover'
+                    'debtor_follow_up', 'commercial_items', 'handover_details'
                 ];
             }
         }
@@ -1114,6 +1115,7 @@ class LeadResource extends Resource
             SHTableRelationManager::class,
             HHTableRelationManager::class,
             RPTableRelationManager::class,
+            SubsidiaryRelationManager::class,
         ];
     }
 

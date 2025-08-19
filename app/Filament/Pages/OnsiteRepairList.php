@@ -39,18 +39,19 @@ use Filament\Notifications\Notification;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class AdminRepairDashboard extends Page implements HasTable
+class OnsiteRepairList extends Page implements HasTable
 {
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench';
     protected static ?string $navigationLabel = 'Repair Dashboard';
-    protected static ?string $title = 'Onsite Repair System';
+    protected static ?string $title = 'Onsite Repair List';
     protected static ?int $navigationSort = 4;
 
-    protected static string $view = 'filament.pages.admin-repair-dashboard';
+    protected static string $view = 'filament.pages.onsite-repair-list';
     protected static ?int $indexDeviceCounter = 0;
     protected static ?int $indexRemarkCounter = 0;
+    protected static ?string $slug = 'repair/onsite-repair-list';
 
     // Define the default form for both create and edit operations
     public function defaultForm(?AdminRepair $record = null): array
@@ -599,6 +600,7 @@ class AdminRepairDashboard extends Page implements HasTable
                 ->slideover()
                 ->color('primary')
                 ->form($this->defaultForm())
+                ->visible(fn() => auth()->user()->role_id === 3)
                 ->action(function (array $data): void {
                     // Process and save the form data
                     $this->processAndSaveRepairData(null, $data);

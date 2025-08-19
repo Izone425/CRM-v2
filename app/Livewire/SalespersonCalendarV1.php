@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Illuminate\Support\Str;
 
-class DepartmentCalendar extends Component
+class SalespersonCalendarV1 extends Component
 {
 
     public $rows;
@@ -29,7 +29,6 @@ class DepartmentCalendar extends Component
     public $currentMonth;
     public $weekDate;
     public $newDemoCount;
-    public $employees;
 
     //Dropdown
     public $showDropdown = false;
@@ -41,11 +40,6 @@ class DepartmentCalendar extends Component
     public array $status = ["DONE", "NEW", "CANCELLED"];
     public array $selectedStatus = [];
     public bool $allStatusSelected = true;
-    public $selectedDepartment = 'all';
-    public $leaveSummary = [];
-    public $todayLeaveSummary = [];
-    public $selectedLeaveType = 'all';
-    public $allEmployeeLeaves;
 
     public Collection $salesPeople;
     public array $selectedSalesPeople = [];
@@ -80,19 +74,6 @@ class DepartmentCalendar extends Component
         // For 'all_sales', we leave selectedSalesPeople empty which will show all
     }
 
-    public function filterByDepartment($department)
-    {
-        $this->selectedDepartment = $department;
-
-        // Recalculate leave summary with new department filter
-        $this->calculateLeaveSummary();
-    }
-
-    public function filterByLeaveType($leaveType)
-    {
-        $this->selectedLeaveType = $leaveType;
-    }
-
     // Modify the mount method to set default filter
     public function mount()
     {
@@ -108,106 +89,6 @@ class DepartmentCalendar extends Component
         } else {
             // Default to TimeTec HR Sales for admin users
             $this->updateSalesFilter('timetec_hr');
-        }
-    }
-
-    private function calculateLeaveSummary()
-    {
-        // Initialize summary arrays
-        $this->leaveSummary = [];
-        $this->todayLeaveSummary = [];
-
-        // Get departments based on filter
-        $departments = collect($this->getAllEmployeesByDepartment());
-
-        // Apply department filter if not showing all
-        if ($this->selectedDepartment !== 'all') {
-            $departments = $departments->filter(function($employee) {
-                return $employee->department === $this->selectedDepartment;
-            });
-        }
-
-        // Get unique departments excluding Vice President
-        $departments = $departments
-            ->pluck('department')
-            ->unique()
-            ->filter(function($dept) {
-                return $dept !== 'Vice President';
-            })
-            ->toArray();
-
-        // Initialize summary for each department
-        foreach ($departments as $department) {
-            $this->leaveSummary[$department] = [
-                'full_day' => 0,
-                'half_day_am' => 0,
-                'half_day_pm' => 0,
-                'total' => 0
-            ];
-
-            $this->todayLeaveSummary[$department] = [
-                'full_day' => 0,
-                'half_day_am' => 0,
-                'half_day_pm' => 0,
-                'total' => 0
-            ];
-        }
-
-        // Use the selected date instead of current date
-        $selectedDate = $this->date->format('Y-m-d');
-
-        // Group employees by department
-        $employeesByDept = $this->getAllEmployeesByDepartment()
-            ->filter(function($employee) {
-                return $employee->department !== 'Vice President' &&
-                    ($this->selectedDepartment === 'all' || $employee->department === $this->selectedDepartment);
-            })
-            ->groupBy('department');
-
-        // For each department
-        foreach ($employeesByDept as $department => $employees) {
-            // Get employee IDs for this department
-            $employeeIds = $employees
-                ->filter(function($employee) {
-                    return !is_string($employee->id) || !str_contains($employee->id, 'placeholder');
-                })
-                ->pluck('id')
-                ->toArray();
-
-            // Get leaves for these employees during the week
-            $deptLeaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
-
-            // Count leaves by type
-            foreach ($deptLeaves as $userId => $userLeaves) {
-                foreach ($userLeaves as $date => $leave) {
-                    if ($leave['session'] === 'full') {
-                        $this->leaveSummary[$department]['full_day']++;
-                        $this->leaveSummary[$department]['total']++;
-
-                        // If it's the selected date, update today's summary
-                        if ($date === $selectedDate) {
-                            $this->todayLeaveSummary[$department]['full_day']++;
-                            $this->todayLeaveSummary[$department]['total']++;
-                        }
-                    } else if ($leave['session'] === 'am') {
-                        $this->leaveSummary[$department]['half_day_am']++;
-                        $this->leaveSummary[$department]['total'] += 0.5;
-
-                        if ($date === $selectedDate) {
-                            $this->todayLeaveSummary[$department]['half_day_am']++;
-                            $this->todayLeaveSummary[$department]['total'] += 0.5;
-                        }
-                    } else if ($leave['session'] === 'pm') {
-                        $this->leaveSummary[$department]['half_day_pm']++;
-                        $this->leaveSummary[$department]['total'] += 0.5;
-
-                        if ($date === $selectedDate) {
-                            $this->todayLeaveSummary[$department]['half_day_pm']++;
-                            $this->todayLeaveSummary[$department]['total'] += 0.5;
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -339,15 +220,13 @@ class DepartmentCalendar extends Component
         $weekDays = [];
         for ($i = 0; $i < 7; $i++) {
             $day = $startOfWeek->copy()->addDays($i);
-            $weekDays[$i]["day"] = $day->format('D');  // Format as Fri,Sat,Mon
-            $weekDays[$i]["date"] = $day->format('j');  // Format as Date
-            $weekDays[$i]['full_date'] = $day->format('Y-m-d'); // Add full date in YYYY-MM-DD format
-            $weekDays[$i]['carbonDate'] = $day;
+            $weekDays[$i]["day"] = $startOfWeek->copy()->addDays($i)->format('D');  // Format as Fri,Sat,Mon
+            $weekDays[$i]["date"] = $startOfWeek->copy()->addDays($i)->format('j');  // Format as Date
+            $weekDays[$i]['carbonDate'] = $startOfWeek->copy()->addDays($i);
             if ($day->isToday()) {
                 $weekDays[$i]["today"] = true; // Set to true if today's date is found
-            } else {
+            } else
                 $weekDays[$i]["today"] = false;
-            }
         }
         return $weekDays;
     }
@@ -524,80 +403,32 @@ class DepartmentCalendar extends Component
 
     public function render()
     {
-        // Set date range for the week
-        $date = $this->date ? Carbon::parse($this->date) : Carbon::now();
-        $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
-        $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
 
-        // Get week days for display
-        $this->weekDays = $this->getWeekDateDays($date);
-
-        // Get current month for display
-        $this->currentMonth = $date->format('F Y');
-
-        // Get all employees organized by department in the specified order
-        $allEmployees = $this->getAllEmployeesByDepartment();
-
-        // Filter employees by department if a specific one is selected
-        if ($this->selectedDepartment !== 'all') {
-            $this->employees = $allEmployees->filter(function($employee) {
-                return $employee->department === $this->selectedDepartment;
-            });
-        } else {
-            $this->employees = $allEmployees;
+        //Initialize
+        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
+            $this->newDemoCount[$day]["noDemo"] = 0;
+            $this->newDemoCount[$day]["oneDemo"] = 0;
+            $this->newDemoCount[$day]["twoDemo"] = 0;
         }
 
-        // Get public holidays for the week
+        if ($this->salesFilter === 'timetec_hr' && empty($this->selectedSalesPeople)) {
+            $this->selectedSalesPeople = $this->timetecHrSalesIds;
+        }
+
+        // Load Total Demos
+        $this->rows = $this->getWeeklyAppointments($this->date);
+
+        //Load Date Display
+        $this->weekDays = $this->getWeekDateDays($this->date);
+
+        //Count Demos
+        $this->getNumberOfDemos($this->selectedSalesPeople);
+        $this->calculateNewDemoCompanySize();
         $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
-
-        // Get leaves for filtered employees
-        $employeeIds = $this->employees
-            ->filter(function($employee) {
-                return !is_string($employee->id) || !str_contains($employee->id, 'placeholder');
-            })
-            ->pluck('id')
-            ->toArray();
-
-        // Get leaves from UserLeave model
-        $allLeaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
-
-        if ($this->selectedLeaveType !== 'all') {
-            // Keep the original leaves for reference
-            $this->allEmployeeLeaves = $allLeaves;
-
-            // Filter leaves by type
-            $filteredLeaves = [];
-
-            foreach ($allLeaves as $userId => $userLeaves) {
-                $matching = [];
-
-                foreach ($userLeaves as $date => $leave) {
-                    if ($leave['session'] === $this->selectedLeaveType) {
-                        $matching[$date] = $leave;
-                    }
-                }
-
-                // Only include employees with matching leave types
-                if (!empty($matching)) {
-                    $filteredLeaves[$userId] = $matching;
-                }
-            }
-
-            $this->leaves = $filteredLeaves;
-        } else {
-            $this->leaves = $allLeaves;
-        }
-
-        // Calculate leave summaries
-        $this->calculateLeaveSummary();
-
-        return view('livewire.department-calendar');
-    }
-
-    public function getDepartments()
-    {
-        $departments = collect($this->getAllEmployeesByDepartment())->pluck('department')->unique()->toArray();
-        return $departments;
+        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $this->selectedSalesPeople);
+        // $this->setSelectedMonthToCurrentMonth(); //Not used
+        $this->currentMonth = $this->date->startOfWeek()->format('F Y');
+        return view('livewire.salesperson-calendar-v1');
     }
 
     public function calculateNewDemoCompanySize()
@@ -626,79 +457,5 @@ class DepartmentCalendar extends Component
         }
 
         $this->newDemoCompanySizeBreakdown = $result;
-    }
-
-    private function getAllEmployeesByDepartment()
-    {
-        // Define department order and employee sequence according to requirements
-        $departmentEmployees = [
-            'Vice President' => [
-                ['name' => 'Faiz Shu - Izhan', 'order' => 1]
-            ],
-            'Admin Department' => [
-                ['name' => 'Fatimah Nurnabilah', 'order' => 2],
-                ['name' => 'Nurul Najaa Nadiah', 'order' => 3],
-                ['name' => 'Norhaiyati', 'order' => 4],
-                ['name' => 'Siti Afifah', 'order' => 5],
-                ['name' => 'Sheena Liew', 'order' => 6]
-            ],
-            'SalesPerson Department' => [
-                ['name' => 'Wan Amirul Muim', 'order' => 7],
-                ['name' => 'Muhammad Khoirul Bariah', 'order' => 8],
-                ['name' => 'Yasmin', 'order' => 9],
-                ['name' => 'Abdul Aziz', 'order' => 10],
-                ['name' => 'Farhanah Jamil', 'order' => 11],
-                ['name' => 'Joshua Ho', 'order' => 12],
-                ['name' => 'Vince Leong', 'order' => 13]
-            ],
-            'Implementer Department' => [
-                ['name' => 'Nurul Shaqinur Ain', 'order' => 14],
-                ['name' => 'Ahmad Syamim', 'order' => 15],
-                ['name' => 'Ahmad Syazwan', 'order' => 16],
-                ['name' => 'Siti Shahilah', 'order' => 17],
-                ['name' => 'Muhamad Izzul Aiman', 'order' => 18],
-                ['name' => 'Zulhilmie', 'order' => 19],
-                ['name' => 'John Low', 'order' => 20],
-                ['name' => 'Mohd Amirul Ashraf', 'order' => 21],
-                ['name' => 'Nur Fazuliana', 'order' => 22]
-            ],
-            'Trainer Department' => [
-                ['name' => 'Mohd Fairos', 'order' => 23]
-            ],
-            'Support Department' => [
-                ['name' => 'Siti Nadia', 'order' => 24],
-                ['name' => 'Noor Syazana', 'order' => 25],
-                ['name' => 'Ummu Najwa Fajrina', 'order' => 26],
-                ['name' => 'Rahmah', 'order' => 27],
-                ['name' => 'Hanif Razali', 'order' => 28]
-            ],
-            'Technician Department' => [
-                ['name' => 'Khairul Izzuddin', 'order' => 29]
-            ]
-        ];
-
-        // Convert to a collection
-        $employees = collect();
-
-        foreach ($departmentEmployees as $department => $staffs) {
-            foreach ($staffs as $staff) {
-                // Find the user in the database
-                $user = User::where('name', 'like', "%{$staff['name']}%")->first();
-
-                if (!$user) {
-                    // Create a placeholder if user not found in database
-                    $user = new \stdClass();
-                    $user->id = "placeholder-{$staff['order']}";
-                    $user->name = $staff['name'];
-                    $user->avatar_path = null;
-                }
-
-                $user->department = $department;
-                $user->display_order = $staff['order'];
-                $employees->push($user);
-            }
-        }
-
-        return $employees->sortBy('display_order');
     }
 }
