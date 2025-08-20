@@ -35,6 +35,7 @@ class Quotation extends Model
         'tax_rate',
         'email_sent_at',
         'confirmation_order_document',
+        'subsidiary_id',
     ];
 
     protected $casts = [
@@ -81,5 +82,19 @@ class Quotation extends Model
     public function items(): HasMany
     {
         return $this->hasMany(QuotationDetail::class);
+    }
+
+    public function subsidiary()
+    {
+        return $this->belongsTo(\App\Models\Subsidiary::class);
+    }
+
+    public function getCompanyDetails()
+    {
+        if ($this->subsidiary_id) {
+            return $this->subsidiary;
+        }
+
+        return $this->lead->companyDetail;
     }
 }

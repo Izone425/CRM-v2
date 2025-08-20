@@ -48,7 +48,7 @@ class SubsidiaryRelationManager extends RelationManager
                                 ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                 ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
-                            TextInput::make('company_address_1')
+                            TextInput::make('company_address1')
                                 ->label('COMPANY ADDRESS 1')
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -56,7 +56,7 @@ class SubsidiaryRelationManager extends RelationManager
                                 ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                 ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
-                            TextInput::make('company_address_2')
+                            TextInput::make('company_address2')
                                 ->label('COMPANY ADDRESS 2')
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])

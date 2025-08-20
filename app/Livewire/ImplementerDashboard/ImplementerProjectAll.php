@@ -249,6 +249,97 @@ class ImplementerProjectAll extends Component implements HasForms, HasTable
                             return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
+                    Action::make('changeLead')
+                        ->label('Change Lead ID')
+                        ->icon('heroicon-o-link')
+                        ->color('primary')
+                        ->form([
+                            \Filament\Forms\Components\Select::make('lead_id')
+                                ->label('New Lead')
+                                ->required()
+                                ->searchable()
+                                ->options(function () {
+                                    // Get all leads with closed lead_status and their company names
+                                    $options = DB::table('leads')
+                                        ->join('company_details', 'leads.id', '=', 'company_details.lead_id')
+                                        ->where('leads.lead_status', 'Closed')
+                                        ->whereNotNull('company_details.company_name') // Ensure company name is not null
+                                        ->orderBy('company_details.company_name')
+                                        ->select([
+                                            'leads.id',
+                                            'company_details.company_name'
+                                        ])
+                                        ->get()
+                                        ->mapWithKeys(function ($item) {
+                                            // Create a safe label that's never null
+                                            $label = $item->company_name ?
+                                                $item->company_name . ' (ID: ' . $item->id . ')' :
+                                                'Unknown Company (ID: ' . $item->id . ')';
+
+                                            return [$item->id => $label];
+                                        })
+                                        ->toArray();
+
+                                    // Filter out any potentially problematic entries
+                                    return collect($options)->filter()->toArray();
+                                })
+                                ->placeholder('Search and select a closed lead')
+                                ->helperText('Only closed leads are available for selection')
+                        ])
+                        ->modalHeading('Change Lead Association')
+                        ->modalDescription('Select a new lead to associate with this software handover.')
+                        ->requiresConfirmation()
+                        ->action(function (array $data, SoftwareHandover $record): void {
+                            try {
+                                // Get the lead details (just for notification)
+                                $company = CompanyDetail::where('lead_id', $data['lead_id'])->first();
+
+                                if (!$company) {
+                                    Notification::make()
+                                        ->title('Error')
+                                        ->body('The selected lead could not be found.')
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
+                                // Get the old lead ID for logging
+                                $oldLeadId = $record->lead_id;
+
+                                // Update ONLY the lead_id in the software handover
+                                // Removed company_name update as requested
+                                $record->update([
+                                    'lead_id' => $data['lead_id'],
+                                    // No company_name update here
+                                ]);
+
+                                // Log the change
+                                \Illuminate\Support\Facades\Log::info('Software handover lead ID changed', [
+                                    'handover_id' => $record->id,
+                                    'old_lead_id' => $oldLeadId,
+                                    'new_lead_id' => $data['lead_id'],
+                                    'changed_by' => auth()->user()->name,
+                                ]);
+
+                                // Send notification
+                                Notification::make()
+                                    ->title('Lead ID Updated')
+                                    ->body("Software handover lead ID changed from #{$oldLeadId} to #{$data['lead_id']}")
+                                    ->success()
+                                    ->send();
+
+                                // Refresh the table
+                                $this->refreshData();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to update lead ID: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->visible(fn () => auth()->user()->id === 26 || auth()->user()->role_id === 3),
                 ])
                 ->button()
                 ->color('warning')

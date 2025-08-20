@@ -625,7 +625,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             ];
                         }),
 
-                    self::rescheduleAppointmentAction(),
+                    // self::rescheduleAppointmentAction(),
 
                     Tables\Actions\Action::make('appointment_cancel')
                         ->visible(fn (ImplementerAppointment $appointment) =>
