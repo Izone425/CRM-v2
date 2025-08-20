@@ -96,6 +96,7 @@ class ImplementerCalendar extends Component
     public $onsiteRemarks = '';
     public $selectedOnsiteSessions = [];
     public $implementerCompanies = [];
+    public $skipEmailAndTeams = false;
 
     public function mount()
     {
@@ -1903,6 +1904,7 @@ class ImplementerCalendar extends Component
             $meetingId = null;
             $meetingPassword = null;
 
+            if (!$this->skipEmailAndTeams) {
                 try {
                     // Parse required attendees for Teams meeting
                     $attendeeEmails = [];
@@ -2049,6 +2051,14 @@ class ImplementerCalendar extends Component
                         ->body('The appointment will be created without Teams meeting details.')
                         ->send();
                 }
+            } else {
+                Notification::make()
+                    ->title('Session booked')
+                    ->success()
+                    ->body('Email and Teams meeting were skipped as requested')
+                    ->send();
+            }
+
             if ($leadId) {
                 $softwareHandoverId = \App\Models\SoftwareHandover::where('lead_id', $leadId)
                     ->orderBy('id', 'desc')
@@ -2077,93 +2087,94 @@ class ImplementerCalendar extends Component
 
             $appointment->save();
 
-            // Parse required attendees
-            $recipients = [];
-            $attendeeEmails = array_map('trim', explode(';', $this->requiredAttendees));
-            foreach ($attendeeEmails as $email) {
-                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $recipients[] = $email;
+            if(!$this->skipEmailAndTeams) {
+                // Parse required attendees
+                $recipients = [];
+                $attendeeEmails = array_map('trim', explode(';', $this->requiredAttendees));
+                foreach ($attendeeEmails as $email) {
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $recipients[] = $email;
+                    }
                 }
-            }
 
-            // Calculate implementation session count
-            $implementationCount = $existingAppointmentsCount + 1;
-            if ($this->implementationDemoType === 'KICK OFF MEETING SESSION') {
-                $implementationCount = 1; // Always count 1 for kick-off meeting
-            }
+                // Calculate implementation session count
+                $implementationCount = $existingAppointmentsCount + 1;
+                if ($this->implementationDemoType === 'KICK OFF MEETING SESSION') {
+                    $implementationCount = 1; // Always count 1 for kick-off meeting
+                }
 
-            // Format the date for day display
-            $appointmentDate = Carbon::parse($this->bookingDate);
-            $formattedDate = $appointmentDate->format('d F Y / l'); // e.g. "14 July 2025 / Monday"
+                // Format the date for day display
+                $appointmentDate = Carbon::parse($this->bookingDate);
+                $formattedDate = $appointmentDate->format('d F Y / l'); // e.g. "14 July 2025 / Monday"
 
-            try {
-                if (!empty($recipients)) {
-                    // Use implementer's email as sender
-                    $senderEmail = $implementer->email;
-                    $senderName = $implementer->name;
+                try {
+                    if (!empty($recipients)) {
+                        // Use implementer's email as sender
+                        $senderEmail = $implementer->email;
+                        $senderName = $implementer->name;
 
-                    // Select template based on appointment type
-                    $emailTemplate = ($this->implementationDemoType === 'KICK OFF MEETING SESSION')
-                        ? 'emails.implementer_appointment_notification'
-                        : 'emails.implementation_session';
+                        // Select template based on appointment type
+                        $emailTemplate = ($this->implementationDemoType === 'KICK OFF MEETING SESSION')
+                            ? 'emails.implementer_appointment_notification'
+                            : 'emails.implementation_session';
 
-                    // Set the appropriate email content
-                    $emailContent = [
-                        'lead' => [
-                            'implementerName' => $implementer->name,
-                            'implementerEmail' => $implementer->email,
-                            'company' => $companyDetail->company_name,
+                        // Set the appropriate email content
+                        $emailContent = [
+                            'lead' => [
+                                'implementerName' => $implementer->name,
+                                'implementerEmail' => $implementer->email,
+                                'company' => $companyDetail->company_name,
+                                'date' => $this->bookingDate,
+                                'startTime' => Carbon::parse($this->bookingStartTime)->format('H:i'),
+                                'endTime' => Carbon::parse($this->bookingEndTime)->format('H:i'),
+                                'demo_type' => $this->implementationDemoType,
+                                'appointment_type' => $this->appointmentType,
+                                'meetingLink' => $meetingLink,
+                                'type' => $this->implementationDemoType,
+                            ],
+                            'appointmentType' => $this->appointmentType,
+                            'type' => $this->implementationDemoType,
                             'date' => $this->bookingDate,
                             'startTime' => Carbon::parse($this->bookingStartTime)->format('H:i'),
                             'endTime' => Carbon::parse($this->bookingEndTime)->format('H:i'),
-                            'demo_type' => $this->implementationDemoType,
-                            'appointment_type' => $this->appointmentType,
                             'meetingLink' => $meetingLink,
-                            'type' => $this->implementationDemoType,
-                        ],
-                        'appointmentType' => $this->appointmentType,
-                        'type' => $this->implementationDemoType,
-                        'date' => $this->bookingDate,
-                        'startTime' => Carbon::parse($this->bookingStartTime)->format('H:i'),
-                        'endTime' => Carbon::parse($this->bookingEndTime)->format('H:i'),
-                        'meetingLink' => $meetingLink,
-                        'companyName' => $companyDetail->company_name,
-                        'implementerName' => $implementer->name,
-                        'implementerEmail' => $implementer->email,
-                        'remarks' => $this->remarks ?? null,
-                    ];
+                            'companyName' => $companyDetail->company_name,
+                            'implementerName' => $implementer->name,
+                            'implementerEmail' => $implementer->email,
+                            'remarks' => $this->remarks ?? null,
+                        ];
 
-                    if($this->implementationDemoType === 'REVIEW SESSION') {
-                        $this->implementationDemoType = 'REVIEW SESSION';
-                    }
-
-                    \Illuminate\Support\Facades\Mail::send(
-                        $emailTemplate,
-                        ['content' => $emailContent],
-                        function ($message) use ($recipients, $senderEmail, $senderName, $implementer, $companyDetail) {
-                            $message->from($senderEmail, $senderName)
-                                ->to($recipients)
-                                ->cc([$senderEmail]) // CC the implementer
-                                ->subject("{$this->implementationDemoType} | {$companyDetail->company_name}");
+                        if($this->implementationDemoType === 'REVIEW SESSION') {
+                            $this->implementationDemoType = 'REVIEW SESSION';
                         }
-                    );
+
+                        \Illuminate\Support\Facades\Mail::send(
+                            $emailTemplate,
+                            ['content' => $emailContent],
+                            function ($message) use ($recipients, $senderEmail, $senderName, $implementer, $companyDetail) {
+                                $message->from($senderEmail, $senderName)
+                                    ->to($recipients)
+                                    ->cc([$senderEmail]) // CC the implementer
+                                    ->subject("{$this->implementationDemoType} | {$companyDetail->company_name}");
+                            }
+                        );
+
+                        Notification::make()
+                            ->title('Session booked')
+                            ->success()
+                            ->body('Email notification sent to attendees')
+                            ->send();
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Email sending failed: Error: {$e->getMessage()}");
 
                     Notification::make()
-                        ->title('Session booked')
-                        ->success()
-                        ->body('Email notification sent to attendees')
+                        ->title('Session booked but email failed')
+                        ->warning()
+                        ->body('Error sending email: ' . $e->getMessage())
                         ->send();
                 }
-            } catch (\Exception $e) {
-                Log::error("Email sending failed: Error: {$e->getMessage()}");
-
-                Notification::make()
-                    ->title('Session booked but email failed')
-                    ->warning()
-                    ->body('Error sending email: ' . $e->getMessage())
-                    ->send();
             }
-
             // Close modals and reset form
             $this->showImplementationSessionModal = false;
             $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType']);
@@ -2366,11 +2377,16 @@ class ImplementerCalendar extends Component
 
             // Check if the session is in the past (before current time)
             foreach ($standardSessions as $key => $session) {
-                $sessionStart = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+                $today = Carbon::now()->format('Y-m-d');
+                $sessionDate = Carbon::parse($formattedDate)->format('Y-m-d');
 
-                // If session is in the past, mark it as past
-                if ($sessionStart < $currentTime) {
+                // If the date is in the past (previous days), mark as past
+                if ($sessionDate < $today) {
                     $standardSessions[$key]['status'] = 'past';
+                }
+                // Otherwise, all sessions for today and future days are available
+                else {
+                    $standardSessions[$key]['status'] = 'available';
                 }
             }
 
@@ -2394,11 +2410,7 @@ class ImplementerCalendar extends Component
                             if (Carbon::now()->format('Y-m-d') > $formattedDate) {
                                 $standardSessions[$key]['status'] = 'past';
                             }
-                            // If the session is in the past on the same day, mark as past
-                            elseif (Carbon::now()->format('Y-m-d') === $formattedDate && Carbon::now() > $sessionStartDateTime) {
-                                $standardSessions[$key]['status'] = 'past';
-                            }
-                            // If the session is still in the future, make it available
+                            // If today, always make available regardless of session time
                             else {
                                 $standardSessions[$key]['status'] = 'available';
                                 // Important: Remove any association with the cancelled appointment

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 use App\Models\Quotation;
+use App\Models\Subsidiary;
 use App\Models\User;
 
 class GenerateQuotationPdfController extends Controller
@@ -52,9 +53,18 @@ class GenerateQuotationPdfController extends Controller
         /**
          * save a copy of quotation in public storage
          */
+        $companyName = '';
+        if (!empty($quotation->subsidiary_id)) {
+            // Fetch from subsidiaries table
+            $subsidiary = Subsidiary::find($quotation->subsidiary_id);
+            $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown';
+        } else {
+            // Use the original company name from lead's company detail
+            $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
+        }
         //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' . Str::lower($quotation->sales_person->code) . '.pdf';
         //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' .
-        $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($quotation->lead->companyDetail->company_name));
+        $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
         $quotationFilename = Str::upper($quotationFilename) . '.pdf';
         $pdf->save(public_path('/storage/quotations/'.$quotationFilename));
 
