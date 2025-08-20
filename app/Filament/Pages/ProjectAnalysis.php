@@ -160,7 +160,7 @@ class ProjectAnalysis extends Page
             'BARI' => 'Muhammad Khoirul Bariah',
             'ADZZIM' => 'Adzzim Bin Kassim',
             'AZRUL' => 'Azrul Nizam',
-            'HANIF' => 'Muhammad Hanif',
+            'HANIF' => 'Hanif',
             'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
             'Noor Syazana' => 'Noor Syazana',
         ];

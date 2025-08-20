@@ -157,7 +157,7 @@ class SessionTomorrow extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    ImplementerActions::rescheduleAppointmentAction(),
+                    // ImplementerActions::rescheduleAppointmentAction(),
                     ImplementerActions::cancelAppointmentAction(),
                 ])->button()
             ])

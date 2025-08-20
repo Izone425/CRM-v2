@@ -25,6 +25,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -80,7 +83,9 @@ class QuotationResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Customer Information')
+                Grid::make(5)
+                ->schema([
+                    Section::make('Customer Information')
                     ->schema([
                         Select::make('lead_id')
                             ->label('Company Name')
@@ -107,6 +112,39 @@ class QuotationResource extends Resource
                             ->preload()
                             ->required()
                             ->live(debounce: 550),
+                        Select::make('subsidiary_id')
+                            ->label('Use Subsidiary Details')
+                            ->options(function (Forms\Get $get) {
+                                $leadId = $get('lead_id');
+                                if (!$leadId) {
+                                    return [];
+                                }
+
+                                $lead = Lead::find($leadId);
+                                if (!$lead) {
+                                    return [];
+                                }
+
+                                // Return "None" option plus all subsidiaries
+                                $options = ['' => 'Use Default Company Details'];
+
+                                // Add subsidiaries
+                                $subsidiaries = $lead->subsidiaries()->get();
+                                foreach ($subsidiaries as $subsidiary) {
+                                    $options[$subsidiary->id] = $subsidiary->company_name;
+                                }
+
+                                return $options;
+                            })
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                // Clear any previous selections
+                                $set('subsidiary_id', $state);
+                            })
+                            ->placeholder('Use Default Company Details')
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->visible(fn (Forms\Get $get) => !empty($get('lead_id'))),
                         Flatpickr::make('quotation_date')
                             ->label('Date')
                             ->dateFormat('j M Y')
@@ -285,31 +323,123 @@ class QuotationResource extends Resource
                     ])
                     ->columnSpan(3)
                     ->columns(2),
-                Section::make('Summary')
-                    ->schema([
-                        TextInput::make('sub_total')
-                            ->label('Sub Total')
-                            ->readOnly()
-                            ->prefix(fn(Forms\Get $get) => $get('currency')),
-                        TextInput::make('sst_rate')
-                            ->label('SST Rate')
-                            ->suffix('%')
-                            ->default(function() {
-                                $defaultValue = Setting::where('name','sst_rate')->first()->value;
-                                //info("Default: {$defaultValue}");
-                                return $defaultValue;
-                            })
-                            ->afterStateHydrated(fn(Forms\Set $set) => $set('sst_rate', Setting::where('name','sst_rate')->first()->value)),
-                        TextInput::make('tax_amount')
-                            ->label('Tax Amount')
-                            ->readOnly()
-                            ->prefix(fn(Forms\Get $get) => $get('currency')),
-                        TextInput::make('total')
-                            ->label('Total')
-                            ->readOnly()
-                            ->prefix(fn(Forms\Get $get) => $get('currency')),
+                Tabs::make('financial_tabs')
+                    ->tabs([
+                        Tabs\Tab::make('Summary')
+                            ->schema([
+                                TextInput::make('sub_total')
+                                    ->label('Sub Total')
+                                    ->readOnly()
+                                    ->prefix(fn(Forms\Get $get) => $get('currency')),
+                                TextInput::make('sst_rate')
+                                    ->label('SST Rate')
+                                    ->suffix('%')
+                                    ->default(function() {
+                                        $defaultValue = Setting::where('name','sst_rate')->first()->value;
+                                        return $defaultValue;
+                                    })
+                                    ->afterStateHydrated(fn(Forms\Set $set) => $set('sst_rate', Setting::where('name','sst_rate')->first()->value)),
+                                TextInput::make('tax_amount')
+                                    ->label('Tax Amount')
+                                    ->readOnly()
+                                    ->prefix(fn(Forms\Get $get) => $get('currency')),
+                                TextInput::make('total')
+                                    ->label('Total')
+                                    ->readOnly()
+                                    ->prefix(fn(Forms\Get $get) => $get('currency')),
+                            ]),
+                        Tabs\Tab::make('Subsidiary Details')
+                            ->schema([
+                                // Add a notice when no subsidiary is selected
+                                Placeholder::make('no_subsidiary_selected')
+                                    ->label('No Subsidiary Selected')
+                                    ->content('Please select a subsidiary from the dropdown above to view details.')
+                                    ->visible(function (Forms\Get $get, ?Quotation $record) {
+                                        $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                        return empty($subsidiaryId);
+                                    }),
+
+                                // Only show subsidiary details when a subsidiary is selected
+                                Grid::make()
+                                    ->schema([
+                                        Placeholder::make('subsidiary_address1')
+                                            ->label('Address 1')
+                                            ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                if (!$subsidiaryId) return 'N/A';
+                                                $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                return $subsidiary?->company_address1 ?? 'N/A';
+                                            }),
+                                        Placeholder::make('subsidiary_address2')
+                                            ->label('Address 2')
+                                            ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                if (!$subsidiaryId) return 'N/A';
+                                                $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                return $subsidiary?->company_address2 ?? 'N/A';
+                                            }),
+                                        Grid::make(2)
+                                            ->schema([
+                                                Placeholder::make('postcode')
+                                                    ->label('Postcode')
+                                                    ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                        $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                        if (!$subsidiaryId) return 'N/A';
+                                                        $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                        return $subsidiary?->postcode ?? 'N/A';
+                                                    }),
+                                                Placeholder::make('subsidiary_state')
+                                                ->label('State')
+                                                ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                    $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                    if (!$subsidiaryId) return 'N/A';
+                                                    $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                    return $subsidiary?->state ?? 'N/A';
+                                                }),
+                                            ]),
+                                        Grid::make(2)
+                                            ->schema([
+                                                Placeholder::make('subsidiary_contact_person')
+                                                    ->label('Contact Person')
+                                                    ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                        $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                        if (!$subsidiaryId) return 'N/A';
+                                                        $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                        return $subsidiary?->name ?? 'N/A';
+                                                    }),
+                                                Placeholder::make('subsidiary_email')
+                                                    ->label('Email')
+                                                    ->content(function (Forms\Get $get, ?Quotation $record) {
+                                                        $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                                        if (!$subsidiaryId) return 'N/A';
+                                                        $subsidiary = \App\Models\Subsidiary::find($subsidiaryId);
+                                                        return $subsidiary?->email ?? 'N/A';
+                                                    }),
+                                            ]),
+                                    ])
+                                    ->visible(function (Forms\Get $get, ?Quotation $record) {
+                                        $subsidiaryId = $get('subsidiary_id') ?? $record?->subsidiary_id ?? null;
+                                        return !empty($subsidiaryId);
+                                    }),
+                            ])
+                            // Make the entire tab visible only when subsidiary_id is selected in the form
+                            ->visible(function (Forms\Get $get, ?Quotation $record) {
+                                // Attempt to get subsidiary_id from form state or record
+                                $leadId = $get('lead_id') ?? $record?->lead_id ?? null;
+
+                                // If we have a lead_id, check if it has any subsidiaries
+                                if ($leadId) {
+                                    $lead = \App\Models\Lead::find($leadId);
+                                    if ($lead && $lead->subsidiaries()->count() > 0) {
+                                        return true; // Show the tab if the lead has subsidiaries
+                                    }
+                                }
+
+                                return false; // Hide the tab if no subsidiaries available
+                            }),
                     ])
-                    ->columnSpan(1),
+                    ->columnSpan(2),
+                ]),
                 Section::make('Details')
                     ->schema([
                         Hidden::make('base_subscription')

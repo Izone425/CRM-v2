@@ -1,85 +1,46 @@
 @php
-    // Get the current lead record using various methods
-    $lead = null;
+    $lead = $this->record; // Accessing Filament's record
 
-    // Check if we're in a Filament form context using different possible variable names
-    if (isset($getRecord) && method_exists($getRecord, 'subsidiaries')) {
-        $lead = $getRecord;
-    } elseif (isset($getRecord) && is_numeric($getRecord)) {
-        $lead = \App\Models\Lead::find($getRecord);
-    } elseif (isset($record) && method_exists($record, 'subsidiaries')) {
-        $lead = $record;
-    } else {
-        // Try to get from URL param if not in livewire component
-        $urlSegments = request()->segments();
-        $leadId = end($urlSegments);
-        if (is_numeric($leadId)) {
-            $lead = \App\Models\Lead::find($leadId);
-        } elseif (is_string($leadId) && strlen($leadId) > 5) {
-            // It might be an encrypted ID
-            try {
-                $decryptedId = \App\Classes\Encryptor::decrypt($leadId);
-                if (is_numeric($decryptedId)) {
-                    $lead = \App\Models\Lead::find($decryptedId);
-                }
-            } catch (\Exception $e) {
-                // Decryption failed, just continue
-            }
-        }
-    }
+    $companyDetails = [
+        ['label' => 'Company Name', 'value' => $lead->companyDetail->company_name ?? '-'],
+        ['label' => 'Postcode', 'value' => $lead->companyDetail->postcode ?? '-'],
+        ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
+        ['label' => 'State', 'value' => $lead->companyDetail->state ?? '-'],
+        ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
+        ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
+        ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
 
-    // Get subsidiaries if lead is found
-    $subsidiaries = collect([]);
-    if ($lead instanceof \App\Models\Lead) {
-        $subsidiaries = $lead->subsidiaries()->orderBy('created_at', 'desc')->get();
-    }
-
-    // Define table headers
-    $headers = [
-        ['label' => 'Company Name'],
-        ['label' => 'Reg. Number'],
-        ['label' => 'Contact Name'],
-        ['label' => 'Contact Number'],
-        ['label' => 'Email'],
-        ['label' => 'State'],
-        ['label' => 'Industry'],
-        ['label' => 'Added On'],
+        // Remove Old Register Number
+        // ['label' => 'Old Reg No.', 'value' => $lead->companyDetail->reg_no_old ?? '-'],
     ];
+
+    // Split into rows with a max of 2 items per row
+    $rows = array_chunk($companyDetails, 2);
 @endphp
 
-<div class="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
-    @if($subsidiaries->isEmpty())
-        <div class="p-6 text-center text-gray-500">
-            <div class="text-lg font-semibold">No subsidiaries found</div>
-            <p class="mt-1">Use the "Add Subsidiary" button to add a new subsidiary company.</p>
-        </div>
-    @else
-        <div class="overflow-x-auto">
-            <table class="w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        @foreach ($headers as $header)
-                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                {{ $header['label'] }}
-                            </th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach ($subsidiaries as $subsidiary)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">{{ $subsidiary->company_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->register_number }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->contact_number }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->email }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->state }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->industry }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $subsidiary->created_at->format('d/m/Y') }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;"
+     class="grid grid-cols-2 gap-6">
+
+    @foreach ($rows as $row)
+        @foreach ($row as $item)
+            <div style="--col-span-default: span 1 / span 1;" class="col-[--col-span-default]">
+                <div data-field-wrapper="" class="fi-fo-field-wrp">
+                    <div class="grid gap-y-2">
+                        <div class="flex items-center justify-between gap-x-3">
+                            <div class="inline-flex items-center fi-fo-field-wrp-label gap-x-3">
+                                <span class="text-sm font-medium leading-6 text-gray-950 dark:text-white">
+                                    {{ $item['label'] }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="grid auto-cols-fr gap-y-2">
+                            <div class="text-sm leading-6 text-gray-900 fi-fo-placeholder dark:text-white">
+                                {{ $item['value'] }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endforeach
 </div>

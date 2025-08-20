@@ -1378,7 +1378,7 @@
                                     @else
                                         <!-- Display Available Slot -->
                                         <div class="available-session-card" style="{{ $cardStyle }}"
-                                            @if($isClickable)
+                                            @if($isClickable && auth()->user()->role_id != 2)
                                                 wire:click="bookSession('{{ $row['implementerId'] }}', '{{ $weekDays[$loop->parent->iteration - 1]['carbonDate'] }}', '{{ $sessionName }}', '{{ $sessionDetails['start_time'] }}', '{{ $sessionDetails['end_time'] }}')"
                                             @endif>
                                             <div class="available-session-bar"></div>
