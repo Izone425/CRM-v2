@@ -19,7 +19,7 @@
         /* Icon sidebar - slim version */
         .icon-sidebar {
             width: 60px;
-            min-width: 60px;
+            min-width: 50px;
             height: 100vh;
             background-color: #ffffff;
             display: flex;
@@ -32,7 +32,7 @@
 
         /* Icon sidebar header */
         .icon-header {
-            padding: 1rem;
+            padding: 1rem 0.5rem 1rem 0.5rem;
             border-bottom: 1px solid rgba(229, 231, 235, 0.5);
             display: flex;
             justify-content: center;
@@ -59,9 +59,9 @@
 
         /* Icon sidebar content */
         .icon-content {
-            flex: 1;
+            /* flex: 1; */
             overflow-y: auto;
-            padding: 1rem;
+            padding: 1rem 0.5rem 1rem 0.5rem;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;

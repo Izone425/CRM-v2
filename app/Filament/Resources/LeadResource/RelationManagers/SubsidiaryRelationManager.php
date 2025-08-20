@@ -35,6 +35,8 @@ class SubsidiaryRelationManager extends RelationManager
 
     public function defaultForm()
     {
+        $leadCompany = $this->ownerRecord->companyDetail;
+
         return [
             Grid::make(3)
                 ->schema([
@@ -44,12 +46,14 @@ class SubsidiaryRelationManager extends RelationManager
                                 ->label('COMPANY NAME')
                                 ->required()
                                 ->maxLength(255)
+                                ->default(fn() => $leadCompany ? $leadCompany->company_name : null)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                 ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                 ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
                             TextInput::make('company_address1')
                                 ->label('COMPANY ADDRESS 1')
+                                ->default(fn() => $leadCompany ? $leadCompany->company_address1 : null)
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
@@ -58,6 +62,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('company_address2')
                                 ->label('COMPANY ADDRESS 2')
+                                ->default(fn() => $leadCompany ? $leadCompany->company_address2 : null)
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
@@ -69,13 +74,14 @@ class SubsidiaryRelationManager extends RelationManager
                                     Select::make('industry')
                                         ->label('INDUSTRY')
                                         ->placeholder('Select an industry')
-                                        ->default('None')
+                                        ->default(fn() => $leadCompany ? $leadCompany->industry : 'None')
                                         ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
                                         ->searchable()
                                         ->required(),
 
                                     TextInput::make('postcode')
                                         ->label('POSTCODE')
+                                        ->default(fn() => $leadCompany ? $leadCompany->postcode : null)
                                         ->maxLength(20)
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                         ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
@@ -83,6 +89,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                                     Select::make('state')
                                         ->label('STATE')
+                                        ->default(fn() => $leadCompany ? $leadCompany->state : null)
                                         ->options(function () {
                                             $filePath = storage_path('app/public/json/StateCodes.json');
 
@@ -120,6 +127,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('register_number')
                                 ->label('NEW REGISTER NUMBER')
+                                ->default(fn() => $leadCompany ? $leadCompany->reg_no_new : null)
                                 ->maxLength(50)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                 ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
@@ -131,6 +139,7 @@ class SubsidiaryRelationManager extends RelationManager
                         ->schema([
                             TextInput::make('name')
                                 ->label('NAME')
+                                ->default(fn() => $leadCompany ? $leadCompany->name : null)
                                 ->required()
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -139,6 +148,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('contact_number')
                                 ->label('CONTACT NUMBER')
+                                ->default(fn() => $leadCompany ? $leadCompany->contact_no : null)
                                 ->required()
                                 ->tel()
                                 ->maxLength(20)
@@ -148,12 +158,14 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('email')
                                 ->label('EMAIL ADDRESS')
+                                ->default(fn() => $leadCompany ? $leadCompany->email : null)
                                 ->required()
                                 ->email()
                                 ->maxLength(255),
 
                             TextInput::make('position')
                                 ->label('POSITION')
+                                ->default(fn() => $leadCompany ? $leadCompany->position : null)
                                 ->required()
                                 ->maxLength(100)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])

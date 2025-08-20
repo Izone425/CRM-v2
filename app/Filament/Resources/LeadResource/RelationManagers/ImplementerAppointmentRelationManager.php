@@ -18,6 +18,7 @@ use App\Services\TemplateSelector;
 use Carbon\Carbon;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
@@ -412,6 +413,11 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 })
                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 
+            Checkbox::make('skip_email_teams')
+                ->label('Skip Email & Teams Meeting')
+                ->helperText('Check this to create appointment without sending emails or creating a Teams meeting')
+                ->default(false),
+
             Textarea::make('remarks')
                 ->label('REMARKS')
                 ->rows(3)
@@ -790,6 +796,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     // Get the lead record
                     $lead = $this->getOwnerRecord();
 
+                    $skipEmailAndTeams = $data['skip_email_teams'] ?? false;
+
                     // Process required attendees from form data
                     $requiredAttendeesInput = $data['required_attendees'] ?? '';
                     $attendeeEmails = [];
@@ -840,155 +848,163 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         ]);
                     }
 
-                    // Set up email recipients for notification
-                    $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
+                    if (!$skipEmailAndTeams) {
+                        // Set up email recipients for notification
+                        $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
 
-                    // Add required attendees if they have valid emails
-                    foreach ($attendeeEmails as $email) {
-                        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                            $recipients[] = $email;
-                        }
-                    }
-
-                    // Format start and end times for Teams meeting
-                    $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-                    $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-
-                    // Get the implementer as the organizer
-                    $implementerName = $data['implementer'] ?? null;
-                    $implementerUser = User::where('name', $implementerName)->first();
-                    $meetingLink = null;
-
-                    if ($implementerUser && $implementerUser->email) {
-                        $organizerEmail = $implementerUser->email;
-
-                        // Initialize Microsoft Graph service
-                        $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
-                        $graph = new \Microsoft\Graph\Graph();
-                        $graph->setAccessToken($accessToken);
-
-                        $meetingPayload = [
-                            'start' => [
-                                'dateTime' => $startTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'end' => [
-                                'dateTime' => $endTime,
-                                'timeZone' => 'Asia/Kuala_Lumpur'
-                            ],
-                            'subject' => 'TIMETEC HR | ' . $data['appointment_type'] . ' | ' . $data['type'] . ' | ' . ($lead->companyDetail->company_name ?? 'Client'),
-                            'isOnlineMeeting' => true,
-                            'onlineMeetingProvider' => 'teamsForBusiness',
-                            'allowNewTimeProposals' => false,
-                            'responseRequested' => true,
-                            'attendees' => []
-                        ];
-
-                        // Add required attendees to the meeting payload
-                        if (!empty($attendeeEmails)) {
-                            foreach ($attendeeEmails as $email) {
-                                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                    $meetingPayload['attendees'][] = [
-                                        'emailAddress' => [
-                                            'address' => $email,
-                                            'name' => $email // Using email as name since we don't have names
-                                        ],
-                                        'type' => 'required'
-                                    ];
-                                }
+                        // Add required attendees if they have valid emails
+                        foreach ($attendeeEmails as $email) {
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                $recipients[] = $email;
                             }
                         }
 
+                        // Format start and end times for Teams meeting
+                        $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+                        $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+
+                        // Get the implementer as the organizer
+                        $implementerName = $data['implementer'] ?? null;
+                        $implementerUser = User::where('name', $implementerName)->first();
+                        $meetingLink = null;
+
+                        if ($implementerUser && $implementerUser->email) {
+                            $organizerEmail = $implementerUser->email;
+
+                            // Initialize Microsoft Graph service
+                            $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+                            $graph = new \Microsoft\Graph\Graph();
+                            $graph->setAccessToken($accessToken);
+
+                            $meetingPayload = [
+                                'start' => [
+                                    'dateTime' => $startTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'end' => [
+                                    'dateTime' => $endTime,
+                                    'timeZone' => 'Asia/Kuala_Lumpur'
+                                ],
+                                'subject' => 'TIMETEC HR | ' . $data['appointment_type'] . ' | ' . $data['type'] . ' | ' . ($lead->companyDetail->company_name ?? 'Client'),
+                                'isOnlineMeeting' => true,
+                                'onlineMeetingProvider' => 'teamsForBusiness',
+                                'allowNewTimeProposals' => false,
+                                'responseRequested' => true,
+                                'attendees' => []
+                            ];
+
+                            // Add required attendees to the meeting payload
+                            if (!empty($attendeeEmails)) {
+                                foreach ($attendeeEmails as $email) {
+                                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                        $meetingPayload['attendees'][] = [
+                                            'emailAddress' => [
+                                                'address' => $email,
+                                                'name' => $email // Using email as name since we don't have names
+                                            ],
+                                            'type' => 'required'
+                                        ];
+                                    }
+                                }
+                            }
+
+                            try {
+                                // Use the correct endpoint for app-only authentication
+                                $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
+                                    ->attachBody($meetingPayload)
+                                    ->setReturnType(\Microsoft\Graph\Model\Event::class)
+                                    ->execute();
+
+                                $meetingInfo = $onlineMeeting->getOnlineMeeting();
+                                $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
+
+                                Notification::make()
+                                    ->title('Teams Meeting Created Successfully')
+                                    ->success()
+                                    ->body('The meeting has been scheduled successfully.')
+                                    ->send();
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+                                    'request' => $meetingPayload,
+                                    'user' => $organizerEmail,
+                                ]);
+
+                                Notification::make()
+                                    ->title('Failed to Create Teams Meeting')
+                                    ->danger()
+                                    ->body('Error: ' . $e->getMessage())
+                                    ->send();
+                            }
+                        }
+
+                        // Prepare email content
+                        $viewName = 'emails.implementer_appointment_notification';
+                        $leadowner = User::where('name', $lead->lead_owner)->first();
+
+                        $emailContent = [
+                            'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+                            'lead' => [
+                                'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
+                                'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                'implementerName' => $data['implementer'] ?? 'N/A',
+                                'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
+                                'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
+                                'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
+                                'date' => Carbon::parse($data['date'])->format('Y-m-d'),
+                                'dateDisplay' => Carbon::parse($data['date'])->format('d/m/Y'),
+                                'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
+                                'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
+                                'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+                                'session' => $data['session'] ?? 'N/A',
+                                'demo_type' => $data['type'],
+                                'appointment_type' => $data['appointment_type'],
+                                'remarks' => $data['remarks'] ?? 'N/A',
+                                'meetingLink' => $meetingLink ?? 'Will be provided separately',
+                            ],
+                        ];
+
+                        // Get authenticated user's email for sender
+                        $authUser = auth()->user();
+                        $senderEmail = $authUser->email;
+                        $senderName = $authUser->name;
+
+                        // Default to implementer email if available
+                        if ($implementerUser && $implementerUser->email) {
+                            $senderEmail = $implementerUser->email;
+                            $senderName = $implementerUser->name;
+                        }
+
                         try {
-                            // Use the correct endpoint for app-only authentication
-                            $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
-                                ->attachBody($meetingPayload)
-                                ->setReturnType(\Microsoft\Graph\Model\Event::class)
-                                ->execute();
+                            // Send email with template and custom subject format
+                            if (count($recipients) > 0) {
+                                \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
+                                    $message->from($senderEmail, $senderName)
+                                        ->to($recipients)
+                                        ->bcc('admin.timetec.hr@timeteccloud.com')
+                                        ->subject("TIMETEC HR | {$data['appointment_type']} | {$data['type']} | {$lead->companyDetail->company_name}");
+                                });
 
-                            $meetingInfo = $onlineMeeting->getOnlineMeeting();
-                            $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
-
-                            Notification::make()
-                                ->title('Teams Meeting Created Successfully')
-                                ->success()
-                                ->body('The meeting has been scheduled successfully.')
-                                ->send();
+                                Notification::make()
+                                    ->title('Implementer appointment notification sent')
+                                    ->success()
+                                    ->body('Email notification sent to administrator and required attendees')
+                                    ->send();
+                            }
                         } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
-                                'request' => $meetingPayload,
-                                'user' => $organizerEmail,
-                            ]);
+                            // Handle email sending failure
+                            Log::error("Email sending failed for implementer appointment: Error: {$e->getMessage()}");
 
                             Notification::make()
-                                ->title('Failed to Create Teams Meeting')
+                                ->title('Email Notification Failed')
                                 ->danger()
-                                ->body('Error: ' . $e->getMessage())
+                                ->body('Could not send email notification: ' . $e->getMessage())
                                 ->send();
                         }
-                    }
-
-                    // Prepare email content
-                    $viewName = 'emails.implementer_appointment_notification';
-                    $leadowner = User::where('name', $lead->lead_owner)->first();
-
-                    $emailContent = [
-                        'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                        'lead' => [
-                            'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
-                            'company' => $lead->companyDetail->company_name ?? 'N/A',
-                            'implementerName' => $data['implementer'] ?? 'N/A',
-                            'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                            'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                            'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                            'date' => Carbon::parse($data['date'])->format('Y-m-d'),
-                            'dateDisplay' => Carbon::parse($data['date'])->format('d/m/Y'),
-                            'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
-                            'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
-                            'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                            'session' => $data['session'] ?? 'N/A',
-                            'demo_type' => $data['type'],
-                            'appointment_type' => $data['appointment_type'],
-                            'remarks' => $data['remarks'] ?? 'N/A',
-                            'meetingLink' => $meetingLink ?? 'Will be provided separately',
-                        ],
-                    ];
-
-                    // Get authenticated user's email for sender
-                    $authUser = auth()->user();
-                    $senderEmail = $authUser->email;
-                    $senderName = $authUser->name;
-
-                    // Default to implementer email if available
-                    if ($implementerUser && $implementerUser->email) {
-                        $senderEmail = $implementerUser->email;
-                        $senderName = $implementerUser->name;
-                    }
-
-                    try {
-                        // Send email with template and custom subject format
-                        if (count($recipients) > 0) {
-                            \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
-                                $message->from($senderEmail, $senderName)
-                                    ->to($recipients)
-                                    ->bcc('admin.timetec.hr@timeteccloud.com')
-                                    ->subject("TIMETEC HR | {$data['appointment_type']} | {$data['type']} | {$lead->companyDetail->company_name}");
-                            });
-
-                            Notification::make()
-                                ->title('Implementer appointment notification sent')
-                                ->success()
-                                ->body('Email notification sent to administrator and required attendees')
-                                ->send();
-                        }
-                    } catch (\Exception $e) {
-                        // Handle email sending failure
-                        Log::error("Email sending failed for implementer appointment: Error: {$e->getMessage()}");
-
+                    } else {
                         Notification::make()
-                            ->title('Email Notification Failed')
-                            ->danger()
-                            ->body('Could not send email notification: ' . $e->getMessage())
+                            ->title('Email and Teams meeting skipped')
+                            ->info()
+                            ->body('The appointment was created without sending email or creating Teams meeting.')
                             ->send();
                     }
 

@@ -34,13 +34,6 @@ class CommercialItemTabs
         return [
             Tabs::make('Commercial Items')
                 ->tabs([
-                    Tabs\Tab::make('Subsidiary Details')
-                        ->schema([
-                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager::class)
-                                ->columnSpanFull(),
-                        ]),
-
                     Tabs\Tab::make('Quotation')
                         ->schema([
                             Section::make('Status')
@@ -75,6 +68,13 @@ class CommercialItemTabs
                         ->schema([
 
                         ]),
+                    Tabs\Tab::make('Subsidiary Details')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager::class)
+                                ->columnSpanFull(),
+                        ]),
+
                 ])
                 ->columnSpan(2),
         ];

@@ -2133,6 +2133,24 @@
                             <span class="form-error">{{ $message }}</span>
                         @enderror
                     </div>
+
+                    <!-- Skip Email and Teams Meeting Toggle -->
+                    <div class="form-group">
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                wire:model="skipEmailAndTeams"
+                                id="skipEmailAndTeams"
+                                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            >
+                            <label for="skipEmailAndTeams" class="block ml-2 text-sm font-medium text-gray-700">
+                                Skip sending email and creating Teams meeting
+                            </label>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Select this option if you don't want to send an email notification or create a Teams meeting
+                        </p>
+                    </div>
                 </div>
             </div>
 
