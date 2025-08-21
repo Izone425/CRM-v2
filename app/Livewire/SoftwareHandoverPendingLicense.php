@@ -121,13 +121,10 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
-                // Add this new filter for status
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
                         'New' => 'New',
-                        'Approved' => 'Approved',
                         'Rejected' => 'Rejected',
                         'Completed' => 'Completed',
                     ])
@@ -144,7 +141,17 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                     ->placeholder('All Salesperson')
                     ->multiple(),
 
-                SortFilter::make("sort_by"),
+                SelectFilter::make('implementer')
+                    ->label('Filter by Implementer')
+                    ->options(function () {
+                        return User::whereIn('role_id', ['4', '5'])
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Implementer')
+                    ->multiple(),
+
+                SortFilter::make("sort_by")
             ])
             ->columns([
                 TextColumn::make('id')

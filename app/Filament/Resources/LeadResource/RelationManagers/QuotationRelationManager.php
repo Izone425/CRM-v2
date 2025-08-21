@@ -145,7 +145,16 @@ class QuotationRelationManager extends RelationManager
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Lead')
-                    ->formatStateUsing(fn($state): string => Str::upper($state)),
+                    ->formatStateUsing(function (Quotation $record): string {
+                        // Check if quotation has a subsidiary_id
+                        if ($record->subsidiary_id) {
+                            // Get company name from subsidiary
+                            $subsidiaryName = $record->subsidiary?->company_name ?? 'N/A';
+                            return Str::upper($subsidiaryName);
+                        }
+                        // Otherwise get company name from lead's companyDetail
+                        return Str::upper($record->lead?->companyDetail?->company_name ?? 'N/A');
+                    }),
                     // ->summarize([
                     //     Count::make()
                     // ]),

@@ -68,11 +68,6 @@ class Subsidiary extends Model
         return $value ? Str::upper($value) : null;
     }
 
-    public function getStateAttribute($value)
-    {
-        return Str::upper($value);
-    }
-
     public function getIndustryAttribute($value)
     {
         return Str::upper($value);

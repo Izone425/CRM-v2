@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Classes\Encryptor;
@@ -26,8 +25,8 @@ class SoftwareHandoverExportController extends Controller
             $decryptedLeadId = Encryptor::decrypt($leadId);
             Log::info('Decrypted lead ID: ' . $decryptedLeadId);
 
-            // Get the lead with company details
-            $lead = Lead::with('companyDetail', 'softwareHandover')->findOrFail($decryptedLeadId);
+            // Get the lead with company details and subsidiaries
+            $lead = Lead::with(['companyDetail', 'softwareHandover', 'subsidiaries'])->findOrFail($decryptedLeadId);
             Log::info('Lead found: ' . $lead->id);
 
             // Build the data for our spreadsheet
@@ -103,7 +102,10 @@ class SoftwareHandoverExportController extends Controller
                 "EmailAddress"
             ];
 
-            // Build customer data row
+            // Create an array to hold all data rows (parent company + subsidiaries)
+            $allDataRows = [];
+
+            // Build parent company data row
             $companyName = $lead->companyDetail->company_name ?? '';
             $contactPerson = $lead->companyDetail->name ?? $lead->name ?? '';
             $tempPhone = $lead->companyDetail->contact_no ?? $lead->phone ?? '';
@@ -125,17 +127,11 @@ class SoftwareHandoverExportController extends Controller
             $formattedAddress4 = $state;
             $salesAgent = User::find($lead->salesperson)?->name ?? '';
 
-            // Generate a unique debtor code based on company name
-            $debtorCode = substr(strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $companyName)), 0, 8);
-            if (empty($debtorCode)) {
-                $debtorCode = 'CUS' . str_pad($lead->id, 5, '0', STR_PAD_LEFT);
-            }
-
-            // Create the data row with the specific format required
-            $dataRow = [
+            // Create the parent company row
+            $parentDataRow = [
                 '',
                 'N',                     // If Yes, under which co?
-                '',                      // DebtorCode
+                '',             // DebtorCode
                 $companyName,            // CompanyName
                 '',                      // Desc2
                 '',                      // AreaCode
@@ -167,6 +163,53 @@ class SoftwareHandoverExportController extends Controller
                 $email                   // EmailAddress
             ];
 
+            // Add the parent company row
+            $allDataRows[] = $parentDataRow;
+
+            // Check if subsidiaries exist and add them
+            if ($lead->subsidiaries && count($lead->subsidiaries) > 0) {
+                foreach ($lead->subsidiaries as $index => $subsidiary) {
+                    // Create data row for this subsidiary
+                    $subsidiaryDataRow = [
+                        '',
+                        $companyName,   // If Yes, under which co?
+                        '',             // Parent company debtor code
+                        $subsidiary->company_name,       // Subsidiary name
+                        $subsidiary->description ?? '', // Desc2
+                        '',                      // AreaCode
+                        $salesAgent,             // SalesAgent
+                        '',                      // DebtorType
+                        'C.O.D',                 // DisplayTerm
+                        'I',                     // AgingOn (Invoice Date)
+                        'O',                     // StatementType (Open Item)
+                        'MYR',                   // CurrencyCode
+                        $subsidiary->register_number ?? '',  // RegisterNo
+                        $subsidiary->company_address1 ?? $formattedAddress1,  // Address1
+                        $subsidiary->company_address2 ?? $formattedAddress2,  // Address2
+                        $subsidiary->city ?? $formattedAddress3,      // Address3 (City)
+                        $subsidiary->state ?? $formattedAddress4,     // Address4 (State)
+                        $subsidiary->postcode ?? $postcode,           // PostCode
+                        $subsidiary->company_address1 ?? $formattedAddress1,  // DeliverAddr1
+                        $subsidiary->company_address2 ?? $formattedAddress2,  // DeliverAddr2
+                        $subsidiary->city ?? $formattedAddress3,      // DeliverAddr3
+                        $subsidiary->state ?? $formattedAddress4,     // DeliverAddr4
+                        $subsidiary->postcode ?? $postcode,           // DeliverPostCode
+                        $subsidiary->name ?? $contactPerson, // Attention
+                        $this->cleanPhoneNumber($subsidiary->contact_number ?? $phone), // Phone1
+                        '',                      // Phone2
+                        '',                      // Mobile
+                        '',                      // Fax1
+                        '',                      // Fax2
+                        '',                      // ExemptNo
+                        '',                      // ExpiryDate
+                        $subsidiary->email ?? $email  // EmailAddress
+                    ];
+
+                    // Add this subsidiary row
+                    $allDataRows[] = $subsidiaryDataRow;
+                }
+            }
+
             // Create Excel file directly instead of CSV
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
@@ -174,7 +217,13 @@ class SoftwareHandoverExportController extends Controller
             // Add data to the spreadsheet
             $sheet->fromArray([$descriptionRow], null, 'A1');
             $sheet->fromArray([$headerRow], null, 'A2');
-            $sheet->fromArray([$dataRow], null, 'A3');
+
+            // Add all data rows starting from row 3
+            $rowIndex = 3;
+            foreach ($allDataRows as $dataRow) {
+                $sheet->fromArray([$dataRow], null, 'A' . $rowIndex);
+                $rowIndex++;
+            }
 
             // Apply text wrapping to the description row
             $lastCol = count($descriptionRow);
@@ -253,11 +302,14 @@ class SoftwareHandoverExportController extends Controller
                 }
             }
 
-            for ($i = 2; $i <= 11; $i++) {
+            // Apply style to the first 10 rows
+            $maxStyleRow = min(11, $rowIndex + 7); // Apply to first 10 rows or all rows + 7 (whichever is less)
+
+            for ($i = 2; $i <= $maxStyleRow; $i++) {
                 $sheet->getStyle("C{$i}")->applyFromArray([
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'fff2cc'], // Light blue background
+                        'startColor' => ['rgb' => 'fff2cc'], // Light background
                     ],
                     'borders' => [
                         'allBorders' => [
@@ -268,15 +320,20 @@ class SoftwareHandoverExportController extends Controller
                 ]);
             }
 
-            //Format RegNo as String
-            $sheet->setCellValueExplicit("M3", $registrationNo, DataType::TYPE_STRING);
+            // Format all registration numbers as strings
+            for ($i = 3; $i < $rowIndex; $i++) {
+                $registrationNo = $sheet->getCell("M{$i}")->getValue();
+                if (!empty($registrationNo)) {
+                    $sheet->setCellValueExplicit("M{$i}", $registrationNo, DataType::TYPE_STRING);
+                }
+            }
 
             // Color F2:F10 cells
-            for ($i = 2; $i <= 11; $i++) {
+            for ($i = 2; $i <= $maxStyleRow; $i++) {
                 $sheet->getStyle("F{$i}")->applyFromArray([
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'fff2cc'], // Light green background
+                        'startColor' => ['rgb' => 'fff2cc'], // Light background
                     ],
                     'borders' => [
                         'allBorders' => [
@@ -287,7 +344,7 @@ class SoftwareHandoverExportController extends Controller
                 ]);
             }
 
-            $sheet->getStyle('B2:AF11')->applyFromArray([
+            $sheet->getStyle('B2:AF' . $maxStyleRow)->applyFromArray([
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
@@ -398,6 +455,7 @@ class SoftwareHandoverExportController extends Controller
             return back()->with('error', 'Error exporting invoice information: ' . $e->getMessage());
         }
     }
+
     private static function getColumnLetter($column)
     {
         $column = intval($column);

@@ -211,18 +211,48 @@ class TechnicianAppointment extends Page implements HasTable
                         ->icon('heroicon-o-x-circle')
                         ->requiresConfirmation()
                         ->modalHeading('Cancel Repair Appointment')
-                        ->modalDescription('Are you sure you want to cancel this appointment? This action cannot be undone.')
+                        ->modalDescription('Are you sure you want to cancel this appointment? Please provide a reason for cancellation.')
+                        ->form([
+                            Textarea::make('cancellation_remarks')
+                                ->label('Cancellation Reason')
+                                ->required()
+                                ->rows(3)
+                                ->autosize()
+                                ->extraAttributes(['style' => 'text-transform: uppercase'])
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                ->placeholder('Please provide a reason for cancellation'),
+                        ])
                         ->modalSubmitActionLabel('Yes, cancel appointment')
-                        ->visible(fn (RepairAppointment $record) => $record->status !== 'Cancelled')
+                        ->visible(function (RepairAppointment $record) {
+                            // First check if appointment is already cancelled
+                            if ($record->status === 'Cancelled') {
+                                return false;
+                            }
+
+                            // For role_id 9 (technician), only show cancel button for specific task types
+                            if (Auth::user() && Auth::user()->role_id === 9) {
+                                return in_array($record->type, [
+                                    'FINGERTEC TASK',
+                                    'TIMETEC HR TASK',
+                                    'TIMETEC PARKING TASK',
+                                    'TIMETEC PROPERTY TASK'
+                                ]);
+                            }
+
+                            // For all other roles, show the cancel button
+                            return true;
+                        })
                         ->action(function (array $data, RepairAppointment $record): void {
-                            // Update the appointment status
+                            // Update the appointment status and add cancellation remarks
                             $record->update([
                                 'status' => 'Cancelled',
+                                'cancellation_remarks' => $data['cancellation_remarks'] ?? null,
                             ]);
+
                             Notification::make()
                                 ->success()
                                 ->title('Appointment Cancelled')
-                                ->body('The appointment has been successfully cancelled.')
+                                ->body('The appointment has been successfully cancelled with remarks.')
                                 ->send();
                         })
                 ])->button()
