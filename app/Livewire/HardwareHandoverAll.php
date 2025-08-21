@@ -1880,7 +1880,6 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                 ->label('APPOINTMENT TYPE'),
 
                                             Select::make('technician')
-                                                ->label('TECHNICIAN')
                                                 ->options(function () {
                                                     // Get technicians (role_id 9) with their names as both keys and values
                                                     $technicians = \App\Models\User::where('role_id', 9)
@@ -1905,12 +1904,42 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                         'Reseller Partners' => $resellers,
                                                     ];
                                                 })
-                                                ->default(function ($record = null) {
-                                                    return $record ? $record->technician : null;
+                                                ->disableOptionWhen(function ($value, $get) {
+                                                    $date = $get('date');
+                                                    $startTime = $get('start_time');
+                                                    $endTime = $get('end_time');
+
+                                                    // If any of the required fields is not filled, don't disable options
+                                                    if (!$date || !$startTime || !$endTime) {
+                                                        return false;
+                                                    }
+
+                                                    $parsedDate = Carbon::parse($date)->format('Y-m-d');
+                                                    $parsedStartTime = Carbon::parse($startTime)->format('H:i:s');
+                                                    $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                                                    // Check if the technician has any overlapping appointments
+                                                    $hasOverlap = RepairAppointment::where('technician', $value)
+                                                        ->whereIn('status', ['New', 'Done']) // Only check active appointments
+                                                        ->whereDate('date', $parsedDate)
+                                                        ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                            $query->whereBetween('start_time', [$parsedStartTime, $parsedEndTime])
+                                                                ->orWhereBetween('end_time', [$parsedStartTime, $parsedEndTime])
+                                                                ->orWhere(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                                                    $query->where('start_time', '<', $parsedStartTime)
+                                                                        ->where('end_time', '>', $parsedEndTime);
+                                                                });
+                                                        })
+                                                        ->exists();
+
+                                                    return $hasOverlap;
                                                 })
                                                 ->searchable()
                                                 ->required()
-                                                ->placeholder('Select a technician')
+                                                ->default(function ($record = null) {
+                                                    return $record ? $record->technician : null;
+                                                })
+                                                ->placeholder('Select a technician'),
                                             ]),
                                 Textarea::make('remarks')
                                     ->label('REMARKS')

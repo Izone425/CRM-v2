@@ -290,10 +290,45 @@ class LeadResource extends Resource
                 SelectFilter::make('lead_owner')
                     ->label('')
                     ->multiple()
-                    ->options([
-                        'none' => 'None',
-                        ...\App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray(),
-                    ])
+                    ->options(function() {
+                        // Create base options array with 'None' option
+                        $options = [
+                            'none' => 'None',
+                        ];
+
+                        // Get all users who are assigned as lead owners
+                        $leadOwners = \App\Models\Lead::whereNotNull('lead_owner')
+                            ->distinct()
+                            ->pluck('lead_owner')
+                            ->toArray();
+
+                        // Find these users in the users table to get their role_id
+                        $users = \App\Models\User::whereIn('name', $leadOwners)
+                            ->orderBy('name')
+                            ->get(['name', 'role_id'])
+                            ->groupBy('role_id');
+
+                        // Group them by role_id
+                        // Add Sales Admins (role_id 1)
+                        if (isset($users[1])) {
+                            $salesAdmins = $users[1]->pluck('name', 'name')->toArray();
+                            $options['Sales Admins'] = $salesAdmins;
+                        }
+
+                        // Add Managers (role_id 3)
+                        if (isset($users[3])) {
+                            $managers = $users[3]->pluck('name', 'name')->toArray();
+                            $options['Managers'] = $managers;
+                        }
+
+                        // You can add other role groups if needed
+                        if (isset($users[4])) {
+                            $implementers = $users[4]->pluck('name', 'name')->toArray();
+                            $options['Implementers'] = $implementers;
+                        }
+
+                        return $options;
+                    })
                     ->placeholder('Select Lead Owner')
                     ->query(function ($query, $data) {
                         $values = collect($data)->flatten()->filter()->values();
@@ -330,6 +365,8 @@ class LeadResource extends Resource
                         11 => 'Muhammad Khoirul Bariah',
                         12 => 'Vince Leong',
                         18 => 'Jonathan',
+                        25 => 'Wirson Lim',
+                        21 => 'Tina',
                     ])
                     ->placeholder('Select Salesperson')
                     ->query(function ($query, $data) {

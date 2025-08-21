@@ -89,6 +89,9 @@ class MarketingAnalysis extends Page
     public $slideOverTitle = '';
     public $slideOverList = [];
 
+    public $excludeLeadCodes = [];
+    public $isExcludingLeadCodes = false;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -127,6 +130,21 @@ class MarketingAnalysis extends Page
         // Set default selected lead code
         $this->selectedLeadCode = session('selectedLeadCode', null);
 
+        $this->excludeLeadCodes = [
+            'Wirson leads',
+            'TimeTec HR / SalesPerson / Leads',
+            'Reseller Leads',
+            'Reseller lead',
+            'Salesperson Leads',
+            'Refer & Earn (Sales)',
+            'Jonathan Leads',
+            'Existing Customers'
+        ];
+
+        $this->isExcludingLeadCodes = session('isExcludingLeadCodes', false);
+
+        session(['isExcludingLeadCodes' => $this->isExcludingLeadCodes]);
+
         // Store in session
         session(['selectedUser' => $this->selectedUser, 'selectedLeadCode' => $this->selectedLeadCode]);
 
@@ -137,6 +155,20 @@ class MarketingAnalysis extends Page
         $this->refreshDashboardData();
     }
 
+    public function toggleExcludeLeadCodes()
+    {
+        $this->isExcludingLeadCodes = !$this->isExcludingLeadCodes;
+        session(['isExcludingLeadCodes' => $this->isExcludingLeadCodes]);
+        $this->refreshDashboardData();
+    }
+
+    private function applyLeadCodeExclusions($query)
+    {
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+        return $query;
+    }
     public function updatedSelectedUser($userId)
     {
         $this->selectedUser = $userId;
@@ -252,6 +284,10 @@ class MarketingAnalysis extends Page
         $allStatuses = array_merge($activeStatuses, $otherStatuses);
 
         $query = Lead::query();
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -394,6 +430,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -464,6 +504,10 @@ class MarketingAnalysis extends Page
         // UTM filter
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -543,6 +587,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -630,6 +678,10 @@ class MarketingAnalysis extends Page
         // UTM filters
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -735,6 +787,10 @@ class MarketingAnalysis extends Page
         // UTM filters
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -873,6 +929,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -926,6 +986,10 @@ class MarketingAnalysis extends Page
 
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -994,6 +1058,10 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1060,6 +1128,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                         $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -1171,6 +1243,10 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1244,6 +1320,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1297,6 +1377,10 @@ class MarketingAnalysis extends Page
         // UTM filters
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -1352,6 +1436,10 @@ class MarketingAnalysis extends Page
         // UTM filters
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -1430,6 +1518,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1480,6 +1572,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
@@ -1629,6 +1725,10 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1709,6 +1809,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1765,6 +1869,10 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1816,6 +1924,10 @@ class MarketingAnalysis extends Page
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
 
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);
         }
@@ -1861,6 +1973,10 @@ class MarketingAnalysis extends Page
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
                             $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);

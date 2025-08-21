@@ -47,7 +47,7 @@ class GenerateRepairHandoverPdfController extends Controller
             $lead = $repair->lead;
 
             // Generate repair ID
-            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+            $repairId = 'OR_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
             // Generate PDF
             $pdf = Pdf::setOptions([
@@ -62,8 +62,8 @@ class GenerateRepairHandoverPdfController extends Controller
             $year = date('y', strtotime($repair->created_at));
             $id = str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
-            // Format: RP_yynnn
-            $formattedId = "RP_{$year}{$id}";
+            // Format: OR_yynnn
+            $formattedId = "OR_{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $repairFilename = str_replace('/', '_', $formattedId) . '.pdf';
@@ -143,7 +143,7 @@ class GenerateRepairHandoverPdfController extends Controller
             $lead = $repair->lead;
 
             // Generate repair ID
-            $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+            $repairId = 'OR_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
             // Generate PDF
             $pdf = Pdf::setOptions([
@@ -158,8 +158,8 @@ class GenerateRepairHandoverPdfController extends Controller
             $year = date('y', strtotime($repair->created_at));
             $id = str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
-            // Format: RP_yynnn
-            $formattedId = "RP_{$year}{$id}";
+            // Format: OR_yynnn
+            $formattedId = "OR_{$year}{$id}";
 
             // For the filename, replace slashes with underscores to avoid file system issues
             $repairFilename = str_replace('/', '_', $formattedId) . '.pdf';

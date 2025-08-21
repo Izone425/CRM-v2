@@ -172,7 +172,7 @@
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Repair Handover ID:</span>
-                    RP_250{{ str_pad($record->id, 3, '0', STR_PAD_LEFT) }}
+                    OR_250{{ str_pad($record->id, 3, '0', STR_PAD_LEFT) }}
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Submitted Date:</span>

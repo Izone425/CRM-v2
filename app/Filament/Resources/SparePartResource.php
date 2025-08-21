@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SparePartResource\Pages;
+use App\Models\DeviceModel;
 use App\Models\SparePart;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
@@ -45,23 +46,26 @@ class SparePartResource extends Resource
                             Select::make('device_model')
                                 ->label('Device Model')
                                 ->columnSpan(1)
-                                ->options([
-                                    'TC10' => 'TC10',
-                                    'TC20' => 'TC20',
-                                    'FACE ID 5' => 'FACE ID 5',
-                                    'FACE ID 6' => 'FACE ID 6',
-                                    'TIME BEACON' => 'TIME BEACON',
-                                    'NFC TAG' => 'NFC TAG',
-                                    'TA100C / HID' => 'TA100C / HID',
-                                    'TA100C / R' => 'TA100C / R',
-                                    'TA100C / MF' => ' TA100C / MF',
-                                    'TA100C / R / W' => 'TA100C / R / W',
-                                    'TA100C / MF / W' => 'TA100C / MF / W',
-                                    'TA100C / HID / W' => 'TA100C / HID / W',
-                                    'TA100C / W' => 'TA100C / W',
-                                ])
+                                ->options(function() {
+                                    // Get only active device models
+                                    return DeviceModel::where('is_active', true)
+                                        ->orderBy('name')
+                                        ->pluck('name', 'name')
+                                        ->toArray();
+                                })
                                 ->searchable()
-                                ->required(),
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, $set) {
+                                    // When device model changes, update related info
+                                    if ($state) {
+                                        $deviceModel = DeviceModel::where('name', $state)->first();
+                                        if ($deviceModel) {
+                                            $set('warranty_info', $deviceModel->warranty_category);
+                                            $set('serial_required', $deviceModel->serial_number_required);
+                                        }
+                                    }
+                                }),
 
                             TextInput::make('name')
                                 ->label('Spare Part Name')

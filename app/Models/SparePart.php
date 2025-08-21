@@ -97,6 +97,11 @@ class SparePart extends Model
         $this->attributes['device_model'] = strtoupper($value);
     }
 
+    public function deviceModel()
+    {
+        return $this->belongsTo(DeviceModel::class, 'device_model', 'name');
+    }
+
     /**
      * Set the autocount code to uppercase
      */

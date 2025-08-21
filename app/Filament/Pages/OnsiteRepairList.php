@@ -600,7 +600,7 @@ class OnsiteRepairList extends Page implements HasTable
                 ->slideover()
                 ->color('primary')
                 ->form($this->defaultForm())
-                ->visible(fn() => auth()->user()->role_id === 3)
+                ->visible(fn() => in_array(auth()->user()->role_id, [3, 4, 5, 6, 7, 8]))
                 ->action(function (array $data): void {
                     // Process and save the form data
                     $this->processAndSaveRepairData(null, $data);
@@ -757,7 +757,7 @@ class OnsiteRepairList extends Page implements HasTable
         $repair = AdminRepair::create($data);
 
         // Generate repair ID after we have a valid record with an ID
-        $repairId = 'RP_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+        $repairId = 'OR_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
 
         try {
             // Get company name
@@ -934,7 +934,7 @@ class OnsiteRepairList extends Page implements HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -1099,7 +1099,7 @@ class OnsiteRepairList extends Page implements HasTable
                         ->color('warning')
                         ->icon('heroicon-o-pencil')
                         ->visible(fn (AdminRepair $record): bool => $record->status === 'Draft')
-                        ->modalHeading(fn (AdminRepair $record) => "Edit Repair Ticket " . 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(fn (AdminRepair $record) => "Edit Repair Ticket " . 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
                         ->slideOver()
                         ->modalWidth('4xl')
                         ->form($this->defaultForm())
@@ -1131,7 +1131,7 @@ class OnsiteRepairList extends Page implements HasTable
                             $record->save();
 
                             // Format the repair ID properly
-                            $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
                             try {
                                 // Get company name

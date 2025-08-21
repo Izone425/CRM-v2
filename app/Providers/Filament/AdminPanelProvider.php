@@ -58,6 +58,7 @@ use App\Filament\Resources\AdminRepairResource;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
+use App\Filament\Resources\DeviceModelResource;
 use App\Filament\Resources\EmailTemplateResource;
 use App\Filament\Resources\HardwareAttachmentResource;
 use App\Filament\Resources\HardwarePendingStockResource;
@@ -207,6 +208,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminRepairResource::class,
                 TrainingBookingResource::class,
                 EmailTemplateResource::class,
+                DeviceModelResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

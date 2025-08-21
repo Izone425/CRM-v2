@@ -492,6 +492,20 @@
                                 @endforeach
                             </select>
                         </div>
+                        <br>
+                        <div class="flex items-center ml-10">
+                            <div class="relative">
+                                <x-filament::button
+                                    wire:click="toggleExcludeLeadCodes"
+                                    color="{{ $isExcludingLeadCodes ? 'success' : 'gray' }}"
+                                >
+                                    {{ $isExcludingLeadCodes ? 'You are viewing Excluded Leads Only' : 'You are viewing All Leads' }}
+                                </x-filament::button>
+
+                                <i class="ml-2 bi bi-question-circle cursor-help"
+                                title="{{ $isExcludingLeadCodes ? 'Excluded: ' . implode(', ', $excludeLeadCodes) : 'Click to exclude out the leads' }}"></i>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>

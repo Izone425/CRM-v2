@@ -181,7 +181,7 @@
             </table>
 
             <div class="button-container">
-                <a href="{{ $pdf_url ?? url('/admin/repairs/view/' . str_replace('RP_250', '', $repair_id)) }}" class="button" target="_blank">
+                <a href="{{ $pdf_url ?? url('/admin/repairs/view/' . str_replace('OR_250', '', $repair_id)) }}" class="button" target="_blank">
                     View Repair Ticket Form
                 </a>
             </div>
