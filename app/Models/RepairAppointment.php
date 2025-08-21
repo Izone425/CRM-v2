@@ -23,6 +23,7 @@ class RepairAppointment extends Model
         'end_time',
         'technician',
         'remarks',
+        'cancelled_remarks',
         'title',
         'causer_id',
         'categories',

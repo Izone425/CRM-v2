@@ -529,9 +529,40 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->label('Product')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
+                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+
+                                    // Get all PI IDs already used in other hardware handovers for this lead
+                                    $usedPiIds = [];
+                                    $hardwareHandovers = \App\Models\HardwareHandover::where('lead_id', $leadId)
+                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                            // Exclude current record if we're editing
+                                            return $query->where('id', '!=', $currentRecordId);
+                                        })
+                                        ->get();
+
+                                    // Extract used product PI IDs from all handovers
+                                    foreach ($hardwareHandovers as $handover) {
+                                        $piProduct = $handover->proforma_invoice_product;
+                                        if (!empty($piProduct)) {
+                                            // Handle JSON string format
+                                            if (is_string($piProduct)) {
+                                                $piIds = json_decode($piProduct, true);
+                                                if (is_array($piIds)) {
+                                                    $usedPiIds = array_merge($usedPiIds, $piIds);
+                                                }
+                                            }
+                                            // Handle array format
+                                            elseif (is_array($piProduct)) {
+                                                $usedPiIds = array_merge($usedPiIds, $piProduct);
+                                            }
+                                        }
+                                    }
+
+                                    // Get available product PIs excluding already used ones
                                     return \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
                                 })
@@ -547,13 +578,45 @@ class HardwareHandoverRelationManager extends RelationManager
                                     return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
                                 })
                                 ->preload(),
+
                             Select::make('proforma_invoice_hrdf')
                                 ->label('HRDF')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
+                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+
+                                    // Get all PI IDs already used in other hardware handovers for this lead
+                                    $usedPiIds = [];
+                                    $hardwareHandovers = \App\Models\HardwareHandover::where('lead_id', $leadId)
+                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                            // Exclude current record if we're editing
+                                            return $query->where('id', '!=', $currentRecordId);
+                                        })
+                                        ->get();
+
+                                    // Extract used HRDF PI IDs from all handovers
+                                    foreach ($hardwareHandovers as $handover) {
+                                        $piHrdf = $handover->proforma_invoice_hrdf;
+                                        if (!empty($piHrdf)) {
+                                            // Handle JSON string format
+                                            if (is_string($piHrdf)) {
+                                                $piIds = json_decode($piHrdf, true);
+                                                if (is_array($piIds)) {
+                                                    $usedPiIds = array_merge($usedPiIds, $piIds);
+                                                }
+                                            }
+                                            // Handle array format
+                                            elseif (is_array($piHrdf)) {
+                                                $usedPiIds = array_merge($usedPiIds, $piHrdf);
+                                            }
+                                        }
+                                    }
+
+                                    // Get available HRDF PIs excluding already used ones
                                     return \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'hrdf')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
                                 })

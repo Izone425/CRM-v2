@@ -44,6 +44,15 @@ class ProjectAnalysis extends Page
     //     return $user->hasRouteAccess('filament.admin.pages.software-handover-analysis');
     // }
 
+    #[On('yearUpdated')]
+    public function refreshCompanySizeData()
+    {
+        // This will refresh the data for the company size tab
+        return [
+            'monthlyData' => $this->getMonthlyProjectsByCompanySize()
+        ];
+    }
+
     public function mount()
     {
         $this->selectedYear = now()->year; // Default to current year
@@ -486,7 +495,7 @@ class ProjectAnalysis extends Page
         $this->showSlideOver = true;
     }
 
-    // V2 Analysis
+    // V2 Analysis: Analysis by Statistic
     #[On('getDataForYear')]
     public function updateSelectedYear($year)
     {
@@ -952,5 +961,179 @@ class ProjectAnalysis extends Page
     public function getAllSalespersonHandovers(): int
     {
         return $this->getBaseQuery()->count();
+    }
+
+    //V3 Analysis: Analysis by Company Size
+    public function getMonthlyProjectsByCompanySize()
+    {
+        $year = $this->selectedYear ?? Carbon::now()->year;
+        $monthlyData = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthName = Carbon::create($year, $month, 1)->format('F');
+
+            // Total new projects for this month
+            $totalCount = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $month)
+                ->count();
+
+            // Small companies (1-24 employees)
+            $smallCount = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $month)
+                ->where('headcount', '>=', 1)
+                ->where('headcount', '<=', 24)
+                ->count();
+
+            // Medium companies (25-99 employees)
+            $mediumCount = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $month)
+                ->where('headcount', '>=', 25)
+                ->where('headcount', '<=', 99)
+                ->count();
+
+            // Large companies (100-500 employees)
+            $largeCount = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $month)
+                ->where('headcount', '>=', 100)
+                ->where('headcount', '<=', 500)
+                ->count();
+
+            // Enterprise companies (above 500 employees)
+            $enterpriseCount = $this->getBaseQuery()
+                ->whereYear('completed_at', $year)
+                ->whereMonth('completed_at', $month)
+                ->where('headcount', '>', 500)
+                ->count();
+
+            $monthlyData[] = [
+                'month' => $monthName,
+                'total' => $totalCount,
+                'small' => $smallCount,
+                'medium' => $mediumCount,
+                'large' => $largeCount,
+                'enterprise' => $enterpriseCount
+            ];
+        }
+
+        return $monthlyData;
+    }
+
+    public function getYearlyTotalsByCompanySize()
+    {
+        $monthlyData = $this->getMonthlyProjectsByCompanySize();
+
+        // Initialize totals
+        $totals = [
+            'total' => 0,
+            'small' => 0,
+            'medium' => 0,
+            'large' => 0,
+            'enterprise' => 0
+        ];
+
+        // Sum up monthly values
+        foreach ($monthlyData as $month) {
+            $totals['total'] += $month['total'];
+            $totals['small'] += $month['small'];
+            $totals['medium'] += $month['medium'];
+            $totals['large'] += $month['large'];
+            $totals['enterprise'] += $month['enterprise'];
+        }
+
+        return $totals;
+    }
+
+    public function openCompanySizeMonthlyHandovers($month, $size)
+    {
+        $year = $this->selectedYear ?? Carbon::now()->year;
+
+        // Convert month name to number
+        $monthNumber = Carbon::parse("{$month} 1")->month;
+
+        $query = $this->getBaseQuery()
+            ->whereYear('completed_at', $year)
+            ->whereMonth('completed_at', $monthNumber);
+
+        // Apply size filter if not 'all'
+        if ($size !== 'all') {
+            switch ($size) {
+                case 'small':
+                    $query->where('headcount', '>=', 1)->where('headcount', '<=', 24);
+                    $sizeLabel = 'Small (Below 25)';
+                    break;
+                case 'medium':
+                    $query->where('headcount', '>=', 25)->where('headcount', '<=', 99);
+                    $sizeLabel = 'Medium (25-99)';
+                    break;
+                case 'large':
+                    $query->where('headcount', '>=', 100)->where('headcount', '<=', 500);
+                    $sizeLabel = 'Large (100-500)';
+                    break;
+                case 'enterprise':
+                    $query->where('headcount', '>', 500);
+                    $sizeLabel = 'Enterprise (Above 500)';
+                    break;
+            }
+        }
+
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        if ($size === 'all') {
+            $this->handoverList = $this->groupHandoversByCompanySize($handovers);
+            $this->slideOverTitle = "{$month} {$year} - All Company Sizes";
+        } else {
+            $this->handoverList = $handovers;
+            $this->slideOverTitle = "{$month} {$year} - {$sizeLabel}";
+        }
+
+        $this->showSlideOver = true;
+    }
+
+    public function openCompanySizeYearlyHandovers($size)
+    {
+        $year = $this->selectedYear ?? Carbon::now()->year;
+
+        $query = $this->getBaseQuery()
+            ->whereYear('completed_at', $year);
+
+        // Apply size filter if not 'all'
+        if ($size !== 'all') {
+            switch ($size) {
+                case 'small':
+                    $query->where('headcount', '>=', 1)->where('headcount', '<=', 24);
+                    $sizeLabel = 'Small (Below 25)';
+                    break;
+                case 'medium':
+                    $query->where('headcount', '>=', 25)->where('headcount', '<=', 99);
+                    $sizeLabel = 'Medium (25-99)';
+                    break;
+                case 'large':
+                    $query->where('headcount', '>=', 100)->where('headcount', '<=', 500);
+                    $sizeLabel = 'Large (100-500)';
+                    break;
+                case 'enterprise':
+                    $query->where('headcount', '>', 500);
+                    $sizeLabel = 'Enterprise (Above 500)';
+                    break;
+            }
+        }
+
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')->get();
+
+        // Group handovers by company size
+        if ($size === 'all') {
+            $this->handoverList = $this->groupHandoversByCompanySize($handovers);
+            $this->slideOverTitle = "Year {$year} - All Company Sizes";
+        } else {
+            $this->handoverList = $handovers;
+            $this->slideOverTitle = "Year {$year} - {$sizeLabel}";
+        }
+
+        $this->showSlideOver = true;
     }
 }

@@ -765,4 +765,7 @@
     <div :class="{'analysis-tab-content': true, 'active': activeTab === 'analysis2'}" id="analysis2Content">
         @include('filament.pages.software-handover-analysis-v2')
     </div>
+    <div :class="{'analysis-tab-content': true, 'active': activeTab === 'analysis3'}" id="analysis3Content">
+        @include('filament.pages.software-handover-analysis-v3')
+    </div>
 </x-filament-panels::page>

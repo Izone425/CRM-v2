@@ -2115,25 +2115,6 @@
                         </div>
                     </div>
 
-                    <!-- Required Attendees -->
-                    <div class="form-group">
-                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
-                        <input
-                            type="text"
-                            wire:model="requiredAttendees"
-                            id="requiredAttendees"
-                            class="form-input"
-                            placeholder="email1@example.com;email2@example.com"
-                        >
-                        <!-- <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
-                            Load from Software Handover
-                        </button> -->
-                        <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
-                        @error('requiredAttendees')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
                     <!-- Skip Email and Teams Meeting Toggle -->
                     <div class="form-group">
                         <div class="flex items-center gap-2">
@@ -2150,6 +2131,22 @@
                         <p class="mt-1 text-xs text-gray-500">
                             Select this option if you don't want to send an email notification or create a Teams meeting
                         </p>
+                    </div>
+
+                    <!-- Required Attendees - only show if not skipping emails -->
+                    <div class="form-group" x-show="!$wire.skipEmailAndTeams">
+                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600" x-show="!$wire.skipEmailAndTeams">*</span></label>
+                        <input
+                            type="text"
+                            wire:model="requiredAttendees"
+                            id="requiredAttendees"
+                            class="form-input"
+                            placeholder="email1@example.com;email2@example.com"
+                        >
+                        <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
+                        @error('requiredAttendees')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
                     </div>
                 </div>
             </div>

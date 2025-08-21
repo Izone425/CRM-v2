@@ -690,8 +690,8 @@
 
             <!-- Repair Type -->
             <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                <h3 class="text-lg font-semibold">Repair Type</h3>
-                <p class="text-gray-600">Total Repairs: {{ $totalRepairs['ALL'] }}</p>
+                <h3 class="text-lg font-semibold">Technician & Reseller (Category)</h3>
+                <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
 
                 @foreach ([
                     'NEW INSTALLATION' => '#71eb71',
@@ -718,8 +718,8 @@
 
             <!-- Repair Status -->
             <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                <h3 class="text-lg font-semibold">Repair Status</h3>
-                <p class="text-gray-600">Total Repairs: {{ $totalRepairs['ALL'] }}</p>
+                <h3 class="text-lg font-semibold">Technician & Reseller (Status)</h3>
+                <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
 
                 @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
                     @php
@@ -1067,12 +1067,16 @@
                             <div class="appointment-card"
                                 @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                 @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                @else style="background-color: var(--bg-demo-red)" @endif>
+                                @else style="background-color: var(--bg-demo-red)" @endif
+                                x-data="{ remarksModalOpen: false }"
+                                @keydown.escape.window="remarksModalOpen = false">
+
                                 <div class="appointment-card-bar"
                                     @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
                                         style="background-color: #3b82f6"
                                     @endif></div>
-                                <div class="appointment-card-info">
+
+                                <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
                                     <div class="appointment-demo-type">
                                         @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
                                             {{ $appointment->type }}
@@ -1086,43 +1090,10 @@
                                     </div>
 
                                     @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                        <!-- For internal tasks, show the view remarks button -->
-                                        <div class="appointment-company-name"
-                                            x-data="{ remarkModalOpen: false }"
-                                            @keydown.escape.window="remarkModalOpen = false">
-                                            <button
-                                                class="view-remarks-link"
-                                                @click="remarkModalOpen = true">
-                                                VIEW REMARK
-                                            </button>
-
-                                            <!-- Remarks Modal (Alpine.js version) -->
-                                            <div x-show="remarkModalOpen"
-                                                x-transition
-                                                @click.outside="remarkModalOpen = false"
-                                                class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                                                <div class="relative w-auto p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarkModalOpen = false">
-                                                    <div class="flex items-start justify-between mb-4">
-                                                        <h3 class="text-lg font-medium text-gray-900">{{ $appointment->type }} Remarks</h3>
-                                                        <button type="button" @click="remarkModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
-                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                    <div class="max-h-[60vh] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200" style='color:rgb(66, 66, 66);'>
-                                                        <div class="whitespace-pre-line">{!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}</div>
-                                                    </div>
-                                                    <div class="mt-4 text-center">
-                                                        <button @click="remarkModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                                            Close
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div class="appointment-company-name">
+                                            INTERNAL TASK
                                         </div>
                                     @else
-                                        <!-- For regular appointments, show company name with link -->
                                         <div class="appointment-company-name" title="{{ $appointment->company_name }}">
                                             <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
                                                 {{ $appointment->company_name }}
@@ -1130,6 +1101,73 @@
                                         </div>
                                     @endif
                                     <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                </div>
+
+                                <!-- Remarks Modal -->
+                                <div x-show="remarksModalOpen"
+                                    x-transition
+                                    @click.outside="remarksModalOpen = false"
+                                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
+                                        <div class="flex items-start justify-between pb-3 mb-4 border-b">
+                                            <h3 class="text-lg font-medium text-gray-900">
+                                                @if(isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                                    INTERNAL TASK - {{ $appointment->type }}
+                                                @else
+                                                    {{ $appointment->company_name }} - {{ $appointment->type }}
+                                                @endif
+                                            </h3>
+                                            <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <div class="flex gap-2 mb-2">
+                                                <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                    style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
+                                                    {{ $appointment->status }}
+                                                </span>
+                                                <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
+                                                    {{ $appointment->appointment_type }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->parent->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
+                                            @if(!isset($appointment->is_internal_task) || !$appointment->is_internal_task)
+                                                <p class="text-sm text-gray-500">Technician: {{ $row['technicianName'] }}</p>
+                                            @endif
+                                        </div>
+
+                                        <!-- Regular Remarks Section -->
+                                        <div class="mb-4">
+                                            <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
+                                            <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
+                                                <div class="text-gray-700 whitespace-pre-line">
+                                                    {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
+                                        @if ($appointment->status === 'Cancelled')
+                                            <div class="mb-4">
+                                                <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
+                                                <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
+                                                    <div class="text-red-700 whitespace-pre-line">
+                                                        {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <div class="mt-5 text-center">
+                                            <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -1178,21 +1216,96 @@
                                         @elseif ($appointment->status == 'New')
                                             style="background-color: var(--bg-demo-yellow)"
                                         @else
-                                            style="background-color: var(--bg-demo-red)" @endif>
-                                        <div class="appointment-card-bar"></div>
-                                        <div class="appointment-card-info">
+                                            style="background-color: var(--bg-demo-red)" @endif
+                                        x-data="{ remarksModalOpen: false }"
+                                        @keydown.escape.window="remarksModalOpen = false">
+                                        <div class="appointment-card-bar"
+                                            @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                                style="background-color: #3b82f6"
+                                            @endif></div>
+                                        <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
                                             <div class="appointment-demo-type">{{ $appointment->type }}</div>
                                             <div class="appointment-appointment-type">
                                                 {{ $appointment->appointment_type }} |
                                                 <span style="text-transform:uppercase">{{ $appointment->status }}</span>
                                             </div>
-                                            <div class="appointment-company-name">
-                                                <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                    {{ $appointment->company_name }}
-                                                </a>
+                                            @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                                <div class="appointment-company-name">
+                                                    INTERNAL TASK
+                                                </div>
+                                            @else
+                                                <div class="appointment-company-name">
+                                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
+                                                        {{ $appointment->company_name }}
+                                                    </a>
+                                                </div>
+                                            @endif
+                                            <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                        </div>
+
+                                        <!-- Remarks Modal -->
+                                        <div x-show="remarksModalOpen"
+                                            x-transition
+                                            @click.outside="remarksModalOpen = false"
+                                            class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                            <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
+                                                <div class="flex items-start justify-between pb-3 mb-4 border-b">
+                                                    <h3 class="text-lg font-medium text-gray-900">
+                                                        @if(isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                                            INTERNAL TASK - {{ $appointment->type }}
+                                                        @else
+                                                            {{ $appointment->company_name }} - {{ $appointment->type }}
+                                                        @endif
+                                                    </h3>
+                                                    <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+
+                                                <div class="mb-4">
+                                                    <div class="flex gap-2 mb-2">
+                                                        <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                            style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
+                                                            {{ $appointment->status }}
+                                                        </span>
+                                                        <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
+                                                            {{ $appointment->appointment_type }}
+                                                        </span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->parent->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
+                                                    <p class="text-sm text-gray-500">Technician: {{ $row['technicianName'] }}</p>
+                                                </div>
+
+                                                <!-- Regular Remarks Section -->
+                                                <div class="mb-4">
+                                                    <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
+                                                    <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
+                                                        <div class="text-gray-700 whitespace-pre-line">
+                                                            {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
+                                                @if ($appointment->status === 'Cancelled')
+                                                    <div class="mb-4">
+                                                        <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
+                                                        <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
+                                                            <div class="text-red-700 whitespace-pre-line">
+                                                                {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                <div class="mt-5 text-center">
+                                                    <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                        Close
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                                {{ $appointment->end_time }}</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -1228,13 +1341,13 @@
                             @elseif ($appointment->status == 'New')
                                 style="background-color: var(--bg-demo-yellow)"
                             @else
-                                style="background-color: var(--bg-demo-red)" @endif>
+                                style="background-color: var(--bg-demo-red)" @endif
+                            x-data="{ remarksModalOpen: false }"
+                            @keydown.escape.window="remarksModalOpen = false">
                             <div class="appointment-card-bar"></div>
-                            <div class="appointment-card-info">
+                            <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
                                 <!-- Display reseller company name above repair type -->
-                                <div style="font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: #555; margin-bottom: 2px; border-bottom: 1px dashed #ccc; padding-bottom: 2px;">
-                                    {{ $appointment->technician }}
-                                </div>
+                                <div class="reseller-name">{{ $appointment->technician }}</div>
                                 <div class="appointment-demo-type">{{ $appointment->type }}</div>
                                 <div class="appointment-appointment-type">
                                     {{ $appointment->appointment_type }} |
@@ -1249,6 +1362,68 @@
                                 @endif
                                 <div class="appointment-time">{{ $appointment->start_time }} -
                                     {{ $appointment->end_time }}</div>
+                            </div>
+
+                            <!-- Remarks Modal -->
+                            <div x-show="remarksModalOpen"
+                                x-transition
+                                @click.outside="remarksModalOpen = false"
+                                class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
+                                    <div class="flex items-start justify-between pb-3 mb-4 border-b">
+                                        <h3 class="text-lg font-medium text-gray-900">
+                                            {{ $appointment->company_name ?? 'Appointment' }} - {{ $appointment->type }}
+                                            <span class="ml-2 text-sm text-gray-500">(Reseller: {{ $appointment->technician }})</span>
+                                        </h3>
+                                        <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <div class="flex gap-2 mb-2">
+                                            <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
+                                                style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
+                                                {{ $appointment->status }}
+                                            </span>
+                                            <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
+                                                {{ $appointment->appointment_type }}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
+                                        <p class="text-sm text-gray-500">Reseller: {{ $appointment->technician }}</p>
+                                    </div>
+
+                                    <!-- Regular Remarks Section -->
+                                    <div class="mb-4">
+                                        <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
+                                        <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
+                                            <div class="text-gray-700 whitespace-pre-line">
+                                                {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
+                                    @if ($appointment->status === 'Cancelled')
+                                        <div class="mb-4">
+                                            <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
+                                            <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
+                                                <div class="text-red-700 whitespace-pre-line">
+                                                    {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <div class="mt-5 text-center">
+                                        <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @endforeach

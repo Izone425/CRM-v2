@@ -1820,12 +1820,20 @@ class ImplementerCalendar extends Component
     // Add method to submit implementation session
     public function submitImplementationSession()
     {
-        $this->validate([
+        $rules = [
             'selectedCompany' => 'required|exists:company_details,id',
             'implementationDemoType' => 'required|string',
             'appointmentType' => 'required|in:ONLINE,ONSITE,INHOUSE',
-            'requiredAttendees' => 'required|string',
-        ]);
+        ];
+
+        // Only require attendees if not skipping emails
+        if (!$this->skipEmailAndTeams) {
+            $rules['requiredAttendees'] = 'required|string';
+        }
+
+        // Apply validation
+        $this->validate($rules);
+
 
         // Get the company and lead data
         $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
@@ -2078,7 +2086,7 @@ class ImplementerCalendar extends Component
                 'title' => $this->implementationDemoType . ' | ' . $this->appointmentType . ' | TIMETEC IMPLEMENTER | ' . $companyDetail->company_name,
                 'status' => 'New',
                 'session' => $this->bookingSession,
-                'required_attendees' => $this->requiredAttendees,
+                'required_attendees' => $this->skipEmailAndTeams ? null : $this->requiredAttendees,
                 'remarks' => $this->remarks ?? null,
                 'software_handover_id' => $softwareHandoverId,
                 'event_id' => $teamsEventId,

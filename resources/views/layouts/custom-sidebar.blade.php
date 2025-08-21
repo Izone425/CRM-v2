@@ -541,6 +541,8 @@
         .icon-link[data-section="support"] .icon { color: #EAB308; /* icon-gradient-8 */ }
         .icon-link[data-section="technician"] .icon { color: #F59E0B; /* icon-gradient-9 */ }
         .icon-link[data-section="marketing"] .icon { color: #F97316; /* icon-gradient-10 */ }
+        .icon-link[data-section="internal"] .icon { color: #DC2626; /* purple color for internal */ }
+        .icon-link[data-section="external"] .icon { color: #C026D3; /* pink color for external */ }
         .icon-link[data-section="settings"] .icon { color: #EA580C; /* icon-gradient-21 */ }
     </style>
 
@@ -661,6 +663,18 @@
                         </div>
                     </div>
                 @endif
+
+                <div class="icon-link" data-section="internal" title="TimeTec HR - Internal">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-box-arrow-in-down-right icon"></i>
+                    </div>
+                </div>
+
+                <div class="icon-link" data-section="external" title="TimeTec HR - External">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-box-arrow-up-right icon"></i>
+                    </div>
+                </div>
 
                 <!-- Settings Icon -->
                 @if(auth()->user()->hasAccessToAny([
@@ -1367,6 +1381,22 @@
                             </a>
                         </div>
                     </div>
+
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="support-information-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Support Information</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="support-information-submenu">
+                            <a href="{{ route('filament.admin.pages.overtime-calendar') }}" class="submenu-item">
+                                <span class="module-font">Overtime Schedule</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Technician Section -->
@@ -1432,6 +1462,43 @@
                     @endif
                 </div>
 
+                <!-- Internal Section -->
+                <div id="internal-section" class="section-content">
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="internal-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <span class="menu-text">TimeTec HR - Internal</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="internal-submenu">
+                            <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
+                                <span class="module-font">Department Calendar</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- External Section -->
+                <div id="external-section" class="section-content">
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="external-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-globe"></i>
+                            </div>
+                            <span class="menu-text">TimeTec HR - External</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="external-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Technical Tips</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <!-- Settings Section -->
                 <div id="settings-section" class="section-content">
                     @if(auth()->user()->hasAccessToAny([

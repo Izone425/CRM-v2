@@ -25,6 +25,7 @@ use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\OnsiteRepairList;
+use App\Filament\Pages\OvertimeCalendar;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\ProjectAnalysis;
 use App\Filament\Pages\ProjectCategoryClosed;
@@ -251,6 +252,7 @@ class AdminPanelProvider extends PanelProvider
                 KickOffMeetingSession::class,
                 ImplementationSession::class,
                 SoftwareHandoverAnalysisV2::class,
+                OvertimeCalendar::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
