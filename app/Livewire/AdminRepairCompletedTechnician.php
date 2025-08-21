@@ -152,7 +152,7 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -487,7 +487,7 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                                                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file) use ($record, $device, $index) {
                                                                 $serialNum = $device['device_serial'] ?? 'unknown';
                                                                 $dateStr = now()->format('Ymd');
-                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                                                                 return "{$repairId}_device_{$index}_CSO_{$serialNum}_{$dateStr}.{$file->getClientOriginalExtension()}";
                                                             }),
 
@@ -502,7 +502,7 @@ class AdminRepairCompletedTechnician extends Component implements HasForms, HasT
                                                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file) use ($record, $device, $index) {
                                                                 $serialNum = $device['device_serial'] ?? 'unknown';
                                                                 $dateStr = now()->format('Ymd');
-                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                                                                 return "{$repairId}_device_{$index}_SpareParts_Invoice_{$serialNum}_{$dateStr}.{$file->getClientOriginalExtension()}";
                                                             }),
                                                     ]),

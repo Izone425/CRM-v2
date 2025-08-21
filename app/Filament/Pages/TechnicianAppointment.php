@@ -200,6 +200,22 @@ class TechnicianAppointment extends Page implements HasTable
                             'required_attendees' => $record->required_attendees,
                             'mode' => 'auto',
                         ])
+                        ->visible(function (RepairAppointment $record) {
+                            // First check if appointment is already Cancelled or Done
+                            if (in_array($record->status, ['Cancelled', 'Done'])) {
+                                return false;
+                            }
+
+                            $user = Auth::user();
+
+                            // If user has role_id 9 (technician), they can only reschedule their own new appointments
+                            if ($user && $user->role_id === 9) {
+                                return $record->causer_id === $user->id && $record->status === 'New';
+                            }
+
+                            // For other roles, show the reschedule button for appointments with status = New
+                            return $record->status === 'New';
+                        })
                         ->action(function (array $data, RepairAppointment $record): void {
                             $record->update($data);
 
@@ -225,13 +241,14 @@ class TechnicianAppointment extends Page implements HasTable
                         ->modalSubmitActionLabel('Yes, cancel appointment')
                         ->visible(function (RepairAppointment $record) {
                             // First check if appointment is already cancelled
-                            if ($record->status === 'Cancelled') {
+                            if (in_array($record->status, ['Cancelled', 'Done'])) {
                                 return false;
                             }
 
-                            // For role_id 9 (technician), only show cancel button for specific task types
-                            if (Auth::user() && Auth::user()->role_id === 9) {
-                                return in_array($record->type, [
+                            $user = Auth::user();
+
+                            if ($user && $user->role_id === 9) {
+                                return $record->causer_id === $user->id && in_array($record->type, [
                                     'FINGERTEC TASK',
                                     'TIMETEC HR TASK',
                                     'TIMETEC PARKING TASK',
@@ -254,7 +271,53 @@ class TechnicianAppointment extends Page implements HasTable
                                 ->title('Appointment Cancelled')
                                 ->body('The appointment has been successfully cancelled with remarks.')
                                 ->send();
-                        })
+                        }),
+                    Action::make('viewRemarks')
+                        ->label('View Remarks')
+                        ->icon('heroicon-o-chat-bubble-left-right')
+                        ->color('info')
+                        ->modalHeading('Appointment Remarks')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalFooterActions(fn (Action $action) => [
+                            $action->makeModalSubmitAction('Close', ['wire:click' => 'closeModal']),
+                        ])
+                        ->form(function ($record) {
+                            return [
+                                Grid::make(1)
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('date')
+                                                    ->label('Date')
+                                                    ->default(Carbon::parse($record->date)->format('d M Y'))
+                                                    ->disabled(),
+
+                                                TextInput::make('time')
+                                                    ->label('Time')
+                                                    ->default($record->start_time . ' - ' . $record->end_time)
+                                                    ->disabled(),
+                                            ]),
+
+                                        // Regular Remarks Section
+                                        Textarea::make('remarks')
+                                            ->label('Appointment Remarks')
+                                            ->default($record->remarks ?? 'No remarks available')
+                                            ->disabled()
+                                            ->rows(4)
+                                            ->columnSpanFull(),
+
+                                        // Only show cancellation remarks if status is Cancelled
+                                        Textarea::make('cancellation_remarks')
+                                            ->label('Cancellation Reason')
+                                            ->default($record->cancellation_remarks ?? 'No cancellation reason available')
+                                            ->disabled()
+                                            ->rows(4)
+                                            ->columnSpanFull()
+                                            ->hidden(fn() => $record->status !== 'Cancelled'),
+                                    ]),
+                            ];
+                        }),
                 ])->button()
             ])
             ->bulkActions([
@@ -264,6 +327,7 @@ class TechnicianAppointment extends Page implements HasTable
                 Action::make('create')
                     ->label('Add Technician Appointment')
                     ->form($this->getFormSchema())
+                    ->closeModalByClickingAway(false)
                     ->action(function (array $data): void {
                         RepairAppointment::create(array_merge($data, [
                             'causer_id' => Auth::id(),
@@ -464,9 +528,49 @@ class TechnicianAppointment extends Page implements HasTable
                             // Return only internal technicians
                             return $technicians;
                         })
+                        ->disableOptionWhen(function ($value, $get) {
+                            $date = $get('date');
+                            $startTime = $get('start_time');
+                            $endTime = $get('end_time');
+
+                            // If any of the required fields is not filled, don't disable options
+                            if (!$date || !$startTime || !$endTime) {
+                                return false;
+                            }
+
+                            $parsedDate = Carbon::parse($date)->format('Y-m-d');
+                            $parsedStartTime = Carbon::parse($startTime)->format('H:i:s');
+                            $parsedEndTime = Carbon::parse($endTime)->format('H:i:s');
+
+                            // Check if the technician has any overlapping appointments
+                            $hasOverlap = RepairAppointment::query()
+                                ->where('technician', $value)
+                                ->whereIn('status', ['New', 'Done']) // Only check active appointments
+                                ->whereDate('date', $parsedDate)
+                                ->where(function ($query) use ($parsedStartTime, $parsedEndTime) {
+                                    $query->where(function ($q) use ($parsedStartTime, $parsedEndTime) {
+                                        // Start time falls within existing appointment
+                                        $q->where('start_time', '<=', $parsedStartTime)
+                                        ->where('end_time', '>', $parsedStartTime);
+                                    })
+                                    ->orWhere(function ($q) use ($parsedStartTime, $parsedEndTime) {
+                                        // End time falls within existing appointment
+                                        $q->where('start_time', '<', $parsedEndTime)
+                                        ->where('end_time', '>=', $parsedEndTime);
+                                    })
+                                    ->orWhere(function ($q) use ($parsedStartTime, $parsedEndTime) {
+                                        // Existing appointment falls completely within selected time
+                                        $q->where('start_time', '>=', $parsedStartTime)
+                                        ->where('end_time', '<=', $parsedEndTime);
+                                    });
+                                })
+                                ->exists();
+
+                            return $hasOverlap;
+                        })
                         ->searchable()
                         ->required()
-                        ->placeholder('Select a technician')
+                        ->placeholder('Select a technician'),
                     ]),
             Textarea::make('remarks')
                 ->label('REMARKS')

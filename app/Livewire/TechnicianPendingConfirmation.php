@@ -151,7 +151,7 @@ class TechnicianPendingConfirmation extends Component implements HasForms, HasTa
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary')
                     ->weight('bold')

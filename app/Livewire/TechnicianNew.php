@@ -148,7 +148,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -411,7 +411,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                                             ->openable()
                                                             ->downloadable()
                                                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, AdminRepair $record): string {
-                                                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                                                                 $extension = $file->getClientOriginalExtension();
                                                                 $timestamp = now()->format('YmdHis');
                                                                 $random = rand(1000, 9999);
@@ -582,7 +582,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                             // Send email notification
                             try {
                                 // Format repair ID
-                                $repairId = 'RP_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
                                 // Get company name
                                 $companyName = $record->company_name ?? 'Unknown Company';

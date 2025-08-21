@@ -1529,6 +1529,12 @@
 
                             <div class="submenu" id="settings-system-label-submenu">
                                 @if(auth()->user()->hasRouteAccess('filament.admin.resources.products.index'))
+                                <a href="{{ route('filament.admin.resources.device-models.index') }}" class="submenu-item">
+                                    <span class="module-font">Device Model</span>
+                                </a>
+                                @endif
+
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.products.index'))
                                 <a href="{{ route('filament.admin.resources.products.index') }}" class="submenu-item">
                                     <span class="module-font">Product</span>
                                 </a>
