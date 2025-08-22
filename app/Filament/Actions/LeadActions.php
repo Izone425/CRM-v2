@@ -886,7 +886,6 @@ class LeadActions
                                         $salespersonId = $lead->salesperson;
                                         $salesperson = User::find($salespersonId);
                                         $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
-                                        info($salespersonEmail);
 
                                         // Get Lead Owner Email
                                         $leadownerName = $lead->lead_owner;
@@ -2210,7 +2209,6 @@ class LeadActions
                     $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
                     $picName = optional($lead->companyDetail)->name ?? $lead->name;
                     $email = optional($lead->companyDetail)->email ?? $lead->email;
-                    info($email);
                     if ($salespersonUser && filter_var($salespersonUser->email, FILTER_VALIDATE_EMAIL)) {
                         try {
                             $utmCampaign = $lead->utmDetail->utm_campaign ?? null;
@@ -2271,7 +2269,6 @@ class LeadActions
                             $salespersonId = $lead->salesperson;
                             $salesperson = User::find($salespersonId);
                             $salespersonEmail = $salespersonUser->email ?? null; // Prevent null errors
-                            info($salespersonEmail);
 
                             // Get Lead Owner Email
                             $leadownerName = $lead->lead_owner;

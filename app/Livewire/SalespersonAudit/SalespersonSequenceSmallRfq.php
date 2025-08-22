@@ -200,7 +200,6 @@ class SalespersonSequenceSmallRfq extends Component implements HasForms, HasTabl
                         // First try to get from properties
                         $properties = is_string($state) ? json_decode($state, true) : $state;
                         $spId = $properties['attributes']['salesperson'] ?? null;
-                        info($properties);
                         if ($spId) {
                             $user = User::find($spId);
                             if ($user) {

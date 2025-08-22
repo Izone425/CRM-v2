@@ -20,7 +20,6 @@ class CustomerActivationMail extends Mailable
         $this->customer = $customer;
         $this->token = $token;
         $this->name = $name;
-        info( $this->name);
     }
 
     public function build()
