@@ -939,6 +939,47 @@ class ActivityLogRelationManager extends RelationManager
                                 ->performedOn($lead);
                         }
 
+                        $phoneNumber = $lead->companyDetail->contact_no ?? $lead->phone;
+                        $recipientName = $lead->companyDetail->name ?? $lead->name;
+                        $date = Carbon::parse($demoAppointment->date)->format('j F Y');
+                        $day = Carbon::parse($demoAppointment->date)->format('l');
+                        $time = Carbon::parse($demoAppointment->start_time)->format('h:i A') . ' - ' .
+                                Carbon::parse($demoAppointment->end_time)->format('h:i A');
+                        $demoType = $appointment->appointment_type; // ONLINE/ONSITE/WEBINAR
+                        $salespersonName = $salespersonUser->name ?? 'N/A';
+                        $salespersonContact = $salespersonUser->mobile_number ?? 'N/A';
+
+                        if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
+                                // Use regular template for non-CN leads
+                                $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
+
+                                // For regular templates, include the recipient name
+                                $variables = [
+                                    $recipientName,
+                                    $date,
+                                    $day,
+                                    $time,
+                                    $demoType,
+                                    $salespersonName,
+                                    $salespersonContact
+                                ];
+
+                            // Send the WhatsApp template message
+                            try {
+                                $whatsappController = new \App\Http\Controllers\WhatsAppController();
+                                $whatsappController->sendWhatsAppTemplate($phoneNumber, $templateSid, $variables);
+
+                                // Log successful WhatsApp notification
+                                Log::info("WhatsApp template sent to {$recipientName} at {$phoneNumber} for demo appointment");
+                            } catch (\Exception $e) {
+                                // Log error if WhatsApp sending fails
+                                Log::error("Failed to send WhatsApp template: " . $e->getMessage(), [
+                                    'phone' => $phoneNumber,
+                                    'lead_id' => $lead->id,
+                                ]);
+                            }
+                        }
+
                         Notification::make()
                             ->title('Demo Added Successfully')
                             ->success()

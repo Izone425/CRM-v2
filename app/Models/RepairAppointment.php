@@ -32,7 +32,13 @@ class RepairAppointment extends Model
         'location',
         'event_id',
         'details',
-        'status'
+        'status',
+        'device_model',
+    ];
+
+    protected $casts = [
+        'date' => 'date',
+        'device_model' => 'array', // Add this line
     ];
 
     public function setRemarksAttribute($value)

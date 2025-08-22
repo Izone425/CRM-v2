@@ -331,7 +331,6 @@ class AdminRepairPendingConfirmation extends Component implements HasForms, HasT
                                         ->options([
                                             'NEW INSTALLATION' => 'NEW INSTALLATION',
                                             'REPAIR' => 'REPAIR',
-                                            'MAINTENANCE SERVICE' => 'MAINTENANCE SERVICE',
                                         ])
                                         ->default('REPAIR')
                                         ->required()

@@ -32,6 +32,11 @@ class CallLog extends Model
         'call_duration' => 'integer',
     ];
 
+    public function setQuestionAttribute($value)
+    {
+        $this->attributes['question'] = strtoupper($value);
+    }
+
     // Define relationships for each tier
     public function tier1Category(): BelongsTo
     {

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\ImplementerAppointment;
+use App\Models\SoftwareHandover;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
@@ -20,6 +21,7 @@ use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
+use Illuminate\Support\Str;
 
 class ImplementerRequestList extends Page implements HasTable
 {
@@ -86,12 +88,75 @@ class ImplementerRequestList extends Page implements HasTable
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('software_handover_id')
+                    ->label('SW ID')
+                    ->color('primary')
+                    ->formatStateUsing(function ($state, $record) {
+                        if (empty($state)) {
+                            return 'N/A';
+                        }
+
+                        $yearDigits = '25'; // Default
+
+                        // Try to get the software handover creation date
+                        $softwareHandover = SoftwareHandover::where('id', $record->software_handover_id)
+                            ->first();
+
+                        if ($softwareHandover && $softwareHandover->created_at) {
+                            $yearDigits = Carbon::parse($softwareHandover->created_at)->format('y');
+                        }
+
+                        if (Str::startsWith($state, 'SW_')) {
+                            return $state;
+                        }
+
+                        $numericId = preg_replace('/[^0-9]/', '', $state);
+
+                        return 'SW_' . $yearDigits . '0' . str_pad($numericId, 3, '0', STR_PAD_LEFT);
+                    })
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (ImplementerAppointment $record): View {
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $record->softwareHandover]);
+                            })
+                    ),
+
+                TextColumn::make('lead.companyDetail.company_name')
+                    ->label('COMPANY NAME')
+                    ->searchable()
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($state) {
+                            return strtoupper(Str::limit($state, 30, '...'));
+                        }
+
+                        // Fallback for relationship issues
+                        $softwareHandover = SoftwareHandover::where('lead_id', $record->lead_id)->latest()->first();
+                        if ($softwareHandover && $softwareHandover->company_name) {
+                            return strtoupper(Str::limit($softwareHandover->company_name, 30, '...'));
+                        }
+
+                        return 'N/A';
+                    })
+                    ->url(function ($record) {
+                        if ($record->lead_id) {
+                            $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id);
+                            return url('admin/leads/' . $encryptedId);
+                        }
+                        return null;
+                    })
+                    ->openUrlInNewTab()
+                    ->color(Color::hex('#338cf0')),
+
                 TextColumn::make('date')
                     ->label('Date')
                     ->formatStateUsing(function ($state, ImplementerAppointment $record) {
                         $date = Carbon::parse($state);
-                        $dayName = $date->format('l');
-                        return $date->format('j F Y') . ' / ' . $dayName;
+                        return $date->format('j F Y');
                     })
                     ->sortable(),
 
@@ -99,96 +164,13 @@ class ImplementerRequestList extends Page implements HasTable
                     ->label('Session')
                     ->formatStateUsing(function ($state, ImplementerAppointment $record) {
                         $slotCode = $record->session;
-
-                        // Format the time in 12-hour format with AM/PM
-                        $formattedStartTime = Carbon::parse($record->start_time)->format('h:i A');
-                        $formattedEndTime = Carbon::parse($record->end_time)->format('h:i A');
-
                         // Combine slot code with formatted time
-                        return "{$slotCode} ({$formattedStartTime} - {$formattedEndTime})";
+                        return "{$slotCode}";
                     }),
 
                 TextColumn::make('type')
                     ->label('Session Type')
                     ->searchable(),
-
-                TextColumn::make('session')
-                    ->label('Session')
-                    ->formatStateUsing(function ($state, ImplementerAppointment $record) {
-                        $slotCode = $record->session;
-
-                        // Format the time in 12-hour format with AM/PM
-                        $formattedStartTime = Carbon::parse($record->start_time)->format('h:i A');
-                        $formattedEndTime = Carbon::parse($record->end_time)->format('h:i A');
-
-                        // Combine slot code with formatted time
-                        return "{$slotCode} ({$formattedStartTime} - {$formattedEndTime})";
-                    }),
-
-                TextColumn::make('type')
-                    ->label('Session Type')
-                    ->searchable(),
-
-                TextColumn::make('session_count')
-                    ->label('Count')
-                    ->getStateUsing(function ($record) {
-                        // Skip cancelled sessions
-                        if ($record->status == 'Cancelled') {
-                            return '-';
-                        }
-
-                        // For weekly follow-up sessions, return week number if available
-                        if ($record->type === 'WEEKLY FOLLOW UP SESSION' && $record->selected_week) {
-                            return "W{$record->selected_week}";
-                        }
-
-                        // If no lead_id, we can't determine the count
-                        if (!$record->lead_id) {
-                            return '-';
-                        }
-
-                        // Get all appointments of this specific type for this lead that aren't cancelled
-                        $sessions = ImplementerAppointment::where('lead_id', $record->lead_id)
-                            ->where('type', $record->type)
-                            ->where('status', '!=', 'Cancelled')
-                            ->orderBy('date', 'asc')
-                            ->orderBy('start_time', 'asc')
-                            ->orderBy('id', 'asc')
-                            ->get();
-
-                        // Find position of current record in the sorted list
-                        $position = 0;
-                        foreach ($sessions as $index => $session) {
-                            if ($session->id === $record->id) {
-                                $position = $index + 1; // +1 because we want to start counting from 1, not 0
-                                break;
-                            }
-                        }
-
-                        // Get total count
-                        $totalCount = $sessions->count();
-
-                        // Return position and max counts for specific session types
-                        if ($record->type === 'DATA MIGRATION SESSION') {
-                            return "{$position}/2";
-                        } elseif ($record->type === 'SYSTEM SETTING SESSION') {
-                            return "{$position}/4";
-                        } else {
-                            return $position > 0 ? "{$position}/{$totalCount}" : '-';
-                        }
-                    })
-                    ->alignCenter()
-                    ->badge()
-                    ->color(function ($record, $state) {
-                        if ($state === '-') return 'gray';
-
-                        return match ($record->type) {
-                            'DATA MIGRATION SESSION' => 'warning',
-                            'SYSTEM SETTING SESSION' => 'info',
-                            'WEEKLY FOLLOW UP SESSION' => 'purple',
-                            default => 'primary',
-                        };
-                    }),
 
                 TextColumn::make('request_status')
                     ->label('Status')

@@ -108,11 +108,6 @@ class CallCategoryResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('parent.name')
-                    ->label('Parent')
-                    ->searchable()
-                    ->sortable(),
-
                 Tables\Columns\BadgeColumn::make('tier')
                     ->colors([
                         'primary' => '1',
@@ -143,22 +138,13 @@ class CallCategoryResource extends Resource
                         '3' => 'Tier 3 - Sub Category',
                     ]),
 
-                Tables\Filters\SelectFilter::make('parent_id')
-                    ->label('Parent')
-                    ->options(fn () => CallCategory::pluck('name', 'id')),
-
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active')
                     ->indicator('Active'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn() => auth()->user()->role_id == 3),
             ])
             ->defaultSort('tier', 'asc')
             ->defaultSort('name', 'asc');
@@ -176,5 +162,10 @@ class CallCategoryResource extends Resource
             'create' => Pages\CreateCallCategory::route('/create'),
             'edit' => Pages\EditCallCategory::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->role_id == 3;
     }
 }

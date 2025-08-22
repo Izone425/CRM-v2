@@ -1006,6 +1006,9 @@
                                 <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="submenu-item">
                                     <span class="module-font">Internal Task Request</span>
                                 </a>
+                                <a href="{{ route('filament.admin.pages.sales.site-survey-request') }}" class="submenu-item">
+                                    <span class="module-font">Site Survey Request</span>
+                                </a>
                             </div>
                         </div>
                     @endif
@@ -1336,25 +1339,27 @@
                         </div>
                     </div>
 
-                    <!-- Follow Up Template Section -->
-                    <!-- <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-followup-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
+                        <!-- Follow Up Template Section -->
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-followup-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-dot"></i>
+                                </div>
+                                <span class="menu-text">Follow Up Template</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
                             </div>
-                            <span class="menu-text">Follow Up Template</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
 
-                        <div class="submenu" id="implementer-followup-submenu">
-                            <a href="{{ route('filament.admin.resources.email-templates.index') }}" class="submenu-item">
-                                <span class="module-font">By Default</span>
-                            </a>
-                            <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="submenu-item">
-                                <span class="module-font">By Implementer</span>
-                            </a>
+                            <div class="submenu" id="implementer-followup-submenu">
+                                <a href="{{ route('filament.admin.resources.email-templates.index') }}" class="submenu-item">
+                                    <span class="module-font">By Default</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">By Implementer</span>
+                                </a>
+                            </div>
                         </div>
-                    </div> -->
+                    @endif
                 </div>
 
                 <!-- Support Section -->
@@ -1423,6 +1428,21 @@
                             </a>
                             <a href="{{ route('filament.admin.pages.technician-appointment') }}" class="submenu-item">
                                 <span class="module-font">Technician Appointment</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="technician-door-access-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Door Access Handover</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="technician-door-access-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Dashboard</span>
                             </a>
                         </div>
                     </div>

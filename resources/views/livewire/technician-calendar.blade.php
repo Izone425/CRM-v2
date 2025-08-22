@@ -696,7 +696,6 @@
                 @foreach ([
                     'NEW INSTALLATION' => '#71eb71',
                     'REPAIR' => '#ffff5cbf',
-                    'MAINTENANCE SERVICE' => '#f86f6f',
                     'SITE SURVEY' => '#ffa83c',
                     'INTERNAL TECHNICIAN TASK' => '#60a5fa'
                 ] as $type => $color)
@@ -1076,7 +1075,12 @@
                                         style="background-color: #3b82f6"
                                     @endif></div>
 
-                                <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
+                                <div class="appointment-card-info"
+                                    @click="
+                                        remarksModalOpen = true;
+                                        surveyDetailModalOpen = {{ $appointment->type === 'SITE SURVEY HANDOVER' ? 'true' : 'false' }};
+                                    "
+                                    style="cursor: pointer">
                                     <div class="appointment-demo-type">
                                         @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
                                             {{ $appointment->type }}
@@ -1104,7 +1108,7 @@
                                 </div>
 
                                 <!-- Remarks Modal -->
-                                <div x-show="remarksModalOpen"
+                                <div x-show="remarksModalOpen && !surveyDetailModalOpen"
                                     x-transition
                                     @click.outside="remarksModalOpen = false"
                                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
@@ -1162,6 +1166,24 @@
                                             </div>
                                         @endif
 
+                                        <div class="mt-5 text-center">
+                                            <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Survey Detail Modal -->
+                                <div x-show="remarksModalOpen && surveyDetailModalOpen"
+                                    x-transition
+                                    @click.outside="remarksModalOpen = false"
+                                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
+                                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
+                                        <!-- Survey detail content -->
+                                        @if($appointment->type === 'SITE SURVEY HANDOVER')
+                                            @include('components.survey-request-detail', ['record' => $appointment])
+                                        @endif
                                         <div class="mt-5 text-center">
                                             <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
                                                 Close
