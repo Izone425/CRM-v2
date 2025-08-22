@@ -48,6 +48,7 @@ use App\Filament\Pages\SalespersonLeadSequence;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\SoftwareHandoverAnalysisV2;
+use App\Filament\Pages\SupportCallLog;
 use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
 use App\Filament\Pages\TrainingCalendar;
@@ -55,6 +56,7 @@ use App\Filament\Pages\TrainingCalendarBulkManagement;
 use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Pages\Whatsapp;
 use App\Filament\Resources\AdminRepairResource;
+use App\Filament\Resources\CallCategoryResource;
 use App\Filament\Resources\ChatMessageResource;
 use App\Filament\Resources\DashboardResource;
 use App\Filament\Resources\DemoResource;
@@ -209,6 +211,7 @@ class AdminPanelProvider extends PanelProvider
                 TrainingBookingResource::class,
                 EmailTemplateResource::class,
                 DeviceModelResource::class,
+                CallCategoryResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -255,6 +258,7 @@ class AdminPanelProvider extends PanelProvider
                 ImplementationSession::class,
                 SoftwareHandoverAnalysisV2::class,
                 OvertimeCalendar::class,
+                SupportCallLog::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

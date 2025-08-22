@@ -135,10 +135,11 @@ class MarketingAnalysis extends Page
             'TimeTec HR / SalesPerson / Leads',
             'Reseller Leads',
             'Reseller lead',
-            'Salesperson Leads',
+            'SalesPerson Leads',
             'Refer & Earn (Sales)',
             'Jonathan Leads',
-            'Existing Customers'
+            'Existing Customer',
+            'FingerTec Leads'
         ];
 
         $this->isExcludingLeadCodes = session('isExcludingLeadCodes', false);
@@ -354,6 +355,10 @@ class MarketingAnalysis extends Page
         // UTM filter
         $utmLeadIds = $this->getLeadIdsFromUtmFilters();
         $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
 
         if ($utmFilterApplied && !empty($utmLeadIds)) {
             $query->whereIn('id', $utmLeadIds);

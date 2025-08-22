@@ -631,7 +631,30 @@ class AdminRepairAccepted extends Component implements HasForms, HasTable
         // Standardize the model name for comparison (uppercase and trim spaces)
         $model = strtoupper(trim($deviceModel));
 
-        // Map device models to their warranty periods
+        // First, try to find an exact match in the DeviceModel table
+        $deviceModelRecord = \App\Models\DeviceModel::where('name', $model)->first();
+
+        if ($deviceModelRecord) {
+            // Extract the number of years from the warranty_category
+            if ($deviceModelRecord->warranty_category === '2 years') {
+                return 2;
+            } else {
+                return 1; // Default to 1 year for '1 year' or any other value
+            }
+        }
+
+        // If no exact match, try a partial match
+        $deviceModelRecord = \App\Models\DeviceModel::where('name', 'like', "%{$model}%")->first();
+
+        if ($deviceModelRecord) {
+            if ($deviceModelRecord->warranty_category === '2 years') {
+                return 2;
+            } else {
+                return 1;
+            }
+        }
+
+        // If still not found, fall back to the hardcoded logic for backward compatibility
         return match (true) {
             str_contains($model, 'TC10') => 2,
             str_contains($model, 'TC20') => 2,
