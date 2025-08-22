@@ -499,7 +499,7 @@
                                     wire:click="toggleExcludeLeadCodes"
                                     color="{{ $isExcludingLeadCodes ? 'success' : 'gray' }}"
                                 >
-                                    {{ $isExcludingLeadCodes ? 'You are viewing Excluded Leads Only' : 'You are viewing All Leads' }}
+                                    {{ $isExcludingLeadCodes ? 'You are viewing Marketing Leads Only' : 'You are viewing All Leads' }}
                                 </x-filament::button>
 
                                 <i class="ml-2 bi bi-question-circle cursor-help"
@@ -1191,8 +1191,8 @@
             @endphp
 
             @if($hasData)
-                <div class="lead-summary-box">
-                    <div class="bars-container" style="display: flex; gap: 30px; height: 200px; align-items: center; justify-content: center; width: 100%; margin-left: 0;">
+                <div class="mt-6">
+                    <div class="flex flex-wrap justify-center gap-8 overflow-visible">
                         @php
                             $maxValue = max(array_values($noResponseByCallAttempt));
                             $colors = ['#FFE29C', '#FFD59C', '#FFB066', '#FF8A8A', '#ff7c7c', '#B3B0F7'];
@@ -1210,29 +1210,35 @@
                                     : 0;
                             @endphp
 
-                            <div class="cursor-pointer bar-group"
-                                 wire:click="openNoResponseByCallAttemptsSlideOver('{{ $attempts }}')"
-                                 style="min-width: 50px; text-align: center;">
-                                <div style="font-size: 13px; margin-bottom: 5px; font-weight: bold;">
-                                    {{ $count }}
-                                </div>
-                                <div class="bar-wrapper" style="background-color: {{ $bgcolor }}; width: 65px; height: 120px;">
+                            <div class="relative text-center cursor-pointer bar-group group"
+                                wire:click="openNoResponseByCallAttemptsSlideOver('{{ $attempts }}')">
+                                <p style="margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #374151;">
+                                    {{ $percentage }}%
+                                </p>
+
+                                <div style="width: 70px; height: 140px; position: relative; background-color: {{ $bgcolor }}; border-radius: 4px;">
+                                    <!-- Bar section -->
                                     @if($count > 0)
-                                        <div class="bar-fill" style="height: {{ max($heightPercent, 3) }}%; background-color: {{ $color }};">
+                                        <div class="absolute bottom-0 w-full rounded-md"
+                                            style="height: {{ max($heightPercent, 3) }}%; background-color: {{ $color }};">
                                         </div>
                                     @endif
                                 </div>
-                                <div style="margin-top: 8px; font-size: 13px; width: 70px;">
+
+                                <p class="mt-2 text-xs text-gray-600" style="width: 70px; overflow-wrap: break-word; white-space: normal;">
                                     {{ $attempts }} {{ $attempts === '1' ? 'Call' : 'Calls' }}
+                                </p>
+
+                                <div class="hover-message">
+                                    {{ $count }} leads ({{ $percentage }}%)
                                 </div>
-                                <div class="hover-message">{{ $percentage }}%</div>
                             </div>
                         @endforeach
                     </div>
                 </div>
             @else
-                <div class="flex items-center justify-center h-48 text-gray-500">
-                    No call attempt data available
+                <div class="flex items-center justify-center w-full h-48">
+                    <p class="text-gray-500">No call attempt data available</p>
                 </div>
             @endif
         </div>

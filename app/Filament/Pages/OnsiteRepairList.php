@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\AdminRepair;
 use App\Models\CompanyDetail;
+use App\Models\DeviceModel;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
@@ -397,27 +398,36 @@ class OnsiteRepairList extends Page implements HasTable
                         ->schema([
                             Select::make('device_model')
                                 ->label('Device Model')
-                                ->options([
-                                    'TC10' => 'TC10',
-                                    'TC20' => 'TC20',
-                                    'FACE ID 5' => 'FACE ID 5',
-                                    'FACE ID 6' => 'FACE ID 6',
-                                    'TIME BEACON' => 'TIME BEACON',
-                                    'NFC TAG' => 'NFC TAG',
-                                    'TA100C / HID' => 'TA100C / HID',
-                                    'TA100C / R' => 'TA100C / R',
-                                    'TA100C / MF' => ' TA100C / MF',
-                                    'TA100C / R / W' => 'TA100C / R / W',
-                                    'TA100C / MF / W' => 'TA100C / MF / W',
-                                    'TA100C / HID / W' => 'TA100C / HID / W',
-                                    'TA100C / W' => 'TA100C / W',
-                                ])
+                                ->columnSpan(1)
+                                ->options(function() {
+                                    // Get only active device models
+                                    return DeviceModel::where('is_active', true)
+                                        ->orderBy('name')
+                                        ->pluck('name', 'name')
+                                        ->toArray();
+                                })
                                 ->searchable()
-                                ->required(),
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, $set) {
+                                    // When device model changes, update related info
+                                    if ($state) {
+                                        $deviceModel = DeviceModel::where('name', $state)->first();
+                                        if ($deviceModel) {
+                                            $set('warranty_info', $deviceModel->warranty_category);
+                                            $set('serial_required', $deviceModel->serial_number_required);
+                                        }
+                                    }
+                                }),
 
                             TextInput::make('device_serial')
                                 ->label('Serial Number')
-                                ->required()
+                                ->required(fn ($get): bool =>
+                                    // Get device model from state
+                                    DeviceModel::where('name', $get('device_model'))
+                                        ->first()
+                                        ?->serial_number_required ?? true
+                                )
                                 ->maxLength(100),
 
                             Select::make('device_category')

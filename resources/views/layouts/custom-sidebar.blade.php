@@ -1370,13 +1370,13 @@
                         </div>
 
                         <div class="submenu" id="support-repair-submenu">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.call-logs') }}" class="submenu-item">
                                 <span class="module-font">Call Log - List</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Call Log - Analysis</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.resources.call-categories.index') }}" class="submenu-item">
                                 <span class="module-font">Call Log - Category</span>
                             </a>
                         </div>

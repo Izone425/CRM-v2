@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CallLog extends Model
 {
@@ -11,30 +12,45 @@ class CallLog extends Model
 
     protected $fillable = [
         'caller_number',
+        'caller_name',
         'receiver_number',
         'call_duration',
         'call_status',
         'call_type',
         'started_at',
-        'call_recording_url',
-        'notes',
-        'lead_id',   // Optional - for linking to a lead
-        'user_id',   // Optional - for linking to a user
+        'end_at',
+        'question',
+        'task_status',
+        'tier1_category_id',   // New field for Tier 1
+        'tier2_category_id',   // New field for Tier 2
+        'tier3_category_id',   // New field for Tier 3
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
+        'end_at' => 'datetime',
         'call_duration' => 'integer',
     ];
 
-    // Relationships
-    public function lead()
+    // Define relationships for each tier
+    public function tier1Category(): BelongsTo
     {
-        return $this->belongsTo(Lead::class);
+        return $this->belongsTo(CallCategory::class, 'tier1_category_id');
     }
 
-    public function user()
+    public function tier2Category(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(CallCategory::class, 'tier2_category_id');
+    }
+
+    public function tier3Category(): BelongsTo
+    {
+        return $this->belongsTo(CallCategory::class, 'tier3_category_id');
+    }
+
+    // Keep the old relationship for backward compatibility
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CallCategory::class, 'category_id');
     }
 }
