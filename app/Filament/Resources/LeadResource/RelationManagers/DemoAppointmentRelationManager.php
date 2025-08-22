@@ -562,7 +562,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                     } else {
                                         // Generate all possible time slots without checking for booked slots
                                         $startTime = Carbon::createFromTime(8, 0, 0);
-                                        $endTime = Carbon::createFromTime(18, 0, 0);
+                                        $endTime = Carbon::createFromTime(18, 30, 0);
 
                                         while ($startTime < $endTime) {
                                             $allTimes[] = $startTime->format('H:i');
@@ -602,7 +602,7 @@ class DemoAppointmentRelationManager extends RelationManager
                                         $endTime = Carbon::parse($state)->addHour();
 
                                         // Cap end time at 6pm
-                                        $maxEndTime = Carbon::createFromTime(18, 0, 0);
+                                        $maxEndTime = Carbon::createFromTime(18, 30, 0);
                                         if ($endTime->gt($maxEndTime)) {
                                             $endTime = $maxEndTime;
                                         }

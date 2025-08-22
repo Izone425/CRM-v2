@@ -1860,7 +1860,6 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                 ->options([
                                                     'NEW INSTALLATION' => 'NEW INSTALLATION',
                                                     'REPAIR' => 'REPAIR',
-                                                    'MAINTENANCE SERVICE' => 'MAINTENANCE SERVICE',
                                                     'SITE SURVEY' => 'SITE SURVEY',
                                                 ])
                                                 ->default(function ($record = null) {

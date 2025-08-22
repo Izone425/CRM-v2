@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('lead_id')->nullable();
             $table->integer('repair_handover_id')->nullable();
 
-            $table->enum('type', ['NEW INSTALLATION','REPAIR','MAINTENANCE SERVICE','FINGERTEC TASK']);
+            $table->enum('type', ['NEW INSTALLATION','REPAIR','FINGERTEC TASK']);
             $table->enum('appointment_type', ['ONSITE']);
 
             $table->date('date')->nullable();

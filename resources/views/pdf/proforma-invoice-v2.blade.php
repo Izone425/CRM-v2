@@ -120,7 +120,7 @@
 
                                     <span>
                                         <span style="font-weight:bold;">Tel: </span>
-                                        {{ $companyDetails->contact_number ?? $quotation->lead->phone }}
+                                        {{ $companyDetails->contact_no ?? $quotation->lead->phone }}
                                     </span><br />
 
                                     <span>

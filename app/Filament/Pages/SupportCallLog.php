@@ -23,6 +23,8 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Contracts\HasTable;
@@ -50,16 +52,27 @@ class SupportCallLog extends Page implements HasTable
     public function getReceptionCalls(): Builder
     {
         $query = CallLog::query()
-            ->where('caller_name', 'Reception');
+            ->where(function ($query) {
+                // Condition 1: Caller is Reception or Najwa
+                $query->whereIn('caller_number', ['100', '323', '324', '333', '343']);
+            });
 
-        // Map receiver numbers to specific staff names
+        // Map both receiver and caller numbers to specific staff names
         $query->addSelect([
             '*',
             DB::raw("CASE
-                WHEN receiver_number = '323' THEN 'Ummu Najwa Fajrina'
-                WHEN receiver_number = '324' THEN 'Siti Nadia'
-                WHEN receiver_number = '333' THEN 'Noor Syazana'
-                WHEN receiver_number = '343' THEN 'Rahmah'
+                -- Map receiver numbers to staff names
+                WHEN caller_number = '323' THEN 'Ummu Najwa Fajrina'
+                WHEN caller_number = '324' THEN 'Siti Nadia'
+                WHEN caller_number = '333' THEN 'Noor Syazana'
+                WHEN caller_number = '343' THEN 'Rahmah'
+
+                -- When caller is 100 (reception), use receiver's name instead
+                WHEN caller_number = '100' AND receiver_number = '323' THEN 'Ummu Najwa Fajrina'
+                WHEN caller_number = '100' AND receiver_number = '324' THEN 'Siti Nadia'
+                WHEN caller_number = '100' AND receiver_number = '333' THEN 'Noor Syazana'
+                WHEN caller_number = '100' AND receiver_number = '343' THEN 'Rahmah'
+
                 ELSE receiver_number
             END as staff_name")
         ]);
@@ -112,7 +125,7 @@ class SupportCallLog extends Page implements HasTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'internal' => 'success',
-                        'OutComing' => 'danger',
+                        'outgoing' => 'danger',
                         default => 'gray',
                     }),
 
@@ -121,8 +134,7 @@ class SupportCallLog extends Page implements HasTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Completed' => 'success',
-                        'Pending' => 'warning',
-                        'Missed' => 'danger',
+                        'Pending' => 'danger',
                         default => 'gray',
                     }),
 
@@ -133,21 +145,21 @@ class SupportCallLog extends Page implements HasTable
                     })
                     ->sortable(),
 
-                TextColumn::make('tier2_category_id')
-                    ->label('Main Category')
-                    ->formatStateUsing(function ($record) {
-                        return $record->tier2Category ? $record->tier2Category->name : '—';
-                    })
-                    ->sortable()
-                    ->toggleable(),
+                // TextColumn::make('tier2_category_id')
+                //     ->label('Main Category')
+                //     ->formatStateUsing(function ($record) {
+                //         return $record->tier2Category ? $record->tier2Category->name : '—';
+                //     })
+                //     ->sortable()
+                //     ->toggleable(),
 
-                TextColumn::make('tier3_category_id')
-                    ->label('Sub Category')
-                    ->formatStateUsing(function ($record) {
-                        return $record->tier3Category ? $record->tier3Category->name : '—';
-                    })
-                    ->sortable()
-                    ->toggleable(),
+                // TextColumn::make('tier3_category_id')
+                //     ->label('Sub Category')
+                //     ->formatStateUsing(function ($record) {
+                //         return $record->tier3Category ? $record->tier3Category->name : '—';
+                //     })
+                //     ->sortable()
+                //     ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('user_id')
@@ -156,15 +168,14 @@ class SupportCallLog extends Page implements HasTable
 
                 SelectFilter::make('call_type')
                     ->options([
-                        'InComing' => 'InComing',
-                        'OutComing' => 'OutComing',
+                        'internal' => 'internal',
+                        'outgoing' => 'OutGoing',
                     ]),
 
                 SelectFilter::make('call_status')
                     ->options([
                         'Completed' => 'Completed',
                         'Pending' => 'Pending',
-                        'Missed' => 'Missed',
                     ]),
 
                 Filter::make('started_at')
@@ -186,16 +197,41 @@ class SupportCallLog extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    ViewAction::make()
-                        ->infolist([
-                            \Filament\Infolists\Components\TextEntry::make('question')
-                                ->label('Call Question')
-                                ->formatStateUsing(fn ($state) => nl2br($state)) // Convert newlines to <br> tags
-                                ->html() // Allow HTML rendering
-                                ->columnSpanFull(),
-                        ])
-                        ->modalWidth('3xl'),
-                    EditAction::make()
+                    Action::make('view')
+                        ->label('View')
+                        ->color('secondary')
+                        ->icon('heroicon-o-eye')
+                        ->visible(fn() => auth()->user()->role_id == 3) // Only visible to admins
+                        ->modalHeading('')
+                        ->modalContent(function (CallLog $record) {
+                            return Infolist::make()
+                                ->record($record)
+                                ->schema([
+                                    \Filament\Infolists\Components\TextEntry::make('question')
+                                        ->label('Question')
+                                        ->formatStateUsing(fn ($state) => nl2br($state))
+                                        ->html()
+                                        ->columnSpanFull(),
+                                    // Add other fields you want to display
+                                ]);
+                        })
+                        ->modalWidth('3xl')
+                        ->modalSubmitAction(false),
+                    Action::make('submit')
+                        ->label('Submit ')
+                        ->color('success')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->visible(function (CallLog $record) {
+                            if ($record->task_status !== 'Pending') {
+                                return false;
+                            }
+
+                            if (auth()->user()->role_id == 3) {
+                                return true;
+                            }
+
+                            return $record->staff_name === auth()->user()->name;
+                        })
                         ->form([
                             Select::make('tier1_category_id')
                                 ->label('Module (Tier 1)')
@@ -210,58 +246,76 @@ class SupportCallLog extends Page implements HasTable
                                 ->afterStateUpdated(fn (callable $set) => $set('tier2_category_id', null))
                                 ->afterStateUpdated(fn (callable $set) => $set('tier3_category_id', null)),
 
-                            Select::make('tier2_category_id')
-                                ->label('Main Category (Tier 2)')
-                                ->options(function (callable $get) {
-                                    $tier1Id = $get('tier1_category_id');
-                                    if (!$tier1Id) {
-                                        return [];
-                                    }
+                            // Select::make('tier2_category_id')
+                            //     ->label('Main Category (Tier 2)')
+                            //     ->options(function (callable $get) {
+                            //         $tier1Id = $get('tier1_category_id');
+                            //         if (!$tier1Id) {
+                            //             return [];
+                            //         }
 
-                                    return \App\Models\CallCategory::where('tier', '2')
-                                        ->where('parent_id', $tier1Id)
-                                        ->where('is_active', true)
-                                        ->pluck('name', 'id');
-                                })
-                                ->searchable()
-                                ->reactive()
-                                ->afterStateUpdated(fn (callable $set) => $set('tier3_category_id', null))
-                                ->visible(fn (callable $get) => (bool) $get('tier1_category_id')),
+                            //         return \App\Models\CallCategory::where('tier', '2')
+                            //             ->where('parent_id', $tier1Id)
+                            //             ->where('is_active', true)
+                            //             ->pluck('name', 'id');
+                            //     })
+                            //     ->searchable()
+                            //     ->reactive()
+                            //     ->afterStateUpdated(fn (callable $set) => $set('tier3_category_id', null))
+                            //     ->visible(fn (callable $get) => (bool) $get('tier1_category_id')),
 
-                            Select::make('tier3_category_id')
-                                ->label('Sub Category (Tier 3)')
-                                ->options(function (callable $get) {
-                                    $tier2Id = $get('tier2_category_id');
-                                    if (!$tier2Id) {
-                                        return [];
-                                    }
+                            // Select::make('tier3_category_id')
+                            //     ->label('Sub Category (Tier 3)')
+                            //     ->options(function (callable $get) {
+                            //         $tier2Id = $get('tier2_category_id');
+                            //         if (!$tier2Id) {
+                            //             return [];
+                            //         }
 
-                                    return \App\Models\CallCategory::where('tier', '3')
-                                        ->where('parent_id', $tier2Id)
-                                        ->where('is_active', true)
-                                        ->pluck('name', 'id');
-                                })
-                                ->searchable()
-                                ->visible(fn (callable $get) => (bool) $get('tier2_category_id')),
+                            //         return \App\Models\CallCategory::where('tier', '3')
+                            //             ->where('parent_id', $tier2Id)
+                            //             ->where('is_active', true)
+                            //             ->pluck('name', 'id');
+                            //     })
+                            //     ->searchable()
+                            //     ->visible(fn (callable $get) => (bool) $get('tier2_category_id')),
 
-                            Select::make('task_status')
-                                ->label('Task Status')
-                                ->options([
-                                    'Pending' => 'Pending',
-                                    'Completed' => 'Completed',
-                                ])
-                                ->searchable()
-                                ->default('Pending'),
+                            // Select::make('task_status')
+                            //     ->label('Task Status')
+                            //     ->options([
+                            //         'Pending' => 'Pending',
+                            //         'Completed' => 'Completed',
+                            //     ])
+                            //     ->searchable()
+                            //     ->default('Pending'),
 
                             Textarea::make('question')
-                                ->label('Call Question')
-                                ->nullable()
+                                ->label('Question')
+                                ->required()
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
                                 ->columnSpanFull(),
                         ])
+                        ->action(function (CallLog $record, array $data): void {
+                            $data['task_status'] = 'Completed';
+
+                            $record->update($data);
+
+                            Notification::make()
+                                ->title('Call log updated successfully')
+                                ->success()
+                                ->send();
+                        })
                 ])
             ])
-            ->recordUrl(null)
-            ->defaultSort('id', 'desc');
+            ->defaultSort('started_at', 'desc');
     }
 
     public function formatDuration($seconds)

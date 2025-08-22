@@ -47,7 +47,7 @@ class TechnicianCalendar extends Component
     public array $selectedTechnicians = [];
     public bool $allTechniciansSelected = true;
 
-    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "MAINTENANCE SERVICE", "SITE SURVEY", "FINGERTEC TASK", "TIMETEC HR TASK", "TIMETEC PARKING TASK", "TIMETEC PROPERTY TASK"];
+    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "SITE SURVEY", "FINGERTEC TASK", "TIMETEC HR TASK", "TIMETEC PARKING TASK", "TIMETEC PROPERTY TASK"];
     public array $selectedRepairType = [];
     public bool $allRepairTypeSelected = true;
 
@@ -155,7 +155,6 @@ class TechnicianCalendar extends Component
             "ALL" => 0,
             "NEW INSTALLATION" => 0,
             "REPAIR" => 0,
-            "MAINTENANCE SERVICE" => 0,
             "SITE SURVEY" => 0,
             "INTERNAL TECHNICIAN TASK" => 0,
         ];
@@ -167,8 +166,6 @@ class TechnicianCalendar extends Component
         $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where('type', 'NEW INSTALLATION')
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["REPAIR"] = $query->clone()->where('type', 'REPAIR')
-            ->where('status', '!=', 'Cancelled')->count();
-        $this->totalRepairs["MAINTENANCE SERVICE"] = $query->clone()->where('type', 'MAINTENANCE SERVICE')
             ->where('status', '!=', 'Cancelled')->count();
         $this->totalRepairs["SITE SURVEY"] = $query->clone()->where('type', 'SITE SURVEY')
             ->where('status', '!=', 'Cancelled')->count();
@@ -608,7 +605,6 @@ class TechnicianCalendar extends Component
         $result = [
             'NEW INSTALLATION' => 0,
             'REPAIR' => 0,
-            'MAINTENANCE SERVICE' => 0,
             'SITE SURVEY' => 0,
             'INTERNAL TECHNICIAN TASK' => 0,
         ];
