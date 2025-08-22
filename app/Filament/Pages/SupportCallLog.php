@@ -162,9 +162,39 @@ class SupportCallLog extends Page implements HasTable
                 //     ->toggleable(),
             ])
             ->filters([
-                SelectFilter::make('user_id')
+                SelectFilter::make('staff_name')
                     ->label('Support')
-                    ->options(User::pluck('name', 'id')),
+                    ->options(function () {
+                        // Get users with role_id = 8
+                        $supportUsers = User::where('role_id', 8)->pluck('name', 'name')->toArray();
+
+                        // Add your specific staff names that should be included
+                        $staffNames = [
+                            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+                            'Siti Nadia' => 'Siti Nadia',
+                            'Noor Syazana' => 'Noor Syazana',
+                            'Rahmah' => 'Rahmah',
+                        ];
+
+                        // Merge the arrays, with staff names taking precedence
+                        return array_merge($supportUsers, $staffNames);
+                    })
+                    ->query(function (Builder $query, $state): Builder {
+                        return $query->when($state, function ($query) use ($state) {
+                            // Filter by staff_name using the CASE expression result
+                            return $query->whereRaw("CASE
+                                WHEN caller_number = '323' THEN 'Ummu Najwa Fajrina'
+                                WHEN caller_number = '324' THEN 'Siti Nadia'
+                                WHEN caller_number = '333' THEN 'Noor Syazana'
+                                WHEN caller_number = '343' THEN 'Rahmah'
+                                WHEN caller_number = '100' AND receiver_number = '323' THEN 'Ummu Najwa Fajrina'
+                                WHEN caller_number = '100' AND receiver_number = '324' THEN 'Siti Nadia'
+                                WHEN caller_number = '100' AND receiver_number = '333' THEN 'Noor Syazana'
+                                WHEN caller_number = '100' AND receiver_number = '343' THEN 'Rahmah'
+                                ELSE receiver_number
+                            END = ?", [$state]);
+                        });
+                    }),
 
                 SelectFilter::make('call_type')
                     ->options([
