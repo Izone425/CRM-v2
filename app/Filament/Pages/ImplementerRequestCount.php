@@ -19,6 +19,17 @@ class ImplementerRequestCount extends Page
     public int $selectedYear;
     public string $selectedImplementer = 'all';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.implementer-request-count');
+    }
+
     public function mount(): void
     {
         $this->selectedYear = (int) date('Y');

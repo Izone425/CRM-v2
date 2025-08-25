@@ -18,5 +18,16 @@ class ImplementerCalendar extends Page
         return __("");
     }
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.implementer-calendar');
+    }
+
     public function mount(): void {}
 }

@@ -18,5 +18,16 @@ class SalespersonCalendarV1 extends Page
         return __("");
     }
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.salesperson-calendar-v1');
+    }
+
     public function mount(): void {}
 }

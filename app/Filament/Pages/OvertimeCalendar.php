@@ -29,7 +29,7 @@ class OvertimeCalendar extends Page
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
         $this->loadCalendarData();
-        $this->users = User::whereIn('role_id', [3, 4, 5, 6])
+        $this->users = User::whereIn('role_id', [4, 5, 6, 7, 8])
             ->orderBy('name')
             ->get();
     }

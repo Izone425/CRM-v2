@@ -50,6 +50,7 @@ class LeadAnalysis extends Page
     public $slideOverTitle = 'Leads';
     public $timetecHRCount;
     public $nonTimetecHRCount;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -123,17 +124,12 @@ class LeadAnalysis extends Page
         $this->fetchFollowUpLeads();
     }
 
-    /**
-     * Fetches general leads and calculates percentages
-     */
-    public function fetchLeads()
+    private function applyBaseFilters($query)
     {
         $user = Auth::user();
-        $query = Lead::query();
 
-        // Handle the new filter options
+        // Filter by selected user type (TimeTec HR or non-TimeTec HR)
         if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
             $timetecUserIds = User::where('role_id', 2)
                 ->where('is_timetec_hr', true)
                 ->pluck('id')
@@ -141,7 +137,6 @@ class LeadAnalysis extends Page
             $query->whereIn('salesperson', $timetecUserIds);
         }
         elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
             $nonTimetecUserIds = User::where('role_id', 2)
                 ->where(function($query) {
                     $query->where('is_timetec_hr', false)
@@ -151,7 +146,7 @@ class LeadAnalysis extends Page
                 ->toArray();
             $query->whereIn('salesperson', $nonTimetecUserIds);
         }
-        // Original logic for individual salesperson
+        // Individual salesperson selection (for admin/managers)
         elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
             $query->where('salesperson', $this->selectedUser);
         }
@@ -161,11 +156,30 @@ class LeadAnalysis extends Page
             $query->where('salesperson', $user->id);
         }
 
-        // Rest of your existing code...
+        // Apply date filter if month is selected
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
+            $query->whereBetween('created_at', [
+                $date->startOfMonth()->format('Y-m-d'),
+                $date->endOfMonth()->format('Y-m-d')
+            ]);
         }
+
+        // Exclude existing customers and filter for valid company sizes
+        $query->where(function($q) {
+            $q->where('lead_code', '!=', 'Existing Customer')
+            ->orWhereNull('lead_code');
+        })->whereNotNull('company_size');
+
+        return $query;
+    }
+
+    public function fetchLeads()
+    {
+        $user = Auth::user();
+        $query = Lead::query();
+
+        $this->applyBaseFilters($query);
 
         // Fetch filtered leads
         $leads = $query->get();
@@ -203,40 +217,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Active'); // Filter only Active leads
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         // Count total active leads
         $this->totalActiveLeads = $query->count();
@@ -261,40 +242,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Inactive'); // Filter only Inactive leads
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         // Count total inactive leads
         $this->totalInactiveLeads = $query->count();
@@ -319,40 +267,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Transfer'); // Filter only Transfer leads
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         // Define expected statuses
         $transferStatuses = ['RFQ-Transfer', 'Pending Demo', 'Demo Cancelled'];
@@ -379,40 +294,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Follow Up'); // Filter only Follow Up leads
 
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         // Define expected statuses
         // $followUpStatuses = ['RFQ-Follow Up', 'Hot', 'Warm', 'Cold'];
@@ -439,38 +321,8 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('categories', 'Active');
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
+        $this->applyBaseFilters($query);
 
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
         $this->slideOverTitle = 'Active Lead Names';
 
         $this->leadList = $query->with('companyDetail')->get(); // ✅ gets full lead records with relationship
@@ -483,38 +335,7 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('categories', 'Inactive');
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = 'Inactive Lead Names';
@@ -544,38 +365,7 @@ class LeadAnalysis extends Page
 
         $query = Lead::where('company_size', $companySize);
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = ucfirst($label) . ' Company Leads';
@@ -587,38 +377,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Active')->where('stage', $stage);
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = ucfirst($stage) . ' Leads';
@@ -630,38 +389,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('categories', 'Inactive')->where('lead_status', $status);
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = ucfirst($status) . ' Inactive Leads';
@@ -673,38 +401,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Transfer')->where('lead_status', $status);
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = "Transfer - " . ucfirst($status) . " Leads";
@@ -716,38 +413,7 @@ class LeadAnalysis extends Page
         $user = Auth::user();
         $query = Lead::where('stage', 'Follow Up')->where('lead_status', $status);
 
-        if ($this->selectedUser === 'timetec_hr') {
-            // Get all TimeTec HR salesperson IDs
-            $timetecUserIds = User::where('role_id', 2)
-                ->where('is_timetec_hr', true)
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $timetecUserIds);
-        }
-        elseif ($this->selectedUser === 'non_timetec_hr') {
-            // Get all non-TimeTec HR salesperson IDs
-            $nonTimetecUserIds = User::where('role_id', 2)
-                ->where(function($query) {
-                    $query->where('is_timetec_hr', false)
-                        ->orWhereNull('is_timetec_hr');
-                })
-                ->pluck('id')
-                ->toArray();
-            $query->whereIn('salesperson', $nonTimetecUserIds);
-        }
-        // Original logic for individual salesperson
-        elseif (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedMonth)) {
-            $date = Carbon::parse($this->selectedMonth);
-            $query->whereBetween('created_at', [$date->startOfMonth()->format('Y-m-d'), $date->endOfMonth()->format('Y-m-d')]);
-        }
+        $this->applyBaseFilters($query);
 
         $this->leadList = $query->with('companyDetail')->get();
         $this->slideOverTitle = "Follow Up - " . ucfirst($status) . " Leads";

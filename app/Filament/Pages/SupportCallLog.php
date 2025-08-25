@@ -36,18 +36,28 @@ class SupportCallLog extends Page implements HasTable
     use InteractsWithForms;
 
     protected static ?string $title = '';
-
     protected static ?string $navigationIcon = 'heroicon-o-phone';
-
     protected static ?string $navigationLabel = 'Call Logs';
-
     protected static ?string $slug = 'call-logs';
-
     protected static ?int $navigationSort = 85;
-
     protected static ?string $navigationGroup = 'Communication';
-
     protected static string $view = 'filament.pages.support-call-log';
+
+    public $showStaffStats = false;
+    public $slideOverTitle = 'Support Staff Call Analytics';
+    public $staffStats = [];
+    public $type = 'all'; // Add this line to track the current type
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.call-logs');
+    }
 
     public function getReceptionCalls(): Builder
     {
@@ -164,45 +174,51 @@ class SupportCallLog extends Page implements HasTable
             ->filters([
                 SelectFilter::make('staff_name')
                     ->label('Support')
-                    ->options(function () {
-                        // Get users with role_id = 8
-                        $supportUsers = User::where('role_id', 8)->pluck('name', 'name')->toArray();
+                    ->options([
+                        'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+                        'Siti Nadia' => 'Siti Nadia',
+                        'Noor Syazana' => 'Noor Syazana',
+                        'Rahmah' => 'Rahmah',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        // If no data or no value selected, return unmodified query
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
 
-                        // Add your specific staff names that should be included
-                        $staffNames = [
-                            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
-                            'Siti Nadia' => 'Siti Nadia',
-                            'Noor Syazana' => 'Noor Syazana',
-                            'Rahmah' => 'Rahmah',
+                        $staffName = $data['value'];
+
+                        // Map staff names to their extension numbers
+                        $extensionMap = [
+                            'Ummu Najwa Fajrina' => '323',
+                            'Siti Nadia' => '324',
+                            'Noor Syazana' => '333',
+                            'Rahmah' => '343',
                         ];
 
-                        // Merge the arrays, with staff names taking precedence
-                        return array_merge($supportUsers, $staffNames);
-                    })
-                    ->query(function (Builder $query, $state): Builder {
-                        return $query->when($state, function ($query) use ($state) {
-                            // Filter by staff_name using the CASE expression result
-                            return $query->whereRaw("CASE
-                                WHEN caller_number = '323' THEN 'Ummu Najwa Fajrina'
-                                WHEN caller_number = '324' THEN 'Siti Nadia'
-                                WHEN caller_number = '333' THEN 'Noor Syazana'
-                                WHEN caller_number = '343' THEN 'Rahmah'
-                                WHEN caller_number = '100' AND receiver_number = '323' THEN 'Ummu Najwa Fajrina'
-                                WHEN caller_number = '100' AND receiver_number = '324' THEN 'Siti Nadia'
-                                WHEN caller_number = '100' AND receiver_number = '333' THEN 'Noor Syazana'
-                                WHEN caller_number = '100' AND receiver_number = '343' THEN 'Rahmah'
-                                ELSE receiver_number
-                            END = ?", [$state]);
-                        });
+                        // Get extension for the selected staff
+                        $extension = $extensionMap[$staffName] ?? null;
+
+                        if ($extension) {
+                            return $query->where(function ($q) use ($extension) {
+                                $q->where('caller_number', $extension)
+                                ->orWhere(function ($subq) use ($extension) {
+                                    $subq->where('caller_number', '100')
+                                        ->where('receiver_number', $extension);
+                                });
+                            });
+                        }
+
+                        return $query;
                     }),
 
                 SelectFilter::make('call_type')
                     ->options([
-                        'internal' => 'internal',
-                        'outgoing' => 'OutGoing',
+                        'internal' => 'Internal',
+                        'outgoing' => 'Outgoing',
                     ]),
 
-                SelectFilter::make('call_status')
+                SelectFilter::make('task_status')
                     ->options([
                         'Completed' => 'Completed',
                         'Pending' => 'Pending',
@@ -231,7 +247,9 @@ class SupportCallLog extends Page implements HasTable
                         ->label('View')
                         ->color('secondary')
                         ->icon('heroicon-o-eye')
-                        ->visible(fn() => auth()->user()->role_id == 3) // Only visible to admins
+                        ->visible(function (CallLog $record) {
+                            return $record->task_status === 'Completed';
+                        })
                         ->modalHeading('')
                         ->modalContent(function (CallLog $record) {
                             return Infolist::make()
@@ -361,5 +379,131 @@ class SupportCallLog extends Page implements HasTable
         }
 
         return sprintf("%02d:%02d", $minutes, $secs);
+    }
+
+    public function openStaffStatsSlideOver($type = 'all')
+    {
+        $this->type = $type; // Store the type
+        $this->staffStats = $this->getStaffStats($type);
+
+        switch ($type) {
+            case 'completed':
+                $this->slideOverTitle = 'Support Staff - Completed Calls';
+                break;
+            case 'pending':
+                $this->slideOverTitle = 'Support Staff - Pending Calls';
+                break;
+            case 'duration':
+                $this->slideOverTitle = 'Support Staff - Call Duration';
+                break;
+            default:
+                $this->slideOverTitle = 'Support Staff - Call Analytics';
+        }
+
+        $this->showStaffStats = true;
+    }
+
+    protected function getStaffStats($type = 'all')
+    {
+        // Define staff members with their corresponding extensions
+        $staffMembers = [
+            'Ummu Najwa Fajrina' => '323',
+            'Siti Nadia' => '324',
+            'Noor Syazana' => '333',
+            'Rahmah' => '343',
+        ];
+
+        $stats = [];
+
+        foreach ($staffMembers as $name => $extension) {
+            // Base query builder to get calls for this staff member
+            $baseQueryBuilder = function () use ($extension) {
+                return CallLog::query()->where(function ($query) use ($extension) {
+                    $query->where('caller_number', $extension)
+                        ->orWhere(function ($q) use ($extension) {
+                            $q->where('caller_number', '100')
+                            ->where('receiver_number', $extension);
+                        });
+                });
+            };
+
+            // Create a fresh query instance for the main filter
+            $query = $baseQueryBuilder();
+
+            // Apply type filter if needed
+            if ($type === 'completed') {
+                $query->where('task_status', 'Completed');
+            } elseif ($type === 'pending') {
+                $query->where('task_status', 'Pending');
+            }
+
+            // Count total calls (unfiltered)
+            $totalCalls = $baseQueryBuilder()->count();
+
+            // Create separate query instances for each metric to avoid filter confusion
+            $completedCalls = $baseQueryBuilder()->where('task_status', 'Completed')->count();
+            $pendingCalls = $baseQueryBuilder()->where('task_status', 'Pending')->count();
+
+            // Calculate total call duration (use the filtered query if type is specified)
+            $durationQuery = $type === 'all' ? $baseQueryBuilder() : $query;
+            $totalDuration = $durationQuery->sum('call_duration');
+
+            // Format total time
+            $hours = floor($totalDuration / 3600);
+            $minutes = floor(($totalDuration % 3600) / 60);
+            $seconds = $totalDuration % 60;
+            $totalTime = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+
+            // Calculate average call duration
+            $countForAvg = $type === 'all' ? $totalCalls : $query->count();
+            $avgDuration = $countForAvg > 0 ? ($totalDuration / $countForAvg) : 0;
+            $avgMinutes = floor($avgDuration / 60);
+            $avgSeconds = floor($avgDuration % 60);
+            $avgTime = sprintf("%02d:%02d", $avgMinutes, $avgSeconds);
+
+            // Calculate completion rate
+            $completionRate = $totalCalls > 0 ? round(($completedCalls / $totalCalls) * 100) : 0;
+
+            // Skip if we have a type filter and there are no matching calls
+            if (($type === 'completed' && $completedCalls === 0) ||
+                ($type === 'pending' && $pendingCalls === 0) ||
+                ($type === 'duration' && $totalDuration === 0)) {
+                continue;
+            }
+
+            // Add to stats array (always include even if zero calls, except for specific filters)
+            $stats[] = [
+                'name' => $name,
+                'extension' => $extension,
+                'total_calls' => $totalCalls,
+                'completed_calls' => $completedCalls,
+                'pending_calls' => $pendingCalls,
+                'total_duration' => $totalDuration,
+                'total_time' => $totalTime,
+                'avg_time' => $avgTime,
+                'completion_rate' => $completionRate,
+            ];
+        }
+
+        // Sort by relevant metric based on type
+        if ($type === 'completed') {
+            usort($stats, function($a, $b) {
+                return $b['completed_calls'] <=> $a['completed_calls'];
+            });
+        } elseif ($type === 'pending') {
+            usort($stats, function($a, $b) {
+                return $b['pending_calls'] <=> $a['pending_calls'];
+            });
+        } elseif ($type === 'duration') {
+            usort($stats, function($a, $b) {
+                return $b['total_duration'] <=> $a['total_duration'];
+            });
+        } else {
+            usort($stats, function($a, $b) {
+                return $b['total_calls'] <=> $a['total_calls'];
+            });
+        }
+
+        return $stats;
     }
 }

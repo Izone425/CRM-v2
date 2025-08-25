@@ -54,6 +54,17 @@ class OnsiteRepairList extends Page implements HasTable
     protected static ?int $indexRemarkCounter = 0;
     protected static ?string $slug = 'repair/onsite-repair-list';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.repair.onsite-repair-list');
+    }
+
     // Define the default form for both create and edit operations
     public function defaultForm(?AdminRepair $record = null): array
     {
