@@ -36,17 +36,6 @@ class SalespersonCalendarV2 extends Component
         'BUSINESS TRIP'
     ];
 
-    public static function canAccess(): bool
-    {
-        $user = auth()->user();
-
-        if (!$user || !($user instanceof \App\Models\User)) {
-            return false;
-        }
-
-        return $user->hasRouteAccess('filament.admin.pages.salesperson-calendar-v2');
-    }
-
     public function mount()
     {
         $this->currentDate = Carbon::now();

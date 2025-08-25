@@ -32,6 +32,17 @@ class ImplementerRequestList extends Page implements HasTable
     protected static ?int $navigationSort = 17;
     protected static string $view = 'filament.pages.implementer-request-list';
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.implementer-request-list');
+    }
+
     public function getTableQuery(): Builder
     {
         $query = ImplementerAppointment::query()

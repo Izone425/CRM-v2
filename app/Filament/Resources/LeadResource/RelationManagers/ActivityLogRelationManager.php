@@ -1722,7 +1722,6 @@ class ActivityLogRelationManager extends RelationManager
                                         ->native(false)
                                         ->displayFormat('d M Y')
                                         ->weekStartsOnMonday()
-                                        ->minDate(now()->addDay())
                                         ->columnSpan(1)
                                         ->default(fn() => now()->nextWeekday()->addDay()),
 
@@ -1802,7 +1801,6 @@ class ActivityLogRelationManager extends RelationManager
                                         ->displayFormat('d M Y')
                                         ->required()
                                         ->weekStartsOnMonday()
-                                        ->minDate(now()->addDays(2))
                                         ->columnSpan(1)
                                         ->default(fn() => now()->nextWeekday()->addDays(2)),
 

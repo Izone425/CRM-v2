@@ -188,6 +188,22 @@ Route::get('/hrms/implementer/{filename}', function ($filename) {
     return response()->file($path);
 })->name('implementer.files');
 
+Route::get('/hrms/trainer/{filename}', function ($filename) {
+    // First try with the exact filename
+    $path = storage_path('app/public/hrms/trainer/' . $filename);
+
+    // If file doesn't exist and no extension provided, try adding .mp4
+    if (!file_exists($path) && !pathinfo($filename, PATHINFO_EXTENSION)) {
+        $path = storage_path('app/public/hrms/trainer/' . $filename . '.mp4');
+    }
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+})->name('trainer.files');
+
 Route::get('/file/{filepath}', function ($filepath) {
     // The filepath parameter will capture everything after /file/
     $path = storage_path('app/public/' . $filepath);

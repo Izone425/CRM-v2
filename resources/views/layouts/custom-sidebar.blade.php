@@ -558,18 +558,7 @@
             </div>
 
             <div class="icon-content">
-                @if(
-                    (auth()->user()->hasAccessToAny([
-                        'filament.admin.pages.monthly-calendar',
-                        'filament.admin.pages.salesperson-calendar-v2',
-                        'filament.admin.pages.chat-room',
-                        'filament.admin.pages.sales-admin-analysis-v1',
-                        'filament.admin.pages.sales-admin-analysis-v2',
-                        'filament.admin.pages.sales-admin-analysis-v3',
-                        'filament.admin.pages.demo-ranking',
-                        'filament.admin.pages.future-enhancement'
-                    ]) && (auth()->user()->role_id == 1 || auth()->user()->role_id == 3))
-                )
+                @if(auth()->user()->role_id == 1 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="salesadmin" title="SalesAdmin">
                         <div class="icon-wrapper">
                             <i class="bi bi-people icon"></i>
@@ -577,18 +566,7 @@
                     </div>
                 @endif
 
-                @if(
-                    (auth()->user()->hasAccessToAny([
-                        'filament.admin.pages.monthly-calendar',
-                        'filament.admin.resources.quotations.index',
-                        'filament.admin.pages.proforma-invoices',
-                        'filament.admin.pages.future-enhancement',
-                        'filament.admin.pages.lead-analysis',
-                        'filament.admin.pages.demo-analysis',
-                        'filament.admin.pages.sales-forecast',
-                        'filament.admin.pages.sales-forecast-summary'
-                    ]) && (auth()->user()->role_id == 2 || auth()->user()->role_id == 3))
-                )
+                @if(auth()->user()->role_id == 2 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="salesperson" title="Sales Person">
                         <div class="icon-wrapper">
                             <i class="bi bi-rocket-takeoff icon"></i>
@@ -596,9 +574,7 @@
                     </div>
                 @endif
 
-                @if(
-                    (auth()->user()->additional_role == 1 || in_array(auth()->user()->role_id, [1,2,3,4,5,6,7,8]))
-                )
+                @if(auth()->user()->additional_role == 1 || in_array(auth()->user()->role_id, [1,2,3,4,5,6,7,8]))
                     <div class="icon-link" data-section="handover" title="Handover">
                         <div class="icon-wrapper">
                             <i class="bi bi-arrow-left-right icon"></i>
@@ -606,13 +582,7 @@
                     </div>
                 @endif
 
-                @if(
-                    (auth()->user()->hasAccessToAny([
-                        'filament.admin.pages.future-enhancement',
-                        'filament.admin.resources.software-handovers.index',
-                        'filament.admin.resources.hardware-handovers.index'
-                    ]) && (auth()->user()->additional_role == 1 || auth()->user()->role_id == 3))
-                )
+                @if(auth()->user()->additional_role == 1 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="admin" title="Admin">
                         <div class="icon-wrapper">
                             <i class="bi bi-layout-text-window icon"></i>
@@ -628,11 +598,7 @@
                     </div>
                 @endif -->
 
-                @if(auth()->user()->hasAccessToAny([
-                    // 'filament.admin.resources.software-handovers.index',
-                    // 'filament.admin.resources.hardware-handovers.index',
-                    'filament.admin.pages.future-enhancement'
-                ]) || in_array(auth()->user()->role_id, [4,5]) || auth()->user()->id == 43)
+                @if(in_array(auth()->user()->role_id, [3,4,5]) || auth()->user()->id == 43)
                     <div class="icon-link" data-section="implementer" title="Implementer">
                         <div class="icon-wrapper">
                             <i class="bi bi-person-workspace icon"></i>
@@ -910,7 +876,7 @@
                             <a href="{{ route('filament.admin.pages.lead-analysis') }}" class="submenu-item">
                                 <span class="module-font">Lead Analysis</span>
                             </a>
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                     <span class="module-font">Lead Analysis - Summary</span>
                                 </a>
@@ -918,7 +884,7 @@
                             <a href="{{ route('filament.admin.pages.demo-analysis') }}" class="submenu-item">
                                 <span class="module-font">Demo Analysis</span>
                             </a>
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                     <span class="module-font">Demo Analysis - Summary</span>
                                 </a>

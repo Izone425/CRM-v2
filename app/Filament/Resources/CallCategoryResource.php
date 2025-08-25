@@ -164,6 +164,17 @@ class CallCategoryResource extends Resource
         ];
     }
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.call-categories.index');
+    }
+
     public static function canCreate(): bool
     {
         return auth()->user()->role_id == 3;

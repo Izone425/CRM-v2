@@ -31,6 +31,17 @@ class SalespersonLeadSequence extends Page
     public $latestRfqInfoRank1 = null;
     public $latestRfqInfoRank2 = null;
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.salesperson-lead-sequence');
+    }
+
     public function mount()
     {
         // Find user IDs for rank1 and rank2 by name

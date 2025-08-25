@@ -65,7 +65,7 @@ class Whatsapp extends Page
             return false;
         }
 
-        return $user->hasRouteAccess('filament.admin.pages.chat-room');
+        return $user->hasRouteAccess('filament.admin.pages.whatsapp');
     }
 
     public function getTotalContactsCountProperty()

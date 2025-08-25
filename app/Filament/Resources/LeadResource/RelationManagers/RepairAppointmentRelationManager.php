@@ -358,22 +358,15 @@ class RepairAppointmentRelationManager extends RelationManager
                     ->label('APPOINTMENT TYPE')
                     ->sortable(),
                 TextColumn::make('date')
-                    ->label('DATE & TIME')
-                    ->sortable()
-                    ->formatStateUsing(function ($record) {
-                        if (!$record->date || !$record->start_time || !$record->end_time) {
-                            return 'No Data Available';
-                        }
-
-                        // Format the date
-                        $date = \Carbon\Carbon::createFromFormat('Y-m-d', $record->date)->format('d M Y');
-
-                        // Format the start and end times
-                        $startTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->start_time)->format('h:i A');
-                        $endTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->end_time)->format('h:i A');
-
-                        return "{$date} | {$startTime} - {$endTime}";
-                    }),
+                    ->label('DATE')
+                    ->date('d M Y')
+                    ->sortable(),
+                TextColumn::make('start_time')
+                    ->label('START TIME')
+                    ->sortable(),
+                TextColumn::make('end_time')
+                    ->label('END TIME')
+                    ->sortable(),
                 IconColumn::make('view_remark')
                     ->label('View Remark')
                     ->alignCenter()

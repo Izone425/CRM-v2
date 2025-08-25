@@ -34,6 +34,17 @@ class ImplementerAuditList extends Page
     ];
     public $largeStatsData = [];
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.pages.implementer-audit-list');
+    }
+
     public function mount()
     {
         // List of allowed implementers for both small and medium companies

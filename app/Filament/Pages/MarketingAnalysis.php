@@ -170,6 +170,65 @@ class MarketingAnalysis extends Page
         }
         return $query;
     }
+
+    private function applyBaseFilters($query)
+    {
+        // Apply UTM filters if any
+        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
+        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
+                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
+
+        if ($utmFilterApplied && !empty($utmLeadIds)) {
+            $query->whereIn('id', $utmLeadIds);
+        }
+
+        // Apply lead code exclusions
+        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
+            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
+        // Exclude existing customer and null company_size
+        $query->where(function($q) {
+            $q->where('lead_code', '!=', 'Existing Customer')
+            ->orWhereNull('lead_code');
+        })->whereNotNull('company_size');
+
+        // Apply lead owner filter
+        if (!empty($this->selectedLeadOwner)) {
+            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
+            $query->where('lead_owner', $ownerName);
+        }
+
+        // Apply role-based filtering
+        $user = Auth::user();
+        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
+            $query->where('salesperson', $this->selectedUser);
+        }
+
+        if ($user->role_id == 2) {
+            $query->where('salesperson', $user->id);
+        }
+
+        // Apply date range filter
+        if (!empty($this->startDate) && !empty($this->endDate)) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($this->startDate)->startOfDay(),
+                Carbon::parse($this->endDate)->endOfDay(),
+            ]);
+        }
+
+        // Apply lead code filter
+        if (!empty($this->selectedLeadCode)) {
+            if ($this->selectedLeadCode === 'Null') {
+                $query->whereNull('lead_code');
+            } else {
+                $query->where('lead_code', $this->selectedLeadCode);
+            }
+        }
+
+        return $query;
+    }
+
     public function updatedSelectedUser($userId)
     {
         $this->selectedUser = $userId;
@@ -431,47 +490,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // Filter by UTM fields if any are filled
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        // If Lead Owner selects a salesperson, filter by that salesperson
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        // If Salesperson, show only their assigned leads
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $query->where(function ($q) {
             $q->whereNotIn('lead_status', ['Junk', 'On Hold', 'Lost'])
@@ -506,46 +525,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filter
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        // Role-based filtering
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // ✅ Custom status filtering
         $query->where(function ($q) {
@@ -588,47 +568,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        // ✅ Filter by lead created_at
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // ✅ Lead status filter
         $query->where(function ($q) {
@@ -680,45 +620,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // ✅ Exclude junk/on hold/lost unless has demo
         $query->where(function ($q) {
@@ -789,30 +691,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
+        $this->applyBaseFilters($query);
 
         // ✅ Lead status filter
         $query->where(function ($q) {
@@ -931,44 +810,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('closing_date', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $this->closedDealsCount = $query
             ->where('lead_status', 'Closed')
@@ -989,44 +831,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('closing_date', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // ✅ Now fetch and group results by year-month
         $results = $query
@@ -1059,37 +864,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('closing_date', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
+        $this->applyBaseFilters($query);
 
         // Get only closed leads with deal amount
         $query->where('lead_status', 'Closed')
@@ -1129,47 +904,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                        $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        // Filter by date
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // Get leads with appointments
         $leads = $query->with('demoAppointment')->get();
@@ -1243,47 +978,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        // Role-based filtering
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // Only get leads with No Response status
         $query->where('lead_status', 'No Response');
@@ -1321,46 +1016,7 @@ class MarketingAnalysis extends Page
 
         $query = Lead::with('companyDetail')->where('lead_status', $status);
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        // Apply same filters as in fetchLeadStatusSummary
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if (auth()->user()->role_id == 2) {
-            $query->where('salesperson', auth()->user()->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $this->slideOverList = $query->get();
         $this->showSlideOver = true;
@@ -1379,45 +1035,7 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $source);
         }
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $this->slideOverList = $query->get();
         $this->showSlideOver = true;
@@ -1438,45 +1056,7 @@ class MarketingAnalysis extends Page
 
         $query = Lead::with('companyDetail')->whereIn('company_size', $rawSizes);
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if (auth()->user()->role_id == 2) {
-            $query->where('salesperson', auth()->id());
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // Same filtering logic as fetchLeads()
         $query->where(function ($q) {
@@ -1519,48 +1099,7 @@ class MarketingAnalysis extends Page
                 });
             });
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        // Filter by lead owner
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        // Role-based filtering
-        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if (auth()->user()->role_id == 2) {
-            $query->where('salesperson', auth()->id());
-        }
-
-        // Date filter
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $this->slideOverList = $query->get();
         $this->showSlideOver = true;
@@ -1573,47 +1112,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query();
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        // ✅ Filter by lead created_at instead of demo date
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $query->where(function ($q) {
             $q->whereIn('lead_status', [
@@ -1725,47 +1224,7 @@ class MarketingAnalysis extends Page
 
         $query = Lead::query()->with('companyDetail', 'demoAppointment');
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array(auth()->user()->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if (auth()->user()->role_id == 2) {
-            $query->where('salesperson', auth()->user()->id);
-        }
-
-        // ✅ Filter by lead created_at instead of demo date
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         $query->where(function ($q) {
             $q->whereIn('lead_status', [
@@ -1811,37 +1270,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query()->with('companyDetail');
 
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm || $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // Monthly filter
         $start = Carbon::parse($monthKey)->startOfMonth()->startOfDay();
@@ -1869,38 +1298,7 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $source);
         }
 
-        // Apply filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('closing_date', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
+        $this->applyBaseFilters($query);
 
         // Show only closed with deal amount
         $query->where('lead_status', 'Closed')
@@ -1924,38 +1322,7 @@ class MarketingAnalysis extends Page
             $query->where('lead_code', $source);
         }
 
-        // Apply same filters as in fetchAppointmentTypeBySource
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id === 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
+        $this->applyBaseFilters($query);
 
         // Get only leads with appointments
         $leads = $query->get()->filter(function ($lead) {
@@ -1974,46 +1341,7 @@ class MarketingAnalysis extends Page
         $user = Auth::user();
         $query = Lead::query()->with('companyDetail');
 
-        // UTM filters
-        $utmLeadIds = $this->getLeadIdsFromUtmFilters();
-        $utmFilterApplied = $this->utmCampaign || $this->utmAdgroup || $this->utmTerm ||
-                            $this->utmMatchtype || $this->referrername || $this->device || $this->utmCreative;
-
-        if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
-            $query->whereNotIn('lead_code', $this->excludeLeadCodes);
-        }
-
-        if ($utmFilterApplied && !empty($utmLeadIds)) {
-            $query->whereIn('id', $utmLeadIds);
-        }
-
-        if (!empty($this->selectedLeadOwner)) {
-            $ownerName = User::where('id', $this->selectedLeadOwner)->value('name');
-            $query->where('lead_owner', $ownerName);
-        }
-
-        if (in_array($user->role_id, [1, 3]) && $this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
-
-        if ($user->role_id == 2) {
-            $query->where('salesperson', $user->id);
-        }
-
-        if (!empty($this->startDate) && !empty($this->endDate)) {
-            $query->whereBetween('created_at', [
-                Carbon::parse($this->startDate)->startOfDay(),
-                Carbon::parse($this->endDate)->endOfDay(),
-            ]);
-        }
-
-        if (!empty($this->selectedLeadCode)) {
-            if ($this->selectedLeadCode === 'Null') {
-                $query->whereNull('lead_code');
-            } else {
-                $query->where('lead_code', $this->selectedLeadCode);
-            }
-        }
+        $this->applyBaseFilters($query);
 
         // Only get leads with No Response status
         $query->where('lead_status', 'No Response');
