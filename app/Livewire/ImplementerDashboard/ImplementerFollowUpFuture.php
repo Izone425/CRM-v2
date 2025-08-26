@@ -30,7 +30,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 
-class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
+class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -83,7 +83,7 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
             ->where('status_handover', '!=', 'InActive')
-            ->whereDate('follow_up_date', '<', today())
+            ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
@@ -267,7 +267,16 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                     ImplementerActions::addImplementerFollowUp()
                         ->action(function (SoftwareHandover $record, array $data) {
                             // Process the follow-up using the shared implementation
-                            \App\Filament\Actions\ImplementerActions::processFollowUpWithEmail($record, $data);
+                            ImplementerActions::processFollowUpWithEmail($record, $data);
+
+                            // Refresh the component after action completes
+                            $this->dispatch('refresh-implementer-tables');
+                        }),
+
+                    ImplementerActions::stopImplementerFollowUp()
+                        ->action(function (SoftwareHandover $record) {
+                            // Process the stop follow-up using the shared implementation
+                            \App\Filament\Actions\ImplementerActions::processStopFollowUp($record);
 
                             // Refresh the component after action completes
                             $this->dispatch('refresh-implementer-tables');
@@ -281,7 +290,7 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-follow-up-overdue');
+        return view('livewire.implementer_dashboard.implementer-follow-up-future');
     }
 
     private function getWeekdayCount($startDate, $endDate)

@@ -16,6 +16,8 @@ use App\Filament\Resources\UserResource\RelationManagers;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Toggle;
+use Filament\Tables\Grouping\Group;
+use Illuminate\Support\Facades\DB;
 
 class UserResource extends Resource
 {
@@ -91,6 +93,8 @@ class UserResource extends Resource
         // Settings
         'device_models' => 'filament.admin.resources.device-models.index',
         'products' => 'filament.admin.resources.products.index',
+        'products_create' => 'filament.admin.resources.products.create',
+        'products_edit' => 'filament.admin.resources.products.edit',
         'industries' => 'filament.admin.resources.industries.index',
         'lead_sources' => 'filament.admin.resources.lead-sources.index',
         'invalid_lead_reasons' => 'filament.admin.resources.invalid-lead-reasons.index',
@@ -1032,12 +1036,34 @@ class UserResource extends Resource
                                 }),
 
                             Forms\Components\Checkbox::make('permissions.products')
-                                ->label('Products')
-                                ->helperText('Manage product settings')
+                                ->label('Products - View')
+                                ->helperText('View product listings')
                                 ->afterStateHydrated(function ($component, $state, ?User $record) {
                                     if ($record) {
                                         $permissions = $record->route_permissions ?? [];
                                         $routeName = self::$routePermissionMap['products'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.products_create')
+                                ->label('Products - Create')
+                                ->helperText('Create new products')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['products_create'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.products_edit')
+                                ->label('Products - Edit')
+                                ->helperText('Edit existing products')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['products_edit'];
                                         $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                     }
                                 }),
@@ -1172,7 +1198,55 @@ class UserResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            // ->groupingColumn('division_role')
+            // ->defaultGroup('division_role')
+            ->groups([
+                Tables\Grouping\Group::make('role_id')
+                    ->getTitleFromRecordUsing(function (User $record): string {
+                        // Format the role title
+                        return match ((int) $record->role_id) {
+                            1 => 'Lead Owner',
+                            2 => 'Salesperson',
+                            3 => 'Manager',
+                            4 => 'Implementer',
+                            5 => 'Team Lead Implementer',
+                            6 => 'Trainer',
+                            7 => 'Team Lead Trainer',
+                            8 => 'Support',
+                            9 => 'Technician',
+                            default => 'Unknown Role',
+                        };
+                    })
+                    ->getDescriptionFromRecordUsing(fn (User $record): string =>
+                        $record->is_timetec_hr ? 'TimeTec HR Division' : 'Others Division')
+                    ->collapsible()
+            ])
+            ->defaultGroup('role_id')
+            ->groupingDirectionSettingHidden()
+            ->groupingSettingsHidden()
+            // Adding a virtual column for grouping purposes
+            ->modifyQueryUsing(function (Builder $query) {
+                $query->addSelect([
+                    '*',
+                    // Create a virtual column for division_role grouping
+                    DB::raw("CONCAT(
+                        CASE WHEN is_timetec_hr = 1 THEN 'TimeTec HR Division | Role: ' ELSE 'Others Division' END,
+                        CASE
+                            WHEN role_id = 1 THEN 'Lead Owner'
+                            WHEN role_id = 2 THEN 'SalesPerson'
+                            WHEN role_id = 3 THEN 'Manager'
+                            WHEN role_id = 4 THEN 'Implementer'
+                            WHEN role_id = 5 THEN 'Team Lead Implementer'
+                            WHEN role_id = 6 THEN 'Trainer'
+                            WHEN role_id = 7 THEN 'Team Lead Trainer'
+                            WHEN role_id = 8 THEN 'Support'
+                            WHEN role_id = 9 THEN 'Technician'
+                            ELSE 'Unknown'
+                        END
+                    ) as division_role")
+                ]);
+            });
     }
 
     public static function getPages(): array
@@ -1210,8 +1284,6 @@ class UserResource extends Resource
 
         return $data;
     }
-
-
 
     // public static function mutateFormDataBeforeSave(array $data): array
     // {

@@ -958,26 +958,26 @@
                     @endif
 
                     <!-- Salesperson Request Section -->
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
-                                </div>
-                                <span class="menu-text">Salesperson Request</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
                             </div>
-
-                            <div class="submenu" id="request-submenu">
-                                <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="submenu-item">
-                                    <span class="module-font">Internal Task Request</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.sales.site-survey-request') }}" class="submenu-item">
-                                    <span class="module-font">Site Survey Request</span>
-                                </a>
-                            </div>
+                            <span class="menu-text">Salesperson Request</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
-                    @endif
+
+                        <div class="submenu" id="request-submenu">
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
+                            <a href="{{ route('filament.admin.pages.salesperson-appointment') }}" class="submenu-item">
+                                <span class="module-font">Internal Task Request</span>
+                            </a>
+                            @endif
+                            <a href="{{ route('filament.admin.pages.sales.site-survey-request') }}" class="submenu-item">
+                                <span class="module-font">Site Survey Request</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Handover Section -->
@@ -996,6 +996,9 @@
                             <div class="submenu" id="software-submenu">
                                 <a href="{{ route('filament.admin.resources.software.index') }}" class="submenu-item">
                                     <span class="module-font">Project List</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.project-priority') }}" class="submenu-item">
+                                    <span class="module-font">Project Priority</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.software.project-analysis') }}" class="submenu-item">
                                     <span class="module-font">Project Analysis</span>
@@ -1320,9 +1323,6 @@
                                 <a href="{{ route('filament.admin.resources.email-templates.index') }}" class="submenu-item">
                                     <span class="module-font">By Default</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">By Implementer</span>
-                                </a>
                             </div>
                         </div>
                     @endif
@@ -1363,8 +1363,8 @@
                         </div>
 
                         <div class="submenu" id="support-information-submenu">
-                            <a href="{{ route('filament.admin.pages.overtime-calendar') }}" class="submenu-item">
-                                <span class="module-font">Overtime Schedule</span>
+                            <a href="{{ route('filament.admin.pages.support-calendar') }}" class="submenu-item">
+                                <span class="module-font">Support Calendar</span>
                             </a>
                         </div>
                     </div>

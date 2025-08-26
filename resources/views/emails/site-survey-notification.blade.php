@@ -53,7 +53,7 @@
         </div>
 
         <div class="content">
-            <p>Dear Khairul Izzudin,</p>
+            <p>Dear Khairul Izzuddin,</p>
             <p>Good day to you.</p>
             <p>Refer to the details below for the site survey information:</p>
 

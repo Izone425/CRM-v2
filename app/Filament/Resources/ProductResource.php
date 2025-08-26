@@ -225,27 +225,19 @@ class ProductResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->modalHeading('Edit Product')
                     ->closeModalByClickingAway(false)
-                    ->hidden(fn(): bool => auth()->user()->role_id !== 3),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->hidden(fn(): bool => auth()->user()->role_id !== 3),
-                ]),
+                    ->hidden(fn(): bool => !auth()->user()->hasRouteAccess('filament.admin.resources.products.edit')),
             ]);
     }
 
     public static function canCreate(): bool
     {
-        return auth()->check() && auth()->user()->role_id === 3;
-    }
+        $user = auth()->user();
 
-    /**
-     * Determine if the current user can delete products in bulk.
-     */
-    public static function canDeleteAny(): bool
-    {
-        return auth()->check() && auth()->user()->role_id === 3;
+        if (!$user) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.products.create');
     }
 
     public static function getRelations(): array

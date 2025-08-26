@@ -44,6 +44,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('overtime:send-reminders')->weeklyOn(4, '16:00'); // Runs Thursday at 4:00 PM
 
         $schedule->command('overtime:send-reminders')->weeklyOn(5, '16:00'); // Runs Friday at 4:00 PM
+
+        $schedule->command('emails:send-scheduled')
+            ->dailyAt('08:00')
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/scheduled-emails.log'));
     }
 
     /**

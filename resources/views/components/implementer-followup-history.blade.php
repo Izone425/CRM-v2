@@ -19,9 +19,48 @@
                         <div class="flex items-start justify-between">
                             <div class="w-full space-y-1">
                                 <div class="flex flex-col w-full">
-                                    <p class="text-gray-500" style="font-weight:bold; font-size: 1rem; color: #eb321a; text-decoration: underline;">
-                                        Implementer Follow Up {{ $totalFollowUps - $index }}
-                                    </p>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-gray-500" style="font-weight:bold; font-size: 1rem; color: #eb321a; text-decoration: underline;">
+                                            Implementer Follow Up {{ $totalFollowUps - $index }}
+                                        </p>
+
+                                        @php
+                                            // Check if there are any scheduled emails for this follow-up
+                                            $scheduledEmails = DB::table('scheduled_emails')
+                                                ->where('email_data', 'like', '%"implementer_log_id":' . $followUp->id . '%')
+                                                ->get();
+                                        @endphp
+
+                                        @if($scheduledEmails && $scheduledEmails->count() > 0)
+                                            @foreach($scheduledEmails as $email)
+                                                @php
+                                                    $emailData = json_decode($email->email_data, true);
+                                                    $templateName = isset($emailData['template_name']) ? $emailData['template_name'] : 'Custom Email';
+
+                                                    $badgeColor = 'bg-blue-100 text-blue-800';
+                                                    $sendType = 'Unknown';
+
+                                                    if ($email->status === 'Done') {
+                                                        $badgeColor = 'bg-green-100 text-green-800';
+                                                        $sendType = 'Sent';
+                                                    } elseif ($email->status === 'New') {
+                                                        if (strtotime($email->scheduled_date) > time()) {
+                                                            $badgeColor = 'bg-yellow-100 text-yellow-800';
+                                                            $sendType = 'Scheduled for ' . \Carbon\Carbon::parse($email->scheduled_date)->format('d M Y g:i A'). ' (Pending)';
+                                                        }
+                                                    }
+                                                @endphp
+
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $badgeColor }}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                    </svg>
+                                                    {{ $templateName }} - {{ $sendType }}
+                                                </span>
+                                            @endforeach
+                                        @endif
+                                    </div>
+
                                     <div class="flex flex-col mt-2">
                                         <p class="text-xs font-medium">
                                             Added {{ $followUp->created_at->format('d M Y, h:i A') }} by {{ $followUp->causer ? $followUp->causer->name : 'CRM System' }}

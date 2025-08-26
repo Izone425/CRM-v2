@@ -16,6 +16,7 @@ class SoftwareHandover extends Model
         'lead_id',
         'created_by',
         'status',
+        'project_priority',
         'status_handover',
         'handover_pdf',
 

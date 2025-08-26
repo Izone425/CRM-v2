@@ -706,7 +706,13 @@ class ImplementerCalendar extends Component
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementer_request';
                                 } else if (in_array($appointment->type, ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])) {
                                     // Red for implementation sessions
-                                    $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
+                                    if (!$appointment->required_attendees && !$appointment->event_id && !$appointment->meeting_link) {
+                                        // Blue for appointments created with skipEmailAndTeams
+                                        $data[$daySessionSlots][$sessionName]['status'] = 'skip_email_teams';
+                                    } else {
+                                        // Red for regular implementation sessions
+                                        $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
+                                    }
                                 } else {
                                     // Default fallback (should rarely be used)
                                     $data[$daySessionSlots][$sessionName]['status'] = 'implementation_session';
@@ -1974,7 +1980,43 @@ class ImplementerCalendar extends Component
 
                     // Extract meeting details
                     $teamsEventId = $response->getId();
-                    $meetingLink = $response->getOnlineMeeting()->getJoinUrl();
+                    $meetingLink = null;
+
+                    // Add null check before accessing getOnlineMeeting()
+                    if ($response->getOnlineMeeting() !== null) {
+                        $meetingLink = $response->getOnlineMeeting()->getJoinUrl();
+                        $onlineMeeting = $response->getOnlineMeeting();
+
+                        if ($onlineMeeting) {
+                            $meetingId = null;
+
+                            // Extract Conference ID if available
+                            if (method_exists($onlineMeeting, 'getConferenceId')) {
+                                $meetingId = $onlineMeeting->getConferenceId();
+                            }
+
+                            // Rest of your existing code for meeting ID extraction...
+                        }
+                    } else {
+                        // Log the issue for debugging
+                        Log::warning('Online meeting object is null in Teams meeting response', [
+                            'event_id' => $teamsEventId,
+                            'response' => json_encode($response->getProperties())
+                        ]);
+
+                        // Try to get meeting URL through another method if available
+                        try {
+                            // Some Microsoft Graph API versions provide the join URL at a different location
+                            $properties = $response->getProperties();
+                            if (isset($properties['onlineMeetingUrl'])) {
+                                $meetingLink = $properties['onlineMeetingUrl'];
+                            } elseif (isset($properties['onlineMeeting']['joinUrl'])) {
+                                $meetingLink = $properties['onlineMeeting']['joinUrl'];
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Error retrieving alternative meeting URL: ' . $e->getMessage());
+                        }
+                    }
 
                     $onlineMeeting = $response->getOnlineMeeting();
                     if ($onlineMeeting) {

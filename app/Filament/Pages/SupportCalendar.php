@@ -10,7 +10,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
-class OvertimeCalendar extends Page
+class SupportCalendar extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationLabel = 'Overtime Schedule';
@@ -18,7 +18,7 @@ class OvertimeCalendar extends Page
     protected static ?string $title = 'Overtime Calendar';
     protected static ?int $navigationSort = 10;
 
-    protected static string $view = 'filament.pages.overtime-calendar';
+    protected static string $view = 'filament.pages.support-calendar';
 
     public $selectedYear = '';
     public $months = [];
@@ -39,15 +39,15 @@ class OvertimeCalendar extends Page
         return [
             Action::make('year_2025')
                 ->label('2025')
-                ->url(fn() => route('filament.admin.pages.overtime-calendar', ['year' => 2025]))
+                ->url(fn() => route('filament.admin.pages.support-calendar', ['year' => 2025]))
                 ->color('success'),
             Action::make('year_2026')
                 ->label('2026')
-                ->url(fn() => route('filament.admin.pages.overtime-calendar', ['year' => 2026]))
+                ->url(fn() => route('filament.admin.pages.support-calendar', ['year' => 2026]))
                 ->color('info'),
             Action::make('year_2027')
                 ->label('2027')
-                ->url(fn() => route('filament.admin.pages.overtime-calendar', ['year' => 2027]))
+                ->url(fn() => route('filament.admin.pages.support-calendar', ['year' => 2027]))
                 ->color('warning'),
             Action::make('toggle_edit')
                 ->label(fn() => $this->editMode ? 'Exit Edit Mode' : 'Edit')
