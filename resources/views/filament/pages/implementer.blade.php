@@ -244,6 +244,9 @@
     .follow-up-overdue { border-left: 4px solid #f97316; }
     .follow-up-overdue .stat-count { color: #f97316; }
 
+    .follow-up-future { border-left: 4px solid #ff6a00; }
+    .follow-up-future .stat-count { color: #fa6800; }
+
     /* STAT BOX COLORS - TICKETING SYSTEM */
     .ticketing-today { border-left: 4px solid #ec4899; }
     .ticketing-today .stat-count { color: #ec4899; }
@@ -412,6 +415,10 @@
         ->count();
 
     $followUpOverdue = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpOverdue::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUpFuture = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpFuture::class)
         ->getOverdueHardwareHandovers()
         ->count();
 
@@ -735,6 +742,15 @@
                     </div>
                     <div class="stat-count">{{ $followUpOverdue }}</div>
                 </div>
+
+                <div class="stat-box follow-up-overdue"
+                    :class="{'selected': selectedStat === 'follow-up-future'}"
+                    @click="setSelectedStat('follow-up-future')">
+                    <div class="stat-info">
+                        <div class="stat-label">Next Follow Up</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpFuture }}</div>
+                </div>
             </div>
 
             <!-- TICKETING SYSTEM Sub-tabs -->
@@ -917,6 +933,11 @@
                 <div x-show="selectedStat === 'follow-up-overdue'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-follow-up-overdue />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-future'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-follow-up-future />
                     </div>
                 </div>
 

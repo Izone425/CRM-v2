@@ -22,11 +22,13 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\DB;
 
 class ImplementerFollowUpTabs
 {
@@ -46,49 +48,47 @@ class ImplementerFollowUpTabs
                                 ->icon('heroicon-o-plus')
                                 ->modalWidth('6xl')
                                 ->form([
-                                    DatePicker::make('follow_up_date')
-                                        ->label('Next Follow-up Date')
-                                        ->default(function() {
-                                            $today = now();
-                                            $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
-                                            if ($daysUntilNextTuesday === 0) {
-                                                $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
-                                            }
-                                            return $today->addDays($daysUntilNextTuesday);
-                                        })
-                                        ->minDate(now()->subDay())
-                                        ->required(),
-
-                                    Grid::make(2)
+                                    Grid::make(3)
                                         ->schema([
+                                            DatePicker::make('follow_up_date')
+                                                ->label('Next Follow-up Date')
+                                                ->default(function() {
+                                                    $today = now();
+                                                    $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
+                                                    if ($daysUntilNextTuesday === 0) {
+                                                        $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
+                                                    }
+                                                    return $today->addDays($daysUntilNextTuesday);
+                                                })
+                                                ->minDate(now()->subDay())
+                                                ->required(),
+
                                             Toggle::make('send_email')
                                                 ->label('Send Email to Customer?')
                                                 ->onIcon('heroicon-o-bell-alert')
                                                 ->offIcon('heroicon-o-bell-slash')
                                                 ->onColor('primary')
+                                                ->inline(false)
                                                 ->offColor('gray')
                                                 ->default(false)
                                                 ->live(onBlur: true),
 
-                                            // Select::make('follow_up_count')
-                                            //     ->label('Follow-up Count')
-                                            //     ->inlineLabel()
-                                            //     ->required()
-                                            //     ->options([
-                                            //         0 => '0',
-                                            //         1 => '1',
-                                            //         2 => '2',
-                                            //         3 => '3',
-                                            //         4 => '4',
-                                            //         5 => '5',
-                                            //     ])
-                                            //     ->default(1),
+                                            // Scheduler Type options
+                                            Select::make('scheduler_type')
+                                                ->label('Scheduler Type')
+                                                ->options([
+                                                    'instant' => 'Instant',
+                                                    'scheduled' => 'Next Follow Up Date at 8am',
+                                                    'both' => 'Both'
+                                                ])
+                                                ->visible(fn ($get) => $get('send_email'))
+                                                ->required(),
                                         ]),
 
                                     Fieldset::make('Email Details')
                                         ->schema([
                                             TextInput::make('required_attendees')
-                                                ->label('REQUIRED ATTENDEES')
+                                                ->label('Required Attendees')
                                                 ->default(function (Lead $record = null) {
                                                     // First, find the related SoftwareHandover record
                                                     if ($record) {
@@ -178,6 +178,31 @@ class ImplementerFollowUpTabs
                                         ])
                                         ->visible(fn ($get) => $get('send_email')),
 
+                                    Hidden::make('implementer_name')
+                                        ->label('NAME')
+                                        ->default(auth()->user()->name ?? '')
+                                        ->required(),
+
+                                    Hidden::make('implementer_designation')
+                                        ->label('DESIGNATION')
+                                        ->default('Implementer')
+                                        ->required(),
+
+                                    Hidden::make('implementer_company')
+                                        ->label('COMPANY NAME')
+                                        ->default('TimeTec Cloud Sdn Bhd')
+                                        ->required(),
+
+                                    Hidden::make('implementer_phone')
+                                        ->label('PHONE NO')
+                                        ->default('03-80709933')
+                                        ->required(),
+
+                                    Hidden::make('implementer_email')
+                                        ->label('EMAIL')
+                                        ->default(auth()->user()->email ?? '')
+                                        ->required(),
+
                                     RichEditor::make('notes')
                                         ->label('Remarks')
                                         ->disableToolbarButtons([
@@ -221,7 +246,7 @@ class ImplementerFollowUpTabs
                                     $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
 
                                     // Create a new implementer_logs entry with reference to SoftwareHandover
-                                    ImplementerLogs::create([
+                                    $implementerLog = ImplementerLogs::create([
                                         'lead_id' => $record->id,
                                         'description' => $followUpDescription,
                                         'causer_id' => auth()->id(),
@@ -240,11 +265,26 @@ class ImplementerFollowUpTabs
                                                 $subject = $data['email_subject'];
                                                 $content = $data['email_content'];
 
+                                                // Add signature to email content if provided
+                                                if (isset($data['implementer_name']) && !empty($data['implementer_name'])) {
+                                                    $signature = "Regards,<br>";
+                                                    $signature .= "{$data['implementer_name']}<br>";
+                                                    $signature .= "{$data['implementer_designation']}<br>";
+                                                    $signature .= "{$data['implementer_company']}<br>";
+                                                    $signature .= "Phone: {$data['implementer_phone']}<br>";
+
+                                                    if (!empty($data['implementer_email'])) {
+                                                        $signature .= "Email: {$data['implementer_email']}<br>";
+                                                    }
+
+                                                    $content .= $signature;
+                                                }
+
                                                 // Replace placeholders with actual data
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
                                                     '{company_name}' => $record->company_name ?? '',
-                                                    '{implementer_name}' => auth()->user()->name ?? '',
+                                                    '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
                                                     '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
                                                 ];
 
@@ -263,21 +303,57 @@ class ImplementerFollowUpTabs
                                                 if (!empty($validRecipients)) {
                                                     // Get authenticated user's email for sender and BCC
                                                     $authUser = auth()->user();
-                                                    $senderEmail = $authUser->email;
-                                                    $senderName = $authUser->name;
+                                                    $senderEmail = $data['implementer_email'] ?? $authUser->email;
+                                                    $senderName = $data['implementer_name'] ?? $authUser->name;
 
-                                                    // Send to all valid recipients at once
-                                                    Mail::html($content, function (Message $message) use ($validRecipients, $subject, $senderEmail, $senderName) {
-                                                        $message->to($validRecipients)  // This sends to all recipients in the To field
-                                                            ->bcc($senderEmail)  // BCC the authenticated user
-                                                            ->subject($subject)
-                                                            ->from($senderEmail, $senderName);
-                                                    });
+                                                    $schedulerType = $data['scheduler_type'] ?? 'instant';
 
-                                                    Notification::make()
-                                                        ->title('Email sent successfully to ' . count($validRecipients) . ' recipient(s)')
-                                                        ->success()
-                                                        ->send();
+                                                    $template = EmailTemplate::find($data['email_template']);
+                                                    $templateName = $template ? $template->name : 'Custom Email';
+
+                                                    // Store email data for scheduling
+                                                    $emailData = [
+                                                        'content' => $content,
+                                                        'subject' => $subject,
+                                                        'recipients' => $validRecipients,
+                                                        'sender_email' => $senderEmail,
+                                                        'sender_name' => $senderName,
+                                                        'lead_id' => $record->id,
+                                                        'implementer_log_id' => $implementerLog->id,
+                                                        'template_name' => $templateName, // Add this line to store the template name
+                                                        'scheduler_type' => $schedulerType, // Add this to track how it's scheduled
+                                                    ];
+
+                                                    // Handle different scheduler types
+                                                    if ($schedulerType === 'instant' || $schedulerType === 'both') {
+                                                        // Send email immediately
+                                                        self::sendEmail($emailData);
+
+                                                        Notification::make()
+                                                            ->title('Email sent immediately to ' . count($validRecipients) . ' recipient(s)')
+                                                            ->success()
+                                                            ->send();
+                                                    }
+
+                                                    if ($schedulerType === 'scheduled' || $schedulerType === 'both') {
+                                                        // Schedule email for follow-up date at 8am
+                                                        $scheduledDate = date('Y-m-d 08:00:00', strtotime($data['follow_up_date']));
+
+                                                        // Store scheduled email in database
+                                                        // This is just a placeholder - you'll need to implement the actual scheduling logic
+                                                        DB::table('scheduled_emails')->insert([
+                                                            'email_data' => json_encode($emailData),
+                                                            'scheduled_date' => $scheduledDate,
+                                                            'status' => 'New',
+                                                            'created_at' => now(),
+                                                            'updated_at' => now(),
+                                                        ]);
+
+                                                        Notification::make()
+                                                            ->title('Email scheduled for ' . date('d M Y \a\t 8:00 AM', strtotime($scheduledDate)))
+                                                            ->success()
+                                                            ->send();
+                                                    }
                                                 }
                                             }
                                         } catch (\Exception $e) {
@@ -314,5 +390,21 @@ class ImplementerFollowUpTabs
                         ]),
                 ]),
         ];
+    }
+
+    /**
+     * Send email using the provided data
+     *
+     * @param array $emailData
+     * @return void
+     */
+    private static function sendEmail(array $emailData): void
+    {
+        Mail::html($emailData['content'], function (Message $message) use ($emailData) {
+            $message->to($emailData['recipients'])
+                ->bcc($emailData['sender_email'])
+                ->subject($emailData['subject'])
+                ->from($emailData['sender_email'], $emailData['sender_name']);
+        });
     }
 }

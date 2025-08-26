@@ -2,6 +2,7 @@
 
 namespace App\Livewire\ImplementerDashboard;
 
+use App\Filament\Actions\ImplementerActions;
 use App\Filament\Filters\SortFilter;
 use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
@@ -263,79 +264,86 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                             return view('components.software-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
-
-                    Action::make('add_follow_up')
-                        ->label('Add Follow-up')
-                        ->color('primary')
-                        ->icon('heroicon-o-plus')
-                        ->form([
-                            DatePicker::make('follow_up_date')
-                                ->label('Next Follow-up Date')
-                                ->default(function() {
-                                    $today = now();
-                                    $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
-                                    if ($daysUntilNextTuesday === 0) {
-                                        $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
-                                    }
-                                    return $today->addDays($daysUntilNextTuesday);
-                                })
-                                ->minDate(now()->subDay())
-                                ->required(),
-
-                            RichEditor::make('notes')
-                                ->label('Remarks')
-                                ->disableToolbarButtons([
-                                    'attachFiles',
-                                    'blockquote',
-                                    'codeBlock',
-                                    'h2',
-                                    'h3',
-                                    'link',
-                                    'redo',
-                                    'strike',
-                                    'undo',
-                                ])
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->placeholder('Add your follow-up details here...')
-                                ->required()
-                        ])
-                        ->modalHeading('Add New Follow-up')
-                        ->modalWidth('3xl')
+                    ImplementerActions::addImplementerFollowUp()
                         ->action(function (SoftwareHandover $record, array $data) {
-                            if (!$record) {
-                                Notification::make()
-                                    ->title('Error: Software Handover record not found')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                            // Process the follow-up using the shared implementation
+                            \App\Filament\Actions\ImplementerActions::processFollowUpWithEmail($record, $data);
 
-                            // Update the SoftwareHandover record with follow-up information
-                            $record->update([
-                                'follow_up_date' => $data['follow_up_date'],
-                                'follow_up_counter' => true,
-                                'manual_follow_up_count' => $record->manual_follow_up_count + 1,
-                            ]);
-
-                            // Create description for the follow-up
-                            $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
-
-                            // Create a new implementer_logs entry with reference to SoftwareHandover
-                            ImplementerLogs::create([
-                                'lead_id' => $record->lead->id,
-                                'description' => $followUpDescription,
-                                'causer_id' => auth()->id(),
-                                'remark' => $data['notes'],
-                                'subject_id' => $record->id, // Store the softwarehandover ID
-                            ]);
-
-                            Notification::make()
-                                ->title('Follow-up added successfully')
-                                ->success()
-                                ->send();
+                            // Refresh the component after action completes
+                            $this->dispatch('refresh-implementer-tables');
                         }),
+                    // Action::make('add_follow_up')
+                    //     ->label('Add Follow-up')
+                    //     ->color('primary')
+                    //     ->icon('heroicon-o-plus')
+                    //     ->form([
+                    //         DatePicker::make('follow_up_date')
+                    //             ->label('Next Follow-up Date')
+                    //             ->default(function() {
+                    //                 $today = now();
+                    //                 $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
+                    //                 if ($daysUntilNextTuesday === 0) {
+                    //                     $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
+                    //                 }
+                    //                 return $today->addDays($daysUntilNextTuesday);
+                    //             })
+                    //             ->minDate(now()->subDay())
+                    //             ->required(),
+
+                    //         RichEditor::make('notes')
+                    //             ->label('Remarks')
+                    //             ->disableToolbarButtons([
+                    //                 'attachFiles',
+                    //                 'blockquote',
+                    //                 'codeBlock',
+                    //                 'h2',
+                    //                 'h3',
+                    //                 'link',
+                    //                 'redo',
+                    //                 'strike',
+                    //                 'undo',
+                    //             ])
+                    //             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                    //             ->afterStateHydrated(fn($state) => Str::upper($state))
+                    //             ->afterStateUpdated(fn($state) => Str::upper($state))
+                    //             ->placeholder('Add your follow-up details here...')
+                    //             ->required()
+                    //     ])
+                    //     ->modalHeading('Add New Follow-up')
+                    //     ->modalWidth('3xl')
+                    //     ->action(function (SoftwareHandover $record, array $data) {
+                    //         if (!$record) {
+                    //             Notification::make()
+                    //                 ->title('Error: Software Handover record not found')
+                    //                 ->danger()
+                    //                 ->send();
+                    //             return;
+                    //         }
+
+                    //         // Update the SoftwareHandover record with follow-up information
+                    //         $record->update([
+                    //             'follow_up_date' => $data['follow_up_date'],
+                    //             'follow_up_counter' => true,
+                    //             'manual_follow_up_count' => $record->manual_follow_up_count + 1,
+                    //         ]);
+
+                    //         // Create description for the follow-up
+                    //         $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
+
+                    //         // Create a new implementer_logs entry with reference to SoftwareHandover
+                    //         ImplementerLogs::create([
+                    //             'lead_id' => $record->lead->id,
+                    //             'description' => $followUpDescription,
+                    //             'causer_id' => auth()->id(),
+                    //             'remark' => $data['notes'],
+                    //             'subject_id' => $record->id, // Store the softwarehandover ID
+                    //         ]);
+
+                    //         Notification::make()
+                    //             ->title('Follow-up added successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
                 ])
                 ->button()
                 ->color('warning')

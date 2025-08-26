@@ -32,6 +32,7 @@ use App\Filament\Pages\ProjectCategoryClosed;
 use App\Filament\Pages\ProjectCategoryDelay;
 use App\Filament\Pages\ProjectCategoryInactive;
 use App\Filament\Pages\ProjectCategoryOpen;
+use App\Filament\Pages\ProjectPriority;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
 use App\Filament\Pages\SalesAdminAnalysisV1;
@@ -49,6 +50,7 @@ use App\Filament\Pages\SalesPersonSurveyRequest;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\SoftwareHandoverAnalysisV2;
+use App\Filament\Pages\SupportCalendar;
 use App\Filament\Pages\SupportCallLog;
 use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
@@ -258,9 +260,10 @@ class AdminPanelProvider extends PanelProvider
                 KickOffMeetingSession::class,
                 ImplementationSession::class,
                 SoftwareHandoverAnalysisV2::class,
-                OvertimeCalendar::class,
+                SupportCalendar::class,
                 SupportCallLog::class,
                 SalesPersonSurveyRequest::class,
+                ProjectPriority::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

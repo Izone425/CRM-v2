@@ -51,22 +51,27 @@
             border-radius: 0.25rem;
         }
 
-        /* Unassigned styling */
+        /* Unassigned styling - now yellow */
         .unassigned {
-            background-color: #f3f4f6;
-            opacity: 0.5;
+            background-color: #fff6b3; /* Yellow for unassigned */
+            color: #854d0e; /* Darker text for contrast */
             font-style: italic;
-            color: #6b7280;
         }
 
-        /* Staff colors */
+        /* Assigned styling - now gray */
+        .assigned {
+            background-color: #fecaca; /* Gray for assigned */
+            color: #374151;
+        }
+
+        /* Staff colors - keeping these for completed tasks or other statuses */
         .staff-color-0 { background-color: #bfdbfe; } /* Light blue */
         .staff-color-1 { background-color: #fef08a; } /* Light yellow */
         .staff-color-2 { background-color: #fecaca; } /* Light red */
         .staff-color-3 { background-color: #e9d5ff; } /* Light purple */
         .staff-color-4 { background-color: #fbcfe8; } /* Light pink */
         .staff-color-5 { background-color: #d1d5db; } /* Light gray */
-        .staff-color-6 { background-color: #bbf7d0; } /* Light green */
+        .staff-color-6 { background-color: #bbf7d0; } /* Light green for completed */
 
         /* Legend styling */
         .legend-container {
@@ -130,7 +135,6 @@
             <tbody>
                 @foreach ($months as $monthName => $month)
                     <tr>
-                        <!-- Fix here: Change Carbon\Carbon\Carbon to Carbon -->
                         <td class="month-cell {{ Carbon::now()->format('F') === $monthName && Carbon::now()->year == $selectedYear ? 'current-month' : '' }}">
                             {{ $monthName }}
                         </td>
@@ -141,7 +145,6 @@
                                 $week = $month['weeks'][$weekKey] ?? null;
                             @endphp
 
-                            <!-- Fix here: Change Carbon\Carbon\Carbon to Carbon -->
                             <td class="date-cell {{ Carbon::now()->format('F') === $monthName && Carbon::now()->year == $selectedYear ? 'current-month' : '' }}">
                                 @if ($week)
                                     <div class="flex flex-col h-full">
@@ -163,7 +166,7 @@
                                                 @endforeach
                                             </select>
                                         @else
-                                            <div class="assignment-box {{ $week['css_class'] }}">
+                                            <div class="assignment-box {{ $week['user_id'] ? 'assigned' : 'unassigned' }} {{ $week['status'] === 'completed' ? 'staff-color-6' : '' }}">
                                                 <div class="{{ $week['user_id'] ? 'font-medium' : '' }}">
                                                     {{ $week['user_name'] }}
                                                 </div>
@@ -179,30 +182,26 @@
         </table>
     </div>
 
+    <!-- Add a legend -->
     <div class="legend-container">
-        <h3 class="legend-title">Legend:</h3>
+        <div class="legend-title">Legend</div>
         <div class="legend-items">
             <div class="legend-item">
-                <div class="legend-color unassigned"></div>
-                <span class="legend-text">Unassigned</span>
+                <div class="legend-color" style="background-color: #fef08a;"></div>
+                <div class="legend-text">Unassigned</div>
             </div>
-            @foreach($users->take(6) as $index => $user)
-                @php
-                    $colorIndex = $index % 7;
-                @endphp
-                <div class="legend-item">
-                    <div class="legend-color staff-color-{{ $colorIndex }}"></div>
-                    <span class="legend-text">{{ $user->name }}</span>
-                </div>
-            @endforeach
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d1d5db;"></div>
+                <div class="legend-text">Assigned</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #bbf7d0;"></div>
+                <div class="legend-text">Completed</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d1fae5; border-left: 3px solid #10b981;"></div>
+                <div class="legend-text">Current Month</div>
+            </div>
         </div>
-    </div>
-
-    <div class="mt-4 text-sm italic text-center text-gray-500">
-        @if($editMode)
-            <p>You are in edit mode. Click on dropdown boxes to assign staff.</p>
-        @else
-            <p>Click the Edit button in the top right to make changes.</p>
-        @endif
     </div>
 </x-filament::page>

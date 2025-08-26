@@ -139,7 +139,7 @@ class SubsidiaryRelationManager extends RelationManager
                         ->schema([
                             TextInput::make('name')
                                 ->label('NAME')
-                                ->default(fn() => $leadCompany ? $leadCompany->name : null)
+                                ->default(fn() => $leadCompany->name ? $leadCompany->name : $this->ownerRecord->name)
                                 ->required()
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -148,7 +148,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('contact_number')
                                 ->label('CONTACT NUMBER')
-                                ->default(fn() => $leadCompany ? $leadCompany->contact_no : null)
+                                ->default(fn() => $leadCompany->contact_no ? $leadCompany->contact_no : $this->ownerRecord->phone)
                                 ->required()
                                 ->tel()
                                 ->maxLength(20)
@@ -158,14 +158,14 @@ class SubsidiaryRelationManager extends RelationManager
 
                             TextInput::make('email')
                                 ->label('EMAIL ADDRESS')
-                                ->default(fn() => $leadCompany ? $leadCompany->email : null)
+                                ->default(fn() => $leadCompany->email ? $leadCompany->email : $this->ownerRecord->email)
                                 ->required()
                                 ->email()
                                 ->maxLength(255),
 
                             TextInput::make('position')
                                 ->label('POSITION')
-                                ->default(fn() => $leadCompany ? $leadCompany->position : null)
+                                ->default(fn() => $leadCompany->position ? $leadCompany->position : ($this->ownerRecord->position ?? null))
                                 ->required()
                                 ->maxLength(100)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])

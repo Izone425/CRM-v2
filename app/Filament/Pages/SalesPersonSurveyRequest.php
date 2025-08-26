@@ -40,16 +40,21 @@ class SalesPersonSurveyRequest extends Page implements HasTable
     protected static ?string $slug = 'sales/site-survey-request';
     protected static ?string $navigationGroup = 'SalesPerson Request';
     protected static ?int $navigationSort = 10;
-    protected $defaultTechnician = 'Khairul Izzudin';
+    protected $defaultTechnician = 'Khairul Izzuddin';
 
     protected static string $view = 'filament.pages.sales-person-survey-request';
 
     public function getTableQuery(): Builder
     {
-        return RepairAppointment::query()
-            ->where('type', 'SITE SURVEY HANDOVER')
-            ->where('causer_id', auth()->id())
-            ->orderBy('created_at', 'desc');
+        $query = RepairAppointment::query()
+            ->where('type', 'SITE SURVEY HANDOVER');
+
+        // Only filter by causer_id for non-admin users
+        if (auth()->user()->role_id !== 3) {
+            $query->where('causer_id', auth()->id());
+        }
+
+        return $query->orderBy('created_at', 'desc');
     }
 
     public function table(Table $table): Table
@@ -151,16 +156,25 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                     ->schema([
                                         Select::make('lead_id')
                                             ->label('Company Name')
-                                            ->options(function () {
-                                                return Lead::query()
-                                                    ->where('salesperson', auth()->id())
-                                                    ->whereHas('companyDetail')
-                                                    ->get()
-                                                    ->mapWithKeys(function ($lead) {
-                                                        $companyName = $lead->companyDetail?->company_name ?? "Lead #{$lead->id}";
-                                                        return [$lead->id => $companyName];
-                                                    });
-                                            })
+                                                ->options(function () {
+                                                    $query = Lead::query();
+
+                                                    // Show all leads for admin users (role_id 3), otherwise filter by salesperson
+                                                    if (auth()->user()->role_id === 3) {
+                                                        // Admin can see all leads with company details
+                                                        $query->whereHas('companyDetail');
+                                                    } else {
+                                                        // Regular users only see their own leads
+                                                        $query->where('salesperson', auth()->id())
+                                                            ->whereHas('companyDetail');
+                                                    }
+
+                                                    return $query->get()
+                                                        ->mapWithKeys(function ($lead) {
+                                                            $companyName = $lead->companyDetail?->company_name ?? "Lead #{$lead->id}";
+                                                            return [$lead->id => $companyName];
+                                                        });
+                                                })
                                             ->searchable()
                                             ->required()
                                             ->reactive()
@@ -188,7 +202,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                             ->label('Device Model')
                                             ->options(function() {
                                                 return DeviceModel::where('is_active', true)
-                                                    ->orderBy('name')
+                                                    ->orderBy('id')
                                                     ->pluck('name', 'name')
                                                     ->toArray();
                                             })
@@ -375,7 +389,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
 
                                         TextInput::make('technician')
                                             ->label('Technician')
-                                            ->default('Khairul Izzudin')
+                                            ->default('Khairul Izzuddin')
                                             ->disabled()
                                             ->dehydrated(true),
                                     ]),
@@ -452,7 +466,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
         // Recipients
         $recipients = [
             auth()->user()->email, // Salesperson
-            'khairul.izzudin@timeteccloud.com', // Default technician
+            'izzuddin@timeteccloud.com', // Default technician
         ];
 
         // Send the email

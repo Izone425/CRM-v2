@@ -642,6 +642,10 @@
             background-color: #C2C2C2; /* Grey for public holiday */
         }
 
+        .session-slot.skip_email_teams {
+            @apply bg-blue-500 text-white;
+        }
+
         /* Half-day leave indicators */
         .leave-am {
             position: relative;
@@ -1323,6 +1327,8 @@
                                             $cardStyle = 'background-color: #C6FEC3;';
                                         } elseif ($sessionDetails['status'] === 'implementation_session') {
                                             $cardStyle = 'background-color: #FEE2E2;';
+                                        } elseif ($sessionDetails['status'] === 'skip_email_teams') {
+                                            $cardStyle = 'background-color: #c3e4fe;';
                                         } elseif ($sessionDetails['status'] === 'implementer_request') {
                                             $cardStyle = 'background-color: #FEF9C3;';
                                         } elseif ($sessionDetails['status'] === 'cancelled') {
