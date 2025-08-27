@@ -48,7 +48,7 @@ class ImplementerFollowUpTabs
                                 ->icon('heroicon-o-plus')
                                 ->modalWidth('6xl')
                                 ->form([
-                                    Grid::make(3)
+                                    Grid::make(4)
                                         ->schema([
                                             DatePicker::make('follow_up_date')
                                                 ->label('Next Follow-up Date')
@@ -63,8 +63,20 @@ class ImplementerFollowUpTabs
                                                 ->minDate(now()->subDay())
                                                 ->required(),
 
+                                            Select::make('manual_follow_up_count')
+                                                ->label('Follow Up Count')
+                                                ->required()
+                                                ->options([
+                                                    0 => '0',
+                                                    1 => '1',
+                                                    2 => '2',
+                                                    3 => '3',
+                                                    4 => '4',
+                                                ])
+                                                ->default(1),
+
                                             Toggle::make('send_email')
-                                                ->label('Send Email to Customer?')
+                                                ->label('Send Email?')
                                                 ->onIcon('heroicon-o-bell-alert')
                                                 ->offIcon('heroicon-o-bell-slash')
                                                 ->onColor('primary')
@@ -239,7 +251,6 @@ class ImplementerFollowUpTabs
                                     $softwareHandover->update([
                                         'follow_up_date' => $data['follow_up_date'],
                                         'follow_up_counter' => true,
-                                        'manual_follow_up_count' => $softwareHandover->manual_follow_up_count + 1,
                                     ]);
 
                                     // Create description for the follow-up

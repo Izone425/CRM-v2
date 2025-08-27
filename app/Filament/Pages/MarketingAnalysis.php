@@ -872,15 +872,11 @@ class MarketingAnalysis extends Page
 
         $this->closedDealsCount = $query
             ->where('lead_status', 'Closed')
-            ->whereNotNull('deal_amount')
-            ->where('deal_amount', '>', 0)
             ->count();
 
         // Sum of deal_amount for closed leads
         $this->closeWonAmount = $query
             ->where('lead_status', 'Closed')
-            ->whereNotNull('deal_amount')
-            ->where('deal_amount', '>', 0)
             ->sum('deal_amount');
     }
 

@@ -226,7 +226,6 @@ class ImplementerFollowUpRelationManager extends RelationManager
                         $softwareHandover->update([
                             'follow_up_date' => $followUpDate,
                             'follow_up_counter' => true,
-                            'manual_follow_up_count' => $softwareHandover->manual_follow_up_count + 1,
                         ]);
 
                         // Create description for the follow-up

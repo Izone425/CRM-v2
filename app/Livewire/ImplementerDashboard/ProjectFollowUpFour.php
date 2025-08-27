@@ -11,6 +11,7 @@ use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -30,7 +31,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 
-class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
+class ProjectFollowUpFour extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -83,8 +84,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
             ->where('status_handover', '!=', 'InActive')
-            ->whereDate('follow_up_date', '>', today())
-            ->where('follow_up_counter', true)
+            ->where('manual_follow_up_count', 4)
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
@@ -223,32 +223,10 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-               TextColumn::make('pending_days')
+                TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->formatStateUsing(function ($state, $record) {
-                        // Calculate days left from now until follow_up_date
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        // Format the output
-                        if ($daysLeft <= 0) {
-                            return 'Today';
-                        } else {
-                            return $daysLeft . ' days';
-                        }
-                    })
-                    ->color(function ($record) {
-                        // Get days left
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        // Color logic: green for future dates
-                        if ($daysLeft > 3) {
-                            return 'success'; // Green for dates more than 3 days away
-                        } elseif ($daysLeft > 0) {
-                            return 'warning'; // Yellow for dates within 3 days
-                        } else {
-                            return 'primary'; // Blue for today
-                        }
-                    }),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('status_handover')
                     ->label('Status'),
@@ -289,18 +267,62 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     ImplementerActions::addImplementerFollowUp()
                         ->action(function (SoftwareHandover $record, array $data) {
                             // Process the follow-up using the shared implementation
-                            ImplementerActions::processFollowUpWithEmail($record, $data);
+                            \App\Filament\Actions\ImplementerActions::processFollowUpWithEmail($record, $data);
 
                             // Refresh the component after action completes
                             $this->dispatch('refresh-implementer-tables');
                         }),
+                    Action::make('moveToInactive')
+                        ->label('Move to Inactive')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Move Project to Inactive')
+                        ->modalDescription('Are you sure you want to mark this project as inactive? This will change the status to InActive.')
+                        ->modalSubmitActionLabel('Yes, Move to Inactive')
+                        ->form([
+                            Textarea::make('reason')
+                                ->label('Reason for Inactivation')
+                                ->required()
+                                ->maxLength(1000)
+                                ->helperText('Please provide a reason for marking this project as inactive.')
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                        ])
+                        ->visible(function (SoftwareHandover $record) {
+                            // Only show when today is the follow-up date
+                            return Carbon::parse($record->follow_up_date)->isToday();
+                        })
+                        ->action(function (SoftwareHandover $record, array $data) {
+                            // Update the status to InActive
+                            $record->status_handover = 'InActive';
+                            $record->save();
 
-                    ImplementerActions::stopImplementerFollowUp()
-                        ->action(function (SoftwareHandover $record) {
-                            // Process the stop follow-up using the shared implementation
-                            \App\Filament\Actions\ImplementerActions::processStopFollowUp($record);
+                            // Create a log entry
+                            ImplementerLogs::create([
+                                'subject_id' => $record->id,
+                                'log_type' => 'status_change',
+                                'description' => 'Project marked as InActive',
+                                'remark' => 'Project marked as InActive: ' . $data['reason'],
+                                'causer_id' => auth()->id(),
+                                'lead_id' => $record->lead_id,
+                            ]);
 
-                            // Refresh the component after action completes
+                            // Send notification
+                            Notification::make()
+                                ->title('Project Status Updated')
+                                ->body('The project has been marked as InActive')
+                                ->success()
+                                ->send();
+
+                            // Refresh the component
                             $this->dispatch('refresh-implementer-tables');
                         }),
                 ])
@@ -312,7 +334,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-follow-up-future');
+        return view('livewire.implementer_dashboard.project-follow-up-four');
     }
 
     private function getWeekdayCount($startDate, $endDate)
