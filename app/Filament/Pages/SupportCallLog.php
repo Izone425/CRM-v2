@@ -3,6 +3,7 @@ namespace App\Filament\Pages;
 
 use App\Models\CallLog;
 use App\Models\Lead;
+use App\Models\PhoneExtension;
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -61,29 +62,51 @@ class SupportCallLog extends Page implements HasTable
 
     public function getReceptionCalls(): Builder
     {
-        $query = CallLog::query()
-            ->where(function ($query) {
-                // Condition 1: Caller is Reception or Najwa
-                $query->whereIn('caller_number', ['100', '323', '324', '333', '343']);
-            });
+        // Get all support staff extensions
+        $supportExtensions = PhoneExtension::where('is_support_staff', true)
+            ->where('is_active', true)
+            ->pluck('extension')
+            ->toArray();
 
-        // Map both receiver and caller numbers to specific staff names
+        // Add reception extension
+        $receptionExtension = PhoneExtension::where('extension', '100')->value('extension') ?? '100';
+
+        $query = CallLog::query()
+            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
+                // Include calls where reception or support staff are involved
+                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
+                    ->orWhereIn('receiver_number', $supportExtensions);
+            })
+            // Exclude "NO ANSWER" call logs
+            ->where('call_status', '!=', 'NO ANSWER');
+
+        // Get extension to user mapping
+        $extensionUserMapping = [];
+        foreach (PhoneExtension::with('user')->where('is_active', true)->get() as $ext) {
+            // If user_id exists, use User name, otherwise fallback to extension name
+            $userName = ($ext->user_id && $ext->user) ? $ext->user->name : $ext->name;
+            $extensionUserMapping[] = "WHEN '{$ext->extension}' THEN '{$userName}'";
+        }
+        $extensionUserMappingStr = implode(' ', $extensionUserMapping);
+
+        // Map both receiver and caller numbers to specific staff names based on call type
         $query->addSelect([
             '*',
             DB::raw("CASE
-                -- Map receiver numbers to staff names
-                WHEN caller_number = '323' THEN 'Ummu Najwa Fajrina'
-                WHEN caller_number = '324' THEN 'Siti Nadia'
-                WHEN caller_number = '333' THEN 'Noor Syazana'
-                WHEN caller_number = '343' THEN 'Rahmah'
-
-                -- When caller is 100 (reception), use receiver's name instead
-                WHEN caller_number = '100' AND receiver_number = '323' THEN 'Ummu Najwa Fajrina'
-                WHEN caller_number = '100' AND receiver_number = '324' THEN 'Siti Nadia'
-                WHEN caller_number = '100' AND receiver_number = '333' THEN 'Noor Syazana'
-                WHEN caller_number = '100' AND receiver_number = '343' THEN 'Rahmah'
-
-                ELSE receiver_number
+                -- For incoming calls, use the receiver's extension to identify staff
+                WHEN call_type = 'incoming' THEN (
+                    CASE receiver_number
+                        {$extensionUserMappingStr}
+                        ELSE receiver_number
+                    END
+                )
+                -- For outgoing calls, use the caller's extension to identify staff
+                ELSE (
+                    CASE caller_number
+                        {$extensionUserMappingStr}
+                        ELSE caller_number
+                    END
+                )
             END as staff_name")
         ]);
 
@@ -92,6 +115,20 @@ class SupportCallLog extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        $supportStaffOptions = [];
+        $extensionUserMapping = [];
+
+        $supportStaff = PhoneExtension::with('user')
+            ->where('is_support_staff', true)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($supportStaff as $staff) {
+            $userName = ($staff->user_id && $staff->user) ? $staff->user->name : $staff->name;
+            $supportStaffOptions[$userName] = $userName;
+            $extensionUserMapping[$userName] = $staff->extension;
+        }
+
         return $table
             ->query($this->getReceptionCalls())
             ->columns([
@@ -174,37 +211,35 @@ class SupportCallLog extends Page implements HasTable
             ->filters([
                 SelectFilter::make('staff_name')
                     ->label('Support')
-                    ->options([
-                        'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
-                        'Siti Nadia' => 'Siti Nadia',
-                        'Noor Syazana' => 'Noor Syazana',
-                        'Rahmah' => 'Rahmah',
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
+                    ->options($supportStaffOptions)
+                    ->query(function (Builder $query, array $data) use ($extensionUserMapping): Builder {
                         // If no data or no value selected, return unmodified query
                         if (empty($data['value'])) {
                             return $query;
                         }
 
                         $staffName = $data['value'];
-
-                        // Map staff names to their extension numbers
-                        $extensionMap = [
-                            'Ummu Najwa Fajrina' => '323',
-                            'Siti Nadia' => '324',
-                            'Noor Syazana' => '333',
-                            'Rahmah' => '343',
-                        ];
-
-                        // Get extension for the selected staff
-                        $extension = $extensionMap[$staffName] ?? null;
+                        $extension = $extensionUserMapping[$staffName] ?? null;
 
                         if ($extension) {
                             return $query->where(function ($q) use ($extension) {
-                                $q->where('caller_number', $extension)
-                                ->orWhere(function ($subq) use ($extension) {
-                                    $subq->where('caller_number', '100')
+                                // For incoming calls, check receiver_number
+                                $q->where(function($subq) use ($extension) {
+                                    $subq->where('call_type', 'incoming')
                                         ->where('receiver_number', $extension);
+                                })
+                                // For outgoing calls, check caller_number
+                                ->orWhere(function($subq) use ($extension) {
+                                    $subq->where('call_type', 'outgoing')
+                                        ->where('caller_number', $extension);
+                                })
+                                // For internal calls
+                                ->orWhere(function($subq) use ($extension) {
+                                    $subq->where('call_type', 'internal')
+                                        ->where(function($innerq) use ($extension) {
+                                            $innerq->where('caller_number', $extension)
+                                                ->orWhere('receiver_number', $extension);
+                                        });
                                 });
                             });
                         }
@@ -406,25 +441,41 @@ class SupportCallLog extends Page implements HasTable
     protected function getStaffStats($type = 'all')
     {
         // Define staff members with their corresponding extensions
-        $staffMembers = [
-            'Ummu Najwa Fajrina' => '323',
-            'Siti Nadia' => '324',
-            'Noor Syazana' => '333',
-            'Rahmah' => '343',
-        ];
-
         $stats = [];
 
-        foreach ($staffMembers as $name => $extension) {
+        // Get all support staff
+        $supportStaff = PhoneExtension::with('user')
+            ->where('is_support_staff', true)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($supportStaff as $staff) {
+            // Use User name if available, otherwise fallback to extension name
+            $staffName = ($staff->user_id && $staff->user) ? $staff->user->name : $staff->name;
+
             // Base query builder to get calls for this staff member
-            $baseQueryBuilder = function () use ($extension) {
-                return CallLog::query()->where(function ($query) use ($extension) {
-                    $query->where('caller_number', $extension)
-                        ->orWhere(function ($q) use ($extension) {
-                            $q->where('caller_number', '100')
-                            ->where('receiver_number', $extension);
-                        });
-                });
+            $baseQueryBuilder = function () use ($staff) {
+                return CallLog::query()->where(function ($query) use ($staff) {
+                    // For incoming calls, check receiver_number
+                    $query->where(function($subq) use ($staff) {
+                        $subq->where('call_type', 'incoming')
+                            ->where('receiver_number', $staff->extension);
+                    })
+                    // For outgoing calls, check caller_number
+                    ->orWhere(function($subq) use ($staff) {
+                        $subq->where('call_type', 'outgoing')
+                            ->where('caller_number', $staff->extension);
+                    })
+                    // For internal calls
+                    ->orWhere(function($subq) use ($staff) {
+                        $subq->where('call_type', 'internal')
+                            ->where(function($innerq) use ($staff) {
+                                $innerq->where('caller_number', $staff->extension)
+                                    ->orWhere('receiver_number', $staff->extension);
+                            });
+                    });
+                })
+                ->where('call_status', '!=', 'NO ANSWER');
             };
 
             // Create a fresh query instance for the main filter
@@ -473,8 +524,8 @@ class SupportCallLog extends Page implements HasTable
 
             // Add to stats array (always include even if zero calls, except for specific filters)
             $stats[] = [
-                'name' => $name,
-                'extension' => $extension,
+                'name' => $staff->name,
+                'extension' => $staff->extension,
                 'total_calls' => $totalCalls,
                 'completed_calls' => $completedCalls,
                 'pending_calls' => $pendingCalls,
