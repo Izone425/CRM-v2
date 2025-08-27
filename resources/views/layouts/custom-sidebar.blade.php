@@ -760,6 +760,9 @@
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v3') }}" class="submenu-item">
                                 <span class="module-font">Action Task</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.sales-admin-analysis-v4') }}" class="submenu-item">
+                                <span class="module-font">Phone Call Log</span>
+                            </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
                             <a href="{{ route('filament.admin.pages.demo-ranking') }}" class="submenu-item">
                                 <span class="module-font">Demo Ranking</span>

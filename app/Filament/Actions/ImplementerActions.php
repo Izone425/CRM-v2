@@ -1189,12 +1189,81 @@ class ImplementerActions
      */
     public static function sendEmail(array $emailData): void
     {
-        Mail::html($emailData['content'], function (Message $message) use ($emailData) {
-            $message->to($emailData['recipients'])
-                ->bcc($emailData['sender_email'])
-                ->subject($emailData['subject'])
-                ->from($emailData['sender_email'], $emailData['sender_name']);
-        });
+        try {
+            // Get the implementer log record
+            $implementerLog = ImplementerLogs::find($emailData['implementer_log_id']);
+
+            if (!$implementerLog) {
+                Log::error("Implementer log not found for ID: {$emailData['implementer_log_id']}");
+                return;
+            }
+
+            // Find the software handover record using subject_id from implementer log
+            $softwareHandover = SoftwareHandover::find($implementerLog->subject_id);
+
+            if (!$softwareHandover) {
+                Log::error("Software handover not found for subject_id: {$implementerLog->subject_id}");
+                return;
+            }
+
+            // Initialize CC recipients array
+            $ccRecipients = [];
+
+            // Add implementer to CC if available and different from sender
+            if ($softwareHandover->implementer) {
+                // Look up user by name instead of ID
+                $implementer = User::where('name', $softwareHandover->implementer)->first();
+                if ($implementer && $implementer->email && $implementer->email !== $emailData['sender_email']) {
+                    $ccRecipients[] = $implementer->email;
+                    Log::info("Added implementer to CC: {$implementer->name} <{$implementer->email}>");
+                } else {
+                    Log::info("Implementer not found or no valid email for: {$softwareHandover->implementer}");
+                }
+            }
+
+            // Add salesperson to CC if available and different from sender and implementer
+            if ($softwareHandover->salesperson) {
+                // Look up user by name instead of ID
+                $salesperson = User::where('name', $softwareHandover->salesperson)->first();
+                if ($salesperson && $salesperson->email &&
+                    $salesperson->email !== $emailData['sender_email'] &&
+                    !in_array($salesperson->email, $ccRecipients)) {
+                    $ccRecipients[] = $salesperson->email;
+                    Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
+                } else {
+                    Log::info("Salesperson not found or no valid email for: {$softwareHandover->salesperson}");
+                }
+            }
+
+            // Send the email with CC recipients
+            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients) {
+                $message->to($emailData['recipients'])
+                    ->subject($emailData['subject'])
+                    ->from($emailData['sender_email'], $emailData['sender_name']);
+
+                // Add CC recipients if we have any
+                if (!empty($ccRecipients)) {
+                    $message->cc($ccRecipients);
+                }
+
+                // BCC the sender as well
+                $message->bcc($emailData['sender_email']);
+            });
+
+            // Log email sent successfully
+            Log::info('Follow-up email sent successfully', [
+                'to' => $emailData['recipients'],
+                'cc' => $ccRecipients,
+                'subject' => $emailData['subject'],
+                'implementer_log_id' => $emailData['implementer_log_id'] ?? null,
+                'template' => $emailData['template_name'] ?? 'Unknown'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in sendEmail method: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'data' => $emailData
+            ]);
+        }
     }
 
     public static function stopImplementerFollowUp(): Action

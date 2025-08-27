@@ -21,6 +21,7 @@ class CallLog extends Model
         'end_at',
         'question',
         'task_status',
+        'lead_id',
         'tier1_category_id',   // New field for Tier 1
         'tier2_category_id',   // New field for Tier 2
         'tier3_category_id',   // New field for Tier 3
@@ -57,5 +58,10 @@ class CallLog extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(CallCategory::class, 'category_id');
+    }
+
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class, 'lead_id');
     }
 }

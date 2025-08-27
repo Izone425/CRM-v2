@@ -13,41 +13,34 @@ use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Support\Facades\DB;
 
-class SupportCallLog extends Page implements HasTable
+class SalesAdminAnalysisV4 extends Page implements HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
     protected static ?string $title = '';
-    protected static ?string $navigationIcon = 'heroicon-o-phone';
-    protected static ?string $navigationLabel = 'Call Logs';
-    protected static ?string $slug = 'call-logs';
-    protected static ?int $navigationSort = 85;
+    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static ?string $navigationLabel = 'Sales & Admin Call Analysis';
+    protected static ?int $navigationSort = 86;
     protected static ?string $navigationGroup = 'Communication';
-    protected static string $view = 'filament.pages.support-call-log';
+    protected static string $view = 'filament.pages.sales-admin-analysis-v4';
 
     public $showStaffStats = false;
-    public $slideOverTitle = 'Support Staff Call Analytics';
+    public $slideOverTitle = 'Sales Admin Call Analytics';
     public $staffStats = [];
-    public $type = 'all'; // Add this line to track the current type
+    public $type = 'all';
 
     public static function canAccess(): bool
     {
@@ -57,25 +50,22 @@ class SupportCallLog extends Page implements HasTable
             return false;
         }
 
-        return $user->hasRouteAccess('filament.admin.pages.call-logs');
+        return $user->hasRouteAccess('filament.admin.pages.sales-admin-analysis-v4');
     }
 
-    public function getReceptionCalls(): Builder
+    public function getSalesAdminCalls(): Builder
     {
-        // Get all support staff extensions
-        $supportExtensions = PhoneExtension::where('is_support_staff', true)
+        // Get all sales & admin staff extensions (is_support = false)
+        $salesAdminExtensions = PhoneExtension::where('is_support_staff', false)
             ->where('is_active', true)
             ->pluck('extension')
             ->toArray();
 
-        // Add reception extension
-        $receptionExtension = PhoneExtension::where('extension', '100')->value('extension') ?? '100';
-
         $query = CallLog::query()
-            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
-                // Include calls where reception or support staff are involved
-                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
-                    ->orWhereIn('receiver_number', $supportExtensions);
+            ->where(function ($query) use ($salesAdminExtensions) {
+                // Include calls where sales/admin staff are involved
+                $query->whereIn('caller_number', $salesAdminExtensions)
+                    ->orWhereIn('receiver_number', $salesAdminExtensions);
             })
             // Exclude "NO ANSWER" call logs
             ->where('call_status', '!=', 'NO ANSWER')
@@ -120,22 +110,22 @@ class SupportCallLog extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        $supportStaffOptions = [];
+        $salesAdminStaffOptions = [];
         $extensionUserMapping = [];
 
-        $supportStaff = PhoneExtension::with('user')
-            ->where('is_support_staff', true)
+        $salesAdminStaff = PhoneExtension::with('user')
+            ->where('is_support_staff', false)
             ->where('is_active', true)
             ->get();
 
-        foreach ($supportStaff as $staff) {
+        foreach ($salesAdminStaff as $staff) {
             $userName = ($staff->user_id && $staff->user) ? $staff->user->name : $staff->name;
-            $supportStaffOptions[$userName] = $userName;
+            $salesAdminStaffOptions[$userName] = $userName;
             $extensionUserMapping[$userName] = $staff->extension;
         }
 
         return $table
-            ->query($this->getReceptionCalls())
+            ->query($this->getSalesAdminCalls())
             ->columns([
                 TextColumn::make('id')
                     ->label('No')
@@ -143,7 +133,7 @@ class SupportCallLog extends Page implements HasTable
                     ->sortable(),
 
                 TextColumn::make('staff_name')
-                    ->label('Support')
+                    ->label('Sales Admin')
                     ->sortable()
                     ->searchable(),
 
@@ -190,33 +180,25 @@ class SupportCallLog extends Page implements HasTable
                         default => 'gray',
                     }),
 
-                TextColumn::make('tier1_category_id')
-                    ->label('Module')
-                    ->formatStateUsing(function ($record) {
-                        return $record->tier1Category ? $record->tier1Category->name : '—';
-                    })
-                    ->sortable(),
+                TextColumn::make('lead_id')
+                    ->label('Lead')
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!$state) {
+                            return '—';
+                        }
 
-                // TextColumn::make('tier2_category_id')
-                //     ->label('Main Category')
-                //     ->formatStateUsing(function ($record) {
-                //         return $record->tier2Category ? $record->tier2Category->name : '—';
-                //     })
-                //     ->sortable()
-                //     ->toggleable(),
+                        // Get company name from the lead relationship
+                        if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                            return "#{$state} - {$record->lead->companyDetail->company_name}";
+                        }
 
-                // TextColumn::make('tier3_category_id')
-                //     ->label('Sub Category')
-                //     ->formatStateUsing(function ($record) {
-                //         return $record->tier3Category ? $record->tier3Category->name : '—';
-                //     })
-                //     ->sortable()
-                //     ->toggleable(),
+                        return "Lead #{$state}";
+                    }),
             ])
             ->filters([
                 SelectFilter::make('staff_name')
-                    ->label('Support')
-                    ->options($supportStaffOptions)
+                    ->label('Staff')
+                    ->options($salesAdminStaffOptions)
                     ->query(function (Builder $query, array $data) use ($extensionUserMapping): Builder {
                         // If no data or no value selected, return unmodified query
                         if (empty($data['value'])) {
@@ -256,12 +238,7 @@ class SupportCallLog extends Page implements HasTable
                     ->options([
                         'incoming' => 'Incoming',
                         'outgoing' => 'Outgoing',
-                    ]),
-
-                SelectFilter::make('task_status')
-                    ->options([
-                        'Completed' => 'Completed',
-                        'Pending' => 'Pending',
+                        'internal' => 'Internal',
                     ]),
 
                 Filter::make('started_at')
@@ -283,124 +260,114 @@ class SupportCallLog extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('view')
-                        ->label('View')
-                        ->color('secondary')
-                        ->icon('heroicon-o-eye')
-                        ->visible(function (CallLog $record) {
-                            return $record->task_status === 'Completed';
-                        })
-                        ->modalHeading('')
-                        ->modalContent(function (CallLog $record) {
-                            return Infolist::make()
-                                ->record($record)
-                                ->schema([
-                                    \Filament\Infolists\Components\TextEntry::make('question')
-                                        ->label('Question')
-                                        ->formatStateUsing(fn ($state) => nl2br($state))
-                                        ->html()
-                                        ->columnSpanFull(),
-                                    // Add other fields you want to display
-                                ]);
-                        })
-                        ->modalWidth('3xl')
-                        ->modalSubmitAction(false),
-                    Action::make('submit')
-                        ->label('Submit ')
+                    Action::make('link_lead')
+                        ->label('Link with Lead')
                         ->color('success')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->visible(function (CallLog $record) {
-                            if ($record->task_status !== 'Pending') {
-                                return false;
-                            }
-
-                            if (auth()->user()->role_id == 3) {
-                                return true;
-                            }
-
-                            return $record->staff_name === auth()->user()->name;
+                        ->icon('heroicon-o-link')
+                        ->requiresConfirmation(false)
+                        ->visible(function (CallLog $record): bool {
+                            return $record->task_status === 'Pending';
                         })
                         ->form([
-                            Select::make('tier1_category_id')
-                                ->label('Module (Tier 1)')
+                            Select::make('lead_id')
+                                ->label('Select Company')
                                 ->options(function () {
-                                    return \App\Models\CallCategory::where('tier', '1')
-                                        ->where('is_active', true)
-                                        ->pluck('name', 'id');
+                                    // Use get() and mapWithKeys instead of pluck to access the relationship
+                                    return Lead::query()
+                                        ->with('companyDetail') // Eager load the companyDetail relationship
+                                        ->get()
+                                        ->mapWithKeys(function ($lead) {
+                                            // Only include leads with valid company names from companyDetail
+                                            if ($lead->companyDetail && $lead->companyDetail->company_name) {
+                                                return [$lead->id => "#{$lead->id} - {$lead->companyDetail->company_name}"];
+                                            }
+                                            return [];
+                                        })
+                                        ->toArray();
                                 })
                                 ->searchable()
-                                ->reactive()
+                                ->preload()
                                 ->required()
-                                ->afterStateUpdated(fn (callable $set) => $set('tier2_category_id', null))
-                                ->afterStateUpdated(fn (callable $set) => $set('tier3_category_id', null)),
-
-                            // Select::make('tier2_category_id')
-                            //     ->label('Main Category (Tier 2)')
-                            //     ->options(function (callable $get) {
-                            //         $tier1Id = $get('tier1_category_id');
-                            //         if (!$tier1Id) {
-                            //             return [];
-                            //         }
-
-                            //         return \App\Models\CallCategory::where('tier', '2')
-                            //             ->where('parent_id', $tier1Id)
-                            //             ->where('is_active', true)
-                            //             ->pluck('name', 'id');
-                            //     })
-                            //     ->searchable()
-                            //     ->reactive()
-                            //     ->afterStateUpdated(fn (callable $set) => $set('tier3_category_id', null))
-                            //     ->visible(fn (callable $get) => (bool) $get('tier1_category_id')),
-
-                            // Select::make('tier3_category_id')
-                            //     ->label('Sub Category (Tier 3)')
-                            //     ->options(function (callable $get) {
-                            //         $tier2Id = $get('tier2_category_id');
-                            //         if (!$tier2Id) {
-                            //             return [];
-                            //         }
-
-                            //         return \App\Models\CallCategory::where('tier', '3')
-                            //             ->where('parent_id', $tier2Id)
-                            //             ->where('is_active', true)
-                            //             ->pluck('name', 'id');
-                            //     })
-                            //     ->searchable()
-                            //     ->visible(fn (callable $get) => (bool) $get('tier2_category_id')),
-
-                            // Select::make('task_status')
-                            //     ->label('Task Status')
-                            //     ->options([
-                            //         'Pending' => 'Pending',
-                            //         'Completed' => 'Completed',
-                            //     ])
-                            //     ->searchable()
-                            //     ->default('Pending'),
-
-                            Textarea::make('question')
-                                ->label('Question')
-                                ->required()
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
                                 ->columnSpanFull(),
                         ])
                         ->action(function (CallLog $record, array $data): void {
-                            $data['task_status'] = 'Completed';
+                            // Update the record with lead_id and set task status to completed
+                            $record->update([
+                                'lead_id' => $data['lead_id'],
+                                'task_status' => 'Completed',
+                            ]);
 
-                            $record->update($data);
-
+                            // Show success notification
                             Notification::make()
-                                ->title('Call log updated successfully')
+                                ->title('Call linked to company successfully')
                                 ->success()
                                 ->send();
+                        }),
+
+                    Action::make('view_details')
+                        ->label('View')
+                        ->color('secondary')
+                        ->icon('heroicon-o-eye')
+                        ->visible(function (CallLog $record): bool {
+                            return $record->task_status === 'Completed';
                         })
+                        ->modalHeading('Call Details')
+                        ->modalContent(function (CallLog $record) {
+                            // Determine caller and receiver names
+                            $callerName = $this->getStaffNameFromExtension($record->caller_number);
+                            $receiverName = $this->getStaffNameFromExtension($record->receiver_number);
+
+                            // Get linked lead information if available
+                            $linkedCompany = $record->lead ? $record->lead->companyDetail->company_name : '—';
+
+                            return Infolist::make()
+                                ->record($record)
+                                ->schema([
+                                    \Filament\Infolists\Components\Section::make('Call Information')
+                                        ->schema([
+                                            \Filament\Infolists\Components\TextEntry::make('call_type')
+                                                ->label('Call Type')
+                                                ->badge()
+                                                ->color(fn (string $state): string => match ($state) {
+                                                    'internal' => 'success',
+                                                    'outgoing' => 'danger',
+                                                    default => 'gray',
+                                                }),
+
+                                            \Filament\Infolists\Components\TextEntry::make('started_at')
+                                                ->label('Date & Time')
+                                                ->dateTime('d/m/Y H:i:s'),
+
+                                            \Filament\Infolists\Components\TextEntry::make('call_duration')
+                                                ->label('Duration')
+                                                ->formatStateUsing(fn ($state) => $this->formatDuration($state)),
+
+                                            \Filament\Infolists\Components\TextEntry::make('caller_info')
+                                                ->label('From')
+                                                ->state($callerName ? "$callerName ({$record->caller_number})" : $record->caller_number),
+
+                                            \Filament\Infolists\Components\TextEntry::make('receiver_info')
+                                                ->label('To')
+                                                ->state($receiverName ? "$receiverName ({$record->receiver_number})" : $record->receiver_number),
+
+                                            \Filament\Infolists\Components\TextEntry::make('linked_company')
+                                                ->label('Linked Company')
+                                                ->state($linkedCompany),
+
+                                            \Filament\Infolists\Components\TextEntry::make('task_status')
+                                                ->label('Status')
+                                                ->badge()
+                                                ->color(fn (string $state): string => match ($state) {
+                                                    'Completed' => 'success',
+                                                    'Pending' => 'danger',
+                                                    default => 'gray',
+                                                }),
+                                        ])
+                                        ->columns(2),
+                                ]);
+                        })
+                        ->modalWidth('3xl')
+                        ->modalSubmitAction(false)
                 ])
             ])
             ->defaultSort('started_at', 'desc');
@@ -421,23 +388,36 @@ class SupportCallLog extends Page implements HasTable
         return sprintf("%02d:%02d", $minutes, $secs);
     }
 
+    protected function getStaffNameFromExtension($extension)
+    {
+        $phoneExt = PhoneExtension::where('extension', $extension)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$phoneExt) {
+            return null;
+        }
+
+        return ($phoneExt->user_id && $phoneExt->user) ? $phoneExt->user->name : $phoneExt->name;
+    }
+
     public function openStaffStatsSlideOver($type = 'all')
     {
         $this->type = $type; // Store the type
         $this->staffStats = $this->getStaffStats($type);
 
         switch ($type) {
-            case 'completed':
-                $this->slideOverTitle = 'Support Staff - Completed Calls';
+            case 'outgoing':
+                $this->slideOverTitle = 'Sales & Admin - Outgoing Calls';
                 break;
-            case 'pending':
-                $this->slideOverTitle = 'Support Staff - Pending Calls';
+            case 'incoming':
+                $this->slideOverTitle = 'Sales & Admin - Incoming Calls';
                 break;
             case 'duration':
-                $this->slideOverTitle = 'Support Staff - Call Duration';
+                $this->slideOverTitle = 'Sales & Admin - Call Duration';
                 break;
             default:
-                $this->slideOverTitle = 'Support Staff - Call Analytics';
+                $this->slideOverTitle = 'Sales & Admin - Call Analytics';
         }
 
         $this->showStaffStats = true;
@@ -448,13 +428,13 @@ class SupportCallLog extends Page implements HasTable
         // Define staff members with their corresponding extensions
         $stats = [];
 
-        // Get all support staff
-        $supportStaff = PhoneExtension::with('user')
-            ->where('is_support_staff', true)
+        // Get all sales & admin staff (is_support_staff = false)
+        $salesAdminStaff = PhoneExtension::with('user')
+            ->where('is_support_staff', false)
             ->where('is_active', true)
             ->get();
 
-        foreach ($supportStaff as $staff) {
+        foreach ($salesAdminStaff as $staff) {
             // Use User name if available, otherwise fallback to extension name
             $staffName = ($staff->user_id && $staff->user) ? $staff->user->name : $staff->name;
 
@@ -492,18 +472,19 @@ class SupportCallLog extends Page implements HasTable
             $query = $baseQueryBuilder();
 
             // Apply type filter if needed
-            if ($type === 'completed') {
-                $query->where('task_status', 'Completed');
-            } elseif ($type === 'pending') {
-                $query->where('task_status', 'Pending');
+            if ($type === 'outgoing') {
+                $query->where('call_type', 'outgoing');
+            } elseif ($type === 'incoming') {
+                $query->where('call_type', 'incoming');
             }
 
             // Count total calls (unfiltered)
             $totalCalls = $baseQueryBuilder()->count();
 
             // Create separate query instances for each metric to avoid filter confusion
-            $completedCalls = $baseQueryBuilder()->where('task_status', 'Completed')->count();
-            $pendingCalls = $baseQueryBuilder()->where('task_status', 'Pending')->count();
+            $outgoingCalls = $baseQueryBuilder()->where('call_type', 'outgoing')->count();
+            $incomingCalls = $baseQueryBuilder()->where('call_type', 'incoming')->count();
+            $internalCalls = $baseQueryBuilder()->where('call_type', 'internal')->count();
 
             // Calculate total call duration (use the filtered query if type is specified)
             $durationQuery = $type === 'all' ? $baseQueryBuilder() : $query;
@@ -522,39 +503,36 @@ class SupportCallLog extends Page implements HasTable
             $avgSeconds = floor($avgDuration % 60);
             $avgTime = sprintf("%02d:%02d", $avgMinutes, $avgSeconds);
 
-            // Calculate completion rate
-            $completionRate = $totalCalls > 0 ? round(($completedCalls / $totalCalls) * 100) : 0;
-
             // Skip if we have a type filter and there are no matching calls
-            if (($type === 'completed' && $completedCalls === 0) ||
-                ($type === 'pending' && $pendingCalls === 0) ||
+            if (($type === 'outgoing' && $outgoingCalls === 0) ||
+                ($type === 'incoming' && $incomingCalls === 0) ||
                 ($type === 'duration' && $totalDuration === 0)) {
                 continue;
             }
 
-            // Add to stats array - THIS IS THE KEY CHANGE - using $staffName instead of $staff->name
+            // Add to stats array
             $stats[] = [
-                'name' => $staffName, // FIXED: Use the correctly determined $staffName variable
+                'name' => $staffName,
                 'extension' => $staff->extension,
                 'user_id' => $staff->user_id,
                 'total_calls' => $totalCalls,
-                'completed_calls' => $completedCalls,
-                'pending_calls' => $pendingCalls,
+                'outgoing_calls' => $outgoingCalls,
+                'incoming_calls' => $incomingCalls,
+                'internal_calls' => $internalCalls,
                 'total_duration' => $totalDuration,
                 'total_time' => $totalTime,
                 'avg_time' => $avgTime,
-                'completion_rate' => $completionRate,
             ];
         }
 
         // Sort by relevant metric based on type
-        if ($type === 'completed') {
+        if ($type === 'outgoing') {
             usort($stats, function($a, $b) {
-                return $b['completed_calls'] <=> $a['completed_calls'];
+                return $b['outgoing_calls'] <=> $a['outgoing_calls'];
             });
-        } elseif ($type === 'pending') {
+        } elseif ($type === 'incoming') {
             usort($stats, function($a, $b) {
-                return $b['pending_calls'] <=> $a['pending_calls'];
+                return $b['incoming_calls'] <=> $a['incoming_calls'];
             });
         } elseif ($type === 'duration') {
             usort($stats, function($a, $b) {
