@@ -215,11 +215,22 @@
             <div class="summary-card card-total" wire:click="openStaffStatsSlideOver('all')">
                 <div class="card-value">
                     @php
+                        // Get support staff extensions dynamically
+                        $supportExtensions = \App\Models\PhoneExtension::where('is_support_staff', true)
+                            ->where('is_active', true)
+                            ->pluck('extension')
+                            ->toArray();
+
+                        // Get reception extension
+                        $receptionExtension = \App\Models\PhoneExtension::where('extension', '100')
+                            ->value('extension') ?? '100';
+
                         $totalCount = \App\Models\CallLog::query()
-                            ->where(function ($query) {
-                                $query->whereIn('caller_number', ['100', '323', '324', '333', '343'])
-                                    ->orWhereIn('receiver_number', ['323', '324', '333', '343']);
+                            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
+                                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
+                                    ->orWhereIn('receiver_number', $supportExtensions);
                             })
+                            ->where('call_status', '!=', 'NO ANSWER')
                             ->count();
                     @endphp
                     {{ $totalCount }}
@@ -230,11 +241,13 @@
             <div class="summary-card card-completed" wire:click="openStaffStatsSlideOver('completed')">
                 <div class="card-value">
                     @php
+                        // Reuse the extensions from above
                         $completedCount = \App\Models\CallLog::query()
-                            ->where(function ($query) {
-                                $query->whereIn('caller_number', ['100', '323', '324', '333', '343'])
-                                    ->orWhereIn('receiver_number', ['323', '324', '333', '343']);
+                            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
+                                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
+                                    ->orWhereIn('receiver_number', $supportExtensions);
                             })
+                            ->where('call_status', '!=', 'NO ANSWER')
                             ->where('task_status', 'Completed')
                             ->count();
                     @endphp
@@ -246,11 +259,13 @@
             <div class="summary-card card-pending" wire:click="openStaffStatsSlideOver('pending')">
                 <div class="card-value">
                     @php
+                        // Reuse the extensions from above
                         $pendingCount = \App\Models\CallLog::query()
-                            ->where(function ($query) {
-                                $query->whereIn('caller_number', ['100', '323', '324', '333', '343'])
-                                    ->orWhereIn('receiver_number', ['323', '324', '333', '343']);
+                            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
+                                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
+                                    ->orWhereIn('receiver_number', $supportExtensions);
                             })
+                            ->where('call_status', '!=', 'NO ANSWER')
                             ->where('task_status', 'Pending')
                             ->count();
                     @endphp
@@ -262,11 +277,13 @@
             <div class="summary-card card-time" wire:click="openStaffStatsSlideOver('duration')">
                 <div class="card-value">
                     @php
+                        // Reuse the extensions from above
                         $totalDuration = \App\Models\CallLog::query()
-                            ->where(function ($query) {
-                                $query->whereIn('caller_number', ['100', '323', '324', '333', '343'])
-                                    ->orWhereIn('receiver_number', ['323', '324', '333', '343']);
+                            ->where(function ($query) use ($supportExtensions, $receptionExtension) {
+                                $query->whereIn('caller_number', array_merge([$receptionExtension], $supportExtensions))
+                                    ->orWhereIn('receiver_number', $supportExtensions);
                             })
+                            ->where('call_status', '!=', 'NO ANSWER')
                             ->sum('call_duration');
 
                         $hours = floor($totalDuration / 3600);

@@ -32,16 +32,16 @@ class ProjectPriority extends Page
         'low' => 0,
     ];
 
-    public static function canAccess(): bool
-    {
-        $user = auth()->user();
+    // public static function canAccess(): bool
+    // {
+    //     $user = auth()->user();
 
-        if (!$user || !($user instanceof \App\Models\User)) {
-            return false;
-        }
+    //     if (!$user || !($user instanceof \App\Models\User)) {
+    //         return false;
+    //     }
 
-        return $user->hasRouteAccess('filament.admin.pages.project-priority');
-    }
+    //     return $user->hasRouteAccess('filament.admin.pages.project-priority');
+    // }
 
     public function mount()
     {
