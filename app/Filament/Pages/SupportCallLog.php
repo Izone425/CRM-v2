@@ -78,7 +78,12 @@ class SupportCallLog extends Page implements HasTable
                     ->orWhereIn('receiver_number', $supportExtensions);
             })
             // Exclude "NO ANSWER" call logs
-            ->where('call_status', '!=', 'NO ANSWER');
+            ->where('call_status', '!=', 'NO ANSWER')
+            // Exclude calls with duration less than 5 seconds
+            ->where(function($query) {
+                $query->where('call_duration', '>=', 5)
+                    ->orWhereNull('call_duration');
+            });
 
         // Get extension to user mapping
         $extensionUserMapping = [];
@@ -470,12 +475,17 @@ class SupportCallLog extends Page implements HasTable
                     ->orWhere(function($subq) use ($staff) {
                         $subq->where('call_type', 'internal')
                             ->where(function($innerq) use ($staff) {
-                                $innerq->where('caller_number', $staff->extension)
-                                    ->orWhere('receiver_number', $staff->extension);
-                            });
+                            $innerq->where('caller_number', $staff->extension)
+                                ->orWhere('receiver_number', $staff->extension);
+                        });
                     });
                 })
-                ->where('call_status', '!=', 'NO ANSWER');
+                ->where('call_status', '!=', 'NO ANSWER')
+                // Exclude calls with duration less than 5 seconds
+                ->where(function($query) {
+                    $query->where('call_duration', '>=', 5)
+                        ->orWhereNull('call_duration');
+                });
             };
 
             // Create a fresh query instance for the main filter

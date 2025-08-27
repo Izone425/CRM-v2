@@ -231,6 +231,11 @@
                                     ->orWhereIn('receiver_number', $supportExtensions);
                             })
                             ->where('call_status', '!=', 'NO ANSWER')
+                            // Exclude calls with duration less than 5 seconds
+                            ->where(function($query) {
+                                $query->where('call_duration', '>=', 5)
+                                    ->orWhereNull('call_duration');
+                            })
                             ->count();
                     @endphp
                     {{ $totalCount }}
@@ -248,6 +253,10 @@
                                     ->orWhereIn('receiver_number', $supportExtensions);
                             })
                             ->where('call_status', '!=', 'NO ANSWER')
+                            ->where(function($query) {
+                                $query->where('call_duration', '>=', 5)
+                                    ->orWhereNull('call_duration');
+                            })
                             ->where('task_status', 'Completed')
                             ->count();
                     @endphp
@@ -266,6 +275,10 @@
                                     ->orWhereIn('receiver_number', $supportExtensions);
                             })
                             ->where('call_status', '!=', 'NO ANSWER')
+                            ->where(function($query) {
+                                $query->where('call_duration', '>=', 5)
+                                    ->orWhereNull('call_duration');
+                            })
                             ->where('task_status', 'Pending')
                             ->count();
                     @endphp
@@ -284,6 +297,10 @@
                                     ->orWhereIn('receiver_number', $supportExtensions);
                             })
                             ->where('call_status', '!=', 'NO ANSWER')
+                            ->where(function($query) {
+                                $query->where('call_duration', '>=', 5)
+                                    ->orWhereNull('call_duration');
+                            })
                             ->sum('call_duration');
 
                         $hours = floor($totalDuration / 3600);
