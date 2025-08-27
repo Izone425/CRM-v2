@@ -38,6 +38,7 @@ use App\Filament\Pages\RankingFormPage;
 use App\Filament\Pages\SalesAdminAnalysisV1;
 use App\Filament\Pages\SalesAdminAnalysisV2;
 use App\Filament\Pages\SalesAdminAnalysisV3;
+use App\Filament\Pages\SalesAdminAnalysisV4;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
@@ -266,6 +267,7 @@ class AdminPanelProvider extends PanelProvider
                 SupportCallLog::class,
                 SalesPersonSurveyRequest::class,
                 ProjectPriority::class,
+                SalesAdminAnalysisV4::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

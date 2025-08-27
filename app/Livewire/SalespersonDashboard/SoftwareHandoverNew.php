@@ -1048,6 +1048,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                             // Prepare data for update
                             $updateData = [
+                                'project_priority' => 'High',
                                 'status' => 'Completed',
                                 'completed_at' => now(),
                                 'implementer' => $implementerName,
