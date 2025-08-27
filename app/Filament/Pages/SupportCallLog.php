@@ -522,10 +522,11 @@ class SupportCallLog extends Page implements HasTable
                 continue;
             }
 
-            // Add to stats array (always include even if zero calls, except for specific filters)
+            // Add to stats array - THIS IS THE KEY CHANGE - using $staffName instead of $staff->name
             $stats[] = [
-                'name' => $staff->name,
+                'name' => $staffName, // FIXED: Use the correctly determined $staffName variable
                 'extension' => $staff->extension,
+                'user_id' => $staff->user_id,
                 'total_calls' => $totalCalls,
                 'completed_calls' => $completedCalls,
                 'pending_calls' => $pendingCalls,
