@@ -72,6 +72,7 @@ use App\Filament\Resources\InstallerResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadSourceResource;
+use App\Filament\Resources\PhoneExtensionResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
@@ -215,6 +216,7 @@ class AdminPanelProvider extends PanelProvider
                 EmailTemplateResource::class,
                 DeviceModelResource::class,
                 CallCategoryResource::class,
+                PhoneExtensionResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
