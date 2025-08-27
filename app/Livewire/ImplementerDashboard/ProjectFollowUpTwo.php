@@ -30,7 +30,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 
-class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
+class ProjectFollowUpTwo extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -83,8 +83,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
             ->where('status_handover', '!=', 'InActive')
-            ->whereDate('follow_up_date', '>', today())
-            ->where('follow_up_counter', true)
+            ->where('manual_follow_up_count', 2)
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
@@ -223,32 +222,10 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-               TextColumn::make('pending_days')
+                TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->formatStateUsing(function ($state, $record) {
-                        // Calculate days left from now until follow_up_date
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        // Format the output
-                        if ($daysLeft <= 0) {
-                            return 'Today';
-                        } else {
-                            return $daysLeft . ' days';
-                        }
-                    })
-                    ->color(function ($record) {
-                        // Get days left
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        // Color logic: green for future dates
-                        if ($daysLeft > 3) {
-                            return 'success'; // Green for dates more than 3 days away
-                        } elseif ($daysLeft > 0) {
-                            return 'warning'; // Yellow for dates within 3 days
-                        } else {
-                            return 'primary'; // Blue for today
-                        }
-                    }),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('status_handover')
                     ->label('Status'),
@@ -289,16 +266,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     ImplementerActions::addImplementerFollowUp()
                         ->action(function (SoftwareHandover $record, array $data) {
                             // Process the follow-up using the shared implementation
-                            ImplementerActions::processFollowUpWithEmail($record, $data);
-
-                            // Refresh the component after action completes
-                            $this->dispatch('refresh-implementer-tables');
-                        }),
-
-                    ImplementerActions::stopImplementerFollowUp()
-                        ->action(function (SoftwareHandover $record) {
-                            // Process the stop follow-up using the shared implementation
-                            \App\Filament\Actions\ImplementerActions::processStopFollowUp($record);
+                            \App\Filament\Actions\ImplementerActions::processFollowUpWithEmail($record, $data);
 
                             // Refresh the component after action completes
                             $this->dispatch('refresh-implementer-tables');
@@ -312,7 +280,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-follow-up-future');
+        return view('livewire.implementer_dashboard.project-follow-up-two');
     }
 
     private function getWeekdayCount($startDate, $endDate)

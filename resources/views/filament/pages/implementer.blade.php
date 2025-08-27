@@ -280,6 +280,32 @@
     .request-cancelled { border-left: 4px solid #94a3b8; }
     .request-cancelled .stat-count { color: #94a3b8; }
 
+    .group-no-respond { border-top-color: #e11d48; }
+    .group-no-respond .group-count { color: #e11d48; }
+
+    /* Follow up count status colors */
+    .follow-up-none { border-left: 4px solid #64748b; }
+    .follow-up-none .stat-count { color: #64748b; }
+
+    .follow-up-1 { border-left: 4px solid #f59e0b; }
+    .follow-up-1 .stat-count { color: #f59e0b; }
+
+    .follow-up-2 { border-left: 4px solid #f97316; }
+    .follow-up-2 .stat-count { color: #f97316; }
+
+    .follow-up-3 { border-left: 4px solid #ef4444; }
+    .follow-up-3 .stat-count { color: #ef4444; }
+
+    .follow-up-4 { border-left: 4px solid #dc2626; }
+    .follow-up-4 .stat-count { color: #dc2626; }
+
+    /* Selected states for follow-up counts */
+    .stat-box.selected.follow-up-none { background-color: rgba(100, 116, 139, 0.05); border-left-width: 6px; }
+    .stat-box.selected.follow-up-1 { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
+    .stat-box.selected.follow-up-2 { background-color: rgba(249, 115, 22, 0.05); border-left-width: 6px; }
+    .stat-box.selected.follow-up-3 { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
+    .stat-box.selected.follow-up-4 { background-color: rgba(220, 38, 38, 0.05); border-left-width: 6px; }
+
     /* Selected states for categories */
     .stat-box.selected.status-all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
     .stat-box.selected.status-open { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
@@ -430,6 +456,26 @@
         ->getAppointments()
         ->count();
 
+    $followUpNone = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpNone::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUp1 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpOne::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUp2 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpTwo::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUp3 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpThree::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
+    $followUp4 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpFour::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
     // Ticketing System Counts
     $internalTicketsToday = 0; // Replace with actual count
     $internalTicketsOverdue = 0; // Replace with actual count
@@ -468,6 +514,7 @@
         ->count();
 
     $implementerRequestTotal = $pendingRequestCount;
+    $noRespondProjects = $followUpNone + $followUp1 + $followUp2 + $followUp3 + $followUp4;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -553,7 +600,17 @@
                 <div class="group-count">{{ $followUpTotal }}</div>
             </div>
 
-            <!-- NO5 - TICKETING SYSTEM -->
+            <!-- NO5 - PROJECT FOLLOW UP -->
+            <div class="group-box group-no-respond"
+                :class="{'selected': selectedGroup === 'no-respond'}"
+                @click="setSelectedGroup('no-respond')">
+                <div class="group-info">
+                    <div class="group-title">Project No Respond</div>
+                </div>
+                <div class="group-count">{{ $noRespondProjects }}</div>
+            </div>
+
+            {{-- <!-- NO5 - TICKETING SYSTEM -->
             <div class="group-box group-ticketing"
                 :class="{'selected': selectedGroup === 'ticketing'}"
                 @click="setSelectedGroup('ticketing')">
@@ -561,7 +618,7 @@
                     <div class="group-title">Ticketing System</div>
                 </div>
                 <div class="group-count">{{ $ticketingTotal }}</div>
-            </div>
+            </div> --}}
 
             {{-- <!-- NO6 - NEW REQUEST -->
             <div class="group-box group-new-request"
@@ -831,6 +888,54 @@
                 </div>
             </div>
 
+            <!--PROJECT FOLLOW UP Sub-tabs -->
+            <div class="category-container" x-show="selectedGroup === 'no-respond'" x-transition>
+                <div class="stat-box follow-up-none"
+                    :class="{'selected': selectedStat === 'follow-up-none'}"
+                    @click="setSelectedStat('follow-up-none')">
+                    <div class="stat-info">
+                        <div class="stat-label">None</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpNone }}</div>
+                </div>
+
+                <div class="stat-box follow-up-1"
+                    :class="{'selected': selectedStat === 'follow-up-1'}"
+                    @click="setSelectedStat('follow-up-1')">
+                    <div class="stat-info">
+                        <div class="stat-label">Follow-up 1</div>
+                    </div>
+                    <div class="stat-count">{{ $followUp1 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-2"
+                    :class="{'selected': selectedStat === 'follow-up-2'}"
+                    @click="setSelectedStat('follow-up-2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Follow-up 2</div>
+                    </div>
+                    <div class="stat-count">{{ $followUp2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-3"
+                    :class="{'selected': selectedStat === 'follow-up-3'}"
+                    @click="setSelectedStat('follow-up-3')">
+                    <div class="stat-info">
+                        <div class="stat-label">Follow-up 3</div>
+                    </div>
+                    <div class="stat-count">{{ $followUp3 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-4"
+                    :class="{'selected': selectedStat === 'follow-up-4'}"
+                    @click="setSelectedStat('follow-up-4')">
+                    <div class="stat-info">
+                        <div class="stat-label">Follow-up 4</div>
+                    </div>
+                    <div class="stat-count">{{ $followUp4 }}</div>
+                </div>
+            </div>
+
             <!-- Content area for tables -->
             <div class="content-area">
                 <!-- Display hint message when nothing is selected -->
@@ -982,6 +1087,37 @@
                 <div x-show="selectedStat === 'enhancement-completed'" x-transition>
                     <div class="p-4">
                         {{-- <livewire:enhancement-completed-table /> --}}
+                    </div>
+                </div>
+
+                <!-- PROJECT FOLLOW UP Tables -->
+                <div x-show="selectedStat === 'follow-up-none'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.project-follow-up-none />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'follow-up-1'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.project-follow-up-one />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'follow-up-2'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.project-follow-up-two />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'follow-up-3'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.project-follow-up-three />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'follow-up-4'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.project-follow-up-four />
                     </div>
                 </div>
             </div>

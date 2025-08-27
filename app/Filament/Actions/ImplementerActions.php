@@ -869,7 +869,7 @@ class ImplementerActions
             ->icon('heroicon-o-plus')
             ->modalWidth('6xl')
             ->form([
-                Grid::make(3)
+                Grid::make(4)
                     ->schema([
                         DatePicker::make('follow_up_date')
                             ->label('Next Follow-up Date')
@@ -883,6 +883,28 @@ class ImplementerActions
                             })
                             ->minDate(now()->subDay())
                             ->required(),
+
+                        Select::make('manual_follow_up_count')
+                            ->label('Follow Up Count')
+                            ->required()
+                            ->options([
+                                0 => '0',
+                                1 => '1',
+                                2 => '2',
+                                3 => '3',
+                                4 => '4',
+                            ])
+                            ->default(function (SoftwareHandover $record = null) {
+                                if (!$record) return 0;
+
+                                // Get current follow-up count from database
+                                $currentCount = $record->manual_follow_up_count ?? 0;
+
+                                // Increment by 1, but loop back to 0 if it's already at 4
+                                $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
+
+                                return $nextCount;
+                            }),
 
                         Toggle::make('send_email')
                             ->label('Send Email to Customer?')
@@ -1036,7 +1058,6 @@ class ImplementerActions
             $record->update([
                 'follow_up_date' => $data['follow_up_date'],
                 'follow_up_counter' => true,
-                'manual_follow_up_count' => $record->manual_follow_up_count + 1,
             ]);
 
             // Create description for the follow-up
@@ -1312,7 +1333,6 @@ class ImplementerActions
             $record->update([
                 'follow_up_date' => now()->format('Y-m-d'), // Today
                 'follow_up_counter' => true, // Stop future follow-ups
-                'manual_follow_up_count' => $record->manual_follow_up_count + 1,
             ]);
 
             Notification::make()

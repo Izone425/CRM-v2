@@ -324,7 +324,6 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                     //         $record->update([
                     //             'follow_up_date' => $data['follow_up_date'],
                     //             'follow_up_counter' => true,
-                    //             'manual_follow_up_count' => $record->manual_follow_up_count + 1,
                     //         ]);
 
                     //         // Create description for the follow-up
