@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Appointment;
 use App\Models\Lead;
+use App\Models\RevenueTarget;
 use App\Models\SalesTarget;
 use App\Models\User;
 use App\Models\YearlyTarget;
@@ -189,8 +190,8 @@ class SalesTargetAnalysis extends Page
         // Get appointment data for New Demo and Webinar Demo
         $appointmentData = $this->getAppointmentData();
 
-        // Get lead data for Actual Sales
-        $salesData = $this->getSalesData();
+        // Get sales data from RevenueTarget table instead of leads
+        $salesData = $this->getRevenueActualSales();
 
         $monthlyStats = [];
 
@@ -207,13 +208,14 @@ class SalesTargetAnalysis extends Page
 
             // Calculate percentage achieved (actual/target * 100)
             $newDemoPercentage = ($monthlyDemoTarget > 0)
-                ? round(($rawNewDemoCount / $monthlyDemoTarget) * 100, 2)
+                ? round(($rawNewDemoCount / $monthlyDemoTarget) * 100)
                 : 0;
 
             $webinarDemoPercentage = ($monthlyDemoTarget > 0)
-                ? round(($rawWebinarDemoCount / $monthlyDemoTarget) * 100, 2)
+                ? round(($rawWebinarDemoCount / $monthlyDemoTarget) * 100)
                 : 0;
 
+            // Get actual sales from the salesData
             $actualSales = $salesData[$monthNumber] ?? 0;
             $salesTarget = $this->salesTargets[$monthNumber] ?? 0;
 
@@ -231,11 +233,35 @@ class SalesTargetAnalysis extends Page
                 'monthly_demo_target' => $monthlyDemoTarget,
                 'actual_sales' => $actualSales,
                 'sales_target' => $salesTarget,
-                'difference' => $difference,
+                'raw_sales_target' => $salesTarget,
+                'raw_difference' => $difference,
             ];
         }
 
         return $monthlyStats;
+    }
+
+    protected function getRevenueActualSales(): array
+    {
+        // Initialize result array with zeros for each month
+        $salesData = array_fill(1, 12, 0);
+
+        // Get all revenue targets for the selected year
+        $monthlyRevenues = RevenueTarget::where('year', $this->selectedYear)
+            ->select(
+                'month',
+                DB::raw('SUM(target_amount) as total_amount')
+            )
+            ->groupBy('month')
+            ->get();
+
+        // Process revenue data
+        foreach ($monthlyRevenues as $revenue) {
+            $month = (int) $revenue->month;
+            $salesData[$month] = (float) $revenue->total_amount;
+        }
+
+        return $salesData;
     }
 
     protected function getAppointmentData(): array

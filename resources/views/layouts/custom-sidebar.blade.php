@@ -915,7 +915,7 @@
                                 </a>
                             @endif
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.revenue-table') }}" class="submenu-item">
                                     <span class="module-font">Revenue</span>
                                 </a>
                             @endif

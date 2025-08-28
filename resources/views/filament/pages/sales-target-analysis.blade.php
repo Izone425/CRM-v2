@@ -90,7 +90,7 @@
         }
 
         .select-control {
-            width: 100%;
+            width: 90%;
             padding: 0.5rem;
             border: 1px solid #d1d5db;
             border-radius: 0.375rem;
@@ -156,27 +156,28 @@
         <div class="header-actions">
             <h2 class="text-xl font-bold text-gray-800">Sales Target Analysis</h2>
 
-            <div>
-                @if($editMode)
-                    <button type="button" class="save-button" wire:click="saveTargets">
-                        <i class="mr-1 fa fa-check"></i> Save Targets
-                    </button>
-                @else
-                    <button type="button" class="edit-button" wire:click="toggleEditMode">
-                        <i class="mr-1 fa fa-pencil"></i> Edit Targets
-                    </button>
-                @endif
-            </div>
-        </div>
+            <div class="flex items-center justify-between gap-4">
+                <div class="analysis-filters">
+                    <div class="flex gap-4" style="margin-top:20px;">
+                        <select id="selectedYear" wire:model.live="selectedYear" class="select-control">
+                            @foreach($years as $year => $label)
+                                <option value="{{ $year }}">{{ $label }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
 
-        <div class="analysis-filters">
-            <div class="flex items-center justify-between gap-4 mb-4">
-                <label for="selectedYear" class="form-label">Year</label>
-                <select id="selectedYear" wire:model.live="selectedYear" class="select-control">
-                    @foreach($years as $year => $label)
-                        <option value="{{ $year }}">{{ $label }}&nbsp;&nbsp;&nbsp;&nbsp;</option>
-                    @endforeach
-                </select>
+                <div class="ml-4">
+                    @if($editMode)
+                        <button type="button" class="save-button" wire:click="saveTargets">
+                            <i class="mr-1 fa fa-check"></i> Save Targets
+                        </button>
+                    @else
+                        <button type="button" class="edit-button" wire:click="toggleEditMode">
+                            <i class="mr-1 fa fa-pencil"></i> Edit Targets
+                        </button>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -185,38 +186,36 @@
                 <thead>
                     <tr>
                         <th>Month</th>
-                        <th>Weeks</th>
-                        <th>New Demo</th>
-                        <th>Webinar Demo</th>
-                        <th>Actual Sales</th>
-                        <th>Sales Target</th>
-                        <th>Difference</th>
+                        <th style="text-align: center;">New Demo</th>
+                        <th style="text-align: center;">Webinar Demo</th>
+                        <th style="text-align: right;">Actual Sales</th>
+                        <th style="text-align: right;">Sales Target</th>
+                        <th style="text-align: right;">Difference</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($monthlyStats as $monthNumber => $stats)
                         <tr>
                             <td><strong>{{ $stats['month_name'] }}</strong></td>
-                            <td>{{ $stats['weeks'] }}</td>
-                            <td>{{ $stats['new_demo_percentage'] }}%</td>
-                            <td>{{ $stats['webinar_demo_percentage'] }}%</td>
-                            <td>{{ $stats['actual_sales'] }}</td>
-                            <td>
+                            <td class="text-center">{{ $stats['new_demo_percentage'] }}%</td>
+                            <td class="text-center">{{ $stats['webinar_demo_percentage'] }}%</td>
+                            <td class="text-right">{{ number_format($stats['actual_sales'], 2) }}</td>
+                            <td class="text-right">
                                 @if($editMode)
                                     <input
                                         type="number"
                                         min="0"
-                                        class="target-input"
+                                        class="text-right target-input"
                                         wire:model="salesTargets.{{ $monthNumber }}"
                                         wire:change="updateSalesTarget({{ $monthNumber }}, $event.target.value)"
                                     >
                                 @else
-                                    {{ $salesTargets[$monthNumber] ?? 0 }}
+                                    {{ number_format($salesTargets[$monthNumber] ?? 0, 2) }}
                                 @endif
                             </td>
-                            <td>
-                                <span class="{{ $stats['difference'] < 0 ? 'negative-diff' : 'positive-diff' }}">
-                                    {{ $stats['difference'] }}
+                            <td class="text-right">
+                                <span class="{{ ($stats['raw_difference'] ?? 0) < 0 ? 'negative-diff' : 'positive-diff' }}">
+                                    {{ number_format($stats['raw_difference'] ?? 0, 2) }}
                                 </span>
                             </td>
                         </tr>
@@ -225,25 +224,24 @@
                 <tfoot>
                     <tr>
                         <td><strong>Total</strong></td>
-                        <td></td>
-                        <td>
+                        <td class="text-center">
                             <strong>{{ array_sum(array_column($monthlyStats, 'new_demo_count')) }}</strong>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <strong>{{ array_sum(array_column($monthlyStats, 'webinar_demo_count')) }}</strong>
                         </td>
-                        <td>
-                            <strong>{{ array_sum(array_column($monthlyStats, 'actual_sales')) }}</strong>
+                        <td class="text-right">
+                            <strong>{{ number_format(array_sum(array_column($monthlyStats, 'actual_sales')), 2) }}</strong>
                         </td>
-                        <td>
-                            <strong>{{ array_sum($salesTargets) }}</strong>
+                        <td class="text-right">
+                            <strong>{{ number_format(array_sum($salesTargets), 2) }}</strong>
                         </td>
-                        <td>
+                        <td class="text-right">
                             @php
                                 $totalDifference = array_sum(array_column($monthlyStats, 'actual_sales')) - array_sum($salesTargets);
                             @endphp
                             <span class="{{ $totalDifference < 0 ? 'negative-diff' : 'positive-diff' }}">
-                                <strong>{{ $totalDifference }}</strong>
+                                <strong>{{ number_format($totalDifference, 2) }}</strong>
                             </span>
                         </td>
                     </tr>
