@@ -595,7 +595,7 @@
                 :class="{'selected': selectedGroup === 'follow-up'}"
                 @click="setSelectedGroup('follow-up')">
                 <div class="group-info">
-                    <div class="group-title">Project Follow Up</div>
+                    <div class="group-title">Follow Up Reminder</div>
                 </div>
                 <div class="group-count">{{ $followUpTotal }}</div>
             </div>
@@ -605,7 +605,7 @@
                 :class="{'selected': selectedGroup === 'no-respond'}"
                 @click="setSelectedGroup('no-respond')">
                 <div class="group-info">
-                    <div class="group-title">Project No Respond</div>
+                    <div class="group-title">Follow Up Count</div>
                 </div>
                 <div class="group-count">{{ $noRespondProjects }}</div>
             </div>

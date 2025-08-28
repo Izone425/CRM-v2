@@ -90,7 +90,7 @@
                     <span class="font-semibold">Software Handover Form:</span>
                     @if($record->handover_pdf)
                         <a href="{{ asset('storage/' . $record->handover_pdf) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
-                    @elseif($record->status !== 'Draft')
+                    @elseif($record->status !== 'Draft' && $record->handover_pdf)
                         <a href="{{ route('software-handover.pdf', $record->id) }}" target="_blank" style="color: #2563EB; text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Click Here</a>
                     @else
                         <span style="color: #6B7280;">Click Here</span>

@@ -124,8 +124,8 @@ class SoftwareHandoverExportController extends Controller
             $formattedAddress1 = $address1;
             $formattedAddress2 = $address2;
             $formattedAddress3 = $city;
-            $formattedAddress4 = $state;
-            $salesAgent = User::find($lead->salesperson)?->name ?? '';
+            $formattedAddress4 = strtoupper($state);
+            $salesAgent = strtoupper(User::find($lead->salesperson)?->name ?? '');
 
             // Create the parent company row
             $parentDataRow = [
@@ -187,12 +187,12 @@ class SoftwareHandoverExportController extends Controller
                         $subsidiary->company_address1 ?? $formattedAddress1,  // Address1
                         $subsidiary->company_address2 ?? $formattedAddress2,  // Address2
                         $subsidiary->city ?? $formattedAddress3,      // Address3 (City)
-                        $subsidiary->state ?? $formattedAddress4,     // Address4 (State)
+                        $subsidiary->state ? strtoupper($subsidiary->state) : $formattedAddress4,     // Address4 (State)
                         $subsidiary->postcode ?? $postcode,           // PostCode
                         $subsidiary->company_address1 ?? $formattedAddress1,  // DeliverAddr1
                         $subsidiary->company_address2 ?? $formattedAddress2,  // DeliverAddr2
                         $subsidiary->city ?? $formattedAddress3,      // DeliverAddr3
-                        $subsidiary->state ?? $formattedAddress4,     // DeliverAddr4
+                        $subsidiary->state ? strtoupper($subsidiary->state) : $formattedAddress4,     // DeliverAddr4
                         $subsidiary->postcode ?? $postcode,           // DeliverPostCode
                         $subsidiary->name ?? $contactPerson, // Attention
                         $this->cleanPhoneNumber($subsidiary->contact_number ?? $phone), // Phone1

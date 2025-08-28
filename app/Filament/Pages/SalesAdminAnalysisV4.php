@@ -135,8 +135,7 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
 
                 TextColumn::make('staff_name')
                     ->label('Sales Admin')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
 
                 TextColumn::make('started_at')
                     ->label('Date')
@@ -183,6 +182,7 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
 
                 TextColumn::make('lead_id')
                     ->label('Lead')
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         if (!$state) {
                             return '—';

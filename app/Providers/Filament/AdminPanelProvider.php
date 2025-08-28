@@ -48,6 +48,7 @@ use App\Filament\Pages\SalespersonCalendarV1;
 use App\Filament\Pages\SalespersonCalendarV2;
 use App\Filament\Pages\SalespersonLeadSequence;
 use App\Filament\Pages\SalesPersonSurveyRequest;
+use App\Filament\Pages\SalesTargetAnalysis;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\SoftwareHandoverAnalysisV2;
@@ -268,6 +269,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesPersonSurveyRequest::class,
                 ProjectPriority::class,
                 SalesAdminAnalysisV4::class,
+                SalesTargetAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -156,25 +156,34 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                     ->schema([
                                         Select::make('lead_id')
                                             ->label('Company Name')
-                                                ->options(function () {
-                                                    $query = Lead::query();
+                                            ->options(function () {
+                                                $query = Lead::query();
 
-                                                    // Show all leads for admin users (role_id 3), otherwise filter by salesperson
-                                                    if (auth()->user()->role_id === 3) {
-                                                        // Admin can see all leads with company details
-                                                        $query->whereHas('companyDetail');
-                                                    } else {
-                                                        // Regular users only see their own leads
-                                                        $query->where('salesperson', auth()->id())
-                                                            ->whereHas('companyDetail');
-                                                    }
+                                                // Exclude leads with unwanted statuses
+                                                $excludedStatuses = ['Lost', 'On Hold', 'No Response', 'Junk'];
+                                                $query->whereNotIn('lead_status', $excludedStatuses);
 
-                                                    return $query->get()
-                                                        ->mapWithKeys(function ($lead) {
-                                                            $companyName = $lead->companyDetail?->company_name ?? "Lead #{$lead->id}";
-                                                            return [$lead->id => $companyName];
-                                                        });
-                                                })
+                                                // Show all leads for admin users (role_id 3), otherwise filter by salesperson
+                                                if (auth()->user()->role_id === 3) {
+                                                    // Admin can see all leads with company details
+                                                    $query->whereHas('companyDetail');
+                                                } else {
+                                                    // Regular users only see their own leads
+                                                    $query->where('salesperson', auth()->id())
+                                                        ->whereHas('companyDetail');
+                                                }
+
+                                                // Order by lead ID in descending order
+                                                $query->orderBy('id', 'desc');
+
+                                                return $query->get()
+                                                    ->mapWithKeys(function ($lead) {
+                                                        $companyName = $lead->companyDetail?->company_name ?? "Unknown Company";
+                                                        // Format as "LEAD ID 12001 | COMPANY NAME"
+                                                        $displayText = 'ID ' . $lead->id . ' | ' . $companyName;
+                                                        return [$lead->id => $displayText];
+                                                    });
+                                            })
                                             ->searchable()
                                             ->required()
                                             ->reactive()
@@ -191,7 +200,8 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                         }
 
                                                         $set('site_survey_address', $address);
-                                                        $set('company_name', $lead->companyDetail->company_name ?? "Lead #{$lead->id}");
+                                                        // Use the formatted company name with lead ID for consistency
+                                                        $set('company_name', 'LEAD ID ' . $lead->id . ' | ' . ($lead->companyDetail->company_name ?? "Unknown Company"));
                                                         $set('pic_name', $lead->pic_name ?? $lead->name ?? '');
                                                         $set('pic_phone', $lead->pic_phone ?? $lead->phone ?? '');
                                                     }
