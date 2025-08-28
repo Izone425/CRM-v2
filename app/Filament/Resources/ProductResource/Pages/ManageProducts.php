@@ -40,6 +40,18 @@ class ManageProducts extends ManageRecords
             'other' => Tab::make('other')
                         ->label('Other')
                         ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','other')),
+            'free_device' => Tab::make('free_device')
+                        ->label('Free Device')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','free_device')),
+            'installation' => Tab::make('installation')
+                        ->label('Installation')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','installation')),
+            'door_access_package' => Tab::make('door_access_package')
+                        ->label('Door Access Package')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','door_access_package')),
+            'door_access_accesories' => Tab::make('door_access_accesories')
+                        ->label('Door Access Accesories')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','door_access_accesories')),
         ];
     }
 }

@@ -238,11 +238,16 @@
                 <div class="card-label">Total Calls</div>
             </div>
 
-            <div class="summary-card card-outgoing" wire:click="openStaffStatsSlideOver('outgoing')">
+            <div class="summary-card card-outgoing" wire:click="openStaffStatsSlideOver('completed')">
                 <div class="card-value">
                     @php
-                        // Reuse the extensions from above
-                        $outgoingCount = \App\Models\CallLog::query()
+                        // Get sales & admin staff extensions
+                        $salesAdminExtensions = \App\Models\PhoneExtension::where('is_support_staff', false)
+                            ->where('is_active', true)
+                            ->pluck('extension')
+                            ->toArray();
+
+                        $completedCount = \App\Models\CallLog::query()
                             ->where(function ($query) use ($salesAdminExtensions) {
                                 $query->whereIn('caller_number', $salesAdminExtensions)
                                     ->orWhereIn('receiver_number', $salesAdminExtensions);
@@ -252,19 +257,20 @@
                                 $query->where('call_duration', '>=', 5)
                                     ->orWhereNull('call_duration');
                             })
-                            ->where('call_type', 'outgoing')
+                            ->where('task_status', 'Completed')
                             ->count();
                     @endphp
-                    {{ $outgoingCount }}
+                    {{ $completedCount }}
                 </div>
-                <div class="card-label">Outgoing Calls</div>
+                <div class="card-label">Completed Tasks</div>
             </div>
 
-            <div class="summary-card card-incoming" wire:click="openStaffStatsSlideOver('incoming')">
+            <!-- Replace the incoming calls card with pending tasks card -->
+            <div class="summary-card card-incoming" wire:click="openStaffStatsSlideOver('pending')">
                 <div class="card-value">
                     @php
                         // Reuse the extensions from above
-                        $incomingCount = \App\Models\CallLog::query()
+                        $pendingCount = \App\Models\CallLog::query()
                             ->where(function ($query) use ($salesAdminExtensions) {
                                 $query->whereIn('caller_number', $salesAdminExtensions)
                                     ->orWhereIn('receiver_number', $salesAdminExtensions);
@@ -274,12 +280,12 @@
                                 $query->where('call_duration', '>=', 5)
                                     ->orWhereNull('call_duration');
                             })
-                            ->where('call_type', 'incoming')
+                            ->where('task_status', 'Pending')
                             ->count();
                     @endphp
-                    {{ $incomingCount }}
+                    {{ $pendingCount }}
                 </div>
-                <div class="card-label">Incoming Calls</div>
+                <div class="card-label">Pending Tasks</div>
             </div>
 
             <div class="summary-card card-time" wire:click="openStaffStatsSlideOver('duration')">
@@ -344,10 +350,10 @@
                                 <!-- Show the right number based on type -->
                                 @if($type === 'duration')
                                     <div class="staff-number staff-number-time">{{ $staff['total_time'] }}</div>
-                                @elseif($type === 'outgoing')
-                                    <div class="group-badge">{{ $staff['outgoing_calls'] }}</div>
-                                @elseif($type === 'incoming')
-                                    <div class="group-badge">{{ $staff['incoming_calls'] }}</div>
+                                @elseif($type === 'completed')
+                                    <div class="group-badge">{{ $staff['completed_tasks'] }}</div>
+                                @elseif($type === 'pending')
+                                    <div class="group-badge">{{ $staff['pending_tasks'] }}</div>
                                 @else
                                     <div class="group-badge">{{ $staff['total_calls'] }}</div>
                                 @endif

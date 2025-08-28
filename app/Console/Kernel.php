@@ -49,6 +49,11 @@ class Kernel extends ConsoleKernel
             ->dailyAt('08:00')
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/scheduled-emails.log'));
+
+        $schedule->command('calls:map-to-leads')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/call-mapping.log'));
     }
 
     /**

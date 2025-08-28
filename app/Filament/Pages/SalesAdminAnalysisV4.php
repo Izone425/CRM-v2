@@ -126,6 +126,7 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
 
         return $table
             ->query($this->getSalesAdminCalls())
+            ->defaultPaginationPageOption(50)
             ->columns([
                 TextColumn::make('id')
                     ->label('No')
@@ -407,11 +408,11 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
         $this->staffStats = $this->getStaffStats($type);
 
         switch ($type) {
-            case 'outgoing':
-                $this->slideOverTitle = 'Sales & Admin - Outgoing Calls';
+            case 'completed':
+                $this->slideOverTitle = 'Sales & Admin - Completed Tasks';
                 break;
-            case 'incoming':
-                $this->slideOverTitle = 'Sales & Admin - Incoming Calls';
+            case 'pending':
+                $this->slideOverTitle = 'Sales & Admin - Pending Tasks';
                 break;
             case 'duration':
                 $this->slideOverTitle = 'Sales & Admin - Call Duration';
@@ -472,23 +473,19 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
             $query = $baseQueryBuilder();
 
             // Apply type filter if needed
-            if ($type === 'outgoing') {
-                $query->where('call_type', 'outgoing');
-            } elseif ($type === 'incoming') {
-                $query->where('call_type', 'incoming');
+            if ($type === 'completed') {
+                $query->where('task_status', 'Completed');
+            } elseif ($type === 'pending') {
+                $query->where('task_status', 'Pending');
             }
 
             // Count total calls (unfiltered)
             $totalCalls = $baseQueryBuilder()->count();
 
-            // Create separate query instances for each metric to avoid filter confusion
-            $outgoingCalls = $baseQueryBuilder()->where('call_type', 'outgoing')->count();
-            $incomingCalls = $baseQueryBuilder()->where('call_type', 'incoming')->count();
-            $internalCalls = $baseQueryBuilder()->where('call_type', 'internal')->count();
-
-            // Calculate total call duration (use the filtered query if type is specified)
-            $durationQuery = $type === 'all' ? $baseQueryBuilder() : $query;
-            $totalDuration = $durationQuery->sum('call_duration');
+            // Create separate query instances for each metric
+            $completedTasks = $baseQueryBuilder()->where('task_status', 'Completed')->count();
+            $pendingTasks = $baseQueryBuilder()->where('task_status', 'Pending')->count();
+            $totalDuration = $query->sum('call_duration');
 
             // Format total time
             $hours = floor($totalDuration / 3600);
@@ -496,16 +493,9 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
             $seconds = $totalDuration % 60;
             $totalTime = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
 
-            // Calculate average call duration
-            $countForAvg = $type === 'all' ? $totalCalls : $query->count();
-            $avgDuration = $countForAvg > 0 ? ($totalDuration / $countForAvg) : 0;
-            $avgMinutes = floor($avgDuration / 60);
-            $avgSeconds = floor($avgDuration % 60);
-            $avgTime = sprintf("%02d:%02d", $avgMinutes, $avgSeconds);
-
             // Skip if we have a type filter and there are no matching calls
-            if (($type === 'outgoing' && $outgoingCalls === 0) ||
-                ($type === 'incoming' && $incomingCalls === 0) ||
+            if (($type === 'completed' && $completedTasks === 0) ||
+                ($type === 'pending' && $pendingTasks === 0) ||
                 ($type === 'duration' && $totalDuration === 0)) {
                 continue;
             }
@@ -516,23 +506,21 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
                 'extension' => $staff->extension,
                 'user_id' => $staff->user_id,
                 'total_calls' => $totalCalls,
-                'outgoing_calls' => $outgoingCalls,
-                'incoming_calls' => $incomingCalls,
-                'internal_calls' => $internalCalls,
+                'completed_tasks' => $completedTasks,
+                'pending_tasks' => $pendingTasks,
                 'total_duration' => $totalDuration,
                 'total_time' => $totalTime,
-                'avg_time' => $avgTime,
             ];
         }
 
         // Sort by relevant metric based on type
-        if ($type === 'outgoing') {
+        if ($type === 'completed') {
             usort($stats, function($a, $b) {
-                return $b['outgoing_calls'] <=> $a['outgoing_calls'];
+                return $b['completed_tasks'] <=> $a['completed_tasks'];
             });
-        } elseif ($type === 'incoming') {
+        } elseif ($type === 'pending') {
             usort($stats, function($a, $b) {
-                return $b['incoming_calls'] <=> $a['incoming_calls'];
+                return $b['pending_tasks'] <=> $a['pending_tasks'];
             });
         } elseif ($type === 'duration') {
             usort($stats, function($a, $b) {
