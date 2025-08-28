@@ -15,7 +15,7 @@ class SupportCalendar extends Page
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationLabel = 'Overtime Schedule';
     protected static ?string $navigationGroup = 'Support Information';
-    protected static ?string $title = 'Overtime Calendar';
+    protected static ?string $title = 'Support Calendar';
     protected static ?int $navigationSort = 10;
 
     protected static string $view = 'filament.pages.support-calendar';

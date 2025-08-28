@@ -181,27 +181,4 @@
             </tbody>
         </table>
     </div>
-
-    <!-- Add a legend -->
-    <div class="legend-container">
-        <div class="legend-title">Legend</div>
-        <div class="legend-items">
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #fef08a;"></div>
-                <div class="legend-text">Unassigned</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #d1d5db;"></div>
-                <div class="legend-text">Assigned</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #bbf7d0;"></div>
-                <div class="legend-text">Completed</div>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #d1fae5; border-left: 3px solid #10b981;"></div>
-                <div class="legend-text">Current Month</div>
-            </div>
-        </div>
-    </div>
 </x-filament::page>

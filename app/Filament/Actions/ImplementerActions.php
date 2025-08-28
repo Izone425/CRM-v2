@@ -1058,6 +1058,7 @@ class ImplementerActions
             $record->update([
                 'follow_up_date' => $data['follow_up_date'],
                 'follow_up_counter' => true,
+                'manual_follow_up_count' => $data['manual_follow_up_count'] ?? 0,
             ]);
 
             // Create description for the follow-up

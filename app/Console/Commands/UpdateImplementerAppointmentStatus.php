@@ -21,13 +21,22 @@ class UpdateImplementerAppointmentStatus extends Command
             ->get();
 
         $updatedCount = 0;
+        $cancelledCount = 0;
 
         foreach ($appointments as $appointment) {
-            $appointment->updateQuietly(['status' => 'Done']);
-            $updatedCount++;
+            // Check if this is a "skip_email_teams" type appointment
+            if (!$appointment->required_attendees && !$appointment->event_id && !$appointment->meeting_link) {
+                // Mark these special appointments as Cancelled instead of Done
+                $appointment->updateQuietly(['status' => 'Cancelled']);
+                $cancelledCount++;
+            } else {
+                // Regular appointments get marked as Done
+                $appointment->updateQuietly(['status' => 'Done']);
+                $updatedCount++;
+            }
         }
 
-        info('Finished updating ' . $updatedCount . ' implementer appointments.');
+        info('Finished updating implementer appointments: ' . $updatedCount . ' marked as Done, ' . $cancelledCount . ' marked as Cancelled.');
 
         return 0;
     }

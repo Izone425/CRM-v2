@@ -6,10 +6,18 @@
         $cardStyle = '';
         $isClickable = true;
 
-        if ($sessionDetails['status'] === 'past') {
+        // First check if the session is in the past regardless of status
+        $sessionDate = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate']);
+        $sessionDateTime = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'] . ' ' . $sessionDetails['start_time']);
+        $isPastSession = Carbon\Carbon::now() > $sessionDateTime;
+
+        // Past sessions always get the grey "past" styling regardless of other status
+        if ($isPastSession) {
             $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
             $isClickable = false;
-        } elseif ($sessionDetails['status'] === 'leave') {
+        }
+        // For non-past sessions, apply the appropriate status styling
+        elseif ($sessionDetails['status'] === 'leave') {
             $cardStyle = 'background-color: #E9EBF0;';
             $isClickable = false;
         } elseif ($sessionDetails['status'] === 'holiday') {
@@ -19,24 +27,10 @@
             $cardStyle = 'background-color: #C6FEC3;';
         } elseif ($sessionDetails['status'] === 'implementation_session') {
             $cardStyle = 'background-color: #FEE2E2;';
+        } elseif ($sessionDetails['status'] === 'skip_email_teams') {
+            $cardStyle = 'background-color: #c3e4fe;';
         } elseif ($sessionDetails['status'] === 'implementer_request') {
             $cardStyle = 'background-color: #FEF9C3;';
-        } elseif ($sessionDetails['status'] === 'cancelled') {
-            // For cancelled appointments after 12am, still show grey
-            if (Carbon\Carbon::now()->format('Y-m-d') > Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'])->format('Y-m-d')) {
-                $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
-                $isClickable = false;
-            } else {
-                // For same-day cancellations, check if current time is past the session time
-                $sessionStartTime = Carbon\Carbon::parse($weekDays[$loop->parent->iteration - 1]['carbonDate'] . ' ' . $sessionDetails['start_time']);
-                if (Carbon\Carbon::now() > $sessionStartTime) {
-                    $cardStyle = 'background-color: #C2C2C2; cursor: not-allowed;';
-                    $isClickable = false;
-                } else {
-                    // If it's still in the future, mark as available (green)
-                    $cardStyle = 'background-color: #C6FEC3;';
-                }
-            }
         }
     @endphp
 

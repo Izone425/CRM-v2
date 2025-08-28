@@ -411,12 +411,15 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                     return !empty($emails) ? implode(';', $emails) : null;
                 })
-                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).')
+                ->hidden(fn (callable $get): bool => (bool) $get('skip_email_teams'))
+                ->reactive(),
 
             Checkbox::make('skip_email_teams')
                 ->label('Skip Email & Teams Meeting')
                 ->helperText('Check this to create appointment without sending emails or creating a Teams meeting')
-                ->default(false),
+                ->default(false)
+                ->reactive(),
 
             Textarea::make('remarks')
                 ->label('REMARKS')

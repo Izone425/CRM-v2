@@ -238,7 +238,7 @@
                 <div class="card-label">Total Calls</div>
             </div>
 
-            <div class="summary-card card-outgoing" wire:click="openStaffStatsSlideOver('completed')">
+            <div class="summary-card card-incoming" wire:click="openStaffStatsSlideOver('completed')">
                 <div class="card-value">
                     @php
                         // Get sales & admin staff extensions
@@ -266,7 +266,7 @@
             </div>
 
             <!-- Replace the incoming calls card with pending tasks card -->
-            <div class="summary-card card-incoming" wire:click="openStaffStatsSlideOver('pending')">
+            <div class="summary-card card-outgoing" wire:click="openStaffStatsSlideOver('pending')">
                 <div class="card-value">
                     @php
                         // Reuse the extensions from above

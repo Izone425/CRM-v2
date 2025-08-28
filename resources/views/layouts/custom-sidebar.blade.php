@@ -916,12 +916,7 @@
                             @endif
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
-                                    <span class="module-font">Revenue - By Year</span>
-                                </a>
-                            @endif
-                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
-                                    <span class="module-font">Revenue - By Month</span>
+                                    <span class="module-font">Revenue</span>
                                 </a>
                             @endif
                         </div>
@@ -990,7 +985,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="software-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
+                                    <i class="bi bi-laptop"></i>
                                 </div>
                                 <span class="menu-text">Software Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -998,12 +993,15 @@
 
                             <div class="submenu" id="software-submenu">
                                 <a href="{{ route('filament.admin.resources.software.index') }}" class="submenu-item">
+                                    <i class="bi bi-list-task submenu-icon"></i>
                                     <span class="module-font">Project List</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.project-priority') }}" class="submenu-item">
+                                    <i class="bi bi-flag submenu-icon"></i>
                                     <span class="module-font">Project Priority</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.software.project-analysis') }}" class="submenu-item">
+                                    <i class="bi bi-graph-up-arrow submenu-icon"></i>
                                     <span class="module-font">Project Analysis</span>
                                 </a>
                             </div>
@@ -1013,7 +1011,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="hardware-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
+                                    <i class="bi bi-cpu"></i>
                                 </div>
                                 <span class="menu-text">Hardware Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1021,9 +1019,11 @@
 
                             <div class="submenu" id="hardware-submenu">
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-all') }}" class="submenu-item">
+                                    <i class="bi bi-window-fullscreen submenu-icon"></i>
                                     <span class="module-font">Dashboard - All</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.hardware-dashboard-pending-stock') }}" class="submenu-item">
+                                    <i class="bi bi-box-seam submenu-icon"></i>
                                     <span class="module-font">Dashboard - Pending Stock</span>
                                 </a>
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
@@ -1043,7 +1043,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="repair-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
+                                    <i class="bi bi-wrench"></i>
                                 </div>
                                 <span class="menu-text">Repair Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1051,6 +1051,7 @@
 
                             <div class="submenu" id="repair-submenu">
                                 <a href="{{ route('filament.admin.pages.repair.onsite-repair-list') }}" class="submenu-item">
+                                    <i class="bi bi-tools submenu-icon"></i>
                                     <span class="module-font">OnSite Repair List</span>
                                 </a>
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
@@ -1059,6 +1060,7 @@
                                     </a>
                                 @endif
                                 <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
+                                    <i class="bi bi-calendar-check submenu-icon"></i>
                                     <span class="module-font">Technician Calendar</span>
                                 </a>
                             </div>
@@ -1436,6 +1438,9 @@
                                 </a>
                                 <a href="{{ route('filament.admin.pages.demo-analysis-table-form') }}" class="submenu-item">
                                     <span class="module-font">Demo Analysis</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.sales-target-analysis') }}" class="submenu-item">
+                                    <span class="module-font">Demo Vs Actual Sales Vs Sales Target</span>
                                 </a>
                             </div>
                         </div>
