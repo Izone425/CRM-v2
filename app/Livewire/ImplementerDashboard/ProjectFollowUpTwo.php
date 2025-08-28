@@ -122,11 +122,8 @@ class ProjectFollowUpTwo extends Component implements HasForms, HasTable
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'Draft' => 'Draft',
-                        'New' => 'New',
-                        'Approved' => 'Approved',
-                        'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
+                        'Open' => 'Open',
+                        'Delay' => 'Delay',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
@@ -222,10 +219,8 @@ class ProjectFollowUpTwo extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('pending_days')
-                    ->label('Pending Days')
-                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
-                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
+                TextColumn::make('manual_follow_up_count')
+                    ->label('Follow Up Count'),
 
                 TextColumn::make('status_handover')
                     ->label('Status'),
