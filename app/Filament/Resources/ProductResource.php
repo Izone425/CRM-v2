@@ -62,7 +62,11 @@ class ProductResource extends Resource
                         'software' => 'Software',
                         'hardware' => 'Hardware',
                         'hrdf' => 'HRDF',
-                        'other' => 'Other'
+                        'other' => 'Other',
+                        'free_device' => 'Free Device',
+                        'installation' => 'Installation',
+                        'door_access_package' => 'Door Access Package',
+                        'door_access_accesories' => 'Door Access Accesories',
                     ]),
                 RichEditor::make('description'),
                 TextInput::make('unit_price')

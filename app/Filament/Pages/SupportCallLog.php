@@ -136,6 +136,7 @@ class SupportCallLog extends Page implements HasTable
 
         return $table
             ->query($this->getReceptionCalls())
+            ->defaultPaginationPageOption(50)
             ->columns([
                 TextColumn::make('id')
                     ->label('No')

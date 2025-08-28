@@ -225,39 +225,52 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                     ->required()
                                                     ->seconds(false)
                                                     ->reactive()
-                                                    ->default(function ($record = null) {
-                                                        if ($record) {
-                                                            return $record->start_time;
-                                                        }
-                                                        // Round up to the next 30-minute interval
+                                                    ->default(function () {
+                                                        // Get current time
                                                         $now = Carbon::now();
-                                                        return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+
+                                                        // Define business hours
+                                                        $businessStart = Carbon::today()->setHour(9)->setMinute(0)->setSecond(0);
+                                                        $businessEnd = Carbon::today()->setHour(18)->setMinute(0)->setSecond(0);
+
+                                                        // If before business hours, return 9am
+                                                        if ($now->lt($businessStart)) {
+                                                            return '08:00';
+                                                        }
+
+                                                        // If after business hours, return 8am
+                                                        if ($now->gt($businessEnd)) {
+                                                            return '08:00';
+                                                        }
+
+                                                        // Otherwise round to next 30 min interval within business hours
+                                                        $rounded = $now->copy()->addMinutes(30 - ($now->minute % 30))->setSecond(0);
+
+                                                        // If rounded time is after business hours, return 8am next day
+                                                        if ($rounded->gt($businessEnd)) {
+                                                            return '08:00';
+                                                        }
+
+                                                        return $rounded->format('H:i');
                                                     })
                                                     ->datalist(function (callable $get) {
                                                         $date = $get('date');
                                                         if (!$date) return [];
 
-                                                        $times = [];
-                                                        $startTime = Carbon::parse($date)->hour(8)->minute(0)->second(0); // Start at 8 AM
-                                                        $endTime = Carbon::parse($date)->hour(18)->minute(0)->second(0);  // End at 6 PM
+                                                        // Get current time for reference
+                                                        $currentTime = Carbon::now();
+                                                        $currentTimeString = $currentTime->format('H:i');
 
-                                                        // Block dates in the past
-                                                        $today = Carbon::today();
+                                                        // Generate all possible time slots in business hours (8am-6pm)
+                                                        $allTimes = [];
+
                                                         $selectedDate = Carbon::parse($date);
-                                                        if ($selectedDate->lt($today)) {
-                                                            return $times; // Return empty array for past dates
-                                                        }
 
-                                                        // If today, start from current time (rounded to next 30 minutes)
-                                                        if ($selectedDate->isToday()) {
-                                                            $now = Carbon::now();
-                                                            $startTime = $now->copy()->addMinutes(30 - ($now->minute % 30));
-                                                            if ($startTime->hour < 8) {
-                                                                $startTime = Carbon::today()->hour(8)->minute(0);
-                                                            }
-                                                        }
+                                                        // For any date (including past dates), generate all time slots
+                                                        $startTime = Carbon::createFromTime(8, 0, 0);
+                                                        $endTime = Carbon::createFromTime(18, 0, 0);
 
-                                                        // Get technician's appointments for this date
+                                                        // Fetch all booked appointments for this technician on the selected date
                                                         $bookedAppointments = RepairAppointment::where('technician', $this->defaultTechnician)
                                                             ->whereDate('date', $date)
                                                             ->whereIn('status', ['New'])
@@ -268,7 +281,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                             $slotEnd = $startTime->copy()->addMinutes(30);
                                                             $formattedTime = $slotStart->format('H:i');
 
-                                                            // Check if this time slot is available
+                                                            // Check if slot is already booked
                                                             $isBooked = false;
                                                             foreach ($bookedAppointments as $appointment) {
                                                                 $apptStart = Carbon::parse($appointment->start_time);
@@ -286,18 +299,51 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                             }
 
                                                             if (!$isBooked) {
-                                                                $times[] = $formattedTime;
+                                                                $allTimes[] = $formattedTime;
                                                             }
 
-                                                            $startTime->addMinutes(30); // 30-minute intervals
+                                                            $startTime->addMinutes(30);
                                                         }
 
-                                                        return $times;
+                                                        // Sort times based on proximity to current time
+                                                        usort($allTimes, function($a, $b) use ($currentTimeString) {
+                                                            $aTime = Carbon::createFromFormat('H:i', $a);
+                                                            $bTime = Carbon::createFromFormat('H:i', $b);
+                                                            $currentTime = Carbon::createFromFormat('H:i', $currentTimeString);
+
+                                                            // If current time is after business hours, sort by normal time order
+                                                            if ($currentTime->format('H') >= 18) {
+                                                                return $aTime <=> $bTime;
+                                                            }
+
+                                                            // For times after current time, sort by proximity to current
+                                                            if ($aTime >= $currentTime && $bTime >= $currentTime) {
+                                                                return $aTime <=> $bTime;
+                                                            }
+
+                                                            // For times before current time, sort normally
+                                                            if ($aTime < $currentTime && $bTime < $currentTime) {
+                                                                return $aTime <=> $bTime;
+                                                            }
+
+                                                            // If one is after and one is before current time, the after one comes first
+                                                            return $bTime >= $currentTime ? 1 : -1;
+                                                        });
+
+                                                        return $allTimes;
                                                     })
                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                         if ($state) {
                                                             // Default end time to 1 hour after start time
-                                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                                            $endTime = Carbon::parse($state)->addHour();
+
+                                                            // Cap end time at 6:30pm
+                                                            $maxEndTime = Carbon::createFromTime(18, 30, 0);
+                                                            if ($endTime->gt($maxEndTime)) {
+                                                                $endTime = $maxEndTime;
+                                                            }
+
+                                                            $set('end_time', $endTime->format('H:i'));
                                                         }
                                                     }),
 
@@ -306,29 +352,27 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                     ->required()
                                                     ->seconds(false)
                                                     ->reactive()
-                                                    ->default(function ($record = null, callable $get) {
-                                                        if ($record) {
-                                                            return $record->end_time;
-                                                        }
-                                                        $startTime = $get('start_time');
-                                                        if ($startTime) {
-                                                            return Carbon::parse($startTime)->addHour()->format('H:i');
-                                                        }
-                                                        return null;
+                                                    ->default(function () {
+                                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
+                                                        return $startTime->addHour()->format('H:i');
                                                     })
                                                     ->datalist(function (callable $get) {
                                                         $date = $get('date');
-                                                        $startTime = $get('start_time');
+                                                        $startTimeString = $get('start_time');
 
-                                                        if (!$date || !$startTime) return [];
+                                                        if (!$date || !$startTimeString) return [];
 
                                                         $times = [];
-                                                        $currentTime = Carbon::parse("$date $startTime")->addMinutes(30); // Minimum 30 min appointment
-                                                        $endTime = Carbon::parse($date)->hour(18)->minute(0)->second(0);  // End at 6 PM
+                                                        $startTime = Carbon::parse("$date $startTimeString");
+
+                                                        // End time must be at least 30 minutes after start time
+                                                        $currentTime = $startTime->copy()->addMinutes(30);
+                                                        // End time can't be later than 6:30pm
+                                                        $endTime = Carbon::parse($date)->setHour(18)->setMinute(30)->setSecond(0);
 
                                                         // Don't allow appointments longer than 3 hours
-                                                        $maxEndTime = Carbon::parse("$date $startTime")->addHours(3);
-                                                        if ($maxEndTime < $endTime) {
+                                                        $maxEndTime = $startTime->copy()->addHours(3);
+                                                        if ($maxEndTime->lt($endTime)) {
                                                             $endTime = $maxEndTime;
                                                         }
 
@@ -338,11 +382,9 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                             ->whereIn('status', ['New'])
                                                             ->get(['start_time', 'end_time']);
 
-                                                        $slotStart = Carbon::parse("$date $startTime");
-
                                                         while ($currentTime <= $endTime) {
-                                                            $formattedTime = $currentTime->format('H:i');
-                                                            $slotEnd = Carbon::parse("$date $formattedTime");
+                                                            $slotEnd = $currentTime->copy();
+                                                            $formattedTime = $slotEnd->format('H:i');
 
                                                             // Check if this end time works with the selected start time
                                                             $isBooked = false;
@@ -355,7 +397,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                                                 $apptEndTime = Carbon::parse($date . ' ' . $apptEnd->format('H:i:s'));
 
                                                                 // If our appointment would overlap with an existing one
-                                                                if ($slotStart->lt($apptEndTime) && $slotEnd->gt($apptStartTime)) {
+                                                                if ($startTime->lt($apptEndTime) && $slotEnd->gt($apptStartTime)) {
                                                                     $isBooked = true;
                                                                     break;
                                                                 }

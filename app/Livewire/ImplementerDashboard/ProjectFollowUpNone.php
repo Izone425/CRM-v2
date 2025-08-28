@@ -83,7 +83,10 @@ class ProjectFollowUpNone extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
             ->where('status_handover', '!=', 'InActive')
-            ->where('manual_follow_up_count', 0)
+            ->where(function($query) {
+                $query->where('manual_follow_up_count', 0)
+                    ->orWhereNull('manual_follow_up_count');
+            })
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
