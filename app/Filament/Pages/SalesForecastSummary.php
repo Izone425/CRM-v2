@@ -8,9 +8,10 @@ class SalesForecastSummary extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static string $view = 'filament.pages.sales-forecast-summary';
-    protected static ?string $navigationLabel = 'Sales Forecast - Summary';
+    protected static ?string $navigationLabel = 'Forecast Analysis';
     protected static ?string $navigationGroup = 'Sales Forecast';
     protected static ?string $title = '';
+    protected static ?string $slug = 'forecast-analysis';
     protected static ?int $navigationSort = 10;
 
     public static function canAccess(): bool
@@ -21,6 +22,6 @@ class SalesForecastSummary extends Page
             return false;
         }
 
-        return $user->hasRouteAccess('filament.admin.pages.sales-forecast-summary');
+        return $user->hasRouteAccess('filament.admin.pages.forecast-analysis');
     }
 }

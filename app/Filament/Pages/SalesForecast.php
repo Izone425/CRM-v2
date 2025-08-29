@@ -131,7 +131,7 @@ class SalesForecast extends Page
                   ->whereYear('invoice_date', Carbon::parse($this->selectedMonth)->year);
         }
 
-        $this->invoiceTotal = $query->sum('amount'); // Sum the 'amount' column
+        $this->invoiceTotal = $query->sum('invoice_amount'); // Sum the 'amount' column
     }
 
     public function calculateProformaInvoice()

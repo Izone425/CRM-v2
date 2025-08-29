@@ -910,12 +910,12 @@
                                 <span class="module-font">Forecast</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                <a href="{{ route('filament.admin.pages.sales-forecast-summary') }}" class="submenu-item">
-                                    <span class="module-font">Forecast - Summary</span>
+                                <a href="{{ route('filament.admin.pages.forecast-analysis') }}" class="submenu-item">
+                                    <span class="module-font">Forecast Analysis</span>
                                 </a>
                             @endif
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                <a href="{{ route('filament.admin.pages.revenue-table') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.revenue') }}" class="submenu-item">
                                     <span class="module-font">Revenue</span>
                                 </a>
                             @endif
@@ -1439,8 +1439,8 @@
                                 <a href="{{ route('filament.admin.pages.demo-analysis-table-form') }}" class="submenu-item">
                                     <span class="module-font">Demo Analysis</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.sales-target-analysis') }}" class="submenu-item">
-                                    <span class="module-font">Demo Vs Actual Sales Vs Sales Target</span>
+                                <a href="{{ route('filament.admin.pages.revenue-analysis') }}" class="submenu-item">
+                                    <span class="module-font">Revenue Analysis</span>
                                 </a>
                             </div>
                         </div>

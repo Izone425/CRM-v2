@@ -408,7 +408,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
         $month = $month ?? $this->selectedMonth;
         $year = $year ?? $this->selectedYear;
 
-        // First check if there's a manual invoice amount (for any salesperson)
+        // Check if there's a manual invoice amount in SalesTarget table
         $manualInvoice = \App\Models\SalesTarget::where('salesperson', $salesperson->id)
             ->where('month', $month)
             ->where('year', $year)
@@ -418,19 +418,19 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             return $manualInvoice;
         }
 
-        // If no manual amount, check actual invoices based on salesperson
+        // If no manual amount, get actual invoices from the invoices table
         if ($salesperson->id === $this->adminRenewalId) {
-            // For Admin Renewal
+            // For Admin Renewal (null salesperson or special handling)
             return Invoice::whereNull('salesperson')
                 ->whereYear('invoice_date', $year)
                 ->whereMonth('invoice_date', $month)
-                ->sum('amount');
+                ->sum('invoice_amount');
         } else {
             // For regular salespeople
             return Invoice::where('salesperson', $salesperson->id)
                 ->whereYear('invoice_date', $year)
                 ->whereMonth('invoice_date', $month)
-                ->sum('amount');
+                ->sum('invoice_amount');
         }
     }
 

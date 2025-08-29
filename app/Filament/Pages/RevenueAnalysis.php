@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Appointment;
+use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\RevenueTarget;
 use App\Models\SalesTarget;
@@ -14,13 +15,13 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 
-class SalesTargetAnalysis extends Page
+class RevenueAnalysis extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'Sales Target Analysis';
+    protected static ?string $navigationLabel = 'Revenue Analysis';
     protected static ?string $title = '';
     protected static ?int $navigationSort = 16;
-    protected static string $view = 'filament.pages.sales-target-analysis';
+    protected static string $view = 'filament.pages.revenue-analysis';
 
     public int $selectedYear;
     public bool $editMode = false;
@@ -243,22 +244,25 @@ class SalesTargetAnalysis extends Page
 
     protected function getRevenueActualSales(): array
     {
+        $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
+        $endOfYear = Carbon::createFromDate($this->selectedYear, 12, 31)->endOfYear();
+
         // Initialize result array with zeros for each month
         $salesData = array_fill(1, 12, 0);
 
-        // Get all revenue targets for the selected year
-        $monthlyRevenues = RevenueTarget::where('year', $this->selectedYear)
+        // Get all invoices for the selected year
+        $invoices = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
             ->select(
-                'month',
-                DB::raw('SUM(target_amount) as total_amount')
+                DB::raw('MONTH(invoice_date) as month'),
+                DB::raw('SUM(invoice_amount) as total_amount')
             )
             ->groupBy('month')
             ->get();
 
-        // Process revenue data
-        foreach ($monthlyRevenues as $revenue) {
-            $month = (int) $revenue->month;
-            $salesData[$month] = (float) $revenue->total_amount;
+        // Process invoice data
+        foreach ($invoices as $invoice) {
+            $month = (int) $invoice->month;
+            $salesData[$month] = (float) $invoice->total_amount;
         }
 
         return $salesData;

@@ -35,6 +35,7 @@ use App\Filament\Pages\ProjectCategoryOpen;
 use App\Filament\Pages\ProjectPriority;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
+use App\Filament\Pages\RevenueAnalysis;
 use App\Filament\Pages\RevenueTable;
 use App\Filament\Pages\SalesAdminAnalysisV1;
 use App\Filament\Pages\SalesAdminAnalysisV2;
@@ -270,7 +271,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesPersonSurveyRequest::class,
                 ProjectPriority::class,
                 SalesAdminAnalysisV4::class,
-                SalesTargetAnalysis::class,
+                RevenueAnalysis::class,
                 RevenueTable::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
