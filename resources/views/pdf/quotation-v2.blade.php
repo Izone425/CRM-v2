@@ -169,20 +169,16 @@
                     $description .= '(<u><strong>'. $item->quotation->currency . ' ' .$item->unit_price . ' * ' . $item->quantity . ' H/C * ' . $item->subscription_period . ' MONTHS</strong></u>)<br /><br />';
                 }
 
-                // Process the description to ensure bullet points display properly
                 $itemDescription = $item->description;
 
-                // If the description contains <li> tags but no <ul> tags, wrap it in <ul>
                 if (!str_contains($itemDescription, '<ul>') && str_contains($itemDescription, '<li>')) {
-                    $itemDescription = '<ul style="list-style-type: disc; padding-left: 20px; margin-left: 0;">' . $itemDescription . '</ul>';
+                    $itemDescription = '<ul style="list-style-type: disc; padding-left: 10px; margin-left: 0; text-align: left;">' . $itemDescription . '</ul>';
                 }
-                // If it already has <ul> tags, add styling to them
                 else if (str_contains($itemDescription, '<ul>')) {
-                    $itemDescription = str_replace('<ul>', '<ul style="list-style-type: disc; padding-left: 20px; margin-left: 0;">', $itemDescription);
+                    $itemDescription = str_replace('<ul>', '<ul style="list-style-type: disc; padding-left: 10px; margin-left: 0; text-align: left;">', $itemDescription);
                 }
 
-                // Make sure <li> tags have proper styling
-                $itemDescription = str_replace('<li>', '<li style="display: list-item; margin-bottom: 3px;">', $itemDescription);
+                $itemDescription = str_replace('<li>', '<li style="display: list-item; margin-bottom: 3px; text-align: left;">', $itemDescription);
 
                 $description .= $itemDescription;
             @endphp

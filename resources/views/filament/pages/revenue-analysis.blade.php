@@ -154,7 +154,7 @@
 
     <div class="analysis-container">
         <div class="header-actions">
-            <h2 class="text-xl font-bold text-gray-800">Sales Target Analysis</h2>
+            <h2 class="text-xl font-bold text-gray-800">Revenue Analysis</h2>
 
             <div class="flex items-center justify-between gap-4">
                 <div class="analysis-filters">

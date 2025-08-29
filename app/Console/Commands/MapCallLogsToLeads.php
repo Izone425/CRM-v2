@@ -30,7 +30,27 @@ class MapCallLogsToLeads extends Command
     {
         $this->info('Starting call mapping process...');
 
-        // Get pending call logs without linked leads
+        // First, automatically complete anonymous incoming calls
+        $anonymousCalls = CallLog::where('task_status', 'Pending')
+            ->whereNull('lead_id')
+            ->where('call_type', 'incoming')
+            ->where(function($query) {
+                $query->where('caller_number', 'Anonymous');
+            })
+            ->get();
+
+        $anonymousCount = $anonymousCalls->count();
+        if ($anonymousCount > 0) {
+            foreach ($anonymousCalls as $call) {
+                $call->update([
+                    'task_status' => 'Completed',
+                ]);
+            }
+            $this->info("Auto-completed {$anonymousCount} anonymous incoming calls");
+            Log::info("Auto-completed {$anonymousCount} anonymous incoming calls");
+        }
+
+        // Get remaining pending call logs without linked leads
         $pendingCalls = CallLog::where('task_status', 'Pending')
             ->whereNull('lead_id')
             ->where('call_status', '!=', 'NO ANSWER')
@@ -79,7 +99,7 @@ class MapCallLogsToLeads extends Command
         }
 
         $this->info("Call mapping completed: {$mappedCount}/{$pendingCalls->count()} calls mapped to leads");
-        Log::info("Call mapping job completed: {$mappedCount}/{$pendingCalls->count()} calls mapped to leads");
+        Log::info("Call mapping job completed: {$mappedCount}/{$pendingCalls->count()} calls mapped to leads, {$anonymousCount} anonymous calls auto-completed");
 
         return Command::SUCCESS;
     }
@@ -89,6 +109,11 @@ class MapCallLogsToLeads extends Command
      */
     private function cleanPhoneNumber($number)
     {
+        // If the number is Anonymous or similar, return as is
+        if (in_array(strtolower($number), ['anonymous', 'unknown', 'private', 'hidden'])) {
+            return $number;
+        }
+
         // Remove non-digit characters
         $cleaned = preg_replace('/[^0-9]/', '', $number);
 
