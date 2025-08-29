@@ -26,6 +26,7 @@ use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\OnsiteRepairList;
 use App\Filament\Pages\OvertimeCalendar;
+use App\Filament\Pages\PolicyManagement;
 use App\Filament\Pages\ProformaInvoices;
 use App\Filament\Pages\ProjectAnalysis;
 use App\Filament\Pages\ProjectCategoryClosed;
@@ -74,9 +75,12 @@ use App\Filament\Resources\HardwarePendingStockResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InstallerResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
+use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadSourceResource;
 use App\Filament\Resources\PhoneExtensionResource;
+use App\Filament\Resources\PolicyCategoryResource;
+use App\Filament\Resources\PolicyResource;
 use App\Filament\Resources\ProductResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
@@ -112,6 +116,7 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
+use App\Models\Policy;
 use App\Models\Role;
 use App\Models\SparePart;
 use Filament\Navigation\NavigationItem;
@@ -221,6 +226,9 @@ class AdminPanelProvider extends PanelProvider
                 DeviceModelResource::class,
                 CallCategoryResource::class,
                 PhoneExtensionResource::class,
+                PolicyResource::class,
+                PolicyCategoryResource::class,
+                InvoiceResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -273,6 +281,7 @@ class AdminPanelProvider extends PanelProvider
                 SalesAdminAnalysisV4::class,
                 RevenueAnalysis::class,
                 RevenueTable::class,
+                PolicyManagement::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -34,14 +34,14 @@ class RevenueTable extends Page
     {
         // Define specific salespeople we want to show
         $this->salespeople = [
-            'MUIM',
-            'YASMIN',
-            'FARHANAH',
-            'JOSHUA',
-            'AZIZ',
-            'BARI',
-            'VINCE',
-            'OTHERS'  // For all other salespeople not in the list
+            'Muim',
+            'Yasmin',
+            'Farhanah',
+            'Joshua',
+            'Aziz',
+            'Bari',
+            'Vince',
+            'Others'  // For all other salespeople not in the list
         ];
     }
 
@@ -59,17 +59,29 @@ class RevenueTable extends Page
         $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
         $endOfYear = Carbon::createFromDate($this->selectedYear, 12, 31)->endOfYear();
 
-        // Define our main salespeople list (without OTHERS)
-        $mainSalespeople = array_slice($this->salespeople, 0, -1);
+        // Convert main salespeople names to uppercase for comparison
+        // Exclude the 'Others' entry which is the last one
+        $mainSalespeople = array_map('strtoupper', array_slice($this->salespeople, 0, -1));
 
         // Get all invoices for the selected year
-        $invoices = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
+        $invoiceRevenue = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
             ->select(
-                'salesperson',
+                DB::raw('UPPER(salesperson) as salesperson'),
                 DB::raw('MONTH(invoice_date) as month'),
                 DB::raw('SUM(invoice_amount) as total_amount')
             )
-            ->groupBy('salesperson', 'month')
+            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
+            ->get();
+
+        // Get all credit notes for the selected year
+        $creditNoteRevenue = DB::table('credit_notes')
+            ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
+            ->select(
+                DB::raw('UPPER(salesperson) as salesperson'),
+                DB::raw('MONTH(credit_note_date) as month'),
+                DB::raw('SUM(amount) as total_amount')
+            )
+            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
             ->get();
 
         // Initialize data structure
@@ -81,22 +93,53 @@ class RevenueTable extends Page
             }
         }
 
-        // Fill in the data from invoices
-        foreach ($invoices as $invoice) {
+        // Add invoice amounts
+        foreach ($invoiceRevenue as $invoice) {
             $month = (int) $invoice->month;
-            $salesperson = strtoupper($invoice->salesperson);
+            $salesperson = $invoice->salesperson;
             $amount = (float) $invoice->total_amount;
 
+            // Check if this is one of our main salespeople
             if (in_array($salesperson, $mainSalespeople)) {
-                $data[$month][$salesperson] += $amount;
+                // Find the original case version from salespeople array
+                $originalCase = $this->findOriginalCase($salesperson);
+                $data[$month][$originalCase] += $amount;
+            } else {
+                // Everyone else goes to "Others"
+                $data[$month]['Others'] += $amount;
             }
-            // All others including renewals go to OTHERS
-            else {
-                $data[$month]['OTHERS'] += $amount;
+        }
+
+        // Subtract credit note amounts
+        foreach ($creditNoteRevenue as $creditNote) {
+            $month = (int) $creditNote->month;
+            $salesperson = $creditNote->salesperson;
+            $amount = (float) $creditNote->total_amount;
+
+            // Check if this is one of our main salespeople
+            if (in_array($salesperson, $mainSalespeople)) {
+                // Find the original case version from salespeople array
+                $originalCase = $this->findOriginalCase($salesperson);
+                $data[$month][$originalCase] -= $amount;
+            } else {
+                // Everyone else goes to "Others"
+                $data[$month]['Others'] -= $amount;
             }
         }
 
         return $data;
+    }
+
+    protected function findOriginalCase(string $uppercaseName): string
+    {
+        foreach ($this->salespeople as $person) {
+            if (strtoupper($person) === $uppercaseName) {
+                return $person;
+            }
+        }
+
+        // Default to Others if no match found
+        return 'Others';
     }
 
     public function updatedSelectedYear()

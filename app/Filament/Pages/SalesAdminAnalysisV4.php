@@ -190,7 +190,14 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
 
                         // Get company name from the lead relationship
                         if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
-                            return "#{$state} - {$record->lead->companyDetail->company_name}";
+                            $companyName = $record->lead->companyDetail->company_name;
+
+                            // Truncate company name to 30 characters if it's longer
+                            if (strlen($companyName) > 30) {
+                                $companyName = substr($companyName, 0, 27) . '...';
+                            }
+
+                            return "#{$state} - {$companyName}";
                         }
 
                         return "Lead #{$state}";
