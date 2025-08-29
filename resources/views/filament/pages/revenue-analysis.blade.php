@@ -51,7 +51,7 @@
         }
 
         .analysis-table tr:hover {
-            background-color: #f9fafb;
+            background-color: #ffdf2d;
         }
 
         .analysis-table tbody tr:last-child td {

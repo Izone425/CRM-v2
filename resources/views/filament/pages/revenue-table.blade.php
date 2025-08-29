@@ -29,17 +29,17 @@
             <table class="w-full border-collapse revenue-table">
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 border border-gray-400">{{ $selectedYear }}</th>
+                        <th class="px-4 py-2 text-left border border-gray-400">{{ $selectedYear }}</th>
                         @foreach($salespeople as $person)
-                            <th class="px-4 py-2 uppercase bg-yellow-200 border border-gray-400">{{ $person }}</th>
+                            <th class="px-4 py-2 bg-yellow-200 border border-gray-400">{{ $person }}</th>
                         @endforeach
-                        <th class="px-4 py-2 text-center bg-yellow-300 border border-gray-400">TOTAL</th>
+                        <th class="px-4 py-2 bg-yellow-300 border border-gray-400">TOTAL</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($revenueData as $monthNum => $data)
                         <tr class="{{ ($isCurrentYear && $monthNum == $currentMonth) ? 'current-month-row' : '' }}">
-                            <td class="px-4 py-2 font-bold border border-gray-400 {{ ($isCurrentYear && $monthNum == $currentMonth) ? 'current-month' : '' }}">
+                            <td class="px-4 py-2 font-bold border border-gray-400 text-left {{ ($isCurrentYear && $monthNum == $currentMonth) ? 'current-month' : '' }}">
                                 {{ $data['month_name'] }}
                                 @if($isCurrentYear && $monthNum == $currentMonth)
                                     <span class="ml-2 current-month-indicator">•</span>
@@ -47,24 +47,24 @@
                             </td>
 
                             @foreach($salespeople as $person)
-                                <td class="px-4 py-2 border border-gray-400 numeric">
+                                <td class="px-4 py-2 border border-gray-400 numeric" style= "width: 146px;">
                                     @if($data['salespeople'][$person] > 0)
-                                        RM {{ number_format($data['salespeople'][$person], 2) }}
+                                        {{ number_format($data['salespeople'][$person], 2) }}
                                     @else
-                                        RM 0.00
+                                        0.00
                                     @endif
                                 </td>
                             @endforeach
 
                             <td class="px-4 py-2 border border-gray-400 numeric total-cell">
-                                RM {{ number_format($data['total'], 2) }}
+                                {{ number_format($data['total'], 2) }}
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td class="px-4 py-2 font-bold border border-gray-400">TOTAL</td>
+                        <td class="px-4 py-2 font-bold text-left border border-gray-400">TOTAL</td>
 
                         @foreach($salespeople as $person)
                             <td class="px-4 py-2 border border-gray-400 numeric footer-total">
@@ -74,7 +74,7 @@
                                         $personTotal += $monthData['salespeople'][$person] ?? 0;
                                     }
                                 @endphp
-                                RM {{ number_format($personTotal, 2) }}
+                                {{ number_format($personTotal, 2) }}
                             </td>
                         @endforeach
 
@@ -85,7 +85,7 @@
                                     $grandTotal += $monthData['total'];
                                 }
                             @endphp
-                            RM {{ number_format($grandTotal, 2) }}
+                            {{ number_format($grandTotal, 2) }}
                         </td>
                     </tr>
                 </tfoot>
@@ -105,13 +105,8 @@
             padding: 8px;
         }
 
-        .revenue-table th:first-child,
-        .revenue-table td:first-child {
-            text-align: left;
-        }
-
         .revenue-table th {
-            background-color: #ffeb3b;
+            background-color: #fff8e1;
         }
 
         .revenue-table tr:nth-child(even) {
@@ -143,7 +138,7 @@
         }
 
         .current-month-row {
-            background-color: #fff8e1 !important;
+            background-color: #ffeb3b !important;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
         }
 

@@ -35,7 +35,8 @@ class MapCallLogsToLeads extends Command
             ->whereNull('lead_id')
             ->where('call_type', 'incoming')
             ->where(function($query) {
-                $query->where('caller_number', 'Anonymous');
+                $query->where('caller_number', 'Anonymous')
+                    ->whereIn('receiver_number', ['306', '343']); // Only consider calls to extensions 306 or 343
             })
             ->get();
 
@@ -57,6 +58,11 @@ class MapCallLogsToLeads extends Command
             ->where(function($query) {
                 $query->where('call_duration', '>=', 5)
                     ->orWhereNull('call_duration');
+            })
+            ->where(function($query) {
+                // Find calls where either caller_number OR receiver_number is 306 or 343
+                $query->whereIn('caller_number', ['306', '343'])
+                    ->orWhereIn('receiver_number', ['306', '343']);
             })
             ->get();
 

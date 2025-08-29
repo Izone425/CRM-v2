@@ -853,7 +853,7 @@
                                 <span class="module-font">Proforma Invoice</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.resources.invoices.index') }}" class="submenu-item">
                                     <span class="module-font">Invoice</span>
                                 </a>
                             @endif
@@ -935,7 +935,7 @@
 
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                         <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                            <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
                                 <div class="menu-icon-wrapper">
                                     <i class="bi bi-dot"></i>
                                 </div>
