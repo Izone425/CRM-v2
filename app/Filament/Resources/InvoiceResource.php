@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 
@@ -71,10 +72,14 @@ class InvoiceResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('invoice_amount')
+                Tables\Columns\TextColumn::make('total_amount')
                     ->label('Local Subtotal')
                     ->money('MYR')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function (Invoice $record): float {
+                        // Calculate the sum for this invoice_no
+                        return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                    }),
 
                 Tables\Columns\BadgeColumn::make('payment_status')
                     ->label('Payment Status')
@@ -86,17 +91,38 @@ class InvoiceResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('invoice_date', 'desc')
+            ->modifyQueryUsing(function (Builder $query) {
+                // Use proper aggregation functions for grouped data
+                return $query->select([
+                    DB::raw('MIN(id) as id'), // Take the smallest id for each group
+                    'salesperson',
+                    'invoice_no',
+                    'invoice_date',
+                    DB::raw('SUM(invoice_amount) as total_invoice_amount')
+                ])
+                ->groupBy('invoice_no', 'salesperson', 'invoice_date')
+                ->orderBy('invoice_date', 'desc');
+            })
             ->filters([
                 SelectFilter::make('salesperson')
                     ->label('Salesperson')
                     ->options(function () {
                         // Get all unique salesperson values from the invoices table
-                        return Invoice::distinct('salesperson')
-                            ->orderBy('salesperson')
-                            ->pluck('salesperson', 'salesperson')
-                            ->toArray();
+                        try {
+                            return Invoice::query()
+                                ->select('salesperson')
+                                ->distinct()
+                                ->whereNotNull('salesperson')
+                                ->where('salesperson', '!=', '')
+                                ->orderBy('salesperson')
+                                ->pluck('salesperson', 'salesperson')
+                                ->toArray();
+                        } catch (\Exception $e) {
+                            // In case of database error, return empty array
+                            return [];
+                        }
                     })
-                    ->visible(fn () => Auth::user()->role_id === 3),
+                    ->visible(fn () => Auth::check() && Auth::user()->role_id === 3),
 
                 SelectFilter::make('year')
                     ->label('Year')

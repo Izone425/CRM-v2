@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
@@ -282,6 +283,7 @@ class AdminPanelProvider extends PanelProvider
                 RevenueAnalysis::class,
                 RevenueTable::class,
                 PolicyManagement::class,
+                AdminRenewalRawData::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
