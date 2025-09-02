@@ -44,13 +44,13 @@ return [
         ],
 
         'frontenddb' => [
-            'driver' => env('DB_CONNECTION_FRONTEND', 'mysql'),
+            'driver' => 'mysql',
             'host' => env('DB_HOST_FRONTEND', '127.0.0.1'),
             'port' => env('DB_PORT_FRONTEND', '3306'),
             'database' => env('DB_DATABASE_FRONTEND', 'forge'),
             'username' => env('DB_USERNAME_FRONTEND', 'forge'),
             'password' => env('DB_PASSWORD_FRONTEND', ''),
-            'unix_socket' => env('DB_SOCKET_FRONTEND', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
