@@ -1201,9 +1201,12 @@
                         </div>
 
                         <div class="submenu" id="admin-renewal-submenu">
-                            <div class="submenu-item">
-                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
-                            </div>
+                            <a href="{{ route('filament.admin.pages.admin-renewal-raw-data') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.admin-renewal-process-data') }}" class="submenu-item">
+                                <span class="module-font">Process Data</span>
+                            </a>
                         </div>
                     </div>
 

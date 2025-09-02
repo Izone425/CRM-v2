@@ -2,7 +2,7 @@
     <div class="p-4 text-gray-500">No products found</div>
 @else
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="w-full divide-y divide-gray-200">
             <thead>
                 <tr class="bg-gray-50">
                     <th class="px-3 py-2">Product</th>
@@ -13,6 +13,7 @@
                     <th class="px-3 py-2">Expiry Date</th>
                     <th class="px-3 py-2">Created By</th>
                     <th class="px-3 py-2">Payer</th>
+                    <th class="px-3 py-2">Created At</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,6 +27,7 @@
                         <td class="px-3 py-2">{{ $product->f_expiry_date ? date('Y-m-d', strtotime($product->f_expiry_date)) : 'N/A' }}</td>
                         <td class="px-3 py-2">{{ $product->Created ?? 'N/A' }}</td>
                         <td class="px-3 py-2">{{ $product->payer ?? 'N/A' }}</td>
+                        <td class="px-3 py-2">{{ $product->f_created_time ? date('Y-m-d', strtotime($product->f_created_time)) : 'N/A' }}</td>
                     </tr>
                 @endforeach
             </tbody>
