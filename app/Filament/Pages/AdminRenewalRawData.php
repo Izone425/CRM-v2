@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
@@ -10,47 +9,52 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\Layout\Panel;
+use Filament\Tables\Columns\Layout\Split;
+use Illuminate\Support\HtmlString;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
 // Create a temporary model for the query
 class RenewalData extends Model
 {
     // Set the connection to the frontenddb database
     protected $connection = 'frontenddb';
-    protected $table = 'company';
-    protected $primaryKey = 'f_id';
+    protected $table = 'crm_expiring_license';
+    protected $primaryKey = 'f_company_id'; // Changed to company ID
     public $timestamps = false;
 
-    // Define the base query for this model
-    public function scopeRenewalQuery($query)
+    // Add custom attribute for storing related products
+    protected $appends = ['related_products'];
+
+    // Add getKey method to ensure we have string keys
+    public function getKey()
     {
-        return $query
-            ->from('company as d')
-            ->join('company_license as a', function ($join) {
-                $join->on('d.f_id', '=', 'a.f_company_id')
-                    ->where('a.f_unit', '>', 0)
-                    ->where('a.f_expiry_date', '>=', '2025-01-01 00:00:00')
-                    ->where('a.f_type', '=', 'PAID');
-            })
-            ->join('ac_invoice as b', 'a.f_invoice_id', '=', 'b.f_id')
-            ->join('product as c', 'a.f_product_id', '=', 'c.f_id')
-            ->join('company as payer', 'b.f_payer_id', '=', 'payer.f_id')
-            ->leftJoin('company_user as created', 'b.f_created_by', '=', 'created.f_id')
-            ->select([
-                'b.f_currency',
-                'b.f_id',
-                'd.f_company_name',
-                'd.f_id as f_company_id',
-                'c.f_name',
-                'b.f_invoice_no',
-                'b.f_total_amount',
-                'a.f_unit',
-                'a.f_start_date',
-                'a.f_expiry_date',
-                'created.f_fullname as Created',
-                'payer.f_company_name as payer',
-                'payer.f_id as payer_id',
-                'b.f_created_time'
-            ]);
+        $key = $this->getAttribute($this->getKeyName());
+        return $key !== null ? (string) $key : 'record-' . uniqid();
+    }
+
+    // Get products for a specific company
+    public static function getProductsForCompany($companyId)
+    {
+        try {
+            $sql = "SELECT
+                f_currency, f_id, f_company_name, f_company_id,
+                f_name, f_invoice_no, f_total_amount, f_unit,
+                f_start_date, f_expiry_date, Created, payer,
+                payer_id, f_created_time
+            FROM crm_expiring_license
+            WHERE f_company_id = ?
+            ORDER BY f_expiry_date ASC";
+
+            return DB::connection('frontenddb')->select($sql, [$companyId]);
+        } catch (\Exception $e) {
+            Log::error("Error fetching products for company $companyId: " . $e->getMessage());
+            return [];
+        }
     }
 }
 
@@ -65,68 +69,86 @@ class AdminRenewalRawData extends Page implements HasTable
 
     protected static string $view = 'filament.pages.admin-renewal-raw-data';
 
+    protected function getTableQuery(): Builder
+    {
+        return RenewalData::query()
+            ->selectRaw("
+                f_company_id,
+                ANY_VALUE(f_company_name) AS f_company_name,
+                ANY_VALUE(f_currency) AS f_currency,
+                SUM(f_total_amount) AS total_amount,
+                SUM(f_unit) AS total_units,
+                COUNT(*) AS total_products,
+                MIN(f_expiry_date) AS earliest_expiry
+            ")
+            ->groupBy('f_company_id')
+            ->orderByRaw('MIN(f_expiry_date) ASC');
+    }
+
+
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                // This returns an Eloquent Builder, which is what Filament expects
-                RenewalData::renewalQuery()
-            )
+            ->query(function () {
+                return $this->getTableQuery();
+            })
             ->columns([
-                TextColumn::make('f_currency')
-                    ->label('Currency')
-                    ->sortable(),
+                Split::make([
+                    Stack::make([
+                        TextColumn::make('f_company_name')
+                            ->label('Company')
+                            ->searchable()
+                            ->weight('bold'),
 
-                TextColumn::make('f_company_name')
-                    ->label('Company Name')
-                    ->searchable()
-                    ->sortable(),
+                        TextColumn::make('total_products')
+                            ->label('Products')
+                            ->formatStateUsing(fn ($state) => "{$state} products")
+                            ->color('gray'),
+                    ]),
 
-                TextColumn::make('f_name')
-                    ->label('Product')
-                    ->searchable()
-                    ->sortable(),
+                    Stack::make([
+                        TextColumn::make('total_amount')
+                            ->label('Amount')
+                            ->numeric(2)
+                            ->alignRight(),
 
-                TextColumn::make('f_invoice_no')
-                    ->label('Invoice No')
-                    ->searchable()
-                    ->sortable(),
+                        TextColumn::make('f_currency')
+                            ->label('Currency')
+                            ->alignRight()
+                            ->color('gray')
+                            ->size('sm'),
+                    ]),
 
-                TextColumn::make('f_total_amount')
-                    ->label('Total Amount')
-                    ->numeric()
-                    ->sortable(),
+                    Stack::make([
+                        TextColumn::make('earliest_expiry')
+                            ->label('Expiry Date')
+                            ->date('Y-m-d'),
 
-                TextColumn::make('f_unit')
-                    ->label('Units')
-                    ->numeric()
-                    ->sortable(),
+                        TextColumn::make('total_units')
+                            ->label('Units')
+                            ->numeric()
+                            ->prefix('Total: ')
+                            ->color('gray')
+                            ->size('sm'),
+                    ]),
+                ])->from('md'),
 
-                TextColumn::make('f_start_date')
-                    ->label('Start Date')
-                    ->date('Y-m-d')
-                    ->sortable(),
-
-                TextColumn::make('f_expiry_date')
-                    ->label('Expiry Date')
-                    ->date('Y-m-d')
-                    ->sortable(),
-
-                TextColumn::make('Created')
-                    ->label('Created By')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('payer')
-                    ->label('Payer')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('f_created_time')
-                    ->label('Created Time')
-                    ->dateTime('Y-m-d H:i:s')
-                    ->sortable(),
+                // Collapsible content - this will be hidden by default but can be expanded
+                Panel::make([
+                    TextColumn::make('f_company_id')
+                        ->label('')
+                        ->formatStateUsing(function ($state, $record) {
+                            return view('components.company-products', [
+                                'products' => RenewalData::getProductsForCompany($state),
+                            ]);
+                        })
+                        ->html()
+                ])->collapsible()->collapsed(),
             ])
-            ->defaultSort('f_expiry_date', 'asc');
+            ->paginated([10, 25, 50])
+            ->paginationPageOptions([10, 25, 50, 100])
+            ->persistFiltersInSession()
+            ->persistSortInSession()
+            ->defaultSort('earliest_expiry', 'asc');
     }
 }

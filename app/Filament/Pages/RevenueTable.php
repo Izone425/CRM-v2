@@ -22,6 +22,8 @@ class RevenueTable extends Page
     public array $revenueValues = [];
     public int $currentMonth;
 
+    public array $excludedSalespeople = ['WIRSON', 'TTCP'];
+
     public function mount(): void
     {
         $this->selectedYear = (int) date('Y');
@@ -99,6 +101,11 @@ class RevenueTable extends Page
             $salesperson = $invoice->salesperson;
             $amount = (float) $invoice->total_amount;
 
+            // Skip excluded salespeople completely
+            if (in_array($salesperson, $this->excludedSalespeople)) {
+                continue;
+            }
+
             // Check if this is one of our main salespeople
             if (in_array($salesperson, $mainSalespeople)) {
                 // Find the original case version from salespeople array
@@ -115,6 +122,11 @@ class RevenueTable extends Page
             $month = (int) $creditNote->month;
             $salesperson = $creditNote->salesperson;
             $amount = (float) $creditNote->total_amount;
+
+            // Skip excluded salespeople completely
+            if (in_array($salesperson, $this->excludedSalespeople)) {
+                continue;
+            }
 
             // Check if this is one of our main salespeople
             if (in_array($salesperson, $mainSalespeople)) {
