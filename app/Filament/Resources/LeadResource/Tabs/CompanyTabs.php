@@ -156,7 +156,10 @@ class CompanyTabs
                                             ->schema([
                                                 TextInput::make('reg_no_new')
                                                     ->label('New Registration No.')
-                                                    ->default($record->companyDetail->reg_no_new ?? '-'),
+                                                    ->default($record->companyDetail->reg_no_new ?? '-')
+                                                    ->minLength(12) // Ensures at least 12 characters
+                                                    ->helperText('Registration number must be at least 12 characters long')
+                                                    ->required()
                                             ]);
 
                                         return $schema;

@@ -2,12 +2,14 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\AdminRenewalProcessData;
 use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
+use App\Filament\Pages\DebtorAgingReport;
 use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoAnalysisTableForm;
 use App\Filament\Pages\DemoRanking;
@@ -120,6 +122,7 @@ use App\Models\ChatMessage;
 use App\Models\Policy;
 use App\Models\Role;
 use App\Models\SparePart;
+use Beta\Microsoft\Graph\Model\Admin;
 use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
@@ -283,7 +286,9 @@ class AdminPanelProvider extends PanelProvider
                 RevenueAnalysis::class,
                 RevenueTable::class,
                 PolicyManagement::class,
+                AdminRenewalProcessData::class,
                 AdminRenewalRawData::class,
+                DebtorAgingReport::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
