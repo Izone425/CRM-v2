@@ -9,7 +9,7 @@
         }
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
         }
         .header {
@@ -43,6 +43,20 @@
         }
         th {
             background-color: #f8f9fa;
+        }
+        .remark-content {
+            white-space: pre-line;
+            line-height: 2.2; /* Increased line height for more spacing */
+        }
+
+        /* Add this new class for remarks formatting */
+        .remark-line {
+            display: block;
+            margin-bottom: 10px; /* Add 10px margin between each line */
+        }
+        a {
+            color: #0d6efd;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -88,8 +102,26 @@
                 </tr>
                 <tr>
                     <th>SalesPerson Remark</th>
-                    <td>{{ $remark }}</td>
+                    <td>
+                        @foreach(explode("\n", $remark) as $line)
+                            @if(trim($line) !== '')
+                                <span class="remark-line">{{ $line }}</span>
+                            @endif
+                        @endforeach
+                    </td>
                 </tr>
+                @if(isset($attachments) && !empty($attachments))
+                <tr>
+                    <th>Attachments</th>
+                    <td>
+                        @foreach($attachments as $attachment)
+                            <div>
+                                <a href="{{ $attachment['url'] }}" target="_blank">{{ $attachment['name'] }}</a>
+                            </div>
+                        @endforeach
+                    </td>
+                </tr>
+                @endif
             </table>
         </div>
 

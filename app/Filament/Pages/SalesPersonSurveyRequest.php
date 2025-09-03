@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\DeviceModel;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -446,14 +447,52 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                             ->dehydrated(true),
                                     ]),
 
+                                TextInput::make('pic_name')
+                                    ->label('PIC Name')
+                                    ->required()
+                                    ->placeholder('Contact Person Name'),
+
+                                // FIELD 2: PIC NO HP - Mandatory
+                                TextInput::make('pic_phone')
+                                    ->label('PIC Phone Number')
+                                    ->tel()
+                                    ->required()
+                                    ->placeholder('Contact Person Phone Number'),
+
+                                // FIELD 3: SITE SURVEY ADDRESS - Mandatory
+                                Textarea::make('site_survey_address')
+                                    ->label('Site Survey Address')
+                                    ->required()
+                                    ->placeholder('Full address for the site survey')
+                                    ->rows(2),
+
+                                Textarea::make('salesperson_remark')
+                                    ->label('SalesPerson Remark (Optional)')
+                                    ->placeholder('Enter any additional information here')
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toUpperCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                    ->rows(2),
+
+                                // FIELD 5: ATTACHMENT - Optional
+                                FileUpload::make('attachment')
+                                    ->label('Attachment (Optional)')
+                                    ->disk('public')
+                                    ->directory('survey-attachments')
+                                    ->visibility('public')
+                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                    ->maxSize(5120), // 5MB
+
                                 Hidden::make('status')
                                     ->default('New'),
                                 Hidden::make('company_name'),
-
-                                Textarea::make('remarks')
-                                    ->label('SalesPerson Remark')
-                                    ->required()
-                                    ->rows(3),
                             ])
                     ])
                     ->action(function (array $data) {
@@ -469,6 +508,26 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                             $data['end_time'] = Carbon::parse($data['end_time'])->format('H:i:s');
                         }
 
+                        // Format remarks with proper line breaks
+                        $formattedRemarks = "PIC NAME: " . $data['pic_name'] . "\n";
+                        $formattedRemarks .= "PIC NO HP: " . $data['pic_phone'] . "\n";
+                        $formattedRemarks .= "SITE SURVEY ADDRESS: " . $data['site_survey_address'] . "\n";
+
+                        // Add salesperson remark if provided (convert to uppercase)
+                        if (!empty($data['salesperson_remark'])) {
+                            $formattedRemarks .= "REMARK: " . strtoupper($data['salesperson_remark']) . "\n";
+                        }
+
+                        // Store formatted remarks in the remarks field
+                        $data['remarks'] = $formattedRemarks;
+
+                        // Remove individual fields that shouldn't be stored directly
+                        unset($data['pic_name']);
+                        unset($data['pic_phone']);
+                        unset($data['site_survey_address']);
+                        unset($data['salesperson_remark']);
+                        // Keep 'attachment' to store it in the database if your model supports it
+
                         // Create the appointment
                         $appointment = RepairAppointment::create($data);
 
@@ -483,7 +542,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                             ->body("Your site survey request has been created with ID: $surveyId")
                             ->success()
                             ->send();
-                    }),
+                    })
             ]);
     }
 
@@ -503,6 +562,21 @@ class SalesPersonSurveyRequest extends Page implements HasTable
             ? implode(', ', $appointment->device_model)
             : $appointment->device_model;
 
+        // Process attachments
+        $attachments = [];
+        if (!empty($appointment->attachment)) {
+            $files = is_array($appointment->attachment) ? $appointment->attachment : [$appointment->attachment];
+
+            foreach ($files as $file) {
+                $fileUrl = asset('storage/' . $file);
+                $fileName = basename($file);
+                $attachments[] = [
+                    'name' => $fileName,
+                    'url' => $fileUrl
+                ];
+            }
+        }
+
         // Prepare email data
         $emailData = [
             'surveyId' => $surveyId,
@@ -513,6 +587,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
             'date' => $surveyDate,
             'timeRange' => "$startTime - $endTime",
             'remark' => $appointment->remarks,
+            'attachments' => $attachments,
         ];
 
         // Recipients

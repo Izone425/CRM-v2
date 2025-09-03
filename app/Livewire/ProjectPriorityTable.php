@@ -69,7 +69,7 @@ class ProjectPriorityTable extends Component implements HasForms, HasTable
             ->query($this->getFilteredProjectsQuery())
             ->defaultSort('project_priority')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(10)
+            ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50, 100, 'all'])
             ->filters([
                 SelectFilter::make('project_priority')
