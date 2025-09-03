@@ -390,6 +390,47 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                             fn(SoftwareHandover $record): bool =>
                             $record->status !== 'Approved' || auth()->user()->role_id === 2
                         ),
+                    Action::make('view_license_details')
+                        ->label('View License Details')
+                        ->icon('heroicon-o-document-text')
+                        ->color('info')
+                        ->modalHeading(fn(SoftwareHandover $record) => "License Details for {$record->company_name}")
+                        ->modalWidth('xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->modalContent(function (SoftwareHandover $record) {
+                            // Calculate dates based on company's license data
+                            $kickOffDate = $record->kick_off_meeting ?? now();
+                            $bufferMonths = 1; // Default buffer
+
+                            if ($record->license_certification_id) {
+                                $licenseCertificate = \App\Models\LicenseCertificate::find($record->license_certification_id);
+
+                                if ($licenseCertificate) {
+                                    $kickOffDate = $licenseCertificate->kick_off_date;
+                                    $bufferStart = $licenseCertificate->buffer_license_start;
+                                    $bufferEnd = $licenseCertificate->buffer_license_end;
+                                    $paidStart = $licenseCertificate->paid_license_start;
+                                    $paidEnd = $licenseCertificate->paid_license_end;
+                                    $nextRenewal = $licenseCertificate->next_renewal_date;
+                                    $yearPurchase = $licenseCertificate->license_years ?? 1;
+
+                                    return view('components.license-details', [
+                                        'company' => $record->company_name,
+                                        'kickOffDate' => $kickOffDate ? Carbon::parse($kickOffDate)->format('d M Y') : 'N/A',
+                                        'bufferLicense' => $bufferStart && $bufferEnd ?
+                                            Carbon::parse($bufferStart)->format('d M Y') . ' – ' .
+                                            Carbon::parse($bufferEnd)->format('d M Y') : 'N/A',
+                                        'paidLicense' => $paidStart && $paidEnd ?
+                                            Carbon::parse($paidStart)->format('d M Y') . ' – ' .
+                                            Carbon::parse($paidEnd)->format('d M Y') : 'N/A',
+                                        'yearPurchase' => is_numeric($yearPurchase) ?
+                                            (int)$yearPurchase . ' year' . ((int)$yearPurchase > 1 ? 's' : '') : $yearPurchase,
+                                        'nextRenewal' => $nextRenewal ? Carbon::parse($nextRenewal)->format('d M Y') : 'N/A',
+                                    ]);
+                                }
+                            };
+                        })
                 ])->button()
                     ->color('warning')
             ]);

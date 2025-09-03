@@ -176,12 +176,10 @@ class AdminRenewalProcessData extends Page implements HasTable
                     Stack::make([
                         TextColumn::make('total_amount')
                             ->label('Amount')
-                            ->numeric(2)
-                            ->alignRight(),
+                            ->numeric(2),
 
                         TextColumn::make('f_currency')
                             ->label('Currency')
-                            ->alignRight()
                             ->color('gray')
                             ->size('sm'),
                     ]),

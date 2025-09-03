@@ -37,7 +37,6 @@
     }
 
     .appointment-detail {
-        margin-bottom: 16px;
         padding-bottom: 8px;
         font-size: 14px;
         line-height: 1.5;
@@ -55,7 +54,6 @@
 
     .detail-value {
         display: inline;
-        margin-left: 4px;
     }
 
     .time-badge {
@@ -145,6 +143,7 @@
 
                 <div class="appointment-detail">
                     <div class="detail-value time-badge">
+                        <div class="detail-label">TIME:</div>
                         @php
                             $startTime = isset($value['start_time']) ? \Carbon\Carbon::parse($value['start_time'])->format('g:i A') : '00:00 AM';
                             $endTime = isset($value['end_time']) ? \Carbon\Carbon::parse($value['end_time'])->format('g:i A') : '00:00 AM';
@@ -218,12 +217,13 @@
                 @endif
 
                 <div class="appointment-detail">
+                    <div class="detail-label">TIME:</div>
                     <div class="detail-value time-badge">
                         @php
                             $startTime = isset($value['start_time']) ? \Carbon\Carbon::parse($value['start_time'])->format('g:i A') : '00:00 AM';
                             $endTime = isset($value['end_time']) ? \Carbon\Carbon::parse($value['end_time'])->format('g:i A') : '00:00 AM';
                         @endphp
-                        {{ $startTime }} - {{ $endTime }}
+                         {{ $startTime }} - {{ $endTime }}
                     </div>
                 </div>
             @endif

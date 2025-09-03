@@ -33,7 +33,7 @@
                         @foreach($salespeople as $person)
                             <th class="px-4 py-2 bg-yellow-200 border border-gray-400">{{ $person }}</th>
                         @endforeach
-                        <th class="px-4 py-2 bg-yellow-300 border border-gray-400">TOTAL</th>
+                        <th class="px-4 py-2 bg-yellow-300 border border-gray-400">Total</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -973,6 +973,12 @@ class ImplementerCalendar extends Component
             $query->where('software_handovers.implementer', $currentUserName);
         }
 
+        // Add company name search filter
+        if (!empty($this->companySearch)) {
+            $searchTerm = '%' . $this->companySearch . '%';
+            $query->where('company_details.company_name', 'LIKE', $searchTerm);
+        }
+
         // Execute the query with sorting
         $companies = $query->orderBy('software_handovers.id', 'desc')
             ->orderBy('software_handovers.status_handover')
@@ -1010,6 +1016,12 @@ class ImplementerCalendar extends Component
                 ];
             }
         }
+    }
+
+    public function resetCompanySearch()
+    {
+        $this->companySearch = '';
+        $this->updateOpenDelayCompanies();
     }
 
     public function updateAvailableWeeks()

@@ -191,54 +191,6 @@
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('Training')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Training
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('Finance')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Finance
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('HRDF')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - HRDF
-                                    </button>
-
-                                    <button
                                         wire:click="toggleDashboard('Renewal')"
                                         style="
                                             display: block;
@@ -267,23 +219,7 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - General
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('Credit Controller')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'Credit Controller' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Credit Controller
+                                        Admin - Debtor
                                     </button>
                                 </div>
                             </div>
@@ -662,7 +598,7 @@
                                             display: none;
                                             position: absolute;
                                             background-color: white;
-                                            min-width: 160px;
+                                            min-width: 180px;
                                             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                             z-index: 1000;
                                             border-radius: 6px;
@@ -671,7 +607,7 @@
                                             left: 0;
                                             margin-top: 5px; /* Add a small gap */
                                         ">
-                                            <button
+                                            <!-- <button
                                                 wire:click="toggleDashboard('MainAdminDashboard')"
                                                 style="
                                                     display: block;
@@ -685,7 +621,7 @@
                                                 "
                                             >
                                                 Admin - Dashboard
-                                            </button>
+                                            </button> -->
 
                                             <button
                                                 wire:click="toggleDashboard('SoftwareAdmin')"
@@ -732,55 +668,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Repair
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('Training')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Training
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('Finance')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Finance
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('HRDF')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - HRDF
+                                                Admin - OnSite Repair
                                             </button>
 
                                             <button
@@ -812,23 +700,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - General
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('Credit Controller')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'Credit Controller' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Credit Controller
+                                                Admin - Debtor
                                             </button>
                                         </div>
                                     </div>
@@ -1014,54 +886,6 @@
                                         </button>
 
                                         <button
-                                            wire:click="toggleDashboard('Training')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Training
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('Finance')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'TRAINING' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Finance
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('HRDF')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'HRDF' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - HRDF
-                                        </button>
-
-                                        <button
                                             wire:click="toggleDashboard('Renewal')"
                                             style="
                                                 display: block;
@@ -1090,23 +914,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - General
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('Credit Controller')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'Credit Controller' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Credit Controller
+                                            Admin - Debtor
                                         </button>
                                     </div>
                                 </div>

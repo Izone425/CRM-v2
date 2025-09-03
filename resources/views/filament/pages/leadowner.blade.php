@@ -496,7 +496,7 @@
                     <div class="group-box group-inactive"
                          :class="{'selected': selectedGroup === 'inactive'}"
                          @click="setSelectedGroup('inactive')">
-                        <div class="group-title">Inactive Leads</div>
+                        <div class="group-title">InActive Leads</div>
                         <div class="group-count">{{ $inactiveSmall1Count + $inactiveBig1Count + $inactiveSmall2Count + $inactiveBig2Count }}</div>
                     </div>
 
@@ -504,7 +504,7 @@
                     <div class="group-box group-salesperson"
                          :class="{'selected': selectedGroup === 'salesperson'}"
                          @click="setSelectedGroup('salesperson')">
-                        <div class="group-title">Salesperson</div>
+                        <div class="group-title">SalesPerson</div>
                         <div class="group-count">{{ $salespersonSmallCount + $salespersonBigCount + $inactiveSmallCount + $inactiveBigCount }}</div>
                     </div>
                 </div>
