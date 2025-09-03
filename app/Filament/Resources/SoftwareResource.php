@@ -679,6 +679,7 @@ class SoftwareResource extends Resource
                         'full_module' => 'Full Module (TA+TL+TC+TP)',
                         'non_full_module' => 'Non-Full Module',
                         'non_payroll' => 'Non-Payroll (No TP)',
+                        'with_payroll' => 'With Payroll (Has TP)',
                         'ta_only' => 'TA Only',
                         'tl_only' => 'TL Only',
                         'tc_only' => 'TC Only',
@@ -737,6 +738,8 @@ class SoftwareResource extends Resource
                                     }),
 
                             'non_payroll' => $query->where('tp', false),
+
+                            'with_payroll' => $query->where('tp', true),
 
                             // TA Only - only has TA module enabled
                             'ta_only' => $query->where('ta', true)

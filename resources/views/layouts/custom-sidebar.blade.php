@@ -933,16 +933,14 @@
                         </div>
                     @endif
 
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                        <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
-                                </div>
-                                <span class="menu-text">Policy</span>
-                            </a>
-                        </div>
-                    @endif
+                    <div class="menu-block">
+                        <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Policy</span>
+                        </a>
+                    </div>
 
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                         <div class="menu-block">
@@ -1205,6 +1203,26 @@
                                 <span class="module-font">Raw Data</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.admin-renewal-process-data') }}" class="submenu-item">
+                                <span class="module-font">Process Data</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Admin Debtor Section -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-debtor-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Admin - Debtor</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="admin-debtor-submenu">
+                            <a href="{{ route('filament.admin.pages.debtor-aging-raw-data') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.debtor-aging-process-data') }}" class="submenu-item">
                                 <span class="module-font">Process Data</span>
                             </a>
                         </div>
