@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\Indicator;
+use Filament\Tables\Filters\SelectFilter;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 // Create a model for the license data
@@ -52,6 +53,20 @@ class AdminRenewalRawData extends Page implements HasTable
                 return LicenseData::query();
             })
             ->filters([
+                SelectFilter::make('f_name')
+                    ->label('Products')
+                    ->multiple()
+                    ->preload()
+                    ->options(function () {
+                        // Get distinct product names
+                        return LicenseData::query()
+                            ->distinct()
+                            ->orderBy('f_name')
+                            ->pluck('f_name', 'f_name')
+                            ->toArray();
+                    })
+                    ->indicator('Products'),
+
                 Filter::make('expiry_date_range')
                     ->form([
                         DateRangePicker::make('date_range')
@@ -143,6 +158,7 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->sortable(),
             ])
             ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(50)
             ->paginationPageOptions([10, 25, 50, 100])
             ->persistFiltersInSession()
             ->persistSortInSession()

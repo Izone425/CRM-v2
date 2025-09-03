@@ -254,16 +254,30 @@ class ImplementerPICTabs
                                                     TextInput::make('name')
                                                         ->required()
                                                         ->maxLength(255)
-                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                        ->extraAlpineAttributes([
+                                                            'x-on:input' => '
+                                                                const start = $el.selectionStart;
+                                                                const end = $el.selectionEnd;
+                                                                const value = $el.value;
+                                                                $el.value = value.toUpperCase();
+                                                                $el.setSelectionRange(start, end);
+                                                            '
+                                                        ])
+                                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                         ->columnSpan(1),
 
                                                     TextInput::make('position')
                                                         ->maxLength(255)
-                                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                                        ->extraAlpineAttributes([
+                                                            'x-on:input' => '
+                                                                const start = $el.selectionStart;
+                                                                const end = $el.selectionEnd;
+                                                                const value = $el.value;
+                                                                $el.value = value.toUpperCase();
+                                                                $el.setSelectionRange(start, end);
+                                                            '
+                                                        ])
+                                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                         ->columnSpan(1),
 
                                                     TextInput::make('hp_number')

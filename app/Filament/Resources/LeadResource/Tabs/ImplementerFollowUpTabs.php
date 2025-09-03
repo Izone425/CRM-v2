@@ -265,6 +265,8 @@ class ImplementerFollowUpTabs
                                         'remark' => $data['notes'],
                                         'subject_id' => $softwareHandover->id,
                                         'follow_up_date' => $data['follow_up_date'],
+                                        'follow_up_counter' => true,
+                                        'manual_follow_up_count' => $data['manual_follow_up_count'],
                                     ]);
 
                                     if (isset($data['send_email']) && $data['send_email']) {
@@ -340,6 +342,14 @@ class ImplementerFollowUpTabs
                                                     if ($schedulerType === 'instant' || $schedulerType === 'both') {
                                                         // Send email immediately
                                                         self::sendEmail($emailData);
+
+                                                        DB::table('scheduled_emails')->insert([
+                                                            'email_data' => json_encode($emailData),
+                                                            'scheduled_date' => null,
+                                                            'status' => 'Done',
+                                                            'created_at' => now(),
+                                                            'updated_at' => now(),
+                                                        ]);
 
                                                         Notification::make()
                                                             ->title('Email sent immediately to ' . count($validRecipients) . ' recipient(s)')

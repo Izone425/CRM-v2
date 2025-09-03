@@ -32,7 +32,17 @@ class PolicyResource extends Resource
                         Forms\Components\TextInput::make('title')
                             ->required()
                             ->maxLength(255)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->extraAlpineAttributes([
+                                'x-on:input' => '
+                                    const start = $el.selectionStart;
+                                    const end = $el.selectionEnd;
+                                    const value = $el.value;
+                                    $el.value = value.toUpperCase();
+                                    $el.setSelectionRange(start, end);
+                                '
+                            ])
+                            ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
 
                         Forms\Components\Select::make('category_id')
                             ->label('Category')
@@ -53,11 +63,6 @@ class PolicyResource extends Resource
                             ->default('Active')
                             ->required(),
 
-                        Forms\Components\Textarea::make('summary')
-                            ->label('Policy Summary (Optional)')
-                            ->helperText('A brief summary of the policy')
-                            ->columnSpanFull(),
-
                         // Hidden fields for tracking creators/updaters
                         Forms\Components\Hidden::make('created_by')
                             ->dehydrated(fn ($state) => filled($state))
@@ -66,6 +71,62 @@ class PolicyResource extends Resource
                         Forms\Components\Hidden::make('last_updated_by')
                             ->dehydrated(fn ($state) => true)
                             ->default(fn () => auth()->id()),
+                    ]),
+
+                // Add new section for Policy Pages
+                Forms\Components\Section::make('Policy Pages')
+                    ->schema([
+                        Forms\Components\Repeater::make('pages')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\TextInput::make('order')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(function ($livewire, $get, $set, $state, $record) {
+                                        // First try to use the count of existing items if we can access it
+                                        if (isset($livewire) && method_exists($livewire, 'getItemsCount')) {
+                                            return $livewire->getItemsCount();
+                                        }
+
+                                        // Fallback to 0 or increment based on context
+                                        return 0;
+                                    })
+                                    ->label('Order (pages are displayed in ascending order)'),
+
+                                TiptapEditor::make('content')
+                                    ->required()
+                                    ->columnSpanFull()
+                                    ->profile('custom')
+                                    ->tools([
+                                        'heading', 'bullet-list', 'ordered-list', 'checked-list', 'blockquote', 'hr',
+                                        'bold', 'italic', 'strike', 'underline', 'superscript', 'subscript', 'lead', 'small', 'align-left', 'align-center', 'align-right',
+                                        'link', 'media', 'oembed', 'table', 'grid-builder', 'details',
+                                        'code', 'code-block',
+                                    ])
+                                    ->maxContentWidth('full'),
+
+                                // Hidden fields for tracking creators/updaters
+                                Forms\Components\Hidden::make('created_by')
+                                    ->dehydrated(fn ($state) => filled($state))
+                                    ->default(fn () => auth()->id()),
+
+                                Forms\Components\Hidden::make('last_updated_by')
+                                    ->dehydrated(fn ($state) => true)
+                                    ->default(fn () => auth()->id()),
+                            ])
+                            ->orderable('order')
+                            ->defaultItems(1)  // Start with one empty page
+                            ->reorderable()
+                            ->columnSpanFull()
+                            ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                $data['created_by'] = auth()->id();
+                                $data['last_updated_by'] = auth()->id();
+                                return $data;
+                            })
+                            ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                                $data['last_updated_by'] = auth()->id();
+                                return $data;
+                            }),
                     ]),
             ]);
     }
@@ -140,9 +201,7 @@ class PolicyResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            RelationManagers\PageRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

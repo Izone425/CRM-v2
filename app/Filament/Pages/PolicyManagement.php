@@ -84,6 +84,7 @@ class PolicyManagement extends Page
     {
         return Policy::query()
             ->with('pages')
+            ->where('status', 'Active') // Only show Active policies
             ->when($this->search !== '', function ($query) {
                 $query->where('title', 'like', "%{$this->search}%");
             })

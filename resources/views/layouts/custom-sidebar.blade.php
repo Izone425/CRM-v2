@@ -942,24 +942,13 @@
                         </a>
                     </div>
 
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                        <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
-                                </div>
-                                <span class="menu-text">Request</span>
-                            </a>
-                        </div>
-                    @endif
-
                     <!-- Salesperson Request Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Salesperson Request</span>
+                            <span class="menu-text">Request</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -1588,6 +1577,18 @@
                                 @if(auth()->user()->hasRouteAccess('filament.admin.resources.spare-parts.index'))
                                 <a href="{{ route('filament.admin.resources.spare-parts.index') }}" class="submenu-item">
                                     <span class="module-font">SparePart</span>
+                                </a>
+                                @endif
+
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.policy-categories.index'))
+                                <a href="{{ route('filament.admin.resources.policy-categories.index') }}" class="submenu-item">
+                                    <span class="module-font">Policy Category</span>
+                                </a>
+                                @endif
+
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.policy.index'))
+                                <a href="{{ route('filament.admin.resources.policies.index') }}" class="submenu-item">
+                                    <span class="module-font">Policy</span>
                                 </a>
                                 @endif
                             </div>

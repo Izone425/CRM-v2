@@ -30,8 +30,7 @@ class PolicyCategoryResource extends Resource
                     ->options([
                         'BENEFIT' => 'Employee HR Benefits',
                         'EXPENSE' => 'Expense Claims',
-                    ])
-                    ->required(),
+                    ]),
                 Forms\Components\Textarea::make('description')
                     ->maxLength(65535)
                     ->columnSpanFull(),

@@ -19,6 +19,7 @@ class ImplementerLogs extends Model
         'remark',
         'follow_up_counter',
         'follow_up_date',
+        'manual_follow_up_count',
     ];
 
     public function lead(): BelongsTo
