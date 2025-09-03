@@ -17,6 +17,7 @@ use Filament\Tables\Columns\Layout\Panel;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\Indicator;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\Paginator;
@@ -111,6 +112,20 @@ class AdminRenewalProcessData extends Page implements HasTable
                 return $baseQuery;
             })
             ->filters([
+                SelectFilter::make('f_name')
+                    ->label('Products')
+                    ->multiple()
+                    ->preload()
+                    ->options(function () {
+                        // Get distinct product names
+                        return LicenseData::query()
+                            ->distinct()
+                            ->orderBy('f_name')
+                            ->pluck('f_name', 'f_name')
+                            ->toArray();
+                    })
+                    ->indicator('Products'),
+
                 Filter::make('earliest_expiry')
                     ->form([
                         DateRangePicker::make('date_range')
@@ -197,6 +212,7 @@ class AdminRenewalProcessData extends Page implements HasTable
                         ->html()
                 ])->collapsible()->collapsed(),
             ])
+            ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50])
             ->paginationPageOptions([10, 25, 50, 100])
             ->persistFiltersInSession()

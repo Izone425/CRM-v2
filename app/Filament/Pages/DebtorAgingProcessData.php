@@ -234,6 +234,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                         ->html(),
                 ])->collapsible()->collapsed(),
             ])
+            ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50])
             ->paginationPageOptions([10, 25, 50, 100])
             ->persistFiltersInSession()

@@ -96,12 +96,17 @@
             background-color: white;
             border-radius: 0.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 150px); /* Adjust this value based on your layout */
         }
 
         .policy-content {
             padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
-
         .policy-header {
             padding-bottom: 1.25rem;
             margin-bottom: 1.5rem;
@@ -169,6 +174,7 @@
         .policy-body {
             line-height: 1.625;
             color: #374151;
+            flex-grow: 1; /* This allows content to expand */
         }
 
         .policy-body h1, .policy-body h2, .policy-body h3 {
@@ -212,14 +218,14 @@
         }
 
         .policy-footer {
-            margin-top: 2.5rem;
-            padding-top: 1.5rem;
+            padding-top: 0.5rem;
             border-top: 1px solid #e5e7eb;
             color: #6b7280;
             font-size: 0.875rem;
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
+            margin-top: auto; /* This pushes the footer to the bottom */
         }
 
         .policy-empty {
@@ -249,7 +255,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            padding-top:0.5rem;
+            padding-bottom: 0.5rem;
         }
 
         .policy-page-nav {
@@ -259,7 +266,7 @@
 
         .policy-nav-button {
             padding: 0.5rem 1rem;
-            background-color: #f9fafb;
+            background-color: #017efc;
             border: 1px solid #e5e7eb;
             border-radius: 0.375rem;
             color: #4b5563;
@@ -269,7 +276,7 @@
         }
 
         .policy-nav-button:hover {
-            background-color: #f3f4f6;
+            background-color: #0153f8;
             color: #1f2937;
         }
 
@@ -318,6 +325,11 @@
             font-weight: 600;
             color: #4b5563;
             margin-bottom: 0.5rem;
+        }
+
+        .prose.policy-body.max-w-none {
+            flex-grow: 1;
+            min-height: 200px; /* Minimum height to push footer down */
         }
     </style>
 
@@ -373,54 +385,30 @@
                         </div>
                     </div>
 
-                    @if($selectedPolicy->summary)
-                        <div class="policy-summary">
-                            <div class="policy-summary-title">Summary</div>
-                            <div class="policy-body">{{ $selectedPolicy->summary }}</div>
-                        </div>
-                    @endif
-
                     @if($selectedPolicy->pages && $selectedPolicy->pages->count() > 0)
+                        <h2 class="policy-page-title">{{ $selectedPage->title }}</h2>
+
+                        <div class="prose policy-body max-w-none">
+                            {!! $selectedPage->content !!}
+                        </div>
+
                         @if($selectedPolicy->pages->count() > 1)
-                            <div class="policy-tabs">
-                                @foreach($selectedPolicy->pages as $index => $page)
-                                    <button wire:click="goToPage({{ $index }})"
-                                        class="policy-tab {{ $currentPageIndex === $index ? 'active' : '' }}">
-                                        {{ $page->title }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
+                            <div class="policy-navigation">
+                                <button wire:click="prevPage"
+                                    class="policy-nav-button" style="color: white;"
+                                    {{ $currentPageIndex === 0 ? 'disabled' : '' }}>
+                                    <span>&larr; Previous</span>
+                                </button>
 
-                        @if($selectedPage)
-                            <h2 class="policy-page-title">{{ $selectedPage->title }}</h2>
-
-                            <div class="prose policy-body max-w-none">
-                                {!! $selectedPage->content !!}
-                            </div>
-
-                            @if($selectedPolicy->pages->count() > 1)
-                                <div class="policy-navigation">
-                                    <button wire:click="prevPage"
-                                        class="policy-nav-button"
-                                        {{ $currentPageIndex === 0 ? 'disabled' : '' }}>
-                                        <span>&larr; Previous</span>
-                                    </button>
-
-                                    <div class="text-sm text-gray-500">
-                                        Page {{ $currentPageIndex + 1 }} of {{ $selectedPolicy->pages->count() }}
-                                    </div>
-
-                                    <button wire:click="nextPage"
-                                        class="policy-nav-button"
-                                        {{ $currentPageIndex >= $selectedPolicy->pages->count() - 1 ? 'disabled' : '' }}>
-                                        <span>Next &rarr;</span>
-                                    </button>
+                                <div class="text-sm text-gray-500">
+                                    Page {{ $currentPageIndex + 1 }} of {{ $selectedPolicy->pages->count() }}
                                 </div>
-                            @endif
-                        @else
-                            <div class="p-4 text-center text-gray-500">
-                                No content available for this page.
+
+                                <button wire:click="nextPage"
+                                    class="policy-nav-button" style="color: white;"
+                                    {{ $currentPageIndex >= $selectedPolicy->pages->count() - 1 ? 'disabled' : '' }}>
+                                    <span>Next &rarr;</span>
+                                </button>
                             </div>
                         @endif
                     @else

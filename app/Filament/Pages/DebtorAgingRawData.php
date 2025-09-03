@@ -127,6 +127,7 @@ class DebtorAgingRawData extends Page implements HasTable
             //         ->query(fn (Builder $query): Builder => $query->where('outstanding', '>', 0))
             //         ->default(true),
             // ])
+            ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50, 100])
             ->paginationPageOptions([10, 25, 50, 100])
             ->defaultSort('invoice_date', 'desc');
