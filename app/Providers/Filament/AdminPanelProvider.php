@@ -9,6 +9,8 @@ use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
+use App\Filament\Pages\DebtorAgingProcessData;
+use App\Filament\Pages\DebtorAgingRawData;
 use App\Filament\Pages\DebtorAgingReport;
 use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoAnalysisTableForm;
@@ -288,7 +290,8 @@ class AdminPanelProvider extends PanelProvider
                 PolicyManagement::class,
                 AdminRenewalProcessData::class,
                 AdminRenewalRawData::class,
-                DebtorAgingReport::class,
+                DebtorAgingRawData::class,
+                DebtorAgingProcessData::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
