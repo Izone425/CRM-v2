@@ -617,12 +617,6 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                                 'pending_migration_at' => now(),
                                 'status' => 'Pending Migration',
                                 'device_serials' => json_encode($serialData),
-                                'tc10_quantity' => $data['tc10_quantity'] ?? 0,
-                                'tc20_quantity' => $data['tc20_quantity'] ?? 0,
-                                'face_id5_quantity' => $data['face_id5_quantity'] ?? 0,
-                                'face_id6_quantity' => $data['face_id6_quantity'] ?? 0,
-                                'time_beacon_quantity' => $data['time_beacon_quantity'] ?? 0,
-                                'nfc_tag_quantity' => $data['nfc_tag_quantity'] ?? 0,
                             ];
 
                             if (isset($data['invoice_file'])) {

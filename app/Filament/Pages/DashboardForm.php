@@ -107,6 +107,7 @@ class DashboardForm extends Page
             'Implementer',
             'Support',
             'Technician',
+            'Debtor'
         ];
 
         if (in_array($dashboard, $validDashboards)) {

@@ -7,14 +7,12 @@
                 <tr class="bg-gray-50">
                     <th class="px-3 py-2">Invoice Number</th>
                     <th class="px-3 py-2">Invoice Date</th>
-                    <th class="px-3 py-2">Aging Date</th>
                     <th class="px-3 py-2">Currency</th>
-                    <th class="px-3 py-2">Exchange Rate</th>
                     <th class="px-3 py-2">Invoice Amount</th>
                     <th class="px-3 py-2">Outstanding</th>
                     <th class="px-3 py-2">Bal in RM</th>
                     <th class="px-3 py-2">Aging</th>
-                    <th class="px-3 py-2">Salesperson</th>
+                    <th class="px-3 py-2">SalesPerson</th>
                     <th class="px-3 py-2">Support</th>
                 </tr>
             </thead>
@@ -73,9 +71,7 @@
                     <tr {!! $rowBackground !!}>
                         <td class="px-3 py-2">{{ $invoice->invoice_number }}</td>
                         <td class="px-3 py-2">{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('Y-m-d') }}</td>
-                        <td class="px-3 py-2">{{ \Carbon\Carbon::parse($invoice->aging_date)->format('Y-m-d') }}</td>
                         <td class="px-3 py-2">{{ $invoice->currency_code }}</td>
-                        <td class="px-3 py-2">{{ $invoice->exchange_rate }}</td>
                         <td class="px-3 py-2">{{ number_format($invoice->invoice_amount, 2) }}</td>
                         <td class="px-3 py-2 font-medium {{ $invoice->outstanding > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($invoice->outstanding, 2) }}</td>
                         <td class="px-3 py-2">RM {{ number_format($balInRM, 2) }}</td>

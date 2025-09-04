@@ -4,6 +4,9 @@ namespace App\Filament\Pages;
 use App\Models\DebtorAging;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -56,12 +59,6 @@ class DebtorAgingData extends Model
     public static function getInvoicesForDebtor($debtorCode)
     {
         try {
-            // Log the debtor code to check what we're receiving
-            Log::info("Fetching invoices for debtor code", [
-                'code' => $debtorCode,
-                'type' => gettype($debtorCode)
-            ]);
-
             $sql = "SELECT
                 id, doc_key, debtor_code, company_name,
                 invoice_date, invoice_number, due_date, aging_date,
@@ -70,6 +67,7 @@ class DebtorAgingData extends Model
                 created_at, updated_at
             FROM debtor_agings
             WHERE debtor_code = ?
+            AND outstanding > 0
             ORDER BY due_date ASC";
 
             return DB::select($sql, [$debtorCode]);
@@ -125,11 +123,6 @@ class DebtorAgingProcessData extends Page implements HasTable
                             ->label('Company')
                             ->searchable()
                             ->weight('bold'),
-
-                        TextColumn::make('debtor_code')
-                            ->label('Debtor Code')
-                            ->searchable()
-                            ->color('gray'),
                     ]),
 
                     Stack::make([
@@ -137,12 +130,6 @@ class DebtorAgingProcessData extends Page implements HasTable
                             ->label('Outstanding')
                             ->numeric(2)
                             ->alignRight(),
-
-                        TextColumn::make('currency_code')
-                            ->label('Currency')
-                            ->alignRight()
-                            ->color('gray')
-                            ->size('sm'),
                     ]),
 
                     Stack::make([
@@ -159,56 +146,6 @@ class DebtorAgingProcessData extends Page implements HasTable
 
                                 return $record->total_outstanding * $record->exchange_rate;
                             }),
-
-                        TextColumn::make('earliest_due_date')
-                            ->label('Earliest Due')
-                            ->date('Y-m-d')
-                            ->color('gray')
-                            ->size('sm')
-                            ->alignRight(),
-                    ]),
-
-                    Stack::make([
-                        // Calculate aging buckets based on earliest due date
-                        // TextColumn::make('aging_status')
-                        //     ->label('Aging Status')
-                        //     ->formatStateUsing(function ($record) {
-                        //         $earliest = Carbon::parse($record->earliest_due_date);
-                        //         $now = Carbon::now();
-                        //         $days = $earliest->diffInDays($now, false);
-
-                        //         if ($days <= 0) {
-                        //             return 'Current';
-                        //         } elseif ($days <= 30) {
-                        //             return '1 Month';
-                        //         } elseif ($days <= 60) {
-                        //             return '2 Months';
-                        //         } elseif ($days <= 90) {
-                        //             return '3 Months';
-                        //         } elseif ($days <= 120) {
-                        //             return '4 Months';
-                        //         } else {
-                        //             return '5+ Months';
-                        //         }
-                        //     })
-                        //     ->color(function ($record) {
-                        //         $earliest = Carbon::parse($record->earliest_due_date);
-                        //         $now = Carbon::now();
-                        //         $days = $earliest->diffInDays($now, false);
-
-                        //         if ($days <= 0) return 'success';
-                        //         if ($days <= 30) return 'info';
-                        //         if ($days <= 60) return 'warning';
-                        //         if ($days <= 90) return 'orange';
-                        //         if ($days <= 120) return 'danger';
-                        //         return 'danger';
-                        //     }),
-
-                        // TextColumn::make('earliest_due_date')
-                        //     ->label('Earliest Due')
-                        //     ->date('Y-m-d')
-                        //     ->color('gray')
-                        //     ->size('sm'),
                     ]),
                 ])->from('md'),
 
@@ -234,6 +171,249 @@ class DebtorAgingProcessData extends Page implements HasTable
                         ->html(),
                 ])->collapsible()->collapsed(),
             ])
+            ->filters([
+                // No1: Filter by Year
+                Filter::make('invoice_year')
+                    ->form([
+                        Select::make('year')
+                            ->label('Invoice Year')
+                            ->options(function() {
+                                // Get all years from invoice_date, from current year back to 2 years
+                                $currentYear = (int)date('Y');
+                                $years = [];
+                                for ($i = $currentYear; $i >= $currentYear - 2; $i--) {
+                                    $years[$i] = $i;
+                                }
+                                return $years;
+                            })
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (isset($data['year']) && $data['year']) {
+                            return $query->whereYear('invoice_date', $data['year']);
+                        }
+                        return $query;
+                    }),
+
+                // No2: Filter by Month
+                Filter::make('invoice_month')
+                    ->form([
+                        Select::make('month')
+                            ->label('Invoice Month')
+                            ->options([
+                                '1' => 'January',
+                                '2' => 'February',
+                                '3' => 'March',
+                                '4' => 'April',
+                                '5' => 'May',
+                                '6' => 'June',
+                                '7' => 'July',
+                                '8' => 'August',
+                                '9' => 'September',
+                                '10' => 'October',
+                                '11' => 'November',
+                                '12' => 'December',
+                            ])
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (isset($data['month']) && $data['month']) {
+                            return $query->whereMonth('invoice_date', $data['month']);
+                        }
+                        return $query;
+                    }),
+
+                // No3: Filter by Salesperson
+                SelectFilter::make('salesperson')
+                    ->label('Salesperson')
+                    ->options(function () {
+                        return DebtorAgingData::distinct('salesperson')
+                            ->whereNotNull('salesperson')
+                            ->where('salesperson', '!=', '')
+                            ->pluck('salesperson', 'salesperson')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->multiple(),
+
+                // No4: Filter by Currency
+                SelectFilter::make('currency_code')
+                    ->label('Currency')
+                    ->options(function () {
+                        return DebtorAgingData::distinct('currency_code')
+                            ->whereNotNull('currency_code')
+                            ->where('currency_code', '!=', '')
+                            ->pluck('currency_code', 'currency_code')
+                            ->toArray();
+                    })
+                    ->multiple(),
+
+                // No5: Filter by Amount Range
+                Filter::make('amount_range')
+                    ->form([
+                        Select::make('amount_filter_type')
+                            ->label('Amount Filter Type')
+                            ->options([
+                                'above' => 'Above Amount',
+                                'below' => 'Below Amount',
+                                'between' => 'Between Amounts',
+                            ])
+                            ->reactive(),
+
+                        TextInput::make('min_amount')
+                            ->label(function (callable $get) {
+                                return $get('amount_filter_type') === 'between' ? 'Minimum Amount' : 'Amount';
+                            })
+                            ->numeric()
+                            ->visible(function (callable $get) {
+                                return in_array($get('amount_filter_type'), ['above', 'below', 'between']);
+                            }),
+
+                        TextInput::make('max_amount')
+                            ->label('Maximum Amount')
+                            ->numeric()
+                            ->visible(function (callable $get) {
+                                return $get('amount_filter_type') === 'between';
+                            }),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (isset($data['amount_filter_type'])) {
+                            if ($data['amount_filter_type'] === 'above' && isset($data['min_amount'])) {
+                                return $query->where('outstanding', '>=', $data['min_amount']);
+                            }
+
+                            if ($data['amount_filter_type'] === 'below' && isset($data['min_amount'])) {
+                                return $query->where('outstanding', '<=', $data['min_amount']);
+                            }
+
+                            if ($data['amount_filter_type'] === 'between' &&
+                                isset($data['min_amount']) && isset($data['max_amount'])) {
+                                // Use two having conditions instead of whereBetween
+                                return $query->where('outstanding', '>=', $data['min_amount'])
+                                            ->where('outstanding', '<=', $data['max_amount']);
+                            }
+                        }
+                        return $query;
+                    }),
+
+                // No6: Filter Value (Negative/Positive/All)
+                Filter::make('value_type')
+                    ->form([
+                        Radio::make('value_type')
+                            ->label('Value Type')
+                            ->options([
+                                'positive' => 'Positive Values',
+                                'negative' => 'Negative Values',
+                                'all' => 'All Values',
+                            ])
+                            ->default('all'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (isset($data['value_type'])) {
+                            if ($data['value_type'] === 'positive') {
+                                return $query->having('total_outstanding', '>', 0);
+                            }
+
+                            if ($data['value_type'] === 'negative') {
+                                return $query->having('total_outstanding', '<', 0);
+                            }
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (isset($data['value_type']) && $data['value_type'] !== 'all') {
+                            return 'Value Type: ' . ucfirst($data['value_type']);
+                        }
+                        return null;
+                    }),
+
+                // No7: Filter Internal Company
+                Filter::make('company_name')
+                    ->form([
+                        Select::make('mode')
+                            ->label('Filter Mode')
+                            ->options([
+                                'include' => 'Include Selected Companies',
+                                'exclude' => 'Exclude Selected Companies',
+                            ])
+                            ->default('exclude'),
+
+                        Select::make('companies')
+                            ->label('Companies')
+                            ->options(function () {
+                                return DebtorAgingData::query()
+                                    ->select('company_name')
+                                    ->distinct()
+                                    ->whereNotNull('company_name')
+                                    ->where('company_name', '!=', '')
+                                    ->pluck('company_name', 'company_name')
+                                    ->toArray();
+                            })
+                            ->multiple()
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        // Only apply filter if companies are selected
+                        if (isset($data['companies']) && !empty($data['companies'])) {
+                            // If mode is "include", use whereIn
+                            if (($data['mode'] ?? 'include') === 'include') {
+                                return $query->whereIn('company_name', $data['companies']);
+                            }
+
+                            // If mode is "exclude", use whereNotIn
+                            return $query->whereNotIn('company_name', $data['companies']);
+                        }
+
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (isset($data['companies']) && !empty($data['companies'])) {
+                            $mode = ($data['mode'] ?? 'include') === 'include' ? 'Including' : 'Excluding';
+                            $count = count($data['companies']);
+
+                            return $mode . ' ' . $count . ' ' . ($count === 1 ? 'company' : 'companies');
+                        }
+
+                        return null;
+                    }),
+
+                Filter::make('stl_filter')
+                    ->form([
+                        Radio::make('stl_mode')
+                            ->label('STL Records')
+                            ->options([
+                                'include' => 'Show Only STL Records',
+                                'exclude' => 'Exclude STL Records',
+                                'all' => 'Show All Records',
+                            ])
+                            ->default('all'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (isset($data['stl_mode'])) {
+                            if ($data['stl_mode'] === 'include') {
+                                // Show only STL records
+                                return $query->where('debtor_code', 'like', 'ICT%');
+                            }
+
+                            if ($data['stl_mode'] === 'exclude') {
+                                // Exclude STL records
+                                return $query->where(function ($query) {
+                                    $query->where('debtor_code', 'not like', 'ICT%')
+                                        ->orWhereNull('debtor_code');
+                                });
+                            }
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (isset($data['stl_mode']) && $data['stl_mode'] !== 'all') {
+                            return $data['stl_mode'] === 'include'
+                                ? 'Showing only STL records'
+                                : 'Excluding STL records';
+                        }
+                        return null;
+                    }),
+            ])
+            ->filtersFormColumns(3)
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50])
             ->paginationPageOptions([10, 25, 50, 100])
