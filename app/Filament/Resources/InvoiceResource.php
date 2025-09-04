@@ -57,7 +57,7 @@ class InvoiceResource extends Resource
                     ->label('Salesperson')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('company.name')
+                Tables\Columns\TextColumn::make('company_name')
                     ->label('Company')
                     ->sortable()
                     ->searchable(),
@@ -88,19 +88,47 @@ class InvoiceResource extends Resource
                         'warning' => 'Partial Payment',
                         'success' => 'Full Payment',
                     ])
-                    ->sortable(),
+                    ->getStateUsing(function (Invoice $record): string {
+                        // Get the total invoice amount for this invoice number
+                        $totalInvoiceAmount = Invoice::where('invoice_no', $record->invoice_no)
+                            ->sum('invoice_amount');
+
+                        // Look for this invoice in debtor_agings table
+                        $debtorAging = DB::table('debtor_agings')
+                            ->where('invoice_number', $record->invoice_no)
+                            ->first();
+
+                        // If no matching record in debtor_agings or outstanding is 0
+                        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+                            return 'Full Payment';
+                        }
+
+                        // If outstanding equals total invoice amount
+                        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+                            return 'UnPaid';
+                        }
+
+                        // If outstanding is less than invoice amount but greater than 0
+                        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+                            return 'Partial Payment';
+                        }
+
+                        // Fallback (shouldn't normally reach here)
+                        return 'UnPaid';
+                    })
+                    ->sortable()
             ])
             ->defaultSort('invoice_date', 'desc')
             ->modifyQueryUsing(function (Builder $query) {
-                // Use proper aggregation functions for grouped data
                 return $query->select([
-                    DB::raw('MIN(id) as id'), // Take the smallest id for each group
+                    DB::raw('MIN(id) as id'),
                     'salesperson',
                     'invoice_no',
                     'invoice_date',
+                    'company_name',
                     DB::raw('SUM(invoice_amount) as total_invoice_amount')
                 ])
-                ->groupBy('invoice_no', 'salesperson', 'invoice_date')
+                ->groupBy('invoice_no', 'salesperson', 'invoice_date', 'company_name')
                 ->orderBy('invoice_date', 'desc');
             })
             ->filters([

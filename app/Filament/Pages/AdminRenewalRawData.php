@@ -47,10 +47,19 @@ class AdminRenewalRawData extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        // Get dates for default 60-day range
+        $today = Carbon::today();
+        $startDate = $today->format('Y-m-d');
+        $endDate = $today->addDays(60)->format('Y-m-d');
+
+        // Format for display in the date range picker
+        $defaultDateRange = Carbon::parse($startDate)->format('d/m/Y') . ' - ' . Carbon::parse($endDate)->format('d/m/Y');
+
         return $table
-            ->query(function () {
-                // Simple query without grouping - shows each record individually
-                return LicenseData::query();
+            ->query(function () use ($startDate, $endDate) {
+                // Apply the default 60-day filter to the base query
+                return LicenseData::query()
+                    ->whereBetween('f_expiry_date', [$startDate, $endDate]);
             })
             ->filters([
                 SelectFilter::make('f_name')
@@ -71,7 +80,8 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->form([
                         DateRangePicker::make('date_range')
                             ->label('Expiry Date Range')
-                            ->placeholder('Select expiry date range'),
+                            ->placeholder('Select expiry date range')
+                            ->default($defaultDateRange), // Set default 60-day range
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['date_range'])) {
@@ -101,21 +111,30 @@ class AdminRenewalRawData extends Page implements HasTable
                                 Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
                         }
                         return null;
-                    }),
+                    })
+                    ->default(true), // Automatically apply this filter by default
             ])
             ->columns([
-                // Simple TextColumns without any complex layouts
+                TextColumn::make('id')
+                    ->label('NO.')
+                    ->rowIndex(),
+
                 TextColumn::make('f_company_name')
-                    ->label('Company')
+                    ->label('Company Name')
                     ->searchable()
                     ->sortable()
                     ->wrap(),
 
                 TextColumn::make('f_name')
-                    ->label('Product')
+                    ->label('Product Name')
                     ->searchable()
                     ->sortable()
                     ->wrap(),
+
+                TextColumn::make('f_unit')
+                    ->label('Headcount')
+                    ->numeric()
+                    ->sortable(),
 
                 TextColumn::make('f_total_amount')
                     ->label('Amount')
@@ -126,14 +145,14 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->label('Currency')
                     ->sortable(),
 
-                TextColumn::make('f_expiry_date')
-                    ->label('Expiry Date')
+                TextColumn::make('f_start_date')
+                    ->label('License Start Date')
                     ->date('Y-m-d')
                     ->sortable(),
 
-                TextColumn::make('f_unit')
-                    ->label('Units')
-                    ->numeric()
+                TextColumn::make('f_expiry_date')
+                    ->label('License Expiry Date')
+                    ->date('Y-m-d')
                     ->sortable(),
 
                 TextColumn::make('f_invoice_no')

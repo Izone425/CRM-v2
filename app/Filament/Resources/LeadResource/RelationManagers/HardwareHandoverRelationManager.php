@@ -529,7 +529,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->label('Product')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+                                    $currentRecordId = $this->getCurrentRecordId();
 
                                     // Get all PI IDs already used in other hardware handovers for this lead
                                     $usedPiIds = [];
@@ -583,7 +583,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->label('HRDF')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+                                    $currentRecordId = $this->getCurrentRecordId();
 
                                     // Get all PI IDs already used in other hardware handovers for this lead
                                     $usedPiIds = [];
@@ -968,8 +968,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     ),
                 TextColumn::make('submitted_at')
                     ->label('Date Submit')
-                    ->date('d M Y')
-                    ->toggleable(),
+                    ->date('d M Y'),
                 TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(function ($state) {
@@ -980,84 +979,83 @@ class HardwareHandoverRelationManager extends RelationManager
                             'self_pick_up' => 'Self Pick-Up',
                             default => ucfirst($state),
                         };
-                    })
-                    ->toggleable(),
-                TextColumn::make('category2')
-                    ->label('Category 2')
-                    ->formatStateUsing(function ($state, HardwareHandover $record) {
-                        // If empty, return a placeholder
-                        if (empty($state)) {
-                            return '-';
-                        }
+                    }),
+                // TextColumn::make('category2')
+                //     ->label('Category 2')
+                //     ->formatStateUsing(function ($state, HardwareHandover $record) {
+                //         // If empty, return a placeholder
+                //         if (empty($state)) {
+                //             return '-';
+                //         }
 
-                        // Decode JSON if it's a string
-                        $data = is_string($state) ? json_decode($state, true) : $state;
+                //         // Decode JSON if it's a string
+                //         $data = is_string($state) ? json_decode($state, true) : $state;
 
-                        // Format based on installation type
-                        if ($record->installation_type === 'courier') {
-                            $parts = [];
+                //         // Format based on installation type
+                //         if ($record->installation_type === 'courier') {
+                //             $parts = [];
 
-                            if (!empty($data['email'])) {
-                                $parts[] = "Email: {$data['email']}";
-                            }
+                //             if (!empty($data['email'])) {
+                //                 $parts[] = "Email: {$data['email']}";
+                //             }
 
-                            if (!empty($data['pic_name'])) {
-                                $parts[] = "Name: {$data['pic_name']}";
-                            }
+                //             if (!empty($data['pic_name'])) {
+                //                 $parts[] = "Name: {$data['pic_name']}";
+                //             }
 
-                            if (!empty($data['pic_phone'])) {
-                                $parts[] = "Phone: {$data['pic_phone']}";
-                            }
+                //             if (!empty($data['pic_phone'])) {
+                //                 $parts[] = "Phone: {$data['pic_phone']}";
+                //             }
 
-                            if (!empty($data['courier_address'])) {
-                                $parts[] = "Address: {$data['courier_address']}";
-                            }
+                //             if (!empty($data['courier_address'])) {
+                //                 $parts[] = "Address: {$data['courier_address']}";
+                //             }
 
-                            // Return the formatted parts with HTML line breaks instead of pipes
-                            return !empty($parts)
-                                ? new HtmlString(implode('<br>', $parts))
-                                : 'No courier details';
-                        } elseif ($record->installation_type === 'internal_installation') {
-                            if (!empty($data['installer'])) {
-                                $installer = \App\Models\Installer::find($data['installer']);
-                                return $installer ? $installer->company_name : 'Unknown Installer';
-                            }
-                            return 'No installer selected';
-                        } elseif ($record->installation_type === 'external_installation') {
-                            $parts = [];
+                //             // Return the formatted parts with HTML line breaks instead of pipes
+                //             return !empty($parts)
+                //                 ? new HtmlString(implode('<br>', $parts))
+                //                 : 'No courier details';
+                //         } elseif ($record->installation_type === 'internal_installation') {
+                //             if (!empty($data['installer'])) {
+                //                 $installer = \App\Models\Installer::find($data['installer']);
+                //                 return $installer ? $installer->company_name : 'Unknown Installer';
+                //             }
+                //             return 'No installer selected';
+                //         } elseif ($record->installation_type === 'external_installation') {
+                //             $parts = [];
 
-                            // Display reseller company name
-                            if (!empty($data['reseller'])) {
-                                $reseller = \App\Models\Reseller::find($data['reseller']);
-                                if ($reseller) {
-                                    $parts[] = "<strong>{$reseller->company_name}</strong>";
-                                }
-                            }
+                //             // Display reseller company name
+                //             if (!empty($data['reseller'])) {
+                //                 $reseller = \App\Models\Reseller::find($data['reseller']);
+                //                 if ($reseller) {
+                //                     $parts[] = "<strong>{$reseller->company_name}</strong>";
+                //                 }
+                //             }
 
-                            // Display contact details that are stored in category2
-                            if (!empty($data['pic_name'])) {
-                                $parts[] = "Reseller Name: {$data['pic_name']}";
-                            }
+                //             // Display contact details that are stored in category2
+                //             if (!empty($data['pic_name'])) {
+                //                 $parts[] = "Reseller Name: {$data['pic_name']}";
+                //             }
 
-                            if (!empty($data['pic_phone'])) {
-                                $parts[] = "Phone: {$data['pic_phone']}";
-                            }
+                //             if (!empty($data['pic_phone'])) {
+                //                 $parts[] = "Phone: {$data['pic_phone']}";
+                //             }
 
-                            if (!empty($data['email'])) {
-                                $parts[] = "Email: {$data['email']}";
-                            }
+                //             if (!empty($data['email'])) {
+                //                 $parts[] = "Email: {$data['email']}";
+                //             }
 
-                            return !empty($parts)
-                                ? new HtmlString(implode('<br>', $parts))
-                                : 'No reseller details';
-                        }
+                //             return !empty($parts)
+                //                 ? new HtmlString(implode('<br>', $parts))
+                //                 : 'No reseller details';
+                //         }
 
-                        // Fallback for any other case
-                        return json_encode($data);
-                    })
-                    ->wrap()
-                    ->html() // Important: Add this to render the HTML content
-                    ->toggleable(isToggledHiddenByDefault: true),
+                //         // Fallback for any other case
+                //         return json_encode($data);
+                //     })
+                //     ->wrap()
+                //     ->html() // Important: Add this to render the HTML content
+                //     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
@@ -1134,19 +1132,20 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
                         ->form($this->defaultForm())
-                        ->action(function (HardwareHandover $record, array $data): void { //EDIT HARDWARE HANDOVER
-                            // dd($data);
+                        ->action(function (HardwareHandover $record, array $data): void {
+                            // Process the form data to handle any top-level fields that should be in category2
+                            $data = $this->processFormData($data);
+
                             $data['created_by'] = auth()->id();
                             $data['lead_id'] = $this->getOwnerRecord()->id;
                             $data['status'] = 'Draft';
 
-                            if (isset($data['category2'])) {
-                                $data['category2'] = json_encode($data['category2']);
-                            } else {
-                                $data['category2'] = json_encode([]);
+                            // Handle contact_detail encoding if it's not already handled by processFormData
+                            if(isset($data['contact_detail']) && is_array($data['contact_detail'])){
+                                $data['contact_detail'] = json_encode($data['contact_detail']);
                             }
 
-                            // Handle file array encodings
+                            // Handle file array encodings - keep only these that are needed
                             if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                                 $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
                             }
@@ -1155,29 +1154,22 @@ class HardwareHandoverRelationManager extends RelationManager
                                 $data['payment_slip_file'] = json_encode($data['payment_slip_file']);
                             }
 
-                            if (isset($data['installation_media']) && is_array($data['installation_media'])) {
-                                $data['installation_media'] = json_encode($data['installation_media']);
-                            }
-
-                            if (isset($data['proforma_invoice_number']) && is_array($data['proforma_invoice_number'])) {
-                                $data['proforma_invoice_number'] = json_encode($data['proforma_invoice_number']);
-                            }
-
-                            if (isset($data['invoice_type']) && $data['invoice_type'] === 'combined') {
-                                if (isset($data['related_software_handovers']) && is_array($data['related_software_handovers'])) {
-                                    $data['related_software_handovers'] = json_encode($data['related_software_handovers']);
-                                } else {
-                                    $data['related_software_handovers'] = json_encode([]);
-                                }
-                            } else {
-                                $data['related_software_handovers'] = null;
-                            }
-
                             if (isset($data['video_files']) && is_array($data['video_files'])) {
                                 $data['video_files'] = json_encode($data['video_files']);
                             }
 
-                            // Create the handover record
+                            if (isset($data['remarks']) && is_array($data['remarks'])) {
+                                foreach ($data['remarks'] as $key => $remark) {
+                                    // Encode the attachments array for each remark
+                                    if (isset($remark['attachments']) && is_array($remark['attachments'])) {
+                                        $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
+                                    }
+                                }
+                                // Encode the entire remarks structure
+                                $data['remarks'] = json_encode($data['remarks']);
+                            }
+
+                            // Update the record
                             $record->update($data);
 
                             // Generate PDF for non-draft handovers
@@ -1289,5 +1281,53 @@ class HardwareHandoverRelationManager extends RelationManager
 
         // No gaps found, return next ID after max
         return $maxId + 1;
+    }
+
+    protected function processFormData(array $data): array
+    {
+        // Handle contact details and personal information
+        // Make sure contact_detail fields aren't saved as top-level columns
+        $contactFields = ['pic_name', 'pic_phone', 'pic_email'];
+        $category2 = [];
+
+        // If category2 already exists and is JSON, decode it
+        if (isset($data['category2']) && is_string($data['category2'])) {
+            $category2 = json_decode($data['category2'], true) ?: [];
+        } elseif (isset($data['category2']) && is_array($data['category2'])) {
+            $category2 = $data['category2'];
+        }
+
+        // Move any standalone contact fields into category2
+        foreach ($contactFields as $field) {
+            if (isset($data[$field])) {
+                $category2[$field] = $data[$field];
+                unset($data[$field]); // Remove from top level
+            }
+        }
+
+        // Encode category2 back to JSON
+        $data['category2'] = json_encode($category2);
+
+        return $data;
+    }
+
+    protected function getCurrentRecordId()
+    {
+        // If mountedTableActionRecord is an object, get its ID property
+        if (isset($this->mountedTableActionRecord) && is_object($this->mountedTableActionRecord)) {
+            return $this->mountedTableActionRecord->id;
+        }
+
+        // If mountedTableActionRecord is directly the ID as a string/int
+        if (isset($this->mountedTableActionRecord)) {
+            return $this->mountedTableActionRecord;
+        }
+
+        // If we have a record property that's an object
+        if (isset($this->record) && is_object($this->record)) {
+            return $this->record->id;
+        }
+
+        return null;
     }
 }

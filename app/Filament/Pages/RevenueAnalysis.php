@@ -117,53 +117,7 @@ class RevenueAnalysis extends Page
 
     protected function getMonthlyStats(): array
     {
-        // Define week ranges for different years
-        $yearWeekRanges = [
-            2025 => [
-                1 => ['weeks' => 'W1-W5', 'weekCount' => 5],
-                2 => ['weeks' => 'W6-W9', 'weekCount' => 4],
-                3 => ['weeks' => 'W10-W13', 'weekCount' => 4],
-                4 => ['weeks' => 'W14-W18', 'weekCount' => 5],
-                5 => ['weeks' => 'W19-W22', 'weekCount' => 4],
-                6 => ['weeks' => 'W23-W26', 'weekCount' => 4],
-                7 => ['weeks' => 'W27-W31', 'weekCount' => 5],
-                8 => ['weeks' => 'W32-W35', 'weekCount' => 4],
-                9 => ['weeks' => 'W36-W39', 'weekCount' => 4],
-                10 => ['weeks' => 'W40-W44', 'weekCount' => 5],
-                11 => ['weeks' => 'W45-W48', 'weekCount' => 4],
-                12 => ['weeks' => 'W49-W52', 'weekCount' => 4],
-            ],
-            2026 => [
-                1 => ['weeks' => 'W1-W4', 'weekCount' => 4],
-                2 => ['weeks' => 'W5-W8', 'weekCount' => 4],
-                3 => ['weeks' => 'W9-W13', 'weekCount' => 5],
-                4 => ['weeks' => 'W14-W17', 'weekCount' => 4],
-                5 => ['weeks' => 'W18-W22', 'weekCount' => 5],
-                6 => ['weeks' => 'W23-W26', 'weekCount' => 4],
-                7 => ['weeks' => 'W27-W30', 'weekCount' => 4],
-                8 => ['weeks' => 'W31-W35', 'weekCount' => 5],
-                9 => ['weeks' => 'W36-W39', 'weekCount' => 4],
-                10 => ['weeks' => 'W40-W44', 'weekCount' => 5],
-                11 => ['weeks' => 'W45-W48', 'weekCount' => 4],
-                12 => ['weeks' => 'W49-W53', 'weekCount' => 5],
-            ],
-            2027 => [
-                1 => ['weeks' => 'W1-W5', 'weekCount' => 5],
-                2 => ['weeks' => 'W6-W9', 'weekCount' => 4],
-                3 => ['weeks' => 'W10-W13', 'weekCount' => 4],
-                4 => ['weeks' => 'W14-W17', 'weekCount' => 4],
-                5 => ['weeks' => 'W18-W22', 'weekCount' => 5],
-                6 => ['weeks' => 'W23-W26', 'weekCount' => 4],
-                7 => ['weeks' => 'W27-W31', 'weekCount' => 5],
-                8 => ['weeks' => 'W32-W35', 'weekCount' => 4],
-                9 => ['weeks' => 'W36-W39', 'weekCount' => 4],
-                10 => ['weeks' => 'W40-W44', 'weekCount' => 5],
-                11 => ['weeks' => 'W45-W48', 'weekCount' => 4],
-                12 => ['weeks' => 'W49-W52', 'weekCount' => 4],
-            ],
-        ];
-
-        // Month names are consistent across years
+        // Define month names
         $months = [
             1 => ['name' => 'January'],
             2 => ['name' => 'February'],
@@ -179,14 +133,8 @@ class RevenueAnalysis extends Page
             12 => ['name' => 'December'],
         ];
 
-        // Use default data for years not explicitly defined
-        $defaultWeekRanges = $yearWeekRanges[2025];
-
-        // Determine which week ranges to use based on selected year
-        $weekRanges = $yearWeekRanges[$this->selectedYear] ?? $defaultWeekRanges;
-
-        // Weekly target for demos
-        $weeklyTarget = 70;
+        // Monthly target for demos instead of weekly
+        $monthlyDemoTarget = 280; // You can adjust this as needed
 
         // Get appointment data for New Demo and Webinar Demo
         $appointmentData = $this->getAppointmentData();
@@ -197,24 +145,12 @@ class RevenueAnalysis extends Page
         $monthlyStats = [];
 
         foreach ($months as $monthNumber => $monthInfo) {
-            // Combine month name with week data for the selected year
-            $weekInfo = $weekRanges[$monthNumber];
-            $monthData = array_merge($monthInfo, $weekInfo);
-
             $rawNewDemoCount = $appointmentData['new_demo'][$monthNumber] ?? 0;
             $rawWebinarDemoCount = $appointmentData['webinar_demo'][$monthNumber] ?? 0;
 
-            // Calculate the total target for the month (70 per week * number of weeks)
-            $monthlyDemoTarget = $weeklyTarget * $monthData['weekCount'];
-
             // Calculate percentage achieved (actual/target * 100)
-            $newDemoPercentage = ($monthlyDemoTarget > 0)
-                ? round(($rawNewDemoCount / $monthlyDemoTarget) * 100)
-                : 0;
-
-            $webinarDemoPercentage = ($monthlyDemoTarget > 0)
-                ? round(($rawWebinarDemoCount / $monthlyDemoTarget) * 100)
-                : 0;
+            $newDemoPercentage = round(($rawNewDemoCount / $monthlyDemoTarget) * 100);
+            $webinarDemoPercentage = round(($rawWebinarDemoCount / $monthlyDemoTarget) * 100);
 
             // Get actual sales from the salesData
             $actualSales = $salesData[$monthNumber] ?? 0;
@@ -224,9 +160,7 @@ class RevenueAnalysis extends Page
             $difference = $actualSales - $salesTarget;
 
             $monthlyStats[$monthNumber] = [
-                'month_name' => $monthData['name'],
-                'weeks' => $monthData['weeks'],
-                'week_count' => $monthData['weekCount'],
+                'month_name' => $monthInfo['name'],
                 'new_demo_count' => $rawNewDemoCount,
                 'new_demo_percentage' => $newDemoPercentage,
                 'webinar_demo_count' => $rawWebinarDemoCount,
@@ -250,8 +184,18 @@ class RevenueAnalysis extends Page
         // Initialize result array with zeros for each month
         $salesData = array_fill(1, 12, 0);
 
-        // Get all invoices for the selected year
+        // Define excluded salespeople
+        $excludedSalespeople = ['TTCP', 'WIRSON'];
+
+        // Get all invoices for the selected year (excluding credit notes)
         $invoices = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
+            ->where(function ($query) use ($excludedSalespeople) {
+                // Include records where salesperson is NULL OR not in the excluded list
+                $query->whereNull('salesperson')
+                    ->orWhereNotIn('salesperson', $excludedSalespeople);
+            })
+            // Exclude credit notes (assuming invoice_no starts with 'ECN' for credit notes)
+            ->where('invoice_no', 'NOT LIKE', 'ECN%')
             ->select(
                 DB::raw('MONTH(invoice_date) as month'),
                 DB::raw('SUM(invoice_amount) as total_amount')
@@ -263,6 +207,27 @@ class RevenueAnalysis extends Page
         foreach ($invoices as $invoice) {
             $month = (int) $invoice->month;
             $salesData[$month] = (float) $invoice->total_amount;
+        }
+
+        // Subtract credit note amounts
+        $creditNotes = DB::table('credit_notes')
+            ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
+            ->where(function ($query) use ($excludedSalespeople) {
+                // Filter out excluded salespeople, matching the invoice filter
+                $query->whereNull('salesperson')
+                    ->orWhereNotIn('salesperson', $excludedSalespeople);
+            })
+            ->select(
+                DB::raw('MONTH(credit_note_date) as month'),
+                DB::raw('SUM(amount) as total_amount')
+            )
+            ->groupBy('month')
+            ->get();
+
+        // Subtract credit note amounts from the corresponding months
+        foreach ($creditNotes as $creditNote) {
+            $month = (int) $creditNote->month;
+            $salesData[$month] -= (float) $creditNote->total_amount;
         }
 
         return $salesData;

@@ -207,14 +207,14 @@
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('General')"
+                                        wire:click="toggleDashboard('Debtor')"
                                         style="
                                             display: block;
                                             width: 100%;
                                             padding: 10px 16px;
                                             text-align: left;
                                             border: none;
-                                            background: {{ $currentDashboard === 'General' ? '#f3f3f3' : 'white' }};
+                                            background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
                                             font-size: 14px;
                                         "
@@ -688,14 +688,14 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('General')"
+                                                wire:click="toggleDashboard('Debtor')"
                                                 style="
                                                     display: block;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'General' ? '#f3f3f3' : 'white' }};
+                                                    background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
                                                     cursor: pointer;
                                                     font-size: 14px;
                                                 "
@@ -902,14 +902,14 @@
                                         </button>
 
                                         <button
-                                            wire:click="toggleDashboard('General')"
+                                            wire:click="toggleDashboard('Debtor')"
                                             style="
                                                 display: block;
                                                 width: 100%;
                                                 padding: 10px 16px;
                                                 text-align: left;
                                                 border: none;
-                                                background: {{ $currentDashboard === 'General' ? '#f3f3f3' : 'white' }};
+                                                background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
                                                 cursor: pointer;
                                                 font-size: 14px;
                                             "
@@ -964,6 +964,8 @@
                             @include('filament.pages.adminrepair')
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
+                        @elseif ($currentDashboard === 'Debtor')
+                            @include('filament.pages.admindebtor')
                         @elseif ($currentDashboard === 'HardwareAdmin')
                             @include('filament.pages.hardwarehandover')
                         @elseif ($currentDashboard === 'Trainer')
