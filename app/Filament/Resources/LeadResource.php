@@ -596,6 +596,94 @@ class LeadResource extends Resource
                             }
                         });
                     }),
+                    
+                SelectFilter::make('state')
+                    ->label('')
+                    ->multiple()
+                    ->options(function () {
+                        // List of all states in Malaysia
+                        $malaysiaStates = [
+                            'Johor',
+                            'Kedah',
+                            'Kelantan',
+                            'Melaka',
+                            'Negeri Sembilan',
+                            'Pahang',
+                            'Penang',
+                            'Perak',
+                            'Perlis',
+                            'Sabah',
+                            'Sarawak',
+                            'Selangor',
+                            'Terengganu',
+                            'Kuala Lumpur',
+                            'Labuan',
+                            'Putrajaya',
+                        ];
+
+                        // // Get all unique states from the related company details
+                        // $dbStates = \App\Models\CompanyDetail::select('state')
+                        //     ->distinct()
+                        //     ->whereNotNull('state')
+                        //     ->pluck('state')
+                        //     ->toArray();
+
+                        // // Merge and deduplicate
+                        // $allStates = array_unique(array_merge($malaysiaStates, $dbStates));
+                        sort($malaysiaStates);
+
+                        // Add 'None' option at the top
+                        $options = ['Not applicable' => 'None'];
+                        foreach ($malaysiaStates as $state) {
+                            
+                            if($state === 'Kuala Lumpur')
+                            {
+                                $options['Wilayah persekutuan kuala lumpur'] = $state;
+                            }
+                            else if($state === 'Labuan')
+                            {
+                                $options['Wilayah persekutuan labuan'] = $state;
+                            }
+                            else if($state === 'Putrajaya')
+                            {
+                                $options['Wilayah persekutuan putrajaya'] = $state;
+                            }
+                            else if($state === 'Negeri Sembilan')
+                            {
+                                $options['Negeri sembilan'] = $state;
+                            }
+
+                            else 
+                            {
+                                $options[$state] = $state;
+                            }
+                            
+                        }
+                        return $options;
+                    })
+                    ->placeholder('Select State')
+                    ->query(function (Builder $query, array $data) {
+                        $values = collect($data)->flatten()->filter()->values();
+
+                        if ($values->isEmpty()) {
+                            return; // Don't filter if nothing selected
+                        }
+
+                        $query->whereHas('companyDetail', function ($q) use ($values) {
+                            // If 'none' is selected, include records with null state
+                            if ($values->contains('none')) {
+                                $q->whereNull('state');
+                                $filtered = $values->reject(fn ($val) => $val === 'none');
+                                if ($filtered->isNotEmpty()) {
+                                    $q->orWhereIn('state', $filtered->all());
+                                }
+                            } else {
+                                $q->whereIn('state', $values->all());
+                            }
+                        });
+                    })
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo'])),
+                    
                 Filter::make('deal_amount')
                     ->form([
                         Grid::make(3)
@@ -660,6 +748,10 @@ class LeadResource extends Resource
                         };
                     })
                     ->hidden(fn ($livewire) => $livewire->activeTab === 'demo'),
+                    
+                // Generate Filter for State
+                
+
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
                 ->columns([
