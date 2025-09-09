@@ -90,6 +90,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->searchable()
                         ->preload()
                         ->visible(fn (callable $get) => $get('invoice_type') === 'combined')
+                        ->required(fn (callable $get) => $get('invoice_type') === 'combined')
                         ->default(function (?HardwareHandover $record) {
                             if (!$record || !$record->related_software_handovers) {
                                 return [];

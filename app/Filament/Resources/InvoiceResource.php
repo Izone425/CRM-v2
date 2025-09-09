@@ -52,6 +52,7 @@ class InvoiceResource extends Resource
     {
         return $table
             ->defaultPaginationPageOption(50)
+            ->heading('Invoices')
             ->columns([
                 Tables\Columns\TextColumn::make('salesperson')
                     ->label('Salesperson')
@@ -132,6 +133,75 @@ class InvoiceResource extends Resource
                 ->orderBy('invoice_date', 'desc');
             })
             ->filters([
+                SelectFilter::make('payment_status')
+                    ->label('Payment Status')
+                    ->options([
+                        'UnPaid' => 'UnPaid',
+                        'Partial Payment' => 'Partial Payment',
+                        'Full Payment' => 'Full Payment',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        // Create subquery to get invoice numbers with specified payment status
+                        $subQuery = Invoice::query()
+                            ->select('invoice_no')
+                            ->groupBy('invoice_no')
+                            ->when($data['value'] === 'Full Payment', function ($query) {
+                                // For Full Payment: invoice_no NOT in debtor_agings OR outstanding = 0
+                                $query->whereNotIn('invoice_no', function ($q) {
+                                    $q->select('invoice_number')
+                                        ->from('debtor_agings')
+                                        ->where('outstanding', '>', 0);
+                                });
+                            })
+                            ->when($data['value'] === 'UnPaid', function ($query) {
+                                // For UnPaid: outstanding equals total invoice amount
+                                $query->whereIn('invoice_no', function ($q) {
+                                    $q->select('invoice_number')
+                                        ->from('debtor_agings')
+                                        ->whereRaw('outstanding = (
+                                            SELECT SUM(invoice_amount)
+                                            FROM invoices
+                                            WHERE invoice_no = invoice_number
+                                        )');
+                                });
+                            })
+                            ->when($data['value'] === 'Partial Payment', function ($query) {
+                                // For Partial Payment: outstanding < total amount but > 0
+                                $query->whereIn('invoice_no', function ($q) {
+                                    $q->select('invoice_number')
+                                        ->from('debtor_agings')
+                                        ->whereRaw('outstanding > 0')
+                                        ->whereRaw('outstanding < (
+                                            SELECT SUM(invoice_amount)
+                                            FROM invoices
+                                            WHERE invoice_no = invoice_number
+                                        )');
+                                });
+                            });
+
+                        // Filter main query to only include invoice numbers with the selected payment status
+                        return $query->whereIn('invoice_no', $subQuery);
+                    }),
+
+                SelectFilter::make('invoice_type')
+                    ->label('Invoice Type')
+                    ->options([
+                        'EPIN' => 'Product Invoice (EPIN)',
+                        'EHIN' => 'HRDF Invoice (EHIN)',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                function (Builder $query, $prefix): Builder {
+                                    return $query->where('invoice_no', 'like', $prefix . '%');
+                                }
+                            );
+                    }),
                 SelectFilter::make('salesperson')
                     ->label('Salesperson')
                     ->options(function () {

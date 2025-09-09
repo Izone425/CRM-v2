@@ -36,18 +36,19 @@
             background-color: #f3f4f6;
             color: #4b5563;
             font-weight: 600;
-            text-transform: uppercase;
             font-size: 1rem;
             letter-spacing: 0.05em;
             padding: 0.75rem 1rem;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
+            width: 16.66%; /* NO4: Make all columns equal width (1/6 = 16.66%) */
         }
 
         .analysis-table td {
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #e5e7eb;
             font-size: 1rem;
+            width: 16.66%; /* NO4: Make all columns equal width */
         }
 
         .analysis-table tr:hover {
@@ -190,7 +191,7 @@
                         <th style="text-align: center;">Webinar Demo</th>
                         <th style="text-align: right;">Actual Sales</th>
                         <th style="text-align: right;">Sales Target</th>
-                        <th style="text-align: right;">Difference</th>
+                        <th style="text-align: right;">Variance</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -225,10 +226,30 @@
                     <tr>
                         <td><strong>Total</strong></td>
                         <td class="text-center">
-                            <strong>{{ array_sum(array_column($monthlyStats, 'new_demo_count')) }}</strong>
+                            @php
+                                // NO3: Calculate average of new demo percentages instead of sum of counts
+                                $monthsWithData = count(array_filter($monthlyStats, function($month) {
+                                    return isset($month['new_demo_percentage']);
+                                }));
+
+                                $avgNewDemoPercentage = $monthsWithData > 0
+                                    ? round(array_sum(array_column($monthlyStats, 'new_demo_percentage')) / $monthsWithData)
+                                    : 0;
+                            @endphp
+                            <strong>{{ $avgNewDemoPercentage }}%</strong>
                         </td>
                         <td class="text-center">
-                            <strong>{{ array_sum(array_column($monthlyStats, 'webinar_demo_count')) }}</strong>
+                            @php
+                                // NO3: Calculate average of webinar demo percentages instead of sum of counts
+                                $monthsWithWebinarData = count(array_filter($monthlyStats, function($month) {
+                                    return isset($month['webinar_demo_percentage']);
+                                }));
+
+                                $avgWebinarDemoPercentage = $monthsWithWebinarData > 0
+                                    ? round(array_sum(array_column($monthlyStats, 'webinar_demo_percentage')) / $monthsWithWebinarData)
+                                    : 0;
+                            @endphp
+                            <strong>{{ $avgWebinarDemoPercentage }}%</strong>
                         </td>
                         <td class="text-right">
                             <strong>{{ number_format(array_sum(array_column($monthlyStats, 'actual_sales')), 2) }}</strong>

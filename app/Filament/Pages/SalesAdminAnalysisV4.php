@@ -204,6 +204,19 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
                     }),
             ])
             ->filters([
+                SelectFilter::make('task_status')
+                    ->label('Task Status')
+                    ->options([
+                        'Completed' => 'Completed',
+                        'Pending' => 'Pending',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                fn (Builder $query, $status): Builder => $query->where('task_status', $status)
+                            );
+                    }),
                 SelectFilter::make('staff_name')
                     ->label('Staff')
                     ->options($salesAdminStaffOptions)

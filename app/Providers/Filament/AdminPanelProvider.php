@@ -16,6 +16,8 @@ use App\Filament\Pages\DemoAnalysis;
 use App\Filament\Pages\DemoAnalysisTableForm;
 use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\DepartmentCalendar;
+use App\Filament\Pages\DevicePurchaseInformation;
+use App\Filament\Pages\DeviceStockInformation;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
@@ -292,6 +294,8 @@ class AdminPanelProvider extends PanelProvider
                 AdminRenewalRawData::class,
                 DebtorAgingRawData::class,
                 DebtorAgingProcessData::class,
+                DeviceStockInformation::class,
+                DevicePurchaseInformation::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

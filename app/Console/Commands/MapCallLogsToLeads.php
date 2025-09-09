@@ -35,8 +35,11 @@ class MapCallLogsToLeads extends Command
             ->whereNull('lead_id')
             ->where('call_type', 'incoming')
             ->where(function($query) {
-                $query->where('caller_number', 'Anonymous')
-                    ->whereIn('receiver_number', ['306', '343']); // Only consider calls to extensions 306 or 343
+                $query->where(function($innerQuery) {
+                    $innerQuery->where('caller_number', 'Anonymous')
+                        ->orWhere('caller_name', 'Anonymous');
+                })
+                ->whereIn('receiver_number', ['306', '343']);
             })
             ->get();
 

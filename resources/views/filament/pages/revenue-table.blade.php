@@ -29,7 +29,7 @@
             <table class="w-full border-collapse revenue-table">
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 text-left border border-gray-400">{{ $selectedYear }}</th>
+                        <th class="px-4 py-2 border border-gray-400">{{ $selectedYear }}</th>
                         @foreach($salespeople as $person)
                             <th class="px-4 py-2 bg-yellow-200 border border-gray-400">{{ $person }}</th>
                         @endforeach
@@ -64,7 +64,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td class="px-4 py-2 font-bold text-left border border-gray-400">TOTAL</td>
+                        <td class="px-4 py-2 font-bold text-left border border-gray-400">Total</td>
 
                         @foreach($salespeople as $person)
                             <td class="px-4 py-2 border border-gray-400 numeric footer-total">

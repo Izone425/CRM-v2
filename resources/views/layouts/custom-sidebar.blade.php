@@ -865,6 +865,11 @@
                             @endif
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Sales Debtor</span>
+                                </a>
+                            @endif
+                            @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                     <span class="module-font">Sales Order</span>
                                 </a>
                             @endif
@@ -877,7 +882,7 @@
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-clipboard2-data"></i>
                             </div>
-                            <span class="menu-text">Analysis</span>
+                            <span class="menu-text">Leads & Demo</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -907,7 +912,7 @@
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-cash-stack"></i>
                             </div>
-                            <span class="menu-text">Sales</span>
+                            <span class="menu-text">Forecast & Revenue</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -937,7 +942,7 @@
                                 <div class="menu-icon-wrapper">
                                     <i class="bi bi-tags"></i>
                                 </div>
-                                <span class="menu-text">Pricing</span>
+                                <span class="menu-text">Sales Pricing</span>
                             </a>
                         </div>
                     @endif
@@ -947,7 +952,7 @@
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-file-text"></i>
                             </div>
-                            <span class="menu-text">Policy</span>
+                            <span class="menu-text">Sales Policy</span>
                         </a>
                     </div>
 
@@ -957,7 +962,7 @@
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-inbox"></i>
                             </div>
-                            <span class="menu-text">Request</span>
+                            <span class="menu-text">Sales Request</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -1192,23 +1197,6 @@
                         </div>
                     </div>
 
-                    <!-- Admin Finance Section -->
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-finance-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
-                            </div>
-                            <span class="menu-text">Admin - Finance</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
-
-                        <div class="submenu" id="admin-finance-submenu">
-                            <div class="submenu-item">
-                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Admin HRDF Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-hrdf-submenu">
@@ -1220,6 +1208,23 @@
                         </div>
 
                         <div class="submenu" id="admin-hrdf-submenu">
+                            <div class="submenu-item">
+                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Finance Section -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-finance-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Admin - Finance</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="admin-finance-submenu">
                             <div class="submenu-item">
                                 <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
                             </div>
@@ -1467,7 +1472,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="internal-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-building"></i>
+                                <i class="bi-box-arrow-in-down-right"></i>
                             </div>
                             <span class="menu-text">TimeTec HR - Internal</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1486,7 +1491,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="external-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-globe"></i>
+                                <i class="bi bi-box-arrow-up-right"></i>
                             </div>
                             <span class="menu-text">TimeTec HR - External</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
