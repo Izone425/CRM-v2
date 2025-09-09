@@ -829,6 +829,12 @@
                             <a href="{{ route('filament.admin.pages.implementer-calendar') }}" class="submenu-item">
                                 <span class="module-font">Implementer Calendar</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.support-calendar') }}" class="submenu-item">
+                                <span class="module-font">Support Calendar</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.technician-calendar') }}" class="submenu-item">
+                                <span class="module-font">Technician Calendar</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
                                 <span class="module-font">Department Calendar</span>
                             </a>
@@ -917,6 +923,9 @@
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                 <a href="{{ route('filament.admin.pages.revenue') }}" class="submenu-item">
                                     <span class="module-font">Revenue</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.revenue-analysis') }}" class="submenu-item">
+                                    <span class="module-font">Revenue Analysis</span>
                                 </a>
                             @endif
                         </div>
@@ -1311,7 +1320,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-followup-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-dot"></i>
+                                    <i class="bi bi-file-text"></i>
                                 </div>
                                 <span class="menu-text">Follow Up Template</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1319,6 +1328,7 @@
 
                             <div class="submenu" id="implementer-followup-submenu">
                                 <a href="{{ route('filament.admin.resources.email-templates.index') }}" class="submenu-item">
+                                    <i class="bi bi-sliders2 submenu-icon"></i>
                                     <span class="module-font">By Default</span>
                                 </a>
                             </div>
@@ -1431,6 +1441,9 @@
                                 </a>
                                 <a href="{{ route('filament.admin.pages.demo-analysis-table-form') }}" class="submenu-item">
                                     <span class="module-font">Demo Analysis</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.revenue') }}" class="submenu-item">
+                                    <span class="module-font">Revenue</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.revenue-analysis') }}" class="submenu-item">
                                     <span class="module-font">Revenue Analysis</span>

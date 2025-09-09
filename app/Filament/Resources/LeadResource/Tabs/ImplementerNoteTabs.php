@@ -31,7 +31,6 @@ class ImplementerNoteTabs
             Grid::make(1)
                 ->schema([
                     Section::make('Implementer Notes')
-                        ->description('View and add notes about this Project')
                         ->icon('heroicon-o-document-text')
                         ->headerActions([
                             Action::make('add_note')

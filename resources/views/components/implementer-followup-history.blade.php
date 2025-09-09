@@ -164,7 +164,24 @@
 
                                     <div class="mt-3">
                                         <div class="p-3 mt-1 text-sm prose rounded max-w-none bg-gray-50">
-                                            {!! strtoupper($followUp->remark) !!}
+                                            @php
+                                                $remark = $followUp->remark;
+
+                                                // Convert literal "&nbsp;" text to actual non-breaking spaces
+                                                $remark = str_replace('&nbsp;', ' ', $remark);
+                                                $remark = str_replace('&amp;nbsp;', ' ', $remark);
+
+                                                // Handle any other common HTML entities that might be causing issues
+                                                $remark = str_replace('&amp;', '&', $remark);
+
+                                                // Final decode of any remaining entities
+                                                $remark = html_entity_decode($remark, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                                                // Convert to uppercase after all decoding is done
+                                                $remark = strtoupper($remark);
+                                            @endphp
+
+                                            {!! $remark !!}
                                         </div>
                                     </div>
                                 </div>

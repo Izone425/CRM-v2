@@ -1357,7 +1357,7 @@
                                             <div class="appointment-card-bar"></div>
                                             <div class="appointment-card-info">
                                                 <div class="appointment-demo-type">
-                                                    {{ str_replace(' SESSION', '', $sessionDetails['appointment']->type) }}
+                                                    {{ $sessionDetails['appointment']->type !== 'REVIEW SESSION' ? str_replace(' SESSION', '', $sessionDetails['appointment']->type) : 'REVIEW SESSION' }}
                                                 </div>
                                                 <div class="appointment-appointment-type">
                                                     {{ $sessionDetails['appointment']->appointment_type }}
@@ -1440,7 +1440,7 @@
                                         <div class="available-session-info">
                                             <!-- Appointment content -->
                                             <div class="appointment-demo-type">
-                                                {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                {{ $appointment->type !== 'REVIEW SESSION' ? str_replace(' SESSION', '', $appointment->type) : 'REVIEW SESSION' }}
                                             </div>
                                             <!-- Rest of appointment content -->
                                         </div>
@@ -1477,7 +1477,7 @@
                                                 <div class="available-session-bar"></div>
                                                 <div class="available-session-info">
                                                     <div class="appointment-demo-type">
-                                                        {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                        {{ $appointment->type !== 'REVIEW SESSION' ? str_replace(' SESSION', '', $appointment->type) : 'REVIEW SESSION' }}
                                                     </div>
                                                     <div class="appointment-appointment-type">
                                                         {{ $appointment->appointment_type }}
@@ -1554,7 +1554,7 @@
                                                 <div class="available-session-bar"></div>
                                                 <div class="available-session-info">
                                                     <div class="appointment-demo-type">
-                                                        {{ str_replace(' SESSION', '', $appointment->type) }}
+                                                        {{ $appointment->type !== 'REVIEW SESSION' ? str_replace(' SESSION', '', $appointment->type) : 'REVIEW SESSION' }}
                                                     </div>
                                                     <div class="appointment-appointment-type">
                                                         {{ $appointment->appointment_type }}
@@ -1708,7 +1708,7 @@
                             <option value="">-- Select Onsite Category --</option>
                             <option value="ONSITE TRAINING">Onsite Training</option>
                             <option value="ONSITE KICK OFF MEETING">Onsite Kick Off Meeting</option>
-                            <option value="ONSITE REVIEW SESSION">Onsite REVIEW SESSION</option>
+                            <option value="ONSITE REVIEW SESSION">Onsite Review SESSION</option>
                             <option value="ONSITE PROOF OF CONCEPT">Onsite Proof Of Concept</option>
                             <option value="ONSITE BUSINESS TRIP">Onsite Business Trip</option>
                         </select>

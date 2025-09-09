@@ -37,8 +37,7 @@ class ImplementerFollowUpTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Follow-up Records')
-                        ->description('View and add follow-up tasks for this Project')
+                    Section::make('Implementer Follow Up')
                         ->icon('heroicon-o-clipboard-document-check')
                         ->headerActions([
                             Action::make('add_follow_up')

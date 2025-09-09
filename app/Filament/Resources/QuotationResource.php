@@ -472,8 +472,19 @@ class QuotationResource extends Resource
                                         return $query->get()
                                             ->groupBy('solution')
                                             ->mapWithKeys(function ($group, $solution) {
+                                                // Map solution names to their display labels
+                                                $solutionLabels = [
+                                                    'free_device' => 'Free Device',
+                                                    'door_access_package' => 'Door Access Package',
+                                                    'door_access_accesories' => 'Door Access Accessories',
+                                                    // Keep other solutions with standard formatting
+                                                ];
+
+                                                // Use custom label if defined, otherwise convert to title case
+                                                $displayLabel = $solutionLabels[strtolower($solution)] ?? ucfirst($solution);
+
                                                 return [
-                                                    ucfirst($solution) => $group->pluck('code', 'id'),
+                                                    $displayLabel => $group->pluck('code', 'id'),
                                                 ];
                                             })
                                             ->toArray();

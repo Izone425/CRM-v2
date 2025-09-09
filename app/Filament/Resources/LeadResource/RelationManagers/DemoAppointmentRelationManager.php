@@ -796,7 +796,7 @@ class DemoAppointmentRelationManager extends RelationManager
                         'causer_id' => auth()->user()->id,
                         'salesperson_assigned_date' => now(),
                         'remarks' => $data['remarks'],
-                        'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . $lead->companyDetail->company_name,
+                        'title' => $data['type']. ' | '. $data['appointment_type']. ' | TIMETEC HR | ' . ($lead->companyDetail->company_name ?? $lead->company_name ?? 'Unknown Company'),
                         'required_attendees' => json_encode($data['required_attendees']), // Serialize to JSON
                         // 'optional_attendees' => json_encode($data['optional_attendees']),
                         // 'location' => $data['location'] ?? null,
