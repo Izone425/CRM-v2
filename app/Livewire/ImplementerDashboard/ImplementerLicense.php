@@ -331,11 +331,6 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         // Get company email from the record
                                         $companyEmail = $record->lead->companyDetail->email ?? $record->lead->email ?? null;
 
-                                        // If there's a valid company email, add it
-                                        if ($companyEmail && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
-                                            $recipients[] = ['email' => $companyEmail];
-                                        }
-
                                         // Process implementation_pics if available
                                         if ($record->implementation_pics) {
                                             try {
@@ -346,6 +341,11 @@ class ImplementerLicense extends Component implements HasForms, HasTable
 
                                                 if (is_array($implementationPics)) {
                                                     foreach ($implementationPics as $pic) {
+                                                        // Skip entries with "Resign" status
+                                                        if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                                                            continue;
+                                                        }
+
                                                         // Extract email from pic_email_impl field
                                                         if (isset($pic['pic_email_impl']) &&
                                                             !empty($pic['pic_email_impl']) &&
@@ -373,8 +373,50 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                             }
                                         }
 
+                                        // Process additional_pic from company details if available
+                                        if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->additional_pic) {
+                                            try {
+                                                // Parse the additional_pic field
+                                                $additionalPics = is_array($record->lead->companyDetail->additional_pic)
+                                                    ? $record->lead->companyDetail->additional_pic
+                                                    : json_decode($record->lead->companyDetail->additional_pic, true);
+
+                                                if (is_array($additionalPics)) {
+                                                    foreach ($additionalPics as $pic) {
+                                                        // Skip entries with "Resign" status
+                                                        if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                                                            continue;
+                                                        }
+
+                                                        // Extract email field
+                                                        if (isset($pic['email']) &&
+                                                            !empty($pic['email']) &&
+                                                            filter_var($pic['email'], FILTER_VALIDATE_EMAIL)) {
+
+                                                            // Check for duplicate emails
+                                                            $emailExists = false;
+                                                            foreach ($recipients as $recipient) {
+                                                                if ($recipient['email'] === $pic['email']) {
+                                                                    $emailExists = true;
+                                                                    break;
+                                                                }
+                                                            }
+
+                                                            // Only add if not a duplicate
+                                                            if (!$emailExists) {
+                                                                $recipients[] = ['email' => $pic['email']];
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                // Log the error but continue
+                                                \Illuminate\Support\Facades\Log::error("Error parsing additional_pic: " . $e->getMessage());
+                                            }
+                                        }
+
                                         return empty($recipients) ? [['email' => '']] : $recipients;
-                                    }),
+                                    })
                             ]),
                         ])
                         ->modalHeading("Create License Duration")

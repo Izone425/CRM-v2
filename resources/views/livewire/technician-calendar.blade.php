@@ -423,317 +423,331 @@
         }
     </style>
 
-
-<div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
-    <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
-        style="width:70%;">
-        <h3> Filter </h3><br>
-
-        {{-- Status Filter --}}
-        <div class="relative w-full">
-            <form>
-                <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                    @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedStatus'),
-                        allSelected: @entangle('allStatusSelected'),
-                        get label() {
-                            if (this.allSelected) return 'All Status'
-                            else if (this.selected.length <= 0) return 'All Status'
-                            else return this.selected.join(',');
-                        }
-                    }">
-                    <!-- Trigger Button -->
-                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                        <span x-text="label" class="truncate"></span>
-                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-
-                    <!-- Dropdown List -->
-                    <div x-show="open"
-                        class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                        style="display: none;">
-                        <ul class="py-1">
-                            <!-- Select All Checkbox -->
-                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                <input type="checkbox" wire:model.live="allStatusSelected"
-                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                <label class="block ml-3 text-sm font-medium text-gray-700"
-                                    style="padding-left: 10px;">
-                                    All Status
-                                </label>
-                            </li>
-
-                            <!-- Individual Status Options -->
-                            @foreach ($status as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedStatus"
-                                        value="{{ $row }}"
-                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}"
-                                        class="block ml-3 text-sm font-medium text-gray-700"
-                                        style="padding-left: 10px;">
-                                        {{ $row }}
-                                    </label>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        {{-- Date Picker --}}
-        <div x-data="weeklyPicker()" class="w-36">
-            <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
-                class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-        </div>
-
-        {{-- Repair Type Filter --}}
-        <div class="relative w-full">
-            <form>
-                <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                    @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedRepairType'),
-                        allSelected: @entangle('allRepairTypeSelected'),
-                        get label() {
-                            if (this.allSelected) return 'All Repair Types'
-                            else if (this.selected.length <= 0) return 'All Repair Types'
-                            else return this.selected.join(',');
-                        }
-                    }">
-                    <!-- Trigger Button -->
-                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                        <span x-text="label" class="truncate"></span>
-                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-
-                    <!-- Dropdown List -->
-                    <div x-show="open"
-                        class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                        style="display: none;">
-                        <ul class="py-1">
-                            <!-- Select All Checkbox -->
-                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                <input type="checkbox" wire:model.live="allRepairTypeSelected"
-                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                <label class="block ml-3 text-sm font-medium text-gray-700"
-                                    style="padding-left: 10px;">
-                                    All Repair Types
-                                </label>
-                            </li>
-
-                            <!-- Individual Repair Types -->
-                            @foreach ($repairTypes as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedRepairType"
-                                        value="{{ $row }}"
-                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}"
-                                        class="block ml-3 text-sm font-medium text-gray-700"
-                                        style="padding-left: 10px;">
-                                        {{ $row }}
-                                    </label>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        {{-- Technicians Filter --}}
-        <div class="relative w-full">
-            <form>
-                <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                    @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedTechnicians'),
-                        allSelected: @entangle('allTechniciansSelected'),
-                        get label() {
-                            if (this.allSelected)
-                                return 'All Technicians';
-                            else if (this.selected.length <= 0)
-                                return 'All Technicians';
-                            else
-                                return this.selected.length + ' Technicians';
-                        }
-                    }">
-
-                    <!-- Trigger Button -->
-                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                        <span x-text="label" class="truncate"></span>
-                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-
-                    <!-- Dropdown List -->
-                    <div x-show="open"
-                        class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
-                        style="display: none; height: 30vh">
-                        <ul class="py-1">
-                            <!-- Select All Checkbox -->
-                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                <input type="checkbox" wire:model.live="allTechniciansSelected"
-                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
-                                    @if (auth()->user()->role_id == 9) disabled @endif />
-                                <label class="block ml-3 text-sm font-medium text-gray-700"
-                                    style="padding-left: 10px;">
-                                    All Technicians
-                                </label>
-                            </li>
-
-                            <!-- Individual Technicians -->
-                            @foreach ($technicians as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedTechnicians"
-                                        value="{{ $row['name'] }}"
-                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
-                                        @if (auth()->user()->role_id == 9) disabled @endif />
-                                    <label for="checkbox-{{ $row['id'] }}"
-                                        class="block ml-3 text-sm font-medium text-gray-700"
-                                        style="padding-left: 10px;">
-                                        {{ $row['name'] }}
-                                    </label>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        {{-- Appointment Type Filter --}}
-        <div class="relative w-full">
-            <form>
-                <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                    @click.away="open = false" x-data="{
-                        open: false,
-                        selected: @entangle('selectedAppointmentType'),
-                        allSelected: @entangle('allAppointmentTypeSelected'),
-                        get label() {
-                            if (this.allSelected)
-                                return 'All Appointment Types'
-                            else if (this.selected.length <= 0)
-                                return 'All Appointment Types'
-                            else
-                                return this.selected.join(',');
-                        }
-                    }">
-                    <!-- Trigger Button -->
-                    <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                        <span x-text="label" class="truncate"></span>
-                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-
-                    <!-- Dropdown List -->
-                    <div x-show="open"
-                        class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                        style="display: none;">
-                        <ul class="py-1">
-                            <!-- Select All Checkbox -->
-                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                <input type="checkbox" wire:model.live="allAppointmentTypeSelected"
-                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                <label class="block ml-3 text-sm font-medium text-gray-700"
-                                    style="padding-left: 10px;">
-                                    All Appointment Types
-                                </label>
-                            </li>
-
-                            <!-- Individual Appointment Types -->
-                            @foreach ($appointmentTypes as $row)
-                                <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                    <input type="checkbox" wire:model.live="selectedAppointmentType"
-                                        value="{{ $row }}"
-                                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                    <label for="checkbox-{{ $row }}"
-                                        class="block ml-3 text-sm font-medium text-gray-700"
-                                        style="padding-left: 10px;">
-                                        {{ $row }}
-                                    </label>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        {{-- @if(auth()->user()->role_id !== 9)
-            <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
-                <input type="checkbox" wire:model.change="showDropdown">
-                <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
-            </div>
-        @endif --}}
+<div x-data="{ filterExpanded: true }">
+    <!-- Title and Toggle Button -->
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold">Technician Calendar</h2>
+        <button @click="filterExpanded = !filterExpanded"
+                class="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                <span x-text="filterExpanded ? 'Hide Ribbons' : 'Show Ribbons'"></span>&nbsp;
+            <i class="ml-1 fa-solid" :class="filterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
     </div>
 
-    <!-- Repair Breakdown -->
-    <div class="w-full max-w-6xl p-6 mx-auto bg-white shadow-md rounded-xl">
-        <div class="flex gap-6">
+    <!-- Filter and Badges Section - Collapsible -->
+    <div x-show="filterExpanded" x-transition.duration.300ms>
+        <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
+            <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
+                style="width:70%;">
+                <h3> Filter </h3><br>
 
-            <!-- Repair Type -->
-            <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                <h3 class="text-lg font-semibold">Technician & Reseller (Category)</h3>
-                <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
+                {{-- Status Filter --}}
+                <div class="relative w-full">
+                    <form>
+                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                            @click.away="open = false" x-data="{
+                                open: false,
+                                selected: @entangle('selectedStatus'),
+                                allSelected: @entangle('allStatusSelected'),
+                                get label() {
+                                    if (this.allSelected) return 'All Status'
+                                    else if (this.selected.length <= 0) return 'All Status'
+                                    else return this.selected.join(',');
+                                }
+                            }">
+                            <!-- Trigger Button -->
+                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                <span x-text="label" class="truncate"></span>
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
 
-                @foreach ([
-                    'NEW INSTALLATION' => '#71eb71',
-                    'REPAIR' => '#ffff5cbf',
-                    'SITE SURVEY' => '#ffa83c',
-                    'INTERNAL TECHNICIAN TASK' => '#60a5fa'
-                ] as $type => $color)
-                    @php
-                        $count = $repairBreakdown[$type] ?? 0;
-                        $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
-                    @endphp
+                            <!-- Dropdown List -->
+                            <div x-show="open"
+                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                style="display: none;">
+                                <ul class="py-1">
+                                    <!-- Select All Checkbox -->
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="allStatusSelected"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            All Status
+                                        </label>
+                                    </li>
 
-                    <div class="flex justify-between mt-2 text-sm">
-                        <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
-                        <span>{{ $count }} ({{ $percentage }}%)</span>
+                                    <!-- Individual Status Options -->
+                                    @foreach ($status as $row)
+                                        <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                            <input type="checkbox" wire:model.live="selectedStatus"
+                                                value="{{ $row }}"
+                                                class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                            <label for="checkbox-{{ $row }}"
+                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                                style="padding-left: 10px;">
+                                                {{ $row }}
+                                            </label>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Date Picker --}}
+                <div x-data="weeklyPicker()" class="w-36">
+                    <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
+                        class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+
+                {{-- Repair Type Filter --}}
+                <div class="relative w-full">
+                    <form>
+                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                            @click.away="open = false" x-data="{
+                                open: false,
+                                selected: @entangle('selectedRepairType'),
+                                allSelected: @entangle('allRepairTypeSelected'),
+                                get label() {
+                                    if (this.allSelected) return 'All Repair Types'
+                                    else if (this.selected.length <= 0) return 'All Repair Types'
+                                    else return this.selected.join(',');
+                                }
+                            }">
+                            <!-- Trigger Button -->
+                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                <span x-text="label" class="truncate"></span>
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+
+                            <!-- Dropdown List -->
+                            <div x-show="open"
+                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                style="display: none;">
+                                <ul class="py-1">
+                                    <!-- Select All Checkbox -->
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="allRepairTypeSelected"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            All Repair Types
+                                        </label>
+                                    </li>
+
+                                    <!-- Individual Repair Types -->
+                                    @foreach ($repairTypes as $row)
+                                        <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                            <input type="checkbox" wire:model.live="selectedRepairType"
+                                                value="{{ $row }}"
+                                                class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                            <label for="checkbox-{{ $row }}"
+                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                                style="padding-left: 10px;">
+                                                {{ $row }}
+                                            </label>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Technicians Filter --}}
+                <div class="relative w-full">
+                    <form>
+                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                            @click.away="open = false" x-data="{
+                                open: false,
+                                selected: @entangle('selectedTechnicians'),
+                                allSelected: @entangle('allTechniciansSelected'),
+                                get label() {
+                                    if (this.allSelected)
+                                        return 'All Technicians';
+                                    else if (this.selected.length <= 0)
+                                        return 'All Technicians';
+                                    else
+                                        return this.selected.length + ' Technicians';
+                                }
+                            }">
+
+                            <!-- Trigger Button -->
+                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                <span x-text="label" class="truncate"></span>
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+
+                            <!-- Dropdown List -->
+                            <div x-show="open"
+                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
+                                style="display: none; height: 30vh">
+                                <ul class="py-1">
+                                    <!-- Select All Checkbox -->
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="allTechniciansSelected"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                            @if (auth()->user()->role_id == 9) disabled @endif />
+                                        <label class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            All Technicians
+                                        </label>
+                                    </li>
+
+                                    <!-- Individual Technicians -->
+                                    @foreach ($technicians as $row)
+                                        <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                            <input type="checkbox" wire:model.live="selectedTechnicians"
+                                                value="{{ $row['name'] }}"
+                                                class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                                @if (auth()->user()->role_id == 9) disabled @endif />
+                                            <label for="checkbox-{{ $row['id'] }}"
+                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                                style="padding-left: 10px;">
+                                                {{ $row['name'] }}
+                                            </label>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Appointment Type Filter --}}
+                <div class="relative w-full">
+                    <form>
+                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                            @click.away="open = false" x-data="{
+                                open: false,
+                                selected: @entangle('selectedAppointmentType'),
+                                allSelected: @entangle('allAppointmentTypeSelected'),
+                                get label() {
+                                    if (this.allSelected)
+                                        return 'All Appointment Types'
+                                    else if (this.selected.length <= 0)
+                                        return 'All Appointment Types'
+                                    else
+                                        return this.selected.join(',');
+                                }
+                            }">
+                            <!-- Trigger Button -->
+                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                <span x-text="label" class="truncate"></span>
+                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+
+                            <!-- Dropdown List -->
+                            <div x-show="open"
+                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                style="display: none;">
+                                <ul class="py-1">
+                                    <!-- Select All Checkbox -->
+                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                        <input type="checkbox" wire:model.live="allAppointmentTypeSelected"
+                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                        <label class="block ml-3 text-sm font-medium text-gray-700"
+                                            style="padding-left: 10px;">
+                                            All Appointment Types
+                                        </label>
+                                    </li>
+
+                                    <!-- Individual Appointment Types -->
+                                    @foreach ($appointmentTypes as $row)
+                                        <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                            <input type="checkbox" wire:model.live="selectedAppointmentType"
+                                                value="{{ $row }}"
+                                                class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                            <label for="checkbox-{{ $row }}"
+                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                                style="padding-left: 10px;">
+                                                {{ $row }}
+                                            </label>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- @if(auth()->user()->role_id !== 9)
+                    <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
+                        <input type="checkbox" wire:model.change="showDropdown">
+                        <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
                     </div>
-
-                    <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
-                        <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                    </div>
-                @endforeach
+                @endif --}}
             </div>
 
-            <!-- Repair Status -->
-            <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                <h3 class="text-lg font-semibold">Technician & Reseller (Status)</h3>
-                <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
+            <!-- Repair Breakdown -->
+            <div class="w-full max-w-6xl p-6 mx-auto bg-white shadow-md rounded-xl">
+                <div class="flex gap-6">
 
-                @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
-                    @php
-                        $count = $totalRepairs[$status] ?? 0;
-                        $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
-                    @endphp
+                    <!-- Repair Type -->
+                    <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-semibold">Technician & Reseller (Category)</h3>
+                        <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
 
-                    <div class="flex justify-between mt-2 text-sm">
-                        <span>{{ ucfirst(strtolower($status)) }}</span>
-                        <span>{{ $count }} ({{ $percentage }}%)</span>
+                        @foreach ([
+                            'NEW INSTALLATION' => '#71eb71',
+                            'REPAIR' => '#ffff5cbf',
+                            'SITE SURVEY' => '#ffa83c',
+                            'INTERNAL TECHNICIAN TASK' => '#60a5fa'
+                        ] as $type => $color)
+                            @php
+                                $count = $repairBreakdown[$type] ?? 0;
+                                $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
+                            @endphp
+
+                            <div class="flex justify-between mt-2 text-sm">
+                                <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+
+                            <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
+                                <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
+                        @endforeach
                     </div>
-                    <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
-                        <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+
+                    <!-- Repair Status -->
+                    <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-semibold">Technician & Reseller (Status)</h3>
+                        <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
+
+                        @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
+                            @php
+                                $count = $totalRepairs[$status] ?? 0;
+                                $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
+                            @endphp
+
+                            <div class="flex justify-between mt-2 text-sm">
+                                <span>{{ ucfirst(strtolower($status)) }}</span>
+                                <span>{{ $count }} ({{ $percentage }}%)</span>
+                            </div>
+                            <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
+                                <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
     </div>
