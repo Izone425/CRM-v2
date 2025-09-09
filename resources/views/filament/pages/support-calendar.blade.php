@@ -11,6 +11,8 @@
             padding: 0.75rem 0.5rem;
             border-right: 1px solid #d1d5db;
             border-bottom: 1px solid #d1d5db;
+            width: 16.66%; /* REQUEST 1: Equal width for all headers (1/6 = 16.66%) */
+            text-align: center; /* Center text for better appearance */
         }
 
         /* Current month styling */
@@ -28,6 +30,7 @@
             font-size: 0.875rem;
             border-right: 1px solid #d1d5db;
             border-bottom: 1px solid #d1d5db;
+            width: 16.66%; /* REQUEST 1: Equal width for all headers (1/6 = 16.66%) */
         }
 
         /* Date cell styling */
@@ -51,16 +54,16 @@
             border-radius: 0.25rem;
         }
 
-        /* Unassigned styling - now yellow */
+        /* Unassigned styling - now dark grey (REQUEST 2) */
         .unassigned {
-            background-color: #fff6b3; /* Yellow for unassigned */
-            color: #854d0e; /* Darker text for contrast */
+            background-color: #4b5563; /* Dark grey for unassigned */
+            color: #f9fafb; /* Light text for contrast */
             font-style: italic;
         }
 
         /* Assigned styling - now gray */
         .assigned {
-            background-color: #fecaca; /* Gray for assigned */
+            background-color: #fecaca; /* Light red for assigned */
             color: #374151;
         }
 
@@ -115,7 +118,7 @@
         <table class="w-full border border-gray-300">
             <thead>
                 <tr>
-                    <th class="w-24 month-cell">
+                    <th class="month-cell">
                         {{ $selectedYear }}
                     </th>
                     @php
@@ -127,7 +130,7 @@
                     @endphp
                     @for ($w = 1; $w <= $maxWeeks; $w++)
                         <th class="week-header">
-                            W{{ $w }}
+                            Week {{ $w }} <!-- REQUEST 3: Changed from W1 to Week 1 format -->
                         </th>
                     @endfor
                 </tr>

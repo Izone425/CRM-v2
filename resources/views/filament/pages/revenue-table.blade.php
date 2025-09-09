@@ -2,7 +2,7 @@
     <div class="revenue-container">
         <div class="header-actions">
             <div class="flex items-center justify-between gap-4 mb-4">
-                <h2 class="text-xl font-bold text-gray-800">Revenue by Year</h2>
+                <h2 class="text-xl font-bold text-gray-800">TimeTec HR - Sales Revenue</h2>
 
                 <div class="flex items-center gap-4">
                     <div class="filters">

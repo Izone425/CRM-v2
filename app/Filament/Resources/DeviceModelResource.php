@@ -82,6 +82,7 @@ class DeviceModelResource extends Resource
 
                 Tables\Columns\ToggleColumn::make('is_active')
                     ->label('Active')
+                    ->disabled()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -112,8 +113,10 @@ class DeviceModelResource extends Resource
                     ->label('Status'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalHeading('Edit Product')
+                    ->closeModalByClickingAway(false)
+                    ->hidden(fn(): bool => !auth()->user()->hasRouteAccess('filament.admin.resources.products.edit')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -150,6 +153,17 @@ class DeviceModelResource extends Resource
             'create' => Pages\CreateDeviceModel::route('/create'),
             'edit' => Pages\EditDeviceModel::route('/{record}/edit'),
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->hasRouteAccess('filament.admin.resources.products.create');
     }
 
     public static function getNavigationBadge(): ?string
