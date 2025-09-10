@@ -205,6 +205,67 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .staff-stats-card {
+            background-color: white;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .staff-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0;
+        }
+
+        .group-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.25rem;
+            height: 1.25rem;
+            background-color: #2563eb;
+            color: white;
+            font-weight: 600;
+            font-size: 0.7rem;
+            border-radius: 9999px;
+            margin-right: 0.25rem;
+        }
+
+        .staff-number {
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.375rem;
+            min-width: 2.5rem;
+            text-align: center;
+        }
+
+        .staff-number-time {
+            background-color: #fef3c7;
+            color: #d97706;
+            font-size: 0.875rem;
+            font-weight: 700;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.375rem;
+            min-width: 2.5rem;
+            text-align: center;
+        }
+
+        .total-time-day {
+            background-color: #c8c7fe;
+            color: #0637d9;
+            font-size: 0.875rem;
+            font-weight: 700;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.375rem;
+            min-width: 2.5rem;
+            text-align: center;
+        }
     </style>
 
     <div class="mb-6">
@@ -341,30 +402,62 @@
 
                 <!-- Content remains the same -->
                 <div class="slide-over-content">
-                    @foreach ($staffStats as $staff)
-                        <div class="staff-stats-card">
-                            <!-- Name and number on the same line -->
-                            <div class="flex items-center justify-between">
-                                <div class="staff-name">{{ $staff['name'] }}</div>
+                    @if($type === 'duration')
+                        <!-- Hierarchical view for duration stats -->
+                        @foreach($staffStats as $index => $dateGroup)
+                            <div class="mb-4" x-data="{ expanded: false }">
+                                <div class="flex items-center justify-between mb-1 cursor-pointer" @click="expanded = !expanded">
+                                    <div class="flex items-center">
+                                        <!-- Arrow indicator that rotates -->
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1 transition-transform duration-200" :class="{'rotate-90': expanded}" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                        <h3 class="text-base font-semibold text-gray-800">{{ $dateGroup['display_date'] }}</h3>
+                                    </div>
+                                    <div class="px-2 py-1 text-sm total-time-day">{{ $dateGroup['total_formatted_time'] }}</div>
+                                </div>
 
-                                <!-- Show the right number based on type -->
-                                @if($type === 'duration')
-                                    <div class="staff-number staff-number-time">{{ $staff['total_time'] }}</div>
-                                @elseif($type === 'completed')
-                                    <div class="group-badge">{{ $staff['completed_tasks'] }}</div>
-                                @elseif($type === 'pending')
-                                    <div class="group-badge">{{ $staff['pending_tasks'] }}</div>
-                                @else
-                                    <div class="group-badge">{{ $staff['total_calls'] }}</div>
-                                @endif
+                                <!-- Staff members for this date - will be hidden when collapsed -->
+                                <div x-show="expanded" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0">
+                                    @foreach($dateGroup['staff'] as $staff)
+                                        <div class="px-3 py-2 mb-1 ml-3 staff-stats-card">
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm staff-name">{{ $staff['name'] }}</div>
+                                                <div class="px-2 py-1 text-sm staff-number-time">{{ $staff['formatted_time'] }}</div>
+                                            </div>
+                                            <div class="mt-0.5 text-xs text-gray-500">
+                                                Extension: {{ $staff['extension'] }}
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
+                        @endforeach
+                    @else
+                        <!-- Regular non-hierarchical view for other stats -->
+                        @foreach ($staffStats as $staff)
+                            <div class="px-3 py-2 mb-1 staff-stats-card">
+                                <!-- Existing code for non-duration stats -->
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm staff-name">{{ $staff['name'] }}</div>
 
-                            <!-- Add extension info -->
-                            <div class="mt-1 text-xs text-gray-500">
-                                Extension: {{ $staff['extension'] }}
+                                    <!-- Show the right number based on type -->
+                                    @if($type === 'completed')
+                                        <div class="w-5 h-5 text-xs group-badge">{{ $staff['completed_tasks'] }}</div>
+                                    @elseif($type === 'pending')
+                                        <div class="w-5 h-5 text-xs group-badge">{{ $staff['pending_tasks'] }}</div>
+                                    @else
+                                        <div class="w-5 h-5 text-xs group-badge">{{ $staff['total_calls'] }}</div>
+                                    @endif
+                                </div>
+
+                                <!-- Add extension info -->
+                                <div class="mt-0.5 text-xs text-gray-500">
+                                    Extension: {{ $staff['extension'] }}
+                                </div>
                             </div>
-                        </div>
-                    @endforeach
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>

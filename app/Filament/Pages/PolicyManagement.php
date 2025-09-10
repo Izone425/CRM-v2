@@ -29,7 +29,8 @@ class PolicyManagement extends Page
             Action::make('add_new')
                 ->label('Add New')
                 ->url(route('filament.admin.resources.policies.create'))
-                ->button(),
+                ->button()
+                ->visible(fn(): bool => auth()->check() && auth()->user()->role_id === 3),
         ];
     }
 

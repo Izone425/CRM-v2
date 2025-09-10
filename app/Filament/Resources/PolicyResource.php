@@ -45,7 +45,7 @@ class PolicyResource extends Resource
                             ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
 
                         Forms\Components\Select::make('category_id')
-                            ->label('Category')
+                            ->label('Department')
                             ->options(PolicyCategory::all()->pluck('name', 'id'))
                             ->required()
                             ->searchable(),

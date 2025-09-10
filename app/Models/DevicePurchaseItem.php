@@ -26,5 +26,6 @@ class DevicePurchaseItem extends Model
         'rfid_card_foc',
         'languages',
         'features',
+        'status',
     ];
 }
