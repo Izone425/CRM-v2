@@ -24,6 +24,11 @@ class EditQuotation extends EditRecord
         ];
     }
 
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data['quotation_date'] = Carbon::createFromFormat('j M Y',$data['quotation_date'])->format('Y-m-d');

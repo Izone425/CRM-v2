@@ -10,14 +10,14 @@ class ListQuotations extends ListRecords
 {
     protected static string $resource = QuotationResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make()
-                ->label('New Quotation')
-                ->closeModalByClickingAway(false)
-                ->createAnother(false)
-                ->visible(fn () => auth()->user()->role_id !== 1),
-        ];
-    }
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Actions\CreateAction::make()
+    //             ->label('New Quotation')
+    //             ->closeModalByClickingAway(false)
+    //             ->createAnother(false)
+    //             ->visible(fn () => auth()->user()->role_id !== 1),
+    //     ];
+    // }
 }

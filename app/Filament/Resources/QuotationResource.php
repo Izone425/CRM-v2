@@ -149,6 +149,7 @@ class QuotationResource extends Resource
                             ->label('Date')
                             ->dateFormat('j M Y')
                             ->default(now()->format('j M Y'))
+                            ->minDate(today())
                             ->required()
                             ->clickOpens(),
                         Select::make('sales_type')
@@ -1126,6 +1127,10 @@ class QuotationResource extends Resource
         ];
     }
 
+    protected static function getHeaderActions(): array
+    {
+        return [];
+    }
 
     // public static function recalculateAllRows($get, $set, $field=null, $state=null): void
     // {

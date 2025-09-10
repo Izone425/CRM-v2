@@ -267,6 +267,79 @@
             min-width: 2.5rem;
             text-align: center;
         }
+
+        .slide-over-total {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            border-radius: 0.375rem;
+        }
+
+        .slide-over-total-medium {
+            background-color: rgba(217, 119, 6, 0.1);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+        }
+
+        .slide-over-total-label {
+            font-size: 0.875rem;
+            color: rgb(107, 114, 128);
+        }
+
+        .slide-over-total-value {
+            margin-left: 0.25rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: rgb(55, 65, 81);
+        }
+
+        .implementer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.25rem;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            cursor: pointer;  /* Add cursor pointer since it's clickable now */
+        }
+
+        .implementer-name {
+            font-weight: 600;
+            color: rgb(55, 65, 81);
+            display: flex;
+            align-items: center;
+        }
+
+        .implementer-name svg {
+            margin-left: 0.5rem;
+            width: 0.875rem;
+            height: 0.875rem;
+            transition: transform 0.15s ease;
+        }
+
+        .implementer-name.expanded svg {
+            transform: rotate(180deg);
+        }
+
+        .date-list {
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+            margin-left: 1rem;
+            padding-left: 0.5rem;
+            border-left: 2px solid #e5e7eb;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .date-list.expanded {
+            max-height: 1000px;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
     </style>
 
     <div class="mb-6">
@@ -402,36 +475,66 @@
                 <!-- Scrollable content -->
                 <div class="slide-over-content">
                     @if($type === 'duration')
-                        <!-- Hierarchical view for duration stats -->
-                        @foreach($staffStats as $index => $dateGroup)
-                            <div class="mb-4" x-data="{ expanded: false }">
-                                <div class="flex items-center justify-between mb-1 cursor-pointer" @click="expanded = !expanded">
-                                    <div class="flex items-center">
-                                        <!-- Arrow indicator that rotates -->
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1 transition-transform duration-200" :class="{'rotate-90': expanded}" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                        <h3 class="text-base font-semibold text-gray-800">{{ $dateGroup['display_date'] }}</h3>
-                                    </div>
-                                    <div class="px-2 py-1 text-sm total-time-day">{{ $dateGroup['total_formatted_time'] }}</div>
-                                </div>
+                        <!-- Total count - similar to project-priority style -->
+                        <div class="slide-over-total slide-over-total-medium">
+                            <span class="slide-over-total-label">Total Call Time:</span>
+                            <span class="slide-over-total-value">
+                                @php
+                                    $totalHours = 0;
+                                    $totalMinutes = 0;
 
-                                <!-- Staff members for this date - will be hidden when collapsed -->
-                                <div x-show="expanded" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0">
-                                    @foreach($dateGroup['staff'] as $staff)
-                                        <div class="px-3 py-2 mb-1 ml-3 staff-stats-card">
-                                            <div class="flex items-center justify-between">
-                                                <div class="text-sm staff-name">{{ $staff['name'] }}</div>
-                                                <div class="px-2 py-1 text-sm staff-number-time">{{ $staff['formatted_time'] }}</div>
-                                            </div>
-                                            <div class="mt-0.5 text-xs text-gray-500">
-                                                Extension: {{ $staff['extension'] }}
-                                            </div>
+                                    foreach($staffStats as $staff) {
+                                        if (isset($staff['total_duration'])) {
+                                            $hours = floor($staff['total_duration'] / 3600);
+                                            $minutes = floor(($staff['total_duration'] % 3600) / 60);
+                                            $totalHours += $hours;
+                                            $totalMinutes += $minutes;
+                                        }
+                                    }
+
+                                    // Convert excess minutes to hours
+                                    $totalHours += floor($totalMinutes / 60);
+                                    $totalMinutes = $totalMinutes % 60;
+                                @endphp
+                                {{ $totalHours }}h {{ $totalMinutes }}m
+                            </span>
+                        </div>
+
+                        <!-- Staff list with expandable date lists -->
+                        <div class="space-y-0">
+                            @foreach($staffStats as $staff)
+                                @if(isset($staff['name']))
+                                    <!-- Staff item -->
+                                    <div class="implementer-item" wire:click="toggleStaff('{{ $staff['name'] }}')">
+                                        <div class="implementer-name {{ in_array($staff['name'], $expandedStaff ?? []) ? 'expanded' : '' }}">
+                                            {{ $staff['name'] }}
+
+                                            <!-- Chevron icon -->
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
                                         </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
+                                        <div class="implementer-count">
+                                            {{ isset($staff['formatted_time']) ? $staff['formatted_time'] : '0h 0m' }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Date list - expandable -->
+                                    <div class="date-list {{ in_array($staff['name'], $expandedStaff ?? []) ? 'expanded' : '' }}">
+                                        @if(isset($staffDateTimes[$staff['name']]))
+                                            @foreach($staffDateTimes[$staff['name']] as $dateData)
+                                                <div class="date-item">
+                                                    <div class="flex items-center justify-between">
+                                                        <span>{{ $dateData['display_date'] }}</span>
+                                                        <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     @else
                         <!-- Regular non-hierarchical view for other stats -->
                         @foreach ($staffStats as $staff)
