@@ -5,6 +5,7 @@ use App\Models\CallLog;
 use App\Models\Lead;
 use App\Models\PhoneExtension;
 use App\Models\User;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -48,6 +49,9 @@ class SupportCallLog extends Page implements HasTable
     public $slideOverTitle = 'Support Staff Call Analytics';
     public $staffStats = [];
     public $type = 'all'; // Add this line to track the current type
+
+    public $expandedStaff = [];
+    public $staffDateTimes = [];
 
     public static function canAccess(): bool
     {
@@ -267,8 +271,8 @@ class SupportCallLog extends Page implements HasTable
 
                 Filter::make('started_at')
                     ->form([
-                        DateTimePicker::make('from'),
-                        DateTimePicker::make('until'),
+                        DatePicker::make('from'),
+                        DatePicker::make('until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -422,23 +426,106 @@ class SupportCallLog extends Page implements HasTable
         return sprintf("%02d:%02d", $minutes, $secs);
     }
 
+    public function toggleStaff($staffName)
+    {
+        if (in_array($staffName, $this->expandedStaff)) {
+            $this->expandedStaff = array_diff($this->expandedStaff, [$staffName]);
+        } else {
+            $this->expandedStaff[] = $staffName;
+        }
+    }
+
     public function openStaffStatsSlideOver($type = 'all')
     {
-        $this->type = $type; // Store the type
-        $this->staffStats = $this->getStaffStats($type);
+        $this->type = $type;
 
-        switch ($type) {
-            case 'completed':
-                $this->slideOverTitle = 'Support Staff - Completed Calls';
-                break;
-            case 'pending':
-                $this->slideOverTitle = 'Support Staff - Pending Calls';
-                break;
-            case 'duration':
-                $this->slideOverTitle = 'Support Staff - Call Duration';
-                break;
-            default:
-                $this->slideOverTitle = 'Support Staff - Call Analytics';
+        // Reset expanded state when opening - all collapsed by default
+        $this->expandedStaff = [];
+        $this->staffDateTimes = [];
+
+        if ($type === 'duration') {
+            $this->slideOverTitle = 'Support Staff - Call Duration';
+
+            // Get support staff with active extensions
+            $supportExtensions = \App\Models\PhoneExtension::with('user')
+                ->where('is_support_staff', true)
+                ->where('is_active', true)
+                ->get();
+
+            $staffStats = [];
+
+            foreach ($supportExtensions as $extension) {
+                $staffName = ($extension->user_id && $extension->user) ? $extension->user->name : $extension->name;
+
+                // Get staff call logs
+                $logs = \App\Models\CallLog::query()
+                    ->where(function ($query) use ($extension) {
+                        $query->where('caller_number', $extension->extension)
+                            ->orWhere('receiver_number', $extension->extension);
+                    })
+                    ->where('call_status', '!=', 'NO ANSWER')
+                    ->where(function($query) {
+                        $query->where('call_duration', '>=', 5)
+                            ->orWhereNull('call_duration');
+                    })
+                    ->get();
+
+                $totalDuration = $logs->sum('call_duration');
+                $hours = floor($totalDuration / 3600);
+                $minutes = floor(($totalDuration % 3600) / 60);
+
+                // Only add staff with call duration
+                if ($totalDuration > 0) {
+                    $staffStats[] = [
+                        'name' => $staffName,
+                        'extension' => $extension->extension,
+                        'total_duration' => $totalDuration,
+                        'formatted_time' => "{$hours}h {$minutes}m",
+                    ];
+
+                    // Get date-wise call details for this staff
+                    $dateGroups = $logs->groupBy(function ($log) {
+                        return date('Y-m-d', strtotime($log->started_at));
+                    })->map(function ($dayLogs, $date) {
+                        $totalDuration = $dayLogs->sum('call_duration');
+                        $hours = floor($totalDuration / 3600);
+                        $minutes = floor(($totalDuration % 3600) / 60);
+
+                        return [
+                            'display_date' => date('j M Y', strtotime($date)),
+                            'formatted_time' => "{$hours}h {$minutes}m",
+                            'total_duration' => $totalDuration,
+                        ];
+                    })->sortByDesc(function ($item, $key) {
+                        return $key; // Sort by date descending
+                    })->values()->toArray();
+
+                    $this->staffDateTimes[$staffName] = $dateGroups;
+
+                    // Staff sections start collapsed by default - removed the auto-expansion code
+                }
+            }
+
+            // Sort staff by total duration descending
+            usort($staffStats, function($a, $b) {
+                return $b['total_duration'] <=> $a['total_duration'];
+            });
+
+            $this->staffStats = $staffStats;
+        } else {
+            // Keep existing code for other types
+            $this->staffStats = $this->getStaffStats($type);
+
+            switch ($type) {
+                case 'completed':
+                    $this->slideOverTitle = 'Support Staff - Completed Calls';
+                    break;
+                case 'pending':
+                    $this->slideOverTitle = 'Support Staff - Pending Calls';
+                    break;
+                default:
+                    $this->slideOverTitle = 'Support Staff - Call Analytics';
+            }
         }
 
         $this->showStaffStats = true;

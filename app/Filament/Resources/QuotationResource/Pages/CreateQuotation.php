@@ -29,15 +29,20 @@ class CreateQuotation extends CreateRecord
         }
     }
 
-    protected function getHeaderActions(): array
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         Actions\Action::make('back')
+    //             ->url(static::getResource()::getUrl())
+    //             ->icon('heroicon-o-chevron-left')
+    //             ->button()
+    //             ->color('info'),
+    //     ];
+    // }
+
+    public function getBreadcrumbs(): array
     {
-        return [
-            Actions\Action::make('back')
-                ->url(static::getResource()::getUrl())
-                ->icon('heroicon-o-chevron-left')
-                ->button()
-                ->color('info'),
-        ];
+        return [];
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

@@ -42,6 +42,9 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
     public $staffStats = [];
     public $type = 'all';
 
+    public $expandedStaff = [];
+    public $staffDateTimes = [];
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -422,23 +425,104 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
         return ($phoneExt->user_id && $phoneExt->user) ? $phoneExt->user->name : $phoneExt->name;
     }
 
+    public function toggleStaff($staffName)
+    {
+        if (in_array($staffName, $this->expandedStaff)) {
+            $this->expandedStaff = array_diff($this->expandedStaff, [$staffName]);
+        } else {
+            $this->expandedStaff[] = $staffName;
+        }
+    }
+
     public function openStaffStatsSlideOver($type = 'all')
     {
-        $this->type = $type; // Store the type
-        $this->staffStats = $this->getStaffStats($type);
+        $this->type = $type;
 
-        switch ($type) {
-            case 'completed':
-                $this->slideOverTitle = 'Sales & Admin - Completed Tasks';
-                break;
-            case 'pending':
-                $this->slideOverTitle = 'Sales & Admin - Pending Tasks';
-                break;
-            case 'duration':
-                $this->slideOverTitle = 'Sales & Admin - Call Duration';
-                break;
-            default:
-                $this->slideOverTitle = 'Sales & Admin - Call Analytics';
+        // Reset expanded state when opening - all collapsed by default
+        $this->expandedStaff = [];
+        $this->staffDateTimes = [];
+
+        if ($type === 'duration') {
+            $this->slideOverTitle = 'Sales & Admin - Call Duration';
+
+            // Get sales & admin staff with active extensions
+            $salesAdminExtensions = \App\Models\PhoneExtension::with('user')
+                ->where('is_support_staff', false)
+                ->where('is_active', true)
+                ->get();
+
+            $staffStats = [];
+
+            foreach ($salesAdminExtensions as $extension) {
+                $staffName = ($extension->user_id && $extension->user) ? $extension->user->name : $extension->name;
+
+                // Get staff call logs
+                $logs = \App\Models\CallLog::query()
+                    ->where(function ($query) use ($extension) {
+                        $query->where('caller_number', $extension->extension)
+                            ->orWhere('receiver_number', $extension->extension);
+                    })
+                    ->where('call_status', '!=', 'NO ANSWER')
+                    ->where(function($query) {
+                        $query->where('call_duration', '>=', 5)
+                            ->orWhereNull('call_duration');
+                    })
+                    ->get();
+
+                $totalDuration = $logs->sum('call_duration');
+                $hours = floor($totalDuration / 3600);
+                $minutes = floor(($totalDuration % 3600) / 60);
+
+                // Only add staff with call duration
+                if ($totalDuration > 0) {
+                    $staffStats[] = [
+                        'name' => $staffName,
+                        'extension' => $extension->extension,
+                        'total_duration' => $totalDuration,
+                        'formatted_time' => "{$hours}h {$minutes}m",
+                    ];
+
+                    // Get date-wise call details for this staff
+                    $dateGroups = $logs->groupBy(function ($log) {
+                        return date('Y-m-d', strtotime($log->started_at));
+                    })->map(function ($dayLogs, $date) {
+                        $totalDuration = $dayLogs->sum('call_duration');
+                        $hours = floor($totalDuration / 3600);
+                        $minutes = floor(($totalDuration % 3600) / 60);
+
+                        return [
+                            'display_date' => date('j M Y', strtotime($date)),
+                            'formatted_time' => "{$hours}h {$minutes}m",
+                            'total_duration' => $totalDuration,
+                        ];
+                    })->sortByDesc(function ($item, $key) {
+                        return $key; // Sort by date descending
+                    })->values()->toArray();
+
+                    $this->staffDateTimes[$staffName] = $dateGroups;
+                }
+            }
+
+            // Sort staff by total duration descending
+            usort($staffStats, function($a, $b) {
+                return $b['total_duration'] <=> $a['total_duration'];
+            });
+
+            $this->staffStats = $staffStats;
+        } else {
+            // Keep existing code for other types
+            $this->staffStats = $this->getStaffStats($type);
+
+            switch ($type) {
+                case 'completed':
+                    $this->slideOverTitle = 'Sales & Admin - Completed Tasks';
+                    break;
+                case 'pending':
+                    $this->slideOverTitle = 'Sales & Admin - Pending Tasks';
+                    break;
+                default:
+                    $this->slideOverTitle = 'Sales & Admin - Call Analytics';
+            }
         }
 
         $this->showStaffStats = true;

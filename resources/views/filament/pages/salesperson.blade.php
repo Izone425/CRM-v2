@@ -265,6 +265,12 @@
         color: #0369a1;
     }
 
+    .sales-pending-kickoff { border-left: 4px solid #059669; }
+    .sales-pending-kickoff .stat-count { color: #059669; }
+
+    .sales-completed-kickoff { border-left: 4px solid #047857; }
+    .sales-completed-kickoff .stat-count { color: #047857; }
+
     /* Selected states for new categories */
     .stat-box.selected.demo-today { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.demo-tmr { background-color: rgba(59, 130, 246, 0.05); border-left-width: 6px; }
@@ -280,6 +286,8 @@
     .stat-box.selected.debtor-follow-up-overdue { background-color: rgba(6, 182, 212, 0.05); border-left-width: 6px; }
     .stat-box.selected.hrdf-follow-up-today { background-color: rgba(14, 165, 233, 0.05); border-left-width: 6px; }
     .stat-box.selected.hrdf-follow-up-overdue { background-color: rgba(14, 165, 233, 0.05); border-left-width: 6px; }
+    .stat-box.selected.sales-pending-kickoff { background-color: rgba(5, 150, 105, 0.05); border-left-width: 6px; }
+    .stat-box.selected.sales-completed-kickoff { background-color: rgba(4, 120, 87, 0.05); border-left-width: 6px; }
 
     /* Table grid styling */
     .table-grid-container {
@@ -387,6 +395,14 @@
         ->getNewSoftwareHandovers()
         ->count();
 
+    $salesPendingKickOff = app(\App\Livewire\SalespersonDashboard\SalesPendingKickOff::class)
+        ->getPendingKickOffs()
+        ->count();
+
+    $salesCompletedKickOff = app(\App\Livewire\SalespersonDashboard\SalesCompletedKickOff::class)
+        ->getCompletedKickOffs()
+        ->count();
+
     $hardwareHandoverNew = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class, [
         'currentDashboard' => 'Salesperson'
     ])->getHardwareHandoverCount();
@@ -468,7 +484,7 @@
                 <div class="group-box group-demo"
                         :class="{'selected': selectedGroup === 'demo-session'}"
                         @click="setSelectedGroup('demo-session')">
-                    <div class="group-title">Demo Session</div>
+                    <div class="group-title">Sales Demo Reminder</div>
                     <div class="group-count">{{ $demoTodayCount + $demoTomorrowCount }}</div>
                 </div>
 
@@ -476,8 +492,15 @@
                 <div class="group-box group-pr"
                         :class="{'selected': selectedGroup === 'prospect-reminder'}"
                         @click="setSelectedGroup('prospect-reminder')">
-                    <div class="group-title">Prospect Reminder</div>
+                    <div class="group-title">Follow Up Reminder</div>
                     <div class="group-count">{{ $prospectTodayCount + $prospectOverdueCount }}</div>
+                </div>
+
+                <div class="group-box group-others"
+                        :class="{'selected': selectedGroup === 'others'}"
+                        @click="setSelectedGroup('others')">
+                    <div class="group-title">Sales Debtor Reminder</div>
+                    <div class="group-count">0</div>
                 </div>
 
                 <!-- Group: Software Handover -->
@@ -494,23 +517,6 @@
                         @click="setSelectedGroup('hardware-handover')">
                     <div class="group-title">Hardware Handover</div>
                     <div class="group-count">{{ $hardwareHandoverNew + $hardwareHandoverCompleted }}</div>
-                </div>
-
-                <!-- Group: No Respond Leads -->
-                <div class="group-box group-no-respond"
-                        :class="{'selected': selectedGroup === 'no-respond-leads'}"
-                        @click="setSelectedGroup('no-respond-leads')">
-                    <div class="group-title">No Respond Leads</div>
-                    <div class="group-count">{{ $followUpLead + $transferLead }}</div>
-                </div>
-
-                <!-- Group: Others -->
-                <div class="group-box group-others"
-                        :class="{'selected': selectedGroup === 'others'}"
-                        @click="setSelectedGroup('others')">
-                    <div class="group-title">Others</div>
-                    {{-- <div class="group-count">{{ $hrdfFollowUpToday + $hrdfFollowUpOverdue }}</div> --}}
-                    <div class="group-count">0</div>
                 </div>
             </div>
         </div>
@@ -545,7 +551,7 @@
                         :class="{'selected': selectedStat === 'pr-today'}"
                         @click="setSelectedStat('pr-today')">
                     <div class="stat-info">
-                        <div class="stat-label">Today</div>
+                        <div class="stat-label">Follow Up - Today</div>
                     </div>
                     <div class="stat-count">
                         <div class="stat-count">{{ $prospectTodayCount }}</div>
@@ -555,10 +561,32 @@
                         :class="{'selected': selectedStat === 'pr-overdue'}"
                         @click="setSelectedStat('pr-overdue')">
                     <div class="stat-info">
-                        <div class="stat-label">Overdue</div>
+                        <div class="stat-label">Follow Up - Overdue</div>
                     </div>
                     <div class="stat-count">
                         <div class="stat-count">{{ $prospectOverdueCount }}</div>
+                    </div>
+                </div>
+                <div class="stat-box transfer-lead"
+                        :class="{'selected': selectedStat === 'transfer-lead'}"
+                        @click="setSelectedStat('transfer-lead')">
+                    <div class="stat-info">
+                        <div class="stat-label">No Response</div>
+                        <div class="stat-label">Transfer Leads (37 Days)</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $transferLead }}</div>
+                    </div>
+                </div>
+                <div class="stat-box follow-up-lead"
+                        :class="{'selected': selectedStat === 'follow-up-lead'}"
+                        @click="setSelectedStat('follow-up-lead')">
+                    <div class="stat-info">
+                        <div class="stat-label">No Response</div>
+                        <div class="stat-label">Follow Up - Leads (97 Days)</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $followUpLead }}</div>
                     </div>
                 </div>
             </div>
@@ -583,6 +611,26 @@
                     </div>
                     <div class="stat-count">
                         <div class="stat-count">{{ $softwareHandoverCompleted }}</div>
+                    </div>
+                </div>
+                <div class="stat-box sales-pending-kickoff"
+                        :class="{'selected': selectedStat === 'sales-pending-kickoff'}"
+                        @click="setSelectedStat('sales-pending-kickoff')">
+                    <div class="stat-info">
+                        <div class="stat-label">Pending Kick-Off</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $salesPendingKickOff }}</div>
+                    </div>
+                </div>
+                <div class="stat-box sales-completed-kickoff"
+                        :class="{'selected': selectedStat === 'sales-completed-kickoff'}"
+                        @click="setSelectedStat('sales-completed-kickoff')">
+                    <div class="stat-info">
+                        <div class="stat-label">Completed Kick-Off</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $salesCompletedKickOff }}</div>
                     </div>
                 </div>
             </div>
@@ -611,7 +659,7 @@
                 </div>
             </div>
 
-            <!-- NO RESPOND LEADS -->
+            {{-- <!-- NO RESPOND LEADS -->
             <div class="category-container" x-show="selectedGroup === 'no-respond-leads'">
                 <div class="stat-box transfer-lead"
                         :class="{'selected': selectedStat === 'transfer-lead'}"
@@ -633,7 +681,7 @@
                         <div class="stat-count">{{ $followUpLead }}</div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <!-- OTHERS -->
             <div class="category-container" x-show="selectedGroup === 'others'">
@@ -713,6 +761,12 @@
                 </div>
                 <div x-show="selectedStat === 'software-handover-completed'" x-transition>
                     <livewire:salesperson-dashboard.software-handover-completed />
+                </div>
+                <div x-show="selectedStat === 'sales-pending-kickoff'" x-transition>
+                    <livewire:salesperson-dashboard.sales-pending-kick-off />
+                </div>
+                <div x-show="selectedStat === 'sales-completed-kickoff'" x-transition>
+                    <livewire:salesperson-dashboard.sales-completed-kick-off />
                 </div>
 
                 <!-- Hardware Handover -->
