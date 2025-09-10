@@ -138,21 +138,22 @@
         }
 
         .icon-tooltip {
+            visibility: hidden;
             position: absolute;
-            left: 100%;
+            right: 100%;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.8);
+            margin-left: 8px;
+            background-color: rgba(55, 65, 81, 0.9);
             color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
             white-space: nowrap;
-            pointer-events: none;
+            z-index: 10;
             opacity: 0;
-            transition: opacity 0.01s ease, transform 0.01s ease;
-            margin-left: 10px;
-            z-index: 1020;
+            transition: opacity 0.2s;
         }
 
         .icon-link:hover .icon-tooltip {
@@ -845,7 +846,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="commercial-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-bag"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Commercial Item</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -880,7 +881,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="analysis-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-clipboard2-data"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Leads & Demo</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -910,7 +911,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="forecast-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-cash-stack"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Forecast & Revenue</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -936,31 +937,11 @@
                         </div>
                     </div>
 
-                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                        <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tags"></i>
-                                </div>
-                                <span class="menu-text">Sales Pricing</span>
-                            </a>
-                        </div>
-                    @endif
-
-                    <div class="menu-block">
-                        <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-file-text"></i>
-                            </div>
-                            <span class="menu-text">Sales Policy</span>
-                        </a>
-                    </div>
-
                     <!-- Salesperson Request Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="request-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-inbox"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Sales Request</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -977,6 +958,26 @@
                             </a>
                         </div>
                     </div>
+
+                    <div class="menu-block">
+                        <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                            <span class="menu-text">Sales Policy</span>
+                        </a>
+                    </div>
+
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                        <div class="menu-block">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-tags"></i>
+                                </div>
+                                <span class="menu-text">Sales Pricing</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Handover Section -->
@@ -1028,12 +1029,12 @@
                                     <span class="module-font">Dashboard - Pending Stock</span>
                                 </a>
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <a href="{{ route('filament.admin.pages.device-stock-information') }}" class="submenu-item">
                                         <span class="module-font">Device Stock Information</span>
                                     </a>
                                 @endif
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                    <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
                                         <span class="module-font">Device Purchase Information</span>
                                     </a>
                                 @endif
@@ -1536,6 +1537,12 @@
                                 @if(auth()->user()->hasRouteAccess('filament.admin.resources.products.index'))
                                 <a href="{{ route('filament.admin.resources.device-models.index') }}" class="submenu-item">
                                     <span class="module-font">Device Model</span>
+                                </a>
+                                @endif
+
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.products.index'))
+                                <a href="{{ route('filament.admin.resources.shipping-device-models.index') }}" class="submenu-item">
+                                    <span class="module-font">Shipping Device Model</span>
                                 </a>
                                 @endif
 

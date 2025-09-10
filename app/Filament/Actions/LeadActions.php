@@ -300,10 +300,19 @@ class LeadActions
                     ->performedOn($record);
             }
 
-            Notification::make()
-                ->title('Lead Owner Assigned Successfully')
-                ->success()
-                ->send();
+            try {
+                // Get all users from the database
+                $allUsers = \App\Models\User::all();
+
+                // Create and send notification to all users
+                Notification::make()
+                    ->title('Lead Owner Assigned Successfully')
+                    ->success()
+                    ->sendToDatabase($allUsers)
+                    ->send();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Notification error: ' . $e->getMessage());
+            }
         });
     }
 

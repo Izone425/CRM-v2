@@ -167,7 +167,7 @@
                 $totalAfterTax += $item->total_after_tax;
 
                 $description = '';
-                if ($item->product->solution == 'software') {
+                if ($item->product && $item->product->solution == 'software') {
                     $description .= '(<u><strong>'. $item->quotation->currency . ' ' .$item->unit_price . ' * ' . $item->quantity . ' H/C * ' . $item->subscription_period . ' MONTHS</strong></u>)<br /><br />';
                 }
 

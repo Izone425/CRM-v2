@@ -1,32 +1,32 @@
 <?php
-
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DebtorAging extends Model
 {
-    use HasFactory;
+    protected $table = 'debtor_agings';
+    protected $primaryKey = 'id';
+    public $timestamps = false;
 
     protected $fillable = [
-        'id',
-        'doc_key',
         'debtor_code',
         'company_name',
-        'invoice_date',
         'invoice_number',
-        'due_date',
-        'aging_date',
-        'exchange_rate',
-        'currency_code',
-        'total',
+        'invoice_date',
         'invoice_amount',
+        'currency_code',
+        'exchange_rate',
         'outstanding',
         'salesperson',
-        'support',
-        'created_at',
-        'updated_at',
+        'payment_status',
+        'invoice_type'
+    ];
+
+    protected $casts = [
+        'invoice_date' => 'date',
+        'invoice_amount' => 'float',
+        'outstanding' => 'float',
+        'exchange_rate' => 'float'
     ];
 }

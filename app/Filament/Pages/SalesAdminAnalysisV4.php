@@ -446,6 +446,10 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
 
     protected function getStaffStats($type = 'all')
     {
+        if ($type === 'duration') {
+            return $this->getHierarchicalDurationStats();
+        }
+
         // Define staff members with their corresponding extensions
         $stats = [];
 
@@ -553,5 +557,137 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
         }
 
         return $stats;
+    }
+
+    protected function getHierarchicalDurationStats()
+    {
+        // Get all sales & admin staff extensions (is_support_staff = false)
+        $salesAdminExtensions = PhoneExtension::where('is_support_staff', false)
+            ->where('is_active', true)
+            ->pluck('extension')
+            ->toArray();
+
+        // Step 1: Get all dates with calls
+        $dates = CallLog::query()
+            ->where(function ($query) use ($salesAdminExtensions) {
+                $query->whereIn('caller_number', $salesAdminExtensions)
+                    ->orWhereIn('receiver_number', $salesAdminExtensions);
+            })
+            ->where('call_status', '!=', 'NO ANSWER')
+            ->where(function($query) {
+                $query->where('call_duration', '>=', 5)
+                    ->orWhereNull('call_duration');
+            })
+            ->selectRaw('DATE(started_at) as call_date')
+            ->distinct()
+            ->orderByDesc('call_date')
+            ->pluck('call_date')
+            ->toArray();
+
+        // Step 2: Build hierarchical stats
+        $hierarchicalStats = [];
+
+        foreach ($dates as $date) {
+            // Format date for display
+            $displayDate = date('d F Y', strtotime($date));
+
+            // Get staff data for this date
+            $staffData = [];
+            $totalDateDuration = 0;
+
+            // Get all staff with calls on this date
+            $staffWithCalls = CallLog::query()
+                ->where(function ($query) use ($salesAdminExtensions) {
+                    $query->whereIn('caller_number', $salesAdminExtensions)
+                        ->orWhereIn('receiver_number', $salesAdminExtensions);
+                })
+                ->whereDate('started_at', $date)
+                ->where('call_status', '!=', 'NO ANSWER')
+                ->where(function($query) {
+                    $query->where('call_duration', '>=', 5)
+                        ->orWhereNull('call_duration');
+                })
+                ->get(['caller_number', 'receiver_number'])
+                ->map(function ($call) use ($salesAdminExtensions) {
+                    if (in_array($call->caller_number, $salesAdminExtensions)) {
+                        return $call->caller_number;
+                    }
+                    if (in_array($call->receiver_number, $salesAdminExtensions)) {
+                        return $call->receiver_number;
+                    }
+                    return null;
+                })
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            foreach ($staffWithCalls as $extension) {
+                // Get staff info
+                $phoneExt = PhoneExtension::where('extension', $extension)
+                    ->where('is_active', true)
+                    ->first();
+
+                if (!$phoneExt) continue;
+
+                $staffName = ($phoneExt->user_id && $phoneExt->user)
+                    ? $phoneExt->user->name
+                    : $phoneExt->name;
+
+                // Calculate total duration for this staff on this date
+                $duration = CallLog::query()
+                    ->where(function ($query) use ($extension) {
+                        $query->where('caller_number', $extension)
+                            ->orWhere('receiver_number', $extension);
+                    })
+                    ->whereDate('started_at', $date)
+                    ->where('call_status', '!=', 'NO ANSWER')
+                    ->where(function($query) {
+                        $query->where('call_duration', '>=', 5)
+                            ->orWhereNull('call_duration');
+                    })
+                    ->sum('call_duration');
+
+                // Skip if no duration
+                if ($duration <= 0) continue;
+
+                $totalDateDuration += $duration;
+
+                // Format time
+                $hours = floor($duration / 3600);
+                $minutes = floor(($duration % 3600) / 60);
+                $seconds = $duration % 60;
+                $formattedTime = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+
+                // Add to staff data array
+                $staffData[] = [
+                    'name' => $staffName,
+                    'extension' => $extension,
+                    'duration' => $duration,
+                    'formatted_time' => $formattedTime,
+                ];
+            }
+
+            // Sort staff by duration (highest first)
+            usort($staffData, function($a, $b) {
+                return $b['duration'] <=> $a['duration'];
+            });
+
+            // Format total time for this date
+            $totalHours = floor($totalDateDuration / 3600);
+            $totalMinutes = floor(($totalDateDuration % 3600) / 60);
+            $totalSeconds = $totalDateDuration % 60;
+            $totalFormattedTime = sprintf("%02d:%02d:%02d", $totalHours, $totalMinutes, $totalSeconds);
+
+            // Add to hierarchical stats
+            $hierarchicalStats[] = [
+                'date' => $date,
+                'display_date' => $displayDate,
+                'total_duration' => $totalDateDuration,
+                'total_formatted_time' => $totalFormattedTime,
+                'staff' => $staffData,
+            ];
+        }
+
+        return $hierarchicalStats;
     }
 }

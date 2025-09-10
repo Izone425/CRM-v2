@@ -123,6 +123,7 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->label('Company Name')
                     ->searchable()
                     ->sortable()
+                    ->formatStateUsing(fn (string $state): string => strtoupper($state)) // NO1: ALL UPPERCASE
                     ->wrap(),
 
                 TextColumn::make('f_name')
@@ -133,6 +134,7 @@ class AdminRenewalRawData extends Page implements HasTable
 
                 TextColumn::make('f_unit')
                     ->label('Headcount')
+                    ->alignCenter() // NO8: Align Right
                     ->numeric()
                     ->sortable(),
 
@@ -143,16 +145,19 @@ class AdminRenewalRawData extends Page implements HasTable
 
                 TextColumn::make('f_currency')
                     ->label('Currency')
+                    ->alignCenter() // NO3: Align Centre
                     ->sortable(),
 
                 TextColumn::make('f_start_date')
-                    ->label('License Start Date')
+                    ->label('Start Date') // NO5: REMOVED "License"
                     ->date('Y-m-d')
+                    ->alignCenter() // NO4: Align Centre
                     ->sortable(),
 
                 TextColumn::make('f_expiry_date')
-                    ->label('License Expiry Date')
+                    ->label('Expiry Date') // NO5: REMOVED "License"
                     ->date('Y-m-d')
+                    ->alignCenter() // NO4: Align Centre
                     ->sortable(),
 
                 TextColumn::make('f_invoice_no')
@@ -161,20 +166,17 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->sortable(),
 
                 TextColumn::make('f_created_time')
-                    ->label('Created')
-                    ->date('Y-m-d H:i')
+                    ->label('Invoice Date') // NO6: Renamed "Created" to "Invoice Date"
+                    ->date('Y-m-d') // NO6: Remove the timing
+                    ->alignCenter() // NO6: Align Centre
                     ->sortable(),
 
                 TextColumn::make('payer')
                     ->label('Payer')
+                    ->formatStateUsing(fn (string $state): string => strtoupper($state)) // NO7: ALL UPPERCASE
                     ->searchable()
                     ->sortable()
                     ->wrap(),
-
-                TextColumn::make('f_start_date')
-                    ->label('Start Date')
-                    ->date('Y-m-d')
-                    ->sortable(),
             ])
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(50)

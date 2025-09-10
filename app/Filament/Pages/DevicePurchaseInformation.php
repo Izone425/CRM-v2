@@ -2,6 +2,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\DevicePurchaseItem;
+use App\Models\ShippingDeviceModel;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -11,9 +12,9 @@ use Illuminate\Support\Facades\Log;
 class DevicePurchaseInformation extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    protected static ?string $navigationLabel = 'Device Purchase Planning';
+    protected static ?string $navigationLabel = 'Device Purchase Information';
     protected static ?string $navigationGroup = 'Inventory';
-    protected static ?string $title = 'Device Purchase Planning';
+    protected static ?string $title = 'Device Purchase Information';
     protected static ?int $navigationSort = 10;
 
     protected static string $view = 'filament.pages.device-purchase-information';
@@ -30,6 +31,12 @@ class DevicePurchaseInformation extends Page
     public $editingMonth = null;
     public $editingModel = null;
     public $editingData = [];
+
+    // Status update modal
+    public $isStatusModalOpen = false;
+    public $statusMonth = null;
+    public $statusModel = null;
+    public $selectedStatus = null;
 
     public function mount()
     {
@@ -95,6 +102,7 @@ class DevicePurchaseInformation extends Page
             'languages' => '',
             'features' => '',
             'model' => '',
+            'status' => 'Completed Order',
         ];
         $this->isModalOpen = true;
     }
@@ -106,6 +114,74 @@ class DevicePurchaseInformation extends Page
         $this->editingMonth = null;
         $this->editingModel = null;
         $this->editingData = [];
+    }
+
+    // Open status update modal
+    public function openStatusModal($monthKey, $model)
+    {
+        $this->statusMonth = $monthKey;
+        $this->statusModel = $model;
+        $this->selectedStatus = $this->purchaseData[$monthKey][$model]['status'] ?? null;
+        $this->isStatusModalOpen = true;
+    }
+
+    // Close status modal
+    public function closeStatusModal()
+    {
+        $this->isStatusModalOpen = false;
+        $this->statusMonth = null;
+        $this->statusModel = null;
+        $this->selectedStatus = null;
+    }
+
+    // Update status
+    public function updateStatus()
+    {
+        try {
+            $monthKey = $this->statusMonth;
+            $modelName = $this->statusModel;
+
+            // Find the purchase item
+            $item = DevicePurchaseItem::where([
+                'year' => $this->selectedYear,
+                'month' => $monthKey,
+                'model' => $modelName,
+            ])->first();
+
+            if (!$item) {
+                throw new \Exception("Item not found");
+            }
+
+            // Update the status
+            $item->status = $this->selectedStatus;
+            $item->save();
+
+            // Update the local data
+            $this->purchaseData[$monthKey][$modelName]['status'] = $this->selectedStatus;
+
+            Notification::make()
+                ->title("Status updated to: {$this->selectedStatus}")
+                ->success()
+                ->send();
+
+            $this->closeStatusModal();
+
+        } catch (\Exception $e) {
+            Log::error("Error updating status: " . $e->getMessage());
+
+            Notification::make()
+                ->title('Error: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function getDeviceModels()
+    {
+        return ShippingDeviceModel::where('is_active', true)
+            ->orderBy('model_name')
+            ->pluck('model_name')
+            ->toArray();
     }
 
     // Save data from modal (both create and update)
@@ -155,6 +231,7 @@ class DevicePurchaseInformation extends Page
                 'rfid_card_foc' => $this->editingData['rfid_card_foc'] ?? 0,
                 'languages' => $this->editingData['languages'] ?? '',
                 'features' => $this->editingData['features'] ?? '',
+                'status' => $this->editingData['status'] ?? null,
             ]);
 
             // Save the item
@@ -243,6 +320,7 @@ class DevicePurchaseInformation extends Page
                     'rfid_card_foc' => $item->rfid_card_foc,
                     'languages' => $item->languages,
                     'features' => $item->features,
+                    'status' => $item->status,
                 ];
             }
         }

@@ -49,6 +49,7 @@ use App\Filament\Pages\SalesAdminAnalysisV1;
 use App\Filament\Pages\SalesAdminAnalysisV2;
 use App\Filament\Pages\SalesAdminAnalysisV3;
 use App\Filament\Pages\SalesAdminAnalysisV4;
+use App\Filament\Pages\SalesDebtor;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
 use App\Filament\Pages\SalesLead;
@@ -93,6 +94,7 @@ use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\RoleResource;
+use App\Filament\Resources\ShippingDeviceModelResource;
 use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Resources\SoftwareResource;
@@ -138,8 +140,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            // ->notifications()
-            // ->livewire(Notification::class)
+            // ->databaseNotifications()
             // ->registration()
             // ->passwordReset()
             ->emailVerification()
@@ -237,6 +238,7 @@ class AdminPanelProvider extends PanelProvider
                 PolicyResource::class,
                 PolicyCategoryResource::class,
                 InvoiceResource::class,
+                ShippingDeviceModelResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -296,6 +298,7 @@ class AdminPanelProvider extends PanelProvider
                 DebtorAgingProcessData::class,
                 DeviceStockInformation::class,
                 DevicePurchaseInformation::class,
+                SalesDebtor::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
