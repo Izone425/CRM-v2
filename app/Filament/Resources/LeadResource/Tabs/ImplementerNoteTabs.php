@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\ImplementerNote;
+use App\Models\SoftwareHandover;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -25,6 +26,29 @@ use Illuminate\View\View as IlluminateView;
 
 class ImplementerNoteTabs
 {
+    protected static function canEditNotes($record): bool
+    {
+        $user = auth()->user();
+
+        // Admin users (role_id = 3) can always edit
+        if ($user->role_id == 3) {
+            return true;
+        }
+
+        // Get the software handover for this lead
+        $swHandover = SoftwareHandover::where('lead_id', $record->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // Check if the current user is the assigned implementer
+        if ($swHandover && $swHandover->implementer === $user->name) {
+            return true;
+        }
+
+        // Otherwise, no edit permissions
+        return false;
+    }
+
     public static function getSchema(): array
     {
         return [
@@ -38,6 +62,9 @@ class ImplementerNoteTabs
                                 ->button()
                                 ->color('primary')
                                 ->icon('heroicon-o-plus')
+                                ->visible(function ($record) {
+                                    return self::canEditNotes($record);
+                                })
                                 ->form([
                                     RichEditor::make('notes')
                                         ->label('New Note')

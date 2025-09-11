@@ -41,21 +41,72 @@ class SalesDebtor extends Page implements HasTable
         'VINCE'
     ];
 
+    // Mapping of salesperson names to user IDs
+    protected array $salespersonUserIds = [
+        'MUIM' => 6,
+        'YASMIN' => 7,
+        'FARHANAH' => 8,
+        'JOSHUA' => 9,
+        'AZIZ' => 10,
+        'BARI' => 11,
+        'VINCE' => 12
+    ];
+
     public $allDebtorStats;
     public $hrdfDebtorStats;
     public $productDebtorStats;
     public $unpaidDebtorStats;
     public $partialPaymentDebtorStats;
 
+    // Store the filtered salespeople based on user role
+    public $filteredSalespeople;
+
+    public $filterSalesperson = [];
+    public $filterInvoiceType = null;
+    public $filterPaymentStatus = null;
+    public $filterInvoiceDateFrom = null;
+    public $filterInvoiceDateUntil = null;
     public function mount(): void
     {
+        // Filter salespeople based on user role
+        $this->filterSalespeopleByUserRole();
+
+        // Load data with filtered salespeople
         $this->loadData();
+    }
+
+    protected function filterSalespeopleByUserRole(): void
+    {
+        $user = auth()->user();
+
+        // If user is admin (role_id = 3), they can see all salespeople
+        if ($user->role_id == 3) {
+            $this->filteredSalespeople = $this->salespeople;
+            return;
+        }
+
+        // Find which salesperson corresponds to the current user
+        $userSalesperson = null;
+        foreach ($this->salespersonUserIds as $salesperson => $userId) {
+            if ($userId == $user->id) {
+                $userSalesperson = $salesperson;
+                break;
+            }
+        }
+
+        // If user is a salesperson, they can only see their own data
+        if ($userSalesperson) {
+            $this->filteredSalespeople = [$userSalesperson];
+        } else {
+            // If user is not in the salesperson list, default to empty to show no data
+            $this->filteredSalespeople = [];
+        }
     }
 
     protected function loadData(): void
     {
-        // Get base query with salespeople filter
-        $baseQuery = $this->getBaseQuery();
+        // Get base query with filtered salespeople and apply all current filters
+        $baseQuery = $this->getFilteredBaseQuery();
 
         // Load data for each box
         $this->allDebtorStats = $this->getAllDebtorStats($baseQuery);
@@ -65,137 +116,205 @@ class SalesDebtor extends Page implements HasTable
         $this->partialPaymentDebtorStats = $this->getPartialPaymentDebtorStats($baseQuery);
     }
 
+    protected function getFilteredBaseQuery()
+    {
+        $query = DebtorAging::query();
+
+        // Filter only for unpaid or partial payment debtors
+        $query->where('outstanding', '>', 0);
+
+        // Filter by the filtered salespeople
+        // If additional salesperson filters are selected, use those instead
+        if (!empty($this->filterSalesperson)) {
+            $query->whereIn('salesperson', $this->filterSalesperson);
+        } else {
+            $query->whereIn('salesperson', $this->filteredSalespeople);
+        }
+
+        // Apply invoice type filter if set
+        if ($this->filterInvoiceType === 'hrdf') {
+            $query->where('invoice_number', 'like', 'EHIN%');
+        } elseif ($this->filterInvoiceType === 'product') {
+            $query->where('invoice_number', 'like', 'EPIN%');
+        }
+
+        // Apply payment status filter if set
+        if ($this->filterPaymentStatus === 'unpaid') {
+            $query->whereRaw('outstanding = invoice_amount');
+        } elseif ($this->filterPaymentStatus === 'partial') {
+            $query->whereRaw('outstanding < invoice_amount')
+                ->where('outstanding', '>', 0);
+        }
+
+        // Apply date filters if set
+        if ($this->filterInvoiceDateFrom) {
+            $query->whereDate('invoice_date', '>=', $this->filterInvoiceDateFrom);
+        }
+
+        if ($this->filterInvoiceDateUntil) {
+            $query->whereDate('invoice_date', '<=', $this->filterInvoiceDateUntil);
+        }
+
+        return $query;
+    }
+
     public function table(Table $table): Table
     {
         return $table
             ->query(DebtorAging::query()
-                ->whereIn('salesperson', $this->salespeople)
+                ->whereIn('salesperson', $this->filteredSalespeople)
                 ->where('outstanding', '>', 0))
-            ->defaultSort('invoice_date', 'desc')
-            ->columns([
-                TextColumn::make('company_name')
-                    ->label('Company')
-                    ->searchable()
-                    ->sortable()
-                    ->wrap(),
+                ->defaultSort('invoice_date', 'desc')
+                ->columns([
+                    TextColumn::make('company_name')
+                        ->label('Company')
+                        ->searchable()
+                        ->sortable()
+                        ->wrap(),
 
-                TextColumn::make('invoice_number')
-                    ->label('Invoice Number')
-                    ->searchable()
-                    ->sortable(),
+                    TextColumn::make('invoice_number')
+                        ->label('Invoice Number')
+                        ->searchable()
+                        ->sortable(),
 
-                TextColumn::make('invoice_date')
-                    ->label('Date')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                    TextColumn::make('invoice_date')
+                        ->label('Date')
+                        ->date('d/m/Y')
+                        ->sortable(),
 
-                TextColumn::make('salesperson')
-                    ->label('Salesperson')
-                    ->searchable()
-                    ->sortable(),
+                    TextColumn::make('salesperson')
+                        ->label('Salesperson')
+                        ->searchable()
+                        ->sortable(),
 
-                TextColumn::make('invoice_type')
-                    ->label('Type')
-                    ->getStateUsing(function (DebtorAging $record): string {
-                        if (strpos($record->invoice_number, 'EPIN') === 0) {
-                            return 'Product';
-                        } elseif (strpos($record->invoice_number, 'EHIN') === 0) {
-                            return 'HRDF';
-                        } else {
-                            return 'Other';
-                        }
-                    })
-                    ->sortable(),
+                    TextColumn::make('invoice_type')
+                        ->label('Type')
+                        ->getStateUsing(function (DebtorAging $record): string {
+                            if (strpos($record->invoice_number, 'EPIN') === 0) {
+                                return 'Product';
+                            } elseif (strpos($record->invoice_number, 'EHIN') === 0) {
+                                return 'HRDF';
+                            } else {
+                                return 'Other';
+                            }
+                        })
+                        ->sortable(),
 
-                BadgeColumn::make('payment_status')
-                    ->label('Payment Status')
-                    ->getStateUsing(function (DebtorAging $record): string {
-                        return $this->determinePaymentStatus($record);
-                    })
-                    ->colors([
-                        'danger' => 'UnPaid',
-                        'warning' => 'Partial Payment',
-                        'success' => 'Full Payment',
-                    ]),
+                    BadgeColumn::make('payment_status')
+                        ->label('Payment Status')
+                        ->getStateUsing(function (DebtorAging $record): string {
+                            return $this->determinePaymentStatus($record);
+                        })
+                        ->colors([
+                            'danger' => 'UnPaid',
+                            'warning' => 'Partial Payment',
+                            'success' => 'Full Payment',
+                        ]),
 
-                TextColumn::make('outstanding_rm')
-                    ->label('Outstanding (RM)')
-                    ->getStateUsing(function (DebtorAging $record): float {
-                        return $record->currency_code === 'MYR'
-                            ? $record->outstanding
-                            : ($record->outstanding * $record->exchange_rate);
-                    })
-                    ->money('MYR')
-                    ->alignRight(),
+                    TextColumn::make('outstanding_rm')
+                        ->label('Outstanding (RM)')
+                        ->getStateUsing(function (DebtorAging $record): float {
+                            return $record->currency_code === 'MYR'
+                                ? $record->outstanding
+                                : ($record->outstanding * $record->exchange_rate);
+                        })
+                        ->money('MYR')
+                        ->alignRight(),
+                ])
+                ->filters([
+                    SelectFilter::make('salesperson')
+                        ->options(array_combine($this->salespeople, $this->salespeople))
+                        ->placeholder('All Salespeople')
+                        ->label('Salesperson')
+                        ->multiple()
+                        ->visible(fn() => count($this->filteredSalespeople) > 1)
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['values'])) {
+                                $this->filterSalesperson = [];
+                                return $query;
+                            }
+
+                            $this->filterSalesperson = $data['values'];
+                            $this->loadData(); // Refresh stats
+
+                            return $query->whereIn('salesperson', $data['values']);
+                        }),
+
+                    SelectFilter::make('invoice_type')
+                        ->options([
+                            'hrdf' => 'HRDF',
+                            'product' => 'Product',
+                        ])
+                        ->label('Invoice Type')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterInvoiceType = null;
+                                return $query;
+                            }
+
+                            $this->filterInvoiceType = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            if ($data['value'] === 'hrdf') {
+                                return $query->where('invoice_number', 'like', 'EHIN%');
+                            } elseif ($data['value'] === 'product') {
+                                return $query->where('invoice_number', 'like', 'EPIN%');
+                            }
+                        }),
+
+                    SelectFilter::make('payment_status')
+                        ->options([
+                            'unpaid' => 'Unpaid',
+                            'partial' => 'Partial Payment',
+                        ])
+                        ->label('Payment Status')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterPaymentStatus = null;
+                                return $query;
+                            }
+
+                            $this->filterPaymentStatus = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            if ($data['value'] === 'unpaid') {
+                                return $query->whereRaw('outstanding = invoice_amount');
+                            } elseif ($data['value'] === 'partial') {
+                                return $query->whereRaw('outstanding < invoice_amount')
+                                    ->where('outstanding', '>', 0);
+                            }
+                        }),
+
+                    Filter::make('invoice_date')
+                        ->form([
+                            DatePicker::make('invoice_date_from')
+                                ->label('From')
+                                ->placeholder('From'),
+                            DatePicker::make('invoice_date_until')
+                                ->label('Until')
+                                ->placeholder('Until'),
+                        ])
+                        ->query(function (Builder $query, array $data): Builder {
+                            $this->filterInvoiceDateFrom = $data['invoice_date_from'] ?? null;
+                            $this->filterInvoiceDateUntil = $data['invoice_date_until'] ?? null;
+
+                            $this->loadData(); // Refresh stats
+
+                            return $query
+                                ->when(
+                                    $data['invoice_date_from'],
+                                    fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '>=', $date),
+                                )
+                                ->when(
+                                    $data['invoice_date_until'],
+                                    fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '<=', $date),
+                                );
+                        }),
             ])
-            ->filters([
-                SelectFilter::make('salesperson')
-                    ->options(array_combine($this->salespeople, $this->salespeople))
-                    ->placeholder('All Salespeople')
-                    ->label('Salesperson')
-                    ->multiple(),
-
-                SelectFilter::make('invoice_type')
-                    ->options([
-                        'hrdf' => 'HRDF',
-                        'product' => 'Product',
-                    ])
-                    ->label('Invoice Type')
-                    ->query(function (Builder $query, array $data) {
-                        if (empty($data['value'])) {
-                            return $query;
-                        }
-
-                        if ($data['value'] === 'hrdf') {
-                            return $query->where('invoice_number', 'like', 'EHIN%');
-                        } elseif ($data['value'] === 'product') {
-                            return $query->where('invoice_number', 'like', 'EPIN%');
-                        }
-                    }),
-
-                SelectFilter::make('payment_status')
-                    ->options([
-                        'unpaid' => 'Unpaid',
-                        'partial' => 'Partial Payment',
-                    ])
-                    ->label('Payment Status')
-                    ->query(function (Builder $query, array $data) {
-                        if (empty($data['value'])) {
-                            return $query;
-                        }
-
-                        if ($data['value'] === 'unpaid') {
-                            return $query->whereRaw('outstanding = invoice_amount');
-                        } elseif ($data['value'] === 'partial') {
-                            return $query->whereRaw('outstanding < invoice_amount')
-                                ->where('outstanding', '>', 0);
-                        }
-                    }),
-
-                Filter::make('invoice_date')
-                    ->form([
-                        DatePicker::make('invoice_date_from')
-                            ->label('From')
-                            ->placeholder('From'),
-                        DatePicker::make('invoice_date_until')
-                            ->label('Until')
-                            ->placeholder('Until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['invoice_date_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '>=', $date),
-                            )
-                            ->when(
-                                $data['invoice_date_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '<=', $date),
-                            );
-                    }),
-            ])
-            ->filtersFormColumns(3)
-            ->paginated([10, 25, 50, 100])
-            ->defaultPaginationPageOption(25);
+            ->filtersFormColumns(2)
+            ->defaultPaginationPageOption(50)
+            ->paginated([50])
+            ->paginationPageOptions([50, 100]);
     }
 
     protected function getBaseQuery()
@@ -209,8 +328,8 @@ class SalesDebtor extends Page implements HasTable
             $q->where('outstanding', '>', 0);
         });
 
-        // Filter by the 7 salespeople
-        $query->whereIn('salesperson', $this->salespeople);
+        // Filter by the filtered salespeople
+        $query->whereIn('salesperson', $this->filteredSalespeople);
 
         return $query;
     }

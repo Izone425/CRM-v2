@@ -1033,18 +1033,14 @@
                                     <i class="bi bi-box-seam submenu-icon"></i>
                                     <span class="module-font">Dashboard - Pending Stock</span>
                                 </a>
-                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                    <a href="{{ route('filament.admin.pages.device-stock-information') }}" class="submenu-item">
-                                        <i class="bi bi-window-fullscreen submenu-icon"></i>
-                                        <span class="module-font">Device Stock Information</span>
-                                    </a>
-                                @endif
-                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                    <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
-                                        <i class="bi bi-box-seam submenu-icon"></i>
-                                        <span class="module-font">Device Purchase Information</span>
-                                    </a>
-                                @endif
+                                <a href="{{ route('filament.admin.pages.device-stock-information') }}" class="submenu-item">
+                                    <i class="bi bi-window-fullscreen submenu-icon"></i>
+                                    <span class="module-font">Device Stock Information</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
+                                    <i class="bi bi-box-seam submenu-icon"></i>
+                                    <span class="module-font">Device Purchase Information</span>
+                                </a>
                             </div>
                         </div>
 
@@ -1548,7 +1544,7 @@
                                 </a>
                                 @endif
 
-                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.products.index'))
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.shipping-device-models.index'))
                                 <a href="{{ route('filament.admin.resources.shipping-device-models.index') }}" class="submenu-item">
                                     <span class="module-font">Shipping Device Model</span>
                                 </a>

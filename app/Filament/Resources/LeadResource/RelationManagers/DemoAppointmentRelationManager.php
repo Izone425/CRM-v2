@@ -181,7 +181,6 @@ class DemoAppointmentRelationManager extends RelationManager
                         'New' => 'heroicon-o-clock', // Optional icon for pending
                         default => 'heroicon-o-question-mark-circle',
                     }),
-
             ])
             ->actions([
                 ActionGroup::make([
@@ -249,10 +248,28 @@ class DemoAppointmentRelationManager extends RelationManager
                             ];
                         }),
                     Tables\Actions\Action::make('demo_cancel')
-                        ->visible(fn (Appointment $appointment) =>
-                            now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7)) &&
-                            !($appointment->type === 'NEW DEMO' && $this->hasOtherNewDemos($appointment->lead_id))
-                        )
+                        ->visible(function (Appointment $appointment) {
+                            // First check appointment timing conditions
+                            $validTime = now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7)) &&
+                                !($appointment->type === 'NEW DEMO' && $this->hasOtherNewDemos($appointment->lead_id));
+
+                            if (!$validTime) {
+                                return false;
+                            }
+
+                            // Then check user permissions:
+                            // Admin roles can always cancel
+                            if (in_array(auth()->user()->role_id, [1, 3])) {
+                                return true;
+                            }
+
+                            // For role_id 2 (salesperson), only if they are the assigned salesperson
+                            if (auth()->user()->role_id === 2) {
+                                return $appointment->lead->salesperson == auth()->user()->id;
+                            }
+
+                            return false;
+                        })
                         ->label(__('Cancel Demo'))
                         ->modalHeading('Cancel Demo')
                         ->requiresConfirmation()
@@ -435,6 +452,28 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])->icon('heroicon-m-list-bullet')
+                ->visible(function (Appointment $appointment) {
+                    // First check appointment timing conditions
+                    $validTime = now()->lte(Carbon::parse($appointment->appointment_date)->addDays(7)) &&
+                        !($appointment->type === 'NEW DEMO' && $this->hasOtherNewDemos($appointment->lead_id));
+
+                    if (!$validTime) {
+                        return false;
+                    }
+
+                    // Then check user permissions:
+                    // Admin roles can always cancel
+                    if (in_array(auth()->user()->role_id, [1, 3])) {
+                        return true;
+                    }
+
+                    // For role_id 2 (salesperson), only if they are the assigned salesperson
+                    if (auth()->user()->role_id === 2) {
+                        return $appointment->lead->salesperson == auth()->user()->id;
+                    }
+
+                    return false;
+                })
                 ->size(ActionSize::Small)
                 ->color('primary')
                 ->button(),
@@ -447,6 +486,10 @@ class DemoAppointmentRelationManager extends RelationManager
             Tables\Actions\Action::make('Add Appointment')
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Appointment')
+                ->visible(fn() =>
+                    in_array(auth()->user()->role_id, [1, 3]) ||
+                    (auth()->user()->role_id === 2 && $this->getOwnerRecord()->salesperson == auth()->user()->id)
+                )
                 ->hidden(is_null($this->getOwnerRecord()->salesperson)&& is_null($this->getOwnerRecord()->lead_owner))
                 ->form([
                     // Schedule
@@ -454,23 +497,23 @@ class DemoAppointmentRelationManager extends RelationManager
                         ->label('')
                         ->options([
                             'auto' => 'Auto',
-                            'custom' => 'Custom',
-                        ]) // Define custom options
-                        ->reactive()
-                        ->inline()
-                        ->grouped()
-                        ->default('auto')
-                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                            if ($state === 'custom') {
-                                $set('date', null);
-                                $set('start_time', null);
-                                $set('end_time', null);
-                            }else{
-                                $set('date', Carbon::today()->toDateString());
-                                $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
-                                $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
-                            }
-                        }),
+                                'custom' => 'Custom',
+                            ]) // Define custom options
+                            ->reactive()
+                            ->inline()
+                            ->grouped()
+                            ->default('auto')
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                if ($state === 'custom') {
+                                    $set('date', null);
+                                    $set('start_time', null);
+                                    $set('end_time', null);
+                                }else{
+                                    $set('date', Carbon::today()->toDateString());
+                                    $set('start_time', Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->format('H:i'));
+                                    $set('end_time', Carbon::parse($get('start_time'))->addHour()->format('H:i'));
+                                }
+                            }),
 
                     Grid::make(3) // 3 columns for Date, Start Time, End Time
                         ->schema([

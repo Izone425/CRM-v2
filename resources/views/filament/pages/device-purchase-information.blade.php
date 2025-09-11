@@ -495,6 +495,106 @@
             visibility: visible;
             opacity: 1;
         }
+        .months-row-wrapper {
+            position: relative;
+        }
+
+        .months-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+            scrollbar-width: thin;
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+
+        .months-row::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .months-row::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .months-row::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+
+        .month-pill {
+            flex: 1 0 auto;
+            min-width: calc(100% / 12 - 0.5rem);
+            max-width: calc(100% / 6);
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            border-radius: 2rem;
+            padding: 0.75rem 1.25rem;
+            color: #0284c7;
+            font-weight: 500;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e0f2fe;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .month-pill:hover {
+            background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .month-pill.active {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+            border-color: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(2, 132, 199, 0.4);
+        }
+
+        .month-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .month-count {
+            background-color: rgba(255, 255, 255, 0.25);
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            min-width: 1.5rem;
+            text-align: center;
+        }
+
+        .month-arrow {
+            width: 1rem;
+            height: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .month-arrow.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* For screens smaller than 768px */
+        @media (max-width: 768px) {
+            .month-pill {
+                min-width: calc(100% / 6 - 0.5rem);
+                padding: 0.5rem 0.75rem;
+            }
+        }
+
+        /* For screens smaller than 640px */
+        @media (max-width: 640px) {
+            .month-pill {
+                min-width: calc(100% / 3 - 0.5rem);
+            }
+        }
     </style>
 
     <!-- Modal for editing or creating items -->
@@ -722,154 +822,163 @@
         </div>
     @endif
 
-    <!-- Rest of the content -->
-    <div>
-        <!-- Loop through months -->
-        @foreach($months as $monthNum => $month)
-            <div class="month-section">
-                <!-- Month header (always visible) -->
-                <div class="month-header" wire:click="toggleMonth({{ $monthNum }})">
-                    <div class="flex items-center">
-                        <span class="text-lg">RAW MATERIAL PLANNING {{ $month['name'] }} {{ $selectedYear }}</span>
-                        <div class="month-stats">
-                            <div class="stat-box">
-                                <svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                                </svg>
-                                <span>{{ $month['totals']['qty'] }} Units</span>
-                            </div>
-                            <div class="stat-box">
-                                <svg class="stat-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                </svg>
-                                <span>{{ $month['totals']['rfid_card_foc'] }} RFID Cards</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="expand-icon" style="{{ in_array($monthNum, $expandedMonths) ? 'transform: rotate(180deg)' : '' }}">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
+    <!-- Replace the months row section with this implementation -->
+    <div class="mb-8 months-row-wrapper">
+        <div class="months-row">
+            @foreach($months as $monthNum => $month)
+                <div class="month-pill {{ $selectedMonth === $monthNum ? 'active' : '' }}" wire:click="selectMonth({{ $monthNum }})">
+                    <span>{{ substr($month['name'], 0, 3) }}</span>
+                    <div class="month-indicator">
+                        @if(count($purchaseData[$monthNum]) > 0)
+                            <span class="month-count">{{ count($purchaseData[$monthNum]) }}</span>
+                        @endif
                     </div>
                 </div>
-
-                <!-- Month details (expandable) -->
-                @if(in_array($monthNum, $expandedMonths))
-                <div class="month-details">
-                    <div class="flex items-center justify-between px-4 py-3 bg-white">
-                        <div class="text-sm text-gray-500">
-                            {{ count($purchaseData[$monthNum]) }} models found
-                        </div>
-                        <button type="button" class="btn btn-success" wire:click="openCreateModal({{ $monthNum }})">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            Add New Model
-                        </button>
-                    </div>
-                    <div class="month-table-container">
-                        <table class="month-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 14%;">Model</th>
-                                    <th style="width: 6%;">Qty</th>
-                                    <th style="width: 9%;">Languages</th>
-                                    <th style="width: 6%;">England</th>
-                                    <th style="width: 6%;">America</th>
-                                    <th style="width: 6%;">Europe</th>
-                                    <th style="width: 6%;">Australia</th>
-                                    <th style="width: 9%;">SN No. From/To</th>
-                                    <th style="width: 7%;">PO No.</th>
-                                    <th style="width: 7%;">Order No.</th>
-                                    <th style="width: 6%;">Balance</th>
-                                    <th style="width: 6%;">RFID Card</th>
-                                    <th style="width: 12%;">Status</th>
-                                    <th style="width: 10%;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Display existing models -->
-                                @foreach($purchaseData[$monthNum] as $model => $data)
-                                <tr>
-                                    <td class="cell-model">{{ $model }}</td>
-                                    <td class="cell-number">{{ $data['qty'] }}</td>
-                                    <td>{{ $data['languages'] }}</td>
-                                    <td class="cell-number">{{ $data['england'] > 0 ? $data['england'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['america'] > 0 ? $data['america'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['europe'] > 0 ? $data['europe'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['australia'] > 0 ? $data['australia'] : 'N/A' }}</td>
-                                    <td>{{ $data['sn_no_from'] }} - {{ $data['sn_no_to'] }}</td>
-                                    <td>{{ $data['po_no'] }}</td>
-                                    <td>{{ $data['order_no'] }}</td>
-                                    <td class="cell-number">{{ $data['balance_not_order'] }}</td>
-                                    <td class="cell-number">{{ $data['rfid_card_foc'] }}</td>
-                                    <td>
-                                        @if(!empty($data['status']))
-                                            @php
-                                                $statusClass = match($data['status']) {
-                                                    'Completed Order' => 'status-completed-order',
-                                                    'Completed Shipping' => 'status-completed-shipping',
-                                                    'Completed Delivery' => 'status-completed-delivery',
-                                                    default => ''
-                                                };
-                                            @endphp
-                                            <span class="status-badge {{ $statusClass }}">
-                                                {{ $data['status'] }}
-                                            </span>
-                                        @else
-                                            <span class="italic text-gray-400">Not set</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $monthNum }}, '{{ $model }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Update Status</span>
-                                            </div>
-
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="edit-btn" wire:click="openEditModal({{ $monthNum }}, '{{ $model }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Edit</span>
-                                            </div>
-
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="delete-btn" wire:click="deleteModel({{ $monthNum }}, '{{ $model }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Delete</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-
-                                <!-- Totals row -->
-                                <tr class="totals-row">
-                                    <td>Total</td>
-                                    <td class="cell-number">{{ $month['totals']['qty'] }}</td>
-                                    <td colspan="9"></td>
-                                    <td class="cell-number">{{ $month['totals']['rfid_card_foc'] }}</td>
-                                    <td colspan="2"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                @endif
-            </div>
-        @endforeach
+            @endforeach
+        </div>
     </div>
+
+    <!-- Only show the selected month's data -->
+    @if($selectedMonth !== null)
+        <div class="mb-4 month-section">
+            <div class="month-header">
+                <div>{{ $months[$selectedMonth]['name'] }}</div>
+                <div class="month-stats">
+                    <div class="stat-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="stat-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                        </svg>
+                        {{ count($purchaseData[$selectedMonth]) }} models
+                    </div>
+                    <div class="stat-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="stat-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                        {{ $months[$selectedMonth]['totals']['qty'] }} items
+                    </div>
+                </div>
+            </div>
+            <div class="month-details">
+                <div class="flex items-center justify-between px-4 py-3 bg-white">
+                    <div class="text-sm text-gray-500">
+                        {{ count($purchaseData[$selectedMonth]) }} models found
+                    </div>
+                    <button type="button" class="btn btn-success" wire:click="openCreateModal({{ $selectedMonth }})">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add New Model
+                    </button>
+                </div>
+                <div class="month-table-container">
+                    <table class="month-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 14%;">Model</th>
+                                <th style="width: 6%;">Qty</th>
+                                <th style="width: 9%;">Languages</th>
+                                <th style="width: 6%;">England</th>
+                                <th style="width: 6%;">America</th>
+                                <th style="width: 6%;">Europe</th>
+                                <th style="width: 6%;">Australia</th>
+                                <th style="width: 9%;">SN No. From/To</th>
+                                <th style="width: 7%;">PO No.</th>
+                                <th style="width: 7%;">Order No.</th>
+                                <th style="width: 6%;">Balance</th>
+                                <th style="width: 6%;">RFID Card</th>
+                                <th style="width: 12%;">Status</th>
+                                <th style="width: 10%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Display existing models for the selected month -->
+                            @foreach($purchaseData[$selectedMonth] as $model => $data)
+                            <tr>
+                                <td class="cell-model">{{ $model }}</td>
+                                <td class="cell-number">{{ $data['qty'] }}</td>
+                                <td>{{ $data['languages'] }}</td>
+                                <td class="cell-number">{{ $data['england'] > 0 ? $data['england'] : 'N/A' }}</td>
+                                <td class="cell-number">{{ $data['america'] > 0 ? $data['america'] : 'N/A' }}</td>
+                                <td class="cell-number">{{ $data['europe'] > 0 ? $data['europe'] : 'N/A' }}</td>
+                                <td class="cell-number">{{ $data['australia'] > 0 ? $data['australia'] : 'N/A' }}</td>
+                                <td>{{ $data['sn_no_from'] }} - {{ $data['sn_no_to'] }}</td>
+                                <td>{{ $data['po_no'] }}</td>
+                                <td>{{ $data['order_no'] }}</td>
+                                <td class="cell-number">{{ $data['balance_not_order'] }}</td>
+                                <td class="cell-number">{{ $data['rfid_card_foc'] }}</td>
+                                <td>
+                                    @if(!empty($data['status']))
+                                        @php
+                                            $statusClass = match($data['status']) {
+                                                'Completed Order' => 'status-completed-order',
+                                                'Completed Shipping' => 'status-completed-shipping',
+                                                'Completed Delivery' => 'status-completed-delivery',
+                                                default => ''
+                                            };
+                                        @endphp
+                                        <span class="status-badge {{ $statusClass }}">
+                                            {{ $data['status'] }}
+                                        </span>
+                                    @else
+                                        <span class="italic text-gray-400">Not set</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <div class="action-button-wrapper">
+                                            <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $selectedMonth }}, '{{ $model }}')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <span class="action-tooltip">Update Status</span>
+                                        </div>
+
+                                        <div class="action-button-wrapper">
+                                            <button type="button" class="edit-btn" wire:click="openEditModal({{ $selectedMonth }}, '{{ $model }}')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                </svg>
+                                            </button>
+                                            <span class="action-tooltip">Edit</span>
+                                        </div>
+
+                                        <div class="action-button-wrapper">
+                                            <button type="button" class="delete-btn" wire:click="deleteModel({{ $selectedMonth }}, '{{ $model }}')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                </svg>
+                                            </button>
+                                            <span class="action-tooltip">Delete</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+
+                            <!-- No records message -->
+                            @if(count($purchaseData[$selectedMonth]) === 0)
+                            <tr>
+                                <td colspan="14" class="py-4 text-center text-gray-500">
+                                    No device purchase records found for {{ $months[$selectedMonth]['name'] }}
+                                </td>
+                            </tr>
+                            @endif
+
+                            <!-- Totals row -->
+                            @if(count($purchaseData[$selectedMonth]) > 0)
+                            <tr class="totals-row">
+                                <td>Total</td>
+                                <td class="cell-number">{{ $months[$selectedMonth]['totals']['qty'] }}</td>
+                                <td colspan="9"></td>
+                                <td class="cell-number">{{ $months[$selectedMonth]['totals']['rfid_card_foc'] }}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 </x-filament-panels::page>

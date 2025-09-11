@@ -5,7 +5,6 @@
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 1rem;
-            margin-bottom: 1.5rem;
         }
 
         /* Responsive adjustments */
@@ -146,7 +145,7 @@
         }
     </style>
     <!-- Dashboard Cards -->
-    <div class="debtor-dashboard-grid">
+    <div class="debtor-dashboard-grid" wire:poll.2s>
         <!-- Box 1: All Debtor -->
         <div class="debtor-card">
             <div class="debtor-card-content">

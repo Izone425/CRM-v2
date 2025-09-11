@@ -90,11 +90,6 @@
             color: #059669;
         }
 
-        .staff-number-time {
-            background-color: #fef3c7;
-            color: #d97706;
-        }
-
         /* Update the staff-name to not have a margin-bottom since they're on the same line now */
         .staff-name {
             font-size: 1rem;
@@ -246,7 +241,6 @@
         }
 
         .staff-number-time {
-            background-color: #fef3c7;
             color: #d97706;
             font-size: 0.875rem;
             font-weight: 700;
@@ -338,6 +332,26 @@
             max-height: 1000px;
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
+        }
+
+        .date-list table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .date-list td {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .date-list tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Adjust the expanded state to account for the table */
+        .date-list.expanded {
+            max-height: 1500px; /* Increase this to accommodate the table */
         }
     </style>
 
@@ -523,14 +537,27 @@
                                     <!-- Date list - expandable -->
                                     <div class="date-list {{ in_array($staff['name'], $expandedStaff ?? []) ? 'expanded' : '' }}">
                                         @if(isset($staffDateTimes[$staff['name']]))
-                                            @foreach($staffDateTimes[$staff['name']] as $dateData)
-                                                <div class="date-item">
-                                                    <div class="flex items-center justify-between">
-                                                        <span>{{ $dateData['display_date'] }}</span>
-                                                        <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                                            <table class="w-full">
+                                                <tbody>
+                                                    @foreach($staffDateTimes[$staff['name']] as $dateData)
+                                                        <tr class="date-item">
+                                                            <td class="py-1">{{ $dateData['display_date'] }}</td>
+                                                            <td class="py-1">
+                                                                @php
+                                                                    // Convert the display date to a DateTime object and get day name
+                                                                    $date = \DateTime::createFromFormat('j M Y', $dateData['display_date']);
+                                                                    $dayName = $date ? $date->format('D') : '';
+                                                                @endphp
+                                                                <span class="text-gray-600">{{ $dayName }}</span>
+                                                            </td>
+                                                            <td style= "width: 45%"></td>
+                                                            <td class="py-1 text-right">
+                                                                <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
                                         @endif
                                     </div>
                                 @endif

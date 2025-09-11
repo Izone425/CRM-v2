@@ -90,7 +90,21 @@ class QuotationRelationManager extends RelationManager
                     ->label('Add Quotation')
                     // ->color(fn () => $this->isCompanyAddressIncomplete() ? 'gray' : 'primary')
                     ->color('primary')
-                    ->visible(fn () => in_array(auth('web')->user()->role_id, [1, 2, 3]))
+                    ->visible(function () {
+                        // First check user role access
+                        if (!in_array(auth('web')->user()->role_id, [1, 2, 3])) {
+                            return false;
+                        }
+
+                        // For salespeople (role_id 2), check if they're assigned to this lead
+                        if (auth('web')->user()->role_id === 2) {
+                            $lead = $this->getOwnerRecord();
+                            return $lead->salesperson == auth('web')->user()->id;
+                        }
+
+                        // For other roles (admin/manager), always show
+                        return true;
+                    })
                     ->action(function () {
                         // Check if company address is incomplete
                         // if ($this->isCompanyAddressIncomplete()) {

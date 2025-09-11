@@ -213,7 +213,8 @@ class ImplementerProjectAll extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
-
+                TextColumn::make('payroll_code')
+                    ->label('Payroll Code'),
                 TextColumn::make('status_handover')
                     ->label('Status'),
             ])

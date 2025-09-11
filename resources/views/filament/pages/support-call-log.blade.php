@@ -90,11 +90,6 @@
             color: #dc2626;
         }
 
-        .staff-number-time {
-            background-color: #fef3c7;
-            color: #d97706;
-        }
-
         /* Update the staff-name to not have a margin-bottom since they're on the same line now */
         .staff-name {
             font-size: 1rem;
@@ -247,7 +242,7 @@
         }
 
         .staff-number-time {
-            background-color: #fef3c7;
+            /* background-color: #fef3c7; */
             color: #d97706;
             font-size: 0.875rem;
             font-weight: 700;
@@ -337,6 +332,36 @@
 
         .date-list.expanded {
             max-height: 1000px;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .date-list table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .date-list th {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-align: left;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .date-list td {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .date-list tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Make sure the expanded state works correctly with the table */
+        .date-list.expanded {
+            max-height: 1500px; /* Increased to accommodate table */
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
         }
@@ -522,14 +547,27 @@
                                     <!-- Date list - expandable -->
                                     <div class="date-list {{ in_array($staff['name'], $expandedStaff ?? []) ? 'expanded' : '' }}">
                                         @if(isset($staffDateTimes[$staff['name']]))
-                                            @foreach($staffDateTimes[$staff['name']] as $dateData)
-                                                <div class="date-item">
-                                                    <div class="flex items-center justify-between">
-                                                        <span>{{ $dateData['display_date'] }}</span>
-                                                        <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                                            <table class="w-full">
+                                                <tbody>
+                                                    @foreach($staffDateTimes[$staff['name']] as $dateData)
+                                                        <tr class="date-item">
+                                                            <td class="py-1" style= "width: 25%">{{ $dateData['display_date'] }}</td>
+                                                            <td class="py-1" style= "width: 10%">
+                                                                @php
+                                                                    // Convert the display date to a DateTime object and get day name
+                                                                    $date = \DateTime::createFromFormat('j M Y', $dateData['display_date']);
+                                                                    $dayName = $date ? $date->format('D') : '';
+                                                                @endphp
+                                                                <span class="text-gray-600">{{ $dayName }}</span>
+                                                            </td>
+                                                            <td style= "width: 45%"></td>
+                                                            <td class="py-1 text-left" style= "width: 20%">
+                                                                <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
                                         @endif
                                     </div>
                                 @endif
