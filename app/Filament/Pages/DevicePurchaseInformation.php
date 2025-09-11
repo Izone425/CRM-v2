@@ -86,11 +86,11 @@ class DevicePurchaseInformation extends Page
     }
 
     // Open edit modal
-    public function openEditModal($monthKey, $model)
+    public function openEditModal($monthKey, $uniqueKey)
     {
         $this->editingMonth = $monthKey;
-        $this->editingModel = $model;
-        $this->editingData = $this->purchaseData[$monthKey][$model];
+        $this->editingModel = $uniqueKey;
+        $this->editingData = $this->purchaseData[$monthKey][$uniqueKey];
         $this->isModalOpen = true;
     }
 
@@ -129,14 +129,13 @@ class DevicePurchaseInformation extends Page
     }
 
     // Open status update modal
-    public function openStatusModal($monthKey, $model)
+    public function openStatusModal($monthKey, $uniqueKey)
     {
         $this->statusMonth = $monthKey;
-        $this->statusModel = $model;
-        $this->selectedStatus = $this->purchaseData[$monthKey][$model]['status'] ?? null;
+        $this->statusModel = $uniqueKey;
+        $this->selectedStatus = $this->purchaseData[$monthKey][$uniqueKey]['status'] ?? null;
         $this->isStatusModalOpen = true;
     }
-
     // Close status modal
     public function closeStatusModal()
     {
@@ -151,14 +150,13 @@ class DevicePurchaseInformation extends Page
     {
         try {
             $monthKey = $this->statusMonth;
-            $modelName = $this->statusModel;
+            $uniqueKey = $this->statusModel;
 
-            // Find the purchase item
-            $item = DevicePurchaseItem::where([
-                'year' => $this->selectedYear,
-                'month' => $monthKey,
-                'model' => $modelName,
-            ])->first();
+            // Get the ID from the stored data
+            $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
+
+            // Find the purchase item by ID
+            $item = DevicePurchaseItem::find($itemId);
 
             if (!$item) {
                 throw new \Exception("Item not found");
@@ -169,7 +167,7 @@ class DevicePurchaseInformation extends Page
             $item->save();
 
             // Update the local data
-            $this->purchaseData[$monthKey][$modelName]['status'] = $this->selectedStatus;
+            $this->purchaseData[$monthKey][$uniqueKey]['status'] = $this->selectedStatus;
 
             Notification::make()
                 ->title("Status updated to: {$this->selectedStatus}")
@@ -201,50 +199,64 @@ class DevicePurchaseInformation extends Page
     {
         try {
             $monthKey = $this->editingMonth;
-            $modelName = $this->editingModel ?? $this->editingData['model'];
 
-            // Validate model name for new entries
-            if (!$this->editingModel && empty($modelName)) {
-                Notification::make()
-                    ->title('Please enter a model name')
-                    ->warning()
-                    ->send();
-                return;
+            // Check if we're editing an existing record or creating a new one
+            if ($this->editingModel) {
+                // We're editing an existing record
+                // Extract the model ID from the uniqueKey
+                $parts = explode('_', $this->editingModel);
+                $itemId = end($parts); // Get the last part which should be the ID
+
+                // Find the existing record
+                $item = DevicePurchaseItem::find($itemId);
+
+                if (!$item) {
+                    throw new \Exception("Item not found");
+                }
+            } else {
+                // We're creating a new record
+                $modelName = $this->editingData['model'];
+
+                // Validate model name for new entries
+                if (empty($modelName)) {
+                    Notification::make()
+                        ->title('Please enter a model name')
+                        ->warning()
+                        ->send();
+                    return;
+                }
+
+                // Create a new item
+                $item = new DevicePurchaseItem();
+                $item->year = $this->selectedYear;
+                $item->month = $monthKey;
+                $item->model = $modelName;
+
+                // Generate a unique identifier to prevent duplicate key errors
+                $uniqueId = $this->selectedYear . '_' . $monthKey . '_' . $modelName . '_' . uniqid();
+                $item->device_purchase_items_year_month_model_unique = $uniqueId;
             }
 
-            // Check if model already exists when creating new
-            if (!$this->editingModel && isset($this->purchaseData[$monthKey][$modelName])) {
-                Notification::make()
-                    ->title('Model already exists for this month')
-                    ->warning()
-                    ->send();
-                return;
-            }
-
-            // Find or create the purchase item
-            $item = DevicePurchaseItem::firstOrNew([
-                'year' => $this->selectedYear,
-                'month' => $monthKey,
-                'model' => $modelName,
-            ]);
+            // Convert specific fields to uppercase
+            $languages = strtoupper($this->editingData['languages'] ?? '');
+            $po_no = strtoupper($this->editingData['po_no'] ?? '');
+            $order_no = strtoupper($this->editingData['order_no'] ?? '');
 
             // Update the fields
-            $item->fill([
-                'qty' => $this->editingData['qty'] ?? 0,
-                'england' => $this->editingData['england'] ?? 0,
-                'america' => $this->editingData['america'] ?? 0,
-                'europe' => $this->editingData['europe'] ?? 0,
-                'australia' => $this->editingData['australia'] ?? 0,
-                'sn_no_from' => $this->editingData['sn_no_from'] ?? '',
-                'sn_no_to' => $this->editingData['sn_no_to'] ?? '',
-                'po_no' => $this->editingData['po_no'] ?? '',
-                'order_no' => $this->editingData['order_no'] ?? '',
-                'balance_not_order' => $this->editingData['balance_not_order'] ?? 0,
-                'rfid_card_foc' => $this->editingData['rfid_card_foc'] ?? 0,
-                'languages' => $this->editingData['languages'] ?? '',
-                'features' => $this->editingData['features'] ?? '',
-                'status' => $this->editingData['status'] ?? null,
-            ]);
+            $item->qty = $this->editingData['qty'] ?? 0;
+            $item->england = $this->editingData['england'] ?? 0;
+            $item->america = $this->editingData['america'] ?? 0;
+            $item->europe = $this->editingData['europe'] ?? 0;
+            $item->australia = $this->editingData['australia'] ?? 0;
+            $item->sn_no_from = $this->editingData['sn_no_from'] ?? '';
+            $item->sn_no_to = $this->editingData['sn_no_to'] ?? '';
+            $item->po_no = $po_no;
+            $item->order_no = $order_no;
+            $item->balance_not_order = $this->editingData['balance_not_order'] ?? 0;
+            $item->rfid_card_foc = $this->editingData['rfid_card_foc'] ?? 0;
+            $item->languages = $languages;
+            $item->features = $this->editingData['features'] ?? '';
+            $item->status = $this->editingData['status'] ?? 'Completed Order';
 
             // Save the item
             $item->save();
@@ -268,18 +280,19 @@ class DevicePurchaseInformation extends Page
         }
     }
 
-    public function deleteModel($monthKey, $modelName)
+    public function deleteModel($monthKey, $uniqueKey)
     {
         try {
-            DevicePurchaseItem::where('year', $this->selectedYear)
-                ->where('month', $monthKey)
-                ->where('model', $modelName)
-                ->delete();
+            // Get the ID from the stored data
+            $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
 
-            unset($this->purchaseData[$monthKey][$modelName]);
+            // Delete by ID
+            DevicePurchaseItem::where('id', $itemId)->delete();
+
+            unset($this->purchaseData[$monthKey][$uniqueKey]);
 
             Notification::make()
-                ->title("Model {$modelName} deleted successfully")
+                ->title("Model deleted successfully")
                 ->success()
                 ->send();
 
@@ -318,7 +331,11 @@ class DevicePurchaseInformation extends Page
             $monthItems = $purchaseItems->where('month', $monthNum);
 
             foreach ($monthItems as $item) {
-                $this->purchaseData[$monthNum][$item->model] = [
+                // Use a unique identifier for each record (model + timestamp)
+                $uniqueKey = $item->model . '_' . $item->id;
+
+                $this->purchaseData[$monthNum][$uniqueKey] = [
+                    'model' => $item->model, // Add model as a field so we can use it in the template
                     'qty' => $item->qty,
                     'england' => $item->england,
                     'america' => $item->america,
@@ -333,6 +350,7 @@ class DevicePurchaseInformation extends Page
                     'languages' => $item->languages,
                     'features' => $item->features,
                     'status' => $item->status,
+                    'id' => $item->id, // Store the ID for future operations
                 ];
             }
         }
@@ -346,7 +364,7 @@ class DevicePurchaseInformation extends Page
                 'rfid_card_foc' => 0
             ];
 
-            foreach ($this->purchaseData[$monthNum] as $model => $data) {
+            foreach ($this->purchaseData[$monthNum] as $uniqueKey => $data) {
                 $monthTotal['qty'] += $data['qty'];
                 $monthTotal['rfid_card_foc'] += $data['rfid_card_foc'];
             }
@@ -355,7 +373,7 @@ class DevicePurchaseInformation extends Page
                 'name' => $monthName,
                 'num' => $monthNum,
                 'totals' => $monthTotal,
-                'models' => array_keys($this->purchaseData[$monthNum]),
+                'models' => array_unique(array_column($this->purchaseData[$monthNum], 'model')),
             ];
         }
     }
