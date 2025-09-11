@@ -191,7 +191,7 @@ class DevicePurchaseInformation extends Page
     public function getDeviceModels()
     {
         return ShippingDeviceModel::where('is_active', true)
-            ->orderBy('model_name')
+            ->orderBy('created_at', 'asc')
             ->pluck('model_name')
             ->toArray();
     }

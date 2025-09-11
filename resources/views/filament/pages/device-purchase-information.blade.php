@@ -720,7 +720,8 @@
 
                                 <div class="form-group">
                                     <label class="form-label" for="languages">Languages</label>
-                                    <input type="text" id="languages" class="form-input" wire:model.defer="editingData.languages" placeholder="e.g. English, Spanish">
+                                    <input type="text" id="languages" class="uppercase form-input" wire:model.defer="editingData.languages"
+                                        placeholder="e.g. English, Spanish" style="text-transform: uppercase;">
                                 </div>
                             </div>
                         </div>
@@ -777,12 +778,14 @@
 
                                 <div class="form-group">
                                     <label class="form-label" for="po_no">PO No.</label>
-                                    <input type="text" id="po_no" class="form-input" wire:model.defer="editingData.po_no" placeholder="Purchase order number">
+                                    <input type="text" id="po_no" class="uppercase form-input" wire:model.defer="editingData.po_no"
+                                        placeholder="Purchase order number" style="text-transform: uppercase;">
                                 </div>
 
                                 <div class="form-group">
                                     <label class="form-label" for="order_no">Order No.</label>
-                                    <input type="text" id="order_no" class="form-input" wire:model.defer="editingData.order_no" placeholder="Order reference number">
+                                    <input type="text" id="order_no" class="uppercase form-input" wire:model.defer="editingData.order_no"
+                                        placeholder="Order reference number" style="text-transform: uppercase;">
                                 </div>
 
                                 <div class="form-group">
