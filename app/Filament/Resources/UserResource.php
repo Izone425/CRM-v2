@@ -156,7 +156,7 @@ class UserResource extends Resource
                                         ->options([
                                             1 => 'Lead Owner',
                                             2 => 'Salesperson',
-                                            3 => 'Manager',
+                                            3 => 'Master Admin',
                                             4 => 'Implementer',
                                             5 => 'Team Lead Implementer',
                                             6 => 'Trainer',
@@ -1164,7 +1164,7 @@ class UserResource extends Resource
                         return match ((int) $state) {
                             1 => 'Lead Owner',
                             2 => 'Salesperson',
-                            3 => 'Manager',
+                            3 => 'Master Admin',
                             4 => 'Implementer',
                             5 => 'Team Lead Implementer',
                             6 => 'Trainer',

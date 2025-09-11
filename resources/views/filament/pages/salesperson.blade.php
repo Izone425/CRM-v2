@@ -271,6 +271,21 @@
     .sales-completed-kickoff { border-left: 4px solid #047857; }
     .sales-completed-kickoff .stat-count { color: #047857; }
 
+    .debtor-all { border-left: 4px solid #06b6d4; }
+    .debtor-all .stat-count { color: #06b6d4; }
+
+    .debtor-hrdf { border-left: 4px solid #0ea5e9; }
+    .debtor-hrdf .stat-count { color: #0ea5e9; }
+
+    .debtor-product { border-left: 4px solid #3b82f6; }
+    .debtor-product .stat-count { color: #3b82f6; }
+
+    .debtor-unpaid { border-left: 4px solid #ef4444; }
+    .debtor-unpaid .stat-count { color: #ef4444; }
+
+    .debtor-partial { border-left: 4px solid #f59e0b; }
+    .debtor-partial .stat-count { color: #f59e0b; }
+
     /* Selected states for new categories */
     .stat-box.selected.demo-today { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
     .stat-box.selected.demo-tmr { background-color: rgba(59, 130, 246, 0.05); border-left-width: 6px; }
@@ -288,6 +303,11 @@
     .stat-box.selected.hrdf-follow-up-overdue { background-color: rgba(14, 165, 233, 0.05); border-left-width: 6px; }
     .stat-box.selected.sales-pending-kickoff { background-color: rgba(5, 150, 105, 0.05); border-left-width: 6px; }
     .stat-box.selected.sales-completed-kickoff { background-color: rgba(4, 120, 87, 0.05); border-left-width: 6px; }
+    .stat-box.selected.debtor-all { background-color: rgba(6, 182, 212, 0.05); border-left-width: 6px; }
+    .stat-box.selected.debtor-hrdf { background-color: rgba(14, 165, 233, 0.05); border-left-width: 6px; }
+    .stat-box.selected.debtor-product { background-color: rgba(59, 130, 246, 0.05); border-left-width: 6px; }
+    .stat-box.selected.debtor-unpaid { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
+    .stat-box.selected.debtor-partial { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
 
     /* Table grid styling */
     .table-grid-container {
@@ -434,6 +454,39 @@
     $hrdfFollowUpOverdue = app(\App\Livewire\SalespersonDashboard\HrdfFollowUpOverdueTable::class)
         ->getTodayProspects()
         ->count();
+
+    // All Debtors - Getting real counts now
+    $allDebtorsTable = app(\App\Livewire\SalespersonDashboard\AllDebtorsTable::class);
+    $allDebtorCount = $allDebtorsTable->getDebtorCount();
+    $allDebtorInvoiceCount = $allDebtorsTable->getInvoiceCount();
+    $allDebtorAmount = $allDebtorsTable->getTotalAmount();
+
+    // HRDF Debtors
+    $hrdfDebtorsTable = app(\App\Livewire\SalespersonDashboard\HrdfDebtorsTable::class);
+    $hrdfDebtorCount = $hrdfDebtorsTable->getDebtorCount();
+    $hrdfDebtorInvoiceCount = $hrdfDebtorsTable->getInvoiceCount();
+    $hrdfDebtorAmount = $hrdfDebtorsTable->getTotalAmount();
+
+    // Product Debtors
+    $productDebtorsTable = app(\App\Livewire\SalespersonDashboard\ProductDebtorsTable::class);
+    $productDebtorCount = $productDebtorsTable->getDebtorCount();
+    $productDebtorInvoiceCount = $productDebtorsTable->getInvoiceCount();
+    $productDebtorAmount = $productDebtorsTable->getTotalAmount();
+
+    // Unpaid Debtors
+    $unpaidDebtorsTable = app(\App\Livewire\SalespersonDashboard\UnpaidDebtorsTable::class);
+    $unpaidDebtorCount = $unpaidDebtorsTable->getDebtorCount();
+    $unpaidDebtorInvoiceCount = $unpaidDebtorsTable->getInvoiceCount();
+    $unpaidDebtorAmount = $unpaidDebtorsTable->getTotalAmount();
+
+    // Partial Payment Debtors
+    $partialDebtorsTable = app(\App\Livewire\SalespersonDashboard\PartialDebtorsTable::class);
+    $partialDebtorCount = $partialDebtorsTable->getDebtorCount();
+    $partialDebtorInvoiceCount = $partialDebtorsTable->getInvoiceCount();
+    $partialDebtorAmount = $partialDebtorsTable->getTotalAmount();
+
+    // Total for badge display on group box
+    $totalDebtorCount = $allDebtorCount;
 @endphp
 
 <div id="lead-owner-container" class="lead-owner-container"
@@ -460,7 +513,7 @@
                 } else if (value === 'no-respond-leads') {
                     this.selectedStat = 'transfer-lead';
                 } else if (value === 'others') {
-                    this.selectedStat = 'debtor-follow-up-today';
+                    this.selectedStat = 'debtor-all';
                 } else {
                     this.selectedStat = null;
                 }
@@ -500,7 +553,7 @@
                         :class="{'selected': selectedGroup === 'others'}"
                         @click="setSelectedGroup('others')">
                     <div class="group-title">Sales Debtor Reminder</div>
-                    <div class="group-count">0</div>
+                    <div class="group-count">{{ $totalDebtorCount }}</div>
                 </div>
 
                 <!-- Group: Software Handover -->
@@ -684,53 +737,72 @@
             </div> --}}
 
             <!-- OTHERS -->
-            <div class="category-container" x-show="selectedGroup === 'others'">
-                <div class="stat-box debtor-follow-up-today"
-                        :class="{'selected': selectedStat === 'debtor-follow-up-today'}"
-                        @click="setSelectedStat('debtor-follow-up-today')">
+            <div class="category-container" x-show="selectedGroup === 'others'" style="grid-template-columns: repeat(5, 1fr);">
+                <!-- 1. All Debtor -->
+                <div class="stat-box debtor-all"
+                        :class="{'selected': selectedStat === 'debtor-all'}"
+                        @click="setSelectedStat('debtor-all')">
                     <div class="stat-info">
-                        <div class="stat-label">Debtor Follow Up (Today)</div>
+                        <div class="stat-label">All Debtor</div>
+                        <div class="text-xs font-medium stat-label">RM {{ number_format($allDebtorAmount, 2) }}</div>
                     </div>
                     <div class="stat-count">
-                        {{-- <div class="stat-count">{{ $debtorFollowUpToday }}</div> --}}
-                        <div class="stat-count">0</div>
+                        <div class="stat-count">{{ $allDebtorCount }}</div>
                     </div>
                 </div>
-                <div class="stat-box debtor-follow-up-overdue"
-                        :class="{'selected': selectedStat === 'debtor-follow-up-overdue'}"
-                        @click="setSelectedStat('debtor-follow-up-overdue')">
+
+                <!-- 2. HRDF Debtor -->
+                <div class="stat-box debtor-hrdf"
+                        :class="{'selected': selectedStat === 'debtor-hrdf'}"
+                        @click="setSelectedStat('debtor-hrdf')">
                     <div class="stat-info">
-                        <div class="stat-label">Debtor Follow Up (Overdue)</div>
+                        <div class="stat-label">HRDF Debtor</div>
+                        <div class="text-xs font-medium stat-label">RM {{ number_format($hrdfDebtorAmount, 2) }}</div>
                     </div>
                     <div class="stat-count">
-                        {{-- <div class="stat-count">{{ $debtorFollowUpOverdue }}</div> --}}
-                        <div class="stat-count">0</div>
+                        <div class="stat-count">{{ $hrdfDebtorCount }}</div>
                     </div>
                 </div>
-                <div class="stat-box hrdf-follow-up-today"
-                        :class="{'selected': selectedStat === 'hrdf-follow-up-today'}"
-                        @click="setSelectedStat('hrdf-follow-up-today')">
+
+                <!-- 3. Product Debtor -->
+                <div class="stat-box debtor-product"
+                        :class="{'selected': selectedStat === 'debtor-product'}"
+                        @click="setSelectedStat('debtor-product')">
                     <div class="stat-info">
-                        <div class="stat-label">HRDF Follow Up (Today)</div>
+                        <div class="stat-label">Product Debtor</div>
+                        <div class="text-xs font-medium stat-label">RM {{ number_format($productDebtorAmount, 2) }}</div>
                     </div>
                     <div class="stat-count">
-                        {{-- <div class="stat-count">{{ $hrdfFollowUpToday }}</div> --}}
-                        <div class="stat-count">0</div>
+                        <div class="stat-count">{{ $productDebtorCount }}</div>
                     </div>
                 </div>
-                <div class="stat-box hrdf-follow-up-overdue"
-                        :class="{'selected': selectedStat === 'hrdf-follow-up-overdue'}"
-                        @click="setSelectedStat('hrdf-follow-up-overdue')">
+
+                <!-- 4. Unpaid Debtor -->
+                <div class="stat-box debtor-unpaid"
+                        :class="{'selected': selectedStat === 'debtor-unpaid'}"
+                        @click="setSelectedStat('debtor-unpaid')">
                     <div class="stat-info">
-                        <div class="stat-label">HRDF Follow Up (Overdue)</div>
+                        <div class="stat-label">Unpaid Debtor</div>
+                        <div class="text-xs font-medium stat-label">RM {{ number_format($unpaidDebtorAmount, 2) }}</div>
                     </div>
                     <div class="stat-count">
-                        {{-- <div class="stat-count">{{ $hrdfFollowUpOverdue }}</div> --}}
-                        <div class="stat-count">0</div>
+                        <div class="stat-count">{{ $unpaidDebtorCount }}</div>
+                    </div>
+                </div>
+
+                <!-- 5. Partial Payment Debtor -->
+                <div class="stat-box debtor-partial"
+                        :class="{'selected': selectedStat === 'debtor-partial'}"
+                        @click="setSelectedStat('debtor-partial')">
+                    <div class="stat-info">
+                        <div class="stat-label">Partial Payment Debtor</div>
+                        <div class="text-xs font-medium stat-label">RM {{ number_format($partialDebtorAmount, 2) }}</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $partialDebtorCount }}</div>
                     </div>
                 </div>
             </div>
-
             <br>
             <div class="content-area">
                 <!-- Display hint message when nothing is selected -->
@@ -788,17 +860,20 @@
                 </div>
 
                 <!-- Others -->
-                <div x-show="selectedStat === 'debtor-follow-up-today'" x-transition>
-                    <livewire:salesperson-dashboard.debtor-follow-up-today-table />
+                <div x-show="selectedStat === 'debtor-all'" x-transition>
+                    <livewire:salesperson-dashboard.all-debtors-table />
                 </div>
-                <div x-show="selectedStat === 'debtor-follow-up-overdue'" x-transition>
-                    <livewire:salesperson-dashboard.debtor-follow-up-overdue-table />
+                <div x-show="selectedStat === 'debtor-hrdf'" x-transition>
+                    <livewire:salesperson-dashboard.hrdf-debtors-table />
                 </div>
-                <div x-show="selectedStat === 'hrdf-follow-up-today'" x-transition>
-                    <livewire:salesperson-dashboard.hrdf-follow-up-today-table />
+                <div x-show="selectedStat === 'debtor-product'" x-transition>
+                    <livewire:salesperson-dashboard.product-debtors-table />
                 </div>
-                <div x-show="selectedStat === 'hrdf-follow-up-overdue'" x-transition>
-                    <livewire:salesperson-dashboard.hrdf-follow-up-overdue-table />
+                <div x-show="selectedStat === 'debtor-unpaid'" x-transition>
+                    <livewire:salesperson-dashboard.unpaid-debtors-table />
+                </div>
+                <div x-show="selectedStat === 'debtor-partial'" x-transition>
+                    <livewire:salesperson-dashboard.partial-debtors-table />
                 </div>
             </div>
         </div>

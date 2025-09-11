@@ -185,6 +185,34 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                     })
                     ->html(),
 
+                TextColumn::make('data_migrated')
+                    ->label(new HtmlString('Data<br>Migrated?'))
+                    ->alignCenter()
+                    ->getStateUsing(function (HardwareHandover $record) {
+                        // Check if there's a lead_id available
+                        if (!$record->lead_id) {
+                            return new HtmlString('<span class="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">N/A</span>');
+                        }
+
+                        // Get the latest software handover for this lead
+                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if (!$softwareHandover) {
+                            return new HtmlString('<span class="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">No Handover</span>');
+                        }
+
+                        // Check if data has been migrated based on your command logic
+                        if ($softwareHandover->data_migrated && $softwareHandover->completed_at) {
+                            return 'Yes';
+                        } else {
+                            return 'No';
+                        }
+                    })
+                    ->sortable(false)
+                    ->searchable(false),
+
                 TextColumn::make('invoice_type')
                     ->label('Invoice Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
@@ -241,6 +269,23 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                         ->label('Pending Migration')
                         ->icon('heroicon-o-truck')
                         ->color('success')
+                        ->visible(function (HardwareHandover $record) {
+                            // Only show if software handover data is NOT migrated
+                            if (!$record->lead_id) {
+                                return false;
+                            }
+
+                            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->lead_id)
+                                ->latest()
+                                ->first();
+
+                            if (!$softwareHandover) {
+                                return false;
+                            }
+
+                            // Invert the condition - show only if NOT migrated
+                            return !($softwareHandover->data_migrated && $softwareHandover->completed_at);
+                        })
                         ->modalHeading('Pending Migration Confirmation')
                         ->modalWidth('lg')
                         ->form([

@@ -306,7 +306,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                     ->modalSubmitActionLabel('Yes, Approve All')
                     ->visible(function() {
                         $user = auth()->user();
-                        return $user->role_id === 3 || $user->id === 26; // Admin or specific user
+                        return $user->role_id === 3 || $user->role_id === 5;
                     })
                     ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
                         $count = 0;
@@ -332,7 +332,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                     ->requiresConfirmation()
                     ->visible(function() {
                         $user = auth()->user();
-                        return $user->role_id === 3 || $user->id === 26;
+                        return $user->role_id === 3 || $user->role_id === 5;
                     })
                     ->form([
                         \Filament\Forms\Components\Textarea::make('remark')
@@ -384,7 +384,7 @@ class ImplementerRequestPendingApproval extends Component implements HasForms, H
                     ->requiresConfirmation()
                     ->visible(function() {
                         $user = auth()->user();
-                        return !($user->role_id === 3 || $user->id === 26);
+                        return !($user->role_id === 3 || $user->role_id === 5);
                     })
                     ->modalHeading('Cancel Selected Requests')
                     ->modalDescription('Are you sure you want to cancel all selected requests? This action cannot be undone.')

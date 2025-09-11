@@ -257,7 +257,7 @@ class ProjectAnalysis extends Page
 
     public function getTier3Implementers()
     {
-        return ['Mohd Amirul Ashraf', 'John Low', 'Nur Fazuliana'];
+        return ['Mohd Amirul Ashraf', 'John Low', 'Nur Alia', 'Nur Fazuliana'];
     }
 
     public function getInactiveImplementersList()

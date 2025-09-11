@@ -41,6 +41,7 @@ class ListSpareParts extends ListRecords
             'ta100cmfw' => Tab::make('TA100C / MF / W')->query(fn ($query) => $query->where('device_model', 'TA100C / MF / W')),
             'ta100chidw' => Tab::make('TA100C / HID / W')->query(fn ($query) => $query->where('device_model', 'TA100C / HID / W')),
             'ta100cw' => Tab::make('TA100C / W')->query(fn ($query) => $query->where('device_model', 'TA100C / W')),
+            'r3' => Tab::make('R3')->query(fn ($query) => $query->where('device_model', 'R3')),
         ];
     }
 }

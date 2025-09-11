@@ -86,9 +86,9 @@ class SoftwareResource extends Resource
                     ->schema([
                         // Section: Modules
                         Section::make('Module Selection')
-                            ->columnSpan(2)
+                            ->columnSpan(3)
                             ->schema([
-                                Grid::make(2)
+                                Grid::make(3)
                                     ->schema([
                                         Checkbox::make('ta')
                                             ->label('Time Attendance (TA)')
@@ -361,61 +361,61 @@ class SoftwareResource extends Resource
                                     ->disabled(fn() => auth()->user()->role_id !== 3)
                                     ->dehydrated(true),
                             ]),
-                        Section::make('Handover Status')
-                        ->columnSpan(1)
-                        ->schema([
-                            Select::make('status_handover')
-                                ->label('Project Status')
-                                ->options(function (callable $get) {
-                                    // Check if user has permissions to set Closed status
-                                    $user = auth()->user();
-                                    $canSetClosed = ($user->role_id == 3 || $user->id == 26);
+                        // Section::make('Handover Status')
+                        // ->columnSpan(1)
+                        // ->schema([
+                        //     Select::make('status_handover')
+                        //         ->label('Project Status')
+                        //         ->options(function (callable $get) {
+                        //             // Check if user has permissions to set Closed status
+                        //             $user = auth()->user();
+                        //             $canSetClosed = ($user->role_id == 3 || $user->id == 26);
 
-                                    // First check if go_live_date has been selected or user has special permission
-                                    if (!empty($get('go_live_date')) && $canSetClosed) {
-                                        // Include Closed option
-                                        return [
-                                            'Open' => 'Open',
-                                            'InActive' => 'InActive',
-                                            'Delay' => 'Delay',
-                                            'Closed' => 'Closed',
-                                        ];
-                                    } else {
-                                        // If no go_live_date and user doesn't have special permissions, don't include Closed option
-                                        return [
-                                            'Open' => 'Open',
-                                            'InActive' => 'InActive',
-                                            'Delay' => 'Delay',
-                                        ];
-                                    }
-                                })
-                                ->default(function (callable $get, SoftwareHandover $record) {
-                                    // If go_live_date is set, default to Closed
-                                    if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
-                                        return 'Closed';
-                                    }
+                        //             // First check if go_live_date has been selected or user has special permission
+                        //             if (!empty($get('go_live_date')) && $canSetClosed) {
+                        //                 // Include Closed option
+                        //                 return [
+                        //                     'Open' => 'Open',
+                        //                     'InActive' => 'InActive',
+                        //                     'Delay' => 'Delay',
+                        //                     'Closed' => 'Closed',
+                        //                 ];
+                        //             } else {
+                        //                 // If no go_live_date and user doesn't have special permissions, don't include Closed option
+                        //                 return [
+                        //                     'Open' => 'Open',
+                        //                     'InActive' => 'InActive',
+                        //                     'Delay' => 'Delay',
+                        //                 ];
+                        //             }
+                        //         })
+                        //         ->default(function (callable $get, SoftwareHandover $record) {
+                        //             // If go_live_date is set, default to Closed
+                        //             if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
+                        //                 return 'Closed';
+                        //             }
 
-                                    // Otherwise use existing status or fall back to Open
-                                    // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
-                                    $currentStatus = $record->status_handover ?? 'Open';
-                                    return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
-                                        ? 'Open'
-                                        : $currentStatus;
-                                })
-                                ->live() // Make it react to changes
-                                ->required(),
+                        //             // Otherwise use existing status or fall back to Open
+                        //             // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
+                        //             $currentStatus = $record->status_handover ?? 'Open';
+                        //             return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
+                        //                 ? 'Open'
+                        //                 : $currentStatus;
+                        //         })
+                        //         ->live() // Make it react to changes
+                        //         ->required(),
 
-                            Textarea::make('inactive_reason')
-                                ->label('Inactive Reason')
-                                ->placeholder('Please explain why this project is inactive')
-                                ->rows(3)
-                                ->maxLength(500)
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->hidden(fn (callable $get): bool => $get('status_handover') !== 'InActive')
-                                ->requiredIf('status_handover', 'InActive')
-                        ]),
+                        //     Textarea::make('inactive_reason')
+                        //         ->label('Inactive Reason')
+                        //         ->placeholder('Please explain why this project is inactive')
+                        //         ->rows(3)
+                        //         ->maxLength(500)
+                        //         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                        //         ->afterStateHydrated(fn($state) => Str::upper($state))
+                        //         ->afterStateUpdated(fn($state) => Str::upper($state))
+                        //         ->hidden(fn (callable $get): bool => $get('status_handover') !== 'InActive')
+                        //         ->requiredIf('status_handover', 'InActive')
+                        // ]),
                     ]),
 
             ]);
@@ -1171,9 +1171,9 @@ class SoftwareResource extends Resource
     {
         return [
             'index' => Pages\ListSoftwareHandovers::route('/project-list'),
-            // 'view' => Pages\ViewSoftwareHandover::route('/{record}'),
+            'view' => Pages\ViewSoftwareHandover::route('/{record}'),
             // 'create' => Pages\CreateSoftwareHandover::route('/create'),
-            'edit' => Pages\EditSoftwareHandover::route('/{record}/edit'),
+            // 'edit' => Pages\EditSoftwareHandover::route('/{record}/edit'),
         ];
     }
 
