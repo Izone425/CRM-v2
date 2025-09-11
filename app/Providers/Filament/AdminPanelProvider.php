@@ -27,6 +27,7 @@ use App\Filament\Pages\ImplementerCalendar;
 use App\Filament\Pages\ImplementerDataFile;
 use App\Filament\Pages\ImplementerRequestCount;
 use App\Filament\Pages\ImplementerRequestList;
+use App\Filament\Pages\InvoiceSummary;
 use App\Filament\Pages\KickOffMeetingSession;
 use App\Filament\Pages\LeadAnalysis;
 use App\Filament\Pages\MarketingAnalysis;
@@ -125,6 +126,7 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
+use App\Models\Invoice;
 use App\Models\Policy;
 use App\Models\Role;
 use App\Models\SparePart;
@@ -299,6 +301,7 @@ class AdminPanelProvider extends PanelProvider
                 DeviceStockInformation::class,
                 DevicePurchaseInformation::class,
                 SalesDebtor::class,
+                InvoiceSummary::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
