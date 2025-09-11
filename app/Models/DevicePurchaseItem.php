@@ -27,6 +27,7 @@ class DevicePurchaseItem extends Model
         'languages',
         'features',
         'status',
+        'device_purchase_items_year_month_model_unique',
     ];
 
     /**
