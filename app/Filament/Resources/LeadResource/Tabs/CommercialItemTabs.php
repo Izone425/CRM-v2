@@ -76,7 +76,20 @@ class CommercialItemTabs
                         ]),
 
                 ])
-                ->columnSpan(2),
+                ->columnSpan(2)
+                ->visible(function ($livewire) {
+                    // Get current authenticated user
+                    $user = auth()->user();
+
+                    // If not a salesperson (role_id 2), always show the tabs
+                    if ($user->role_id !== 2) {
+                        return true;
+                    }
+
+                    // For salespeople, check if they're assigned to this lead
+                    $lead = $livewire->getRecord();
+                    return $lead->salesperson == $user->id;
+                }),
         ];
     }
 }

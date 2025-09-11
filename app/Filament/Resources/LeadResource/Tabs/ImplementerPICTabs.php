@@ -30,6 +30,29 @@ use Illuminate\View\View as IlluminateView;
 
 class ImplementerPICTabs
 {
+    protected static function canEditPICs($record): bool
+    {
+        $user = auth()->user();
+
+        // Admin users (role_id = 3) can always edit
+        if ($user->role_id == 3) {
+            return true;
+        }
+
+        // Get the software handover for this lead
+        $swHandover = SoftwareHandover::where('lead_id', $record->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // Check if the current user is the assigned implementer
+        if ($swHandover && $swHandover->implementer === $user->name) {
+            return true;
+        }
+
+        // Otherwise, no edit permissions
+        return false;
+    }
+
     public static function getSchema(): array
     {
         return [
@@ -59,6 +82,11 @@ class ImplementerPICTabs
                             ->modalHeading('Update Original PIC Status')
                             ->modalDescription('You can only update the status of original PICs to "Resign". All other fields cannot be edited.')
                             ->visible(function ($record) {
+                                // First check if user has edit permissions
+                                if (!self::canEditPICs($record)) {
+                                    return false;
+                                }
+
                                 // Get the software handover for this lead
                                 $swHandover = SoftwareHandover::where('lead_id', $record->id)
                                     ->orderBy('created_at', 'desc')
@@ -245,6 +273,10 @@ class ImplementerPICTabs
                                 ->label('Add New PIC Details')
                                 ->color('primary')
                                 ->modalWidth('5xl')
+                                ->visible(function ($record) {
+                                    // Only show this action if user has edit permissions
+                                    return self::canEditPICs($record);
+                                })
                                 ->form([
                                     // Add the repeater directly in the section
                                     Repeater::make('additional_pic')
@@ -367,6 +399,11 @@ class ImplementerPICTabs
                                 ->modalHeading('Update New PIC Status')
                                 ->modalDescription('You can only update the status of new PICs.')
                                 ->visible(function ($record) {
+                                    // First check if user has edit permissions
+                                    if (!self::canEditPICs($record)) {
+                                        return false;
+                                    }
+
                                     // Check if record exists, has companyDetail, and has additional_pic
                                     if (!$record || !$record->companyDetail || empty($record->companyDetail->additional_pic)) {
                                         return false;

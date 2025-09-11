@@ -645,6 +645,32 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         ->requiresConfirmation()
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
+                        ->hidden(function() {
+                            // Get the current user
+                            $user = auth()->user();
+
+                            // Get the lead record
+                            $lead = $this->getOwnerRecord();
+                            if (!$lead) return true; // Hide if no lead record found
+
+                            // Admins (role_id = 3) can always add appointments
+                            if ($user->role_id == 3) {
+                                return false; // Don't hide for admins
+                            }
+
+                            // Find the latest software handover for this lead
+                            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                                ->latest()
+                                ->first();
+
+                            // If there's a software handover and the current user is the assigned implementer, allow access
+                            if ($softwareHandover && $softwareHandover->implementer === $user->name) {
+                                return false; // Don't hide for the assigned implementer
+                            }
+
+                            // For all other cases, hide the button
+                            return true;
+                        })
                         ->action(function (array $data, ImplementerAppointment $record) {
                             // Update the Appointment status
                             try {
@@ -790,9 +816,30 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Implementation Appointment')
                 ->hidden(function() {
+                    // Get the current user
                     $user = auth()->user();
-                    // Only allow admin, technicians, and resellers to schedule appointments
-                    return !in_array($user->role_id, [3, 9]) && is_null($this->getOwnerRecord()->lead_owner);
+
+                    // Get the lead record
+                    $lead = $this->getOwnerRecord();
+                    if (!$lead) return true; // Hide if no lead record found
+
+                    // Admins (role_id = 3) can always add appointments
+                    if ($user->role_id == 3) {
+                        return false; // Don't hide for admins
+                    }
+
+                    // Find the latest software handover for this lead
+                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                        ->latest()
+                        ->first();
+
+                    // If there's a software handover and the current user is the assigned implementer, allow access
+                    if ($softwareHandover && $softwareHandover->implementer === $user->name) {
+                        return false; // Don't hide for the assigned implementer
+                    }
+
+                    // For all other cases, hide the button
+                    return true;
                 })
                 ->form($this->defaultForm())
                 ->action(function (array $data) {

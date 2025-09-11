@@ -38,10 +38,22 @@ class DevicePurchaseInformation extends Page
     public $statusModel = null;
     public $selectedStatus = null;
 
+    public $selectedMonth = null;
+
     public function mount()
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
         $this->loadPurchaseData();
+        $currentMonth = (int)date('n');
+
+        // Select the current month by default
+        $this->selectedMonth = $currentMonth;
+
+    }
+
+    public function selectMonth($monthNum)
+    {
+        $this->selectedMonth = $monthNum;
     }
 
     protected function getHeaderActions(): array

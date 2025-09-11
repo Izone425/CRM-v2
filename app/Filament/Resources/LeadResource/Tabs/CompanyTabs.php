@@ -40,7 +40,13 @@ class CompanyTabs
                                     ->label('Edit') // Button label
                                     ->modalHeading('Edit Information') // Modal heading
                                     ->visible(fn (Lead $lead) =>
-                                        !in_array(auth()->user()->role_id, [4, 5]) &&
+                                        // First check if user role is not 4 or 5
+                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
+
+                                        // If user is role 2 (salesperson), they can only edit their own leads
+                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                        // Then check if lead owner exists or salesperson exists
                                         (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                     )
                                     ->modalSubmitActionLabel('Save Changes') // Modal button text
@@ -230,7 +236,13 @@ class CompanyTabs
                                     Action::make('edit_person_in_charge')
                                         ->label('Edit') // Button label
                                         ->visible(fn (Lead $lead) =>
-                                            !in_array(auth()->user()->role_id, [4, 5]) &&
+                                            // First check if user role is not 4 or 5
+                                            in_array(auth()->user()->role_id, [1, 2, 3]) &&
+
+                                            // If user is role 2 (salesperson), they can only edit their own leads
+                                            (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                            // Then check if lead owner exists or salesperson exists
                                             (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                         )
                                         ->modalHeading('Edit on Person In-Charge') // Modal heading
@@ -294,7 +306,13 @@ class CompanyTabs
                                     Action::make('archive')
                                         ->label(__('Edit'))
                                         ->visible(fn (Lead $lead) =>
-                                            !in_array(auth()->user()->role_id, [4, 5]) &&
+                                            // First check if user role is not 4 or 5
+                                            in_array(auth()->user()->role_id, [1, 2, 3]) &&
+
+                                            // If user is role 2 (salesperson), they can only edit their own leads
+                                            (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                            // Then check if lead owner exists or salesperson exists
                                             (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                         )
                                         ->modalHeading('Mark Lead as Inactive')
@@ -785,15 +803,16 @@ class CompanyTabs
                         Action::make('assign_reseller')
                             ->label('Assign Reseller')
                             ->icon('heroicon-o-link')
-                            ->visible(function (Lead $lead) {
-                                // First check if user has appropriate role
-                                if (!in_array(auth()->user()->role_id, [1, 2, 3])) {
-                                    return false;
-                                }
+                            ->visible(fn (Lead $lead) =>
+                                // First check if user role is not 4 or 5
+                                in_array(auth()->user()->role_id, [1, 2, 3]) &&
 
-                                // Then apply the original condition
-                                return !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson));
-                            })
+                                // If user is role 2 (salesperson), they can only edit their own leads
+                                (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                // Then check if lead owner exists or salesperson exists
+                                (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                            )
                             ->modalHeading('Assign Reseller to Lead')
                             ->modalSubmitActionLabel('Assign')
                             ->form([

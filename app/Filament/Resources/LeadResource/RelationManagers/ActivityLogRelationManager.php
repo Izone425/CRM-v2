@@ -2939,16 +2939,17 @@ class ActivityLogRelationManager extends RelationManager
                         return false; // Not the latest record, hide the ActionGroup
                     }
 
-                    // Apply the salesperson null check only for role_id = 1
-                    // if ((auth()->user()->role_id === 1 && !is_null($lead->salesperson))) {
-                    //     return false; // Hide for role_id = 1 if salesperson is not null
-                    // }
+                    // For salespeople (role_id 2), only show actions if they are assigned to this lead
+                    if (auth()->user()->role_id === 2 && $lead->salesperson != auth()->user()->id) {
+                        return false; // Hide actions if the current user is not the assigned salesperson
+                    }
 
-                    if(is_null($lead->lead_owner) && $lead->lead_status == 'RFQ-Transfer' && !is_null($lead->salesperson)){
+                    // Original conditions
+                    if (is_null($lead->lead_owner) && $lead->lead_status == 'RFQ-Transfer' && !is_null($lead->salesperson)) {
                         return true;
                     }
 
-                    if(auth()->user()->role_id == '1' && is_null($lead->lead_owner)){
+                    if (auth()->user()->role_id == '1' && is_null($lead->lead_owner)) {
                         return false;
                     }
 

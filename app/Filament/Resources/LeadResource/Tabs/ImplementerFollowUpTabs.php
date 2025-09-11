@@ -32,6 +32,29 @@ use Illuminate\Support\Facades\DB;
 
 class ImplementerFollowUpTabs
 {
+    protected static function canEditFollowUp($record): bool
+    {
+        $user = auth()->user();
+
+        // Admin users (role_id = 3) can always edit
+        if ($user->role_id == 3) {
+            return true;
+        }
+
+        // Get the software handover for this lead
+        $swHandover = SoftwareHandover::where('lead_id', $record->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // Check if the current user is the assigned implementer
+        if ($swHandover && $swHandover->implementer === $user->name) {
+            return true;
+        }
+
+        // Otherwise, no edit permissions
+        return false;
+    }
+
     public static function getSchema(): array
     {
         return [
@@ -45,6 +68,9 @@ class ImplementerFollowUpTabs
                                 ->button()
                                 ->color('primary')
                                 ->icon('heroicon-o-plus')
+                                ->visible(function ($record) {
+                                    return self::canEditFollowUp($record);
+                                })
                                 ->modalWidth('6xl')
                                 ->form([
                                     Grid::make(4)
