@@ -563,7 +563,8 @@
         }
 
         .month-count {
-            background-color: rgba(255, 255, 255, 0.25);
+            background-color: rgba(253, 56, 56, 0.856);
+            color: white;
             border-radius: 9999px;
             padding: 0.125rem 0.5rem;
             font-size: 0.75rem;
@@ -701,7 +702,7 @@
                             </div>
                             <div class="form-grid">
                                 @if(!$editingModel)
-                                <div class="form-group full-width">
+                                <div class="form-group">
                                     <label class="form-label" for="model">Model Name*</label>
                                     <select id="model" class="form-input" wire:model.defer="editingData.model">
                                         <option value="">-- Select Model --</option>
@@ -732,7 +733,7 @@
                                 </svg>
                                 Power Plug Configuration
                             </div>
-                            <div class="form-grid">
+                            <div class="form-grid" style= 'grid-template-columns: repeat(4, 1fr);'>
                                 <div class="form-group">
                                     <label class="form-label" for="england">England Plug</label>
                                     <input type="number" id="england" class="form-input" wire:model.defer="editingData.england">
