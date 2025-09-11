@@ -271,6 +271,7 @@
         }
 
         .menu-item {
+            padding: 0.5rem;
             display: flex;
             align-items: center;
             border-radius: 0.5rem;
@@ -462,7 +463,7 @@
 
         .submenu {
             padding-left: 0.5rem;
-            margin-top: 0.25rem;
+            /* margin-top: 0.25rem; */
             margin-bottom: 0.25rem;
             border-left: 2px solid #E5E7EB;
             margin-left: 1rem;
@@ -960,22 +961,26 @@
                     </div>
 
                     <div class="menu-block">
-                        <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item" style="margin-left:9px;">
+                        <a href="{{ route('filament.admin.pages.policy-management') }}" class="menu-item">
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Sales Policy</span>
                         </a>
+                        <div class="submenu" id="policy-submenu">
+                        </div>
                     </div>
 
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                         <div class="menu-block">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item" style="margin-left:9px;">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="menu-item">
                                 <div class="menu-icon-wrapper">
                                     <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Sales Pricing</span>
                             </a>
+                            <div class="submenu" id="policy-submenu">
+                            </div>
                         </div>
                     @endif
                 </div>
@@ -1030,11 +1035,13 @@
                                 </a>
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                     <a href="{{ route('filament.admin.pages.device-stock-information') }}" class="submenu-item">
+                                        <i class="bi bi-window-fullscreen submenu-icon"></i>
                                         <span class="module-font">Device Stock Information</span>
                                     </a>
                                 @endif
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                     <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
+                                        <i class="bi bi-box-seam submenu-icon"></i>
                                         <span class="module-font">Device Purchase Information</span>
                                     </a>
                                 @endif
@@ -1058,6 +1065,7 @@
                                 </a>
                                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
                                     <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                        <i class="bi bi-tools submenu-icon"></i>
                                         <span class="module-font">InHouse Repair List</span>
                                     </a>
                                 @endif

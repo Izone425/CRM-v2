@@ -229,6 +229,51 @@ class ImplementerRequestApproved extends Component implements HasForms, HasTable
                 ->button()
                 ->color('warning')
                 ->label('Actions')
+            ])
+            ->bulkActions([
+                \Filament\Tables\Actions\BulkAction::make('batchCancel')
+                    ->label('Cancel Selected')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->visible(function() {
+                        $user = auth()->user();
+                        return !($user->role_id === 3 || $user->role_id === 5);
+                    })
+                    ->modalHeading('Cancel Selected Requests')
+                    ->modalDescription('Are you sure you want to cancel all selected requests? This action cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, Cancel All')
+                    ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                        $count = 0;
+                        $errors = 0;
+
+                        foreach ($records as $record) {
+                            try {
+                                // Cancel appointment using existing method
+                                $this->cancelAppointment($record->id);
+                                $count++;
+                            } catch (\Exception $e) {
+                                Log::error('Failed to cancel appointment in batch: ' . $e->getMessage(), [
+                                    'record_id' => $record->id
+                                ]);
+                                $errors++;
+                            }
+                        }
+
+                        if ($count > 0) {
+                            Notification::make()
+                                ->title("$count appointments cancelled successfully")
+                                ->success()
+                                ->send();
+                        }
+
+                        if ($errors > 0) {
+                            Notification::make()
+                                ->title("$errors appointments failed to cancel")
+                                ->danger()
+                                ->send();
+                        }
+                    })
             ]);
     }
 

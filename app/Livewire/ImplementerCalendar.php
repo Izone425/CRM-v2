@@ -476,9 +476,10 @@ class ImplementerCalendar extends Component
             'Zulhilmie' => 6,
             'Mohd Amirul Ashraf' => 7,
             'John Low' => 8,
-            'Nur Fazuliana' => 9,
-            'Ummu Najwa Fajrina' => 10,
-            'Noor Syazana' => 11
+            'Nur Alia' => 9,
+            'Nur Fazuliana' => 10,
+            'Ummu Najwa Fajrina' => 11,
+            'Noor Syazana' => 12
         ];
 
         // Get implementers data
@@ -1582,6 +1583,25 @@ class ImplementerCalendar extends Component
                     }
                 } catch (\Exception $e) {
                     Log::error("Error parsing additional_pic JSON: " . $e->getMessage());
+                }
+            }
+
+            if ($companyDetail && $companyDetail->lead_id) {
+                try {
+                    $lead = \App\Models\Lead::find($companyDetail->lead_id);
+                    if ($lead && !empty($lead->salesperson)) {
+                        // Find the user with this salesperson name
+                        $salesperson = \App\Models\User::where('id', $lead->salesperson)->first();
+
+                        if ($salesperson && !empty($salesperson->email)) {
+                            $email = trim($salesperson->email);
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                $emails[] = $email;
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error fetching salesperson email: " . $e->getMessage());
                 }
             }
 
