@@ -1,10 +1,10 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/device-stock-information.blade.php -->
 <x-filament-panels::page>
     <style>
         .inventory-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 16px;
+            margin-bottom: 24px;
         }
 
         .inventory-box {
@@ -78,6 +78,14 @@
             margin-bottom: 16px;
             color: #6b7280;
             font-size: 0.875rem;
+        }
+
+        .section-header {
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            color: #111827;
+            font-size: 1rem;
+            font-weight: 600;
         }
 
         .legend-box {
@@ -166,30 +174,37 @@
     </style>
 
     <div>
-        <!-- Last Updated Timestamp -->
-        <div class="timestamp-box">
-            <div class="flex items-center justify-between">
-                <h3 class="text-xl font-semibold text-gray-800">Device Stock Information</h3>
-                <span>{{ $this->getLastUpdatedTimestamp() }}</span>
-            </div>
+        <!-- SECTION 1: Inventory Data -->
+        <div class="flex items-center justify-between">
+            <div class="section-header">Device Inventory</div>
+            <span>{{ $this->getLastUpdatedTimestamp() }}</span>
         </div>
-
-        <!-- Inventory Grid -->
         <div class="inventory-grid">
             @php
                 $themes = ['blue-theme', 'green-theme', 'purple-theme', 'indigo-theme', 'amber-theme', 'rose-theme', 'gray-theme', 'red-theme'];
+                $themeMap = [];
                 $themeIndex = 0;
+
+                // Define display name mapping
+                $displayNames = [
+                    'Beacon-WMC007-V2' => 'TIME BEACON',
+                    'NFC-WMC006-Y' => 'NFC TAG'
+                ];
             @endphp
 
             @foreach($this->getInventoryData() as $inventory)
                 @php
                     $theme = $themes[$themeIndex % count($themes)];
+                    $themeMap[$inventory->name] = $theme;
                     $themeIndex++;
+
+                    // Use friendly display name if available, otherwise use original name
+                    $displayName = $displayNames[trim($inventory->name)] ?? $inventory->name;
                 @endphp
 
                 <div class="inventory-box {{ $theme }}">
-                    <div class="inventory-title" title="{{ $inventory->name }}">
-                        {{ $inventory->name }}
+                    <div class="inventory-title" title="{{ $displayName }}">
+                        {{ $displayName }}
                     </div>
 
                     <div class="inventory-content">
@@ -219,26 +234,95 @@
                 </div>
             @endforeach
         </div>
-    </div>
 
-    <!-- Legend -->
-    {{-- <div class="p-4">
-        <div class="legend-box">
-            <h3 class="legend-title">Stock Status Legend</h3>
-            <div class="legend-items">
-                <div class="legend-item">
-                    <span class="bg-red-100 legend-color"></span>
-                    <span>Low Stock (≤ 5)</span>
+        <!-- SECTION 2: Purchase Items -->
+        <div class="section-header">Device Purchase Status</div>
+        <div class="inventory-grid">
+            @foreach($this->getPurchaseData() as $purchase)
+                @php
+                    // Use the same theme for each model as was used in the inventory section
+                    $theme = $themeMap[$purchase->name] ?? $themes[0];
+
+                    // Use friendly display name if available, otherwise use original name
+                    $displayName = $displayNames[trim($purchase->name)] ?? $purchase->name;
+                @endphp
+
+                <div class="inventory-box {{ $theme }}">
+                    <div class="inventory-title" title="{{ $displayName }}">
+                        {{ $displayName }}
+                    </div>
+
+                    <div class="inventory-content">
+                        <div class="inventory-stat">
+                            <span class="stat-label">Completed Order:</span>
+                            <span class="stat-value {{ $this->getColorForQuantity($purchase->completed_order) }}">
+                                {{ $purchase->completed_order }}
+                            </span>
+                        </div>
+
+                        <div class="inventory-stat">
+                            <span class="stat-label">Completed Shipping:</span>
+                            <span class="stat-value {{ $this->getColorForQuantity($purchase->completed_shipping) }}">
+                                {{ $purchase->completed_shipping }}
+                            </span>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="inventory-stat">
+                            <span class="stat-label stat-total">Total:</span>
+                            <span class="font-bold stat-value highlight">
+                                {{ $purchase->total_purchase }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="legend-item">
-                    <span class="bg-yellow-100 legend-color"></span>
-                    <span>Medium Stock (6-15)</span>
-                </div>
-                <div class="legend-item">
-                    <span class="bg-green-100 legend-color"></span>
-                    <span>Good Stock (> 15)</span>
-                </div>
-            </div>
+            @endforeach
         </div>
-    </div> --}}
+
+        <!-- SECTION 3: Overall Summary -->
+        <div class="section-header">Device Summary</div>
+        <div class="inventory-grid">
+            @foreach($this->getDeviceSummary() as $summary)
+                @php
+                    // Use the same theme for each model as was used in the inventory section
+                    $theme = $themeMap[$summary->name] ?? $themes[0];
+
+                    // Use friendly display name if available, otherwise use original name
+                    $displayName = $displayNames[trim($summary->name)] ?? $summary->name;
+                @endphp
+
+                <div class="inventory-box {{ $theme }}">
+                    <div class="inventory-title" title="{{ $displayName }}">
+                        {{ $displayName }}
+                    </div>
+
+                    <div class="inventory-content">
+                        <div class="inventory-stat">
+                            <span class="stat-label">Summary 1:</span>
+                            <span class="stat-value {{ $this->getColorForQuantity($summary->summary1) }}">
+                                {{ $summary->summary1 }}
+                            </span>
+                        </div>
+
+                        <div class="inventory-stat">
+                            <span class="stat-label">Summary 2:</span>
+                            <span class="stat-value {{ $this->getColorForQuantity($summary->summary2) }}">
+                                {{ $summary->summary2 }}
+                            </span>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="inventory-stat">
+                            <span class="stat-label stat-total">Total:</span>
+                            <span class="font-bold stat-value highlight">
+                                {{ $summary->total_summary }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
 </x-filament-panels::page>

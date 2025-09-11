@@ -3,9 +3,11 @@
 namespace App\Filament\Pages;
 
 use App\Models\Inventory;
+use App\Models\DevicePurchaseItem;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class DeviceStockInformation extends Page
 {
@@ -52,6 +54,59 @@ class DeviceStockInformation extends Page
         })->sortBy('name');
 
         return $orderedInventory->concat($remainingItems);
+    }
+
+    public function getPurchaseData()
+    {
+        // Get the same device models as in inventory
+        $inventoryModels = $this->getInventoryData()->pluck('name')->toArray();
+
+        $purchaseData = collect();
+
+        foreach ($inventoryModels as $model) {
+            // Get quantities from device_purchase_items based on statuses
+            $completedOrder = DevicePurchaseItem::where('model', $model)
+                ->where('status', 'Completed Order')
+                ->sum('qty');
+
+            $completedShipping = DevicePurchaseItem::where('model', $model)
+                ->where('status', 'Completed Shipping')
+                ->sum('qty');
+
+            // Create a new object with the same structure as inventory items
+            $purchaseItem = (object)[
+                'name' => $model,
+                'completed_order' => (int)$completedOrder,
+                'completed_shipping' => (int)$completedShipping,
+                'total_purchase' => (int)$completedOrder + (int)$completedShipping,
+            ];
+
+            $purchaseData->push($purchaseItem);
+        }
+
+        return $purchaseData;
+    }
+
+    public function getDeviceSummary()
+    {
+        $inventory = $this->getInventoryData();
+        $purchases = $this->getPurchaseData();
+        $summary = collect();
+
+        foreach ($inventory as $index => $item) {
+            $purchaseItem = $purchases->firstWhere('name', $item->name);
+
+            $summaryItem = (object)[
+                'name' => $item->name,
+                'summary1' => $item->new + $item->in_stock,
+                'summary2' => $purchaseItem ? $purchaseItem->total_purchase : 0,
+                'total_summary' => ($item->new + $item->in_stock) + ($purchaseItem ? $purchaseItem->total_purchase : 0),
+            ];
+
+            $summary->push($summaryItem);
+        }
+
+        return $summary;
     }
 
     // Define colors for different status levels

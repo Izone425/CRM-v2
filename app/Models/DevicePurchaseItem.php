@@ -28,4 +28,28 @@ class DevicePurchaseItem extends Model
         'features',
         'status',
     ];
+
+    /**
+     * Set languages attribute to uppercase
+     */
+    public function setLanguagesAttribute($value)
+    {
+        $this->attributes['languages'] = strtoupper($value);
+    }
+
+    /**
+     * Set po_no attribute to uppercase
+     */
+    public function setPoNoAttribute($value)
+    {
+        $this->attributes['po_no'] = strtoupper($value);
+    }
+
+    /**
+     * Set order_no attribute to uppercase
+     */
+    public function setOrderNoAttribute($value)
+    {
+        $this->attributes['order_no'] = strtoupper($value);
+    }
 }

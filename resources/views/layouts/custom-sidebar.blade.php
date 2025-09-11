@@ -1037,10 +1037,12 @@
                                     <i class="bi bi-window-fullscreen submenu-icon"></i>
                                     <span class="module-font">Device Stock Information</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
-                                    <i class="bi bi-box-seam submenu-icon"></i>
-                                    <span class="module-font">Device Purchase Information</span>
-                                </a>
+                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                                    <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
+                                        <i class="bi bi-box-seam submenu-icon"></i>
+                                        <span class="module-font">Device Purchase Information</span>
+                                    </a>
+                                @endif
                             </div>
                         </div>
 
