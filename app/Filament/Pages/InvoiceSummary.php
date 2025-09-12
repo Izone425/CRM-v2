@@ -102,7 +102,9 @@ class InvoiceSummary extends Page
         }
 
         // Get all debtor aging records for faster lookup
-        $debtorAgingRecords = DebtorAging::pluck('outstanding', 'invoice_number')
+        $debtorAgingRecords = DebtorAging::select('invoice_number', 'outstanding', 'invoice_amount')
+            ->get()
+            ->keyBy('invoice_number')
             ->toArray();
 
         $monthlyData = [];
@@ -123,6 +125,9 @@ class InvoiceSummary extends Page
             $partiallyPaidInvoices = [];
             $unpaidInvoices = [];
 
+            // Track which unpaid/partially paid invoices we've already counted
+            $processedUnpaidInvoices = [];
+
             // Calculate monthly credit note total for this month
             $monthCreditNoteTotal = 0;
             if (isset($creditNotesByMonth[$month])) {
@@ -137,37 +142,68 @@ class InvoiceSummary extends Page
             }
 
             foreach ($monthInvoices as $invoice) {
-                // Get the original invoice amount
-                $originalAmount = $invoice->invoice_amount;
-
-                // Adjust the invoice amount by subtracting a proportional amount of credit notes
-                // based on this invoice's amount relative to the total invoiced amount for the month
                 $invoiceNumber = $invoice->invoice_no;
+                $invoiceAmount = (float)$invoice->invoice_amount;
 
-                // Determine payment status with adjusted amount
-                $status = $this->determinePaymentStatus($invoice, $debtorAgingRecords, $originalAmount);
+                // Check if this invoice exists in debtor aging table
+                if (isset($debtorAgingRecords[$invoiceNumber])) {
+                    $outstanding = (float)$debtorAgingRecords[$invoiceNumber]['outstanding'];
 
-                // Add to appropriate category and store invoice number
-                if ($status === 'Full Payment') {
-                    $fullyPaid += $originalAmount;
+                    // If outstanding is 0, it's fully paid - count each occurrence
+                    if ($outstanding === 0.0) {
+                        $fullyPaid += $invoiceAmount;
+                        $fullyPaidInvoices[] = [
+                            'invoice_no' => $invoiceNumber,
+                            'amount' => $invoiceAmount,
+                            'customer' => $invoice->customer_name ?? 'Unknown'
+                        ];
+                    }
+                    // For unpaid/partially paid invoices, only count once
+                    else {
+                        // Skip if we've already processed this invoice number
+                        if (isset($processedUnpaidInvoices[$invoiceNumber])) {
+                            continue;
+                        }
+
+                        $processedUnpaidInvoices[$invoiceNumber] = true;
+
+                        // If outstanding equals invoice amount, it's unpaid
+                        if (abs($outstanding - $invoiceAmount) < 0.01) {
+                            $unpaid += $outstanding;
+                            $unpaidInvoices[] = [
+                                'invoice_no' => $invoiceNumber,
+                                'amount' => $invoiceAmount,
+                                'outstanding' => $outstanding,
+                                'customer' => $invoice->customer_name ?? 'Unknown'
+                            ];
+                        }
+                        // If outstanding is less than invoice amount but greater than 0, it's partially paid
+                        else if ($outstanding < $invoiceAmount && $outstanding > 0) {
+                            $partiallyPaid += $outstanding;
+                            $partiallyPaidInvoices[] = [
+                                'invoice_no' => $invoiceNumber,
+                                'amount' => $invoiceAmount,
+                                'outstanding' => $outstanding,
+                                'customer' => $invoice->customer_name ?? 'Unknown'
+                            ];
+                        } else {
+                            // Fallback (unusual case like outstanding > invoice amount)
+                            $unpaid += $outstanding;
+                            $unpaidInvoices[] = [
+                                'invoice_no' => $invoiceNumber,
+                                'amount' => $invoiceAmount,
+                                'outstanding' => $outstanding,
+                                'customer' => $invoice->customer_name ?? 'Unknown',
+                                'note' => 'Unusual case - outstanding > invoice amount'
+                            ];
+                        }
+                    }
+                } else {
+                    // If invoice is not in debtor aging, it's considered fully paid - count each occurrence
+                    $fullyPaid += $invoiceAmount;
                     $fullyPaidInvoices[] = [
                         'invoice_no' => $invoiceNumber,
-                        'amount' => $originalAmount,
-                        'customer' => $invoice->customer_name ?? 'Unknown'
-                    ];
-                } elseif ($status === 'Partial Payment') {
-                    $partiallyPaid += $originalAmount;
-                    $partiallyPaidInvoices[] = [
-                        'invoice_no' => $invoiceNumber,
-                        'amount' => $originalAmount,
-                        'outstanding' => $debtorAgingRecords[$invoiceNumber] ?? 0,
-                        'customer' => $invoice->customer_name ?? 'Unknown'
-                    ];
-                } elseif ($status === 'UnPaid') {
-                    $unpaid += $originalAmount;
-                    $unpaidInvoices[] = [
-                        'invoice_no' => $invoiceNumber,
-                        'amount' => $originalAmount,
+                        'amount' => $invoiceAmount,
                         'customer' => $invoice->customer_name ?? 'Unknown'
                     ];
                 }
@@ -324,7 +360,8 @@ class InvoiceSummary extends Page
             return 'Full Payment';
         }
 
-        $outstanding = (float) $debtorAgingRecords[$invoiceNo];
+        $outstanding = (float) $debtorAgingRecords[$invoiceNo]['outstanding'];
+
         // If outstanding is 0, it's fully paid
         if ($outstanding === 0.0) {
             return 'Full Payment';
@@ -338,6 +375,13 @@ class InvoiceSummary extends Page
         // If outstanding is less than invoice amount but greater than 0, it's partially paid
         if ($outstanding < $invoiceAmount && $outstanding > 0) {
             return 'Partial Payment';
+        }
+
+        // Handle unusual case where outstanding > invoice amount
+        if ($outstanding > $invoiceAmount) {
+            // Log this anomaly
+            Log::warning("Invoice {$invoiceNo} has outstanding ({$outstanding}) greater than invoice amount ({$invoiceAmount})");
+            return 'UnPaid';
         }
 
         // Fallback

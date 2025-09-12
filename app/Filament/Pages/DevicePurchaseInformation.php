@@ -40,6 +40,11 @@ class DevicePurchaseInformation extends Page
 
     public $selectedMonth = null;
 
+    public $isRawView = false;
+    public $rawData = [];
+
+    public $updatingStatus = null;
+
     public function mount()
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
@@ -49,6 +54,11 @@ class DevicePurchaseInformation extends Page
 
         // Select the current month by default
         $this->selectedMonth = $currentMonth;
+
+        // Load raw data if raw view is enabled
+        if ($this->isRawView) {
+            $this->loadRawData();
+        }
     }
 
     public function selectMonth($monthNum)
@@ -79,37 +89,12 @@ class DevicePurchaseInformation extends Page
                 ->color($year == $this->selectedYear ? 'primary' : 'warning');
         }
 
-        // Replace with a MultiSelect action for status filtering
-        $actions[] = Action::make('status_filter')
-            ->label('Status Filter')
-            ->icon('heroicon-o-funnel')
-            ->color('success')
-            ->form([
-                \Filament\Forms\Components\MultiSelect::make('status')
-                    ->label('Filter by Status')
-                    ->options($this->getStatusOptions())
-                    ->default([$this->selectedStatus])
-                    ->preload()
-                    ->searchable()
-                    ->required(),
-            ])
-            ->action(function (array $data) {
-                // If multiple statuses are selected, we'll need to modify our approach
-                // For now, we'll use the first selected status as our primary filter
-                if (!empty($data['status'])) {
-                    $selectedStatus = is_array($data['status']) ? reset($data['status']) : $data['status'];
-
-                    return redirect()->route('filament.admin.pages.device-purchase-information', [
-                        'year' => $this->selectedYear,
-                        'status' => $selectedStatus
-                    ]);
-                }
-
-                // Default to All if nothing selected
-                return redirect()->route('filament.admin.pages.device-purchase-information', [
-                    'year' => $this->selectedYear,
-                    'status' => 'All'
-                ]);
+        $actions[] = Action::make('toggle_view')
+            ->label(fn() => $this->isRawView ? 'Switch to Process View' : 'Switch to Raw View')
+            // ->icon(fn() => $this->isRawView ? 'heroicon-o-view-columns' : 'heroicon-o-table')
+            ->color('gray')
+            ->action(function () {
+                $this->toggleViewMode();
             });
 
         return $actions;
@@ -141,7 +126,23 @@ class DevicePurchaseInformation extends Page
     {
         $this->editingMonth = $monthKey;
         $this->editingModel = $uniqueKey;
-        $this->editingData = $this->purchaseData[$monthKey][$uniqueKey];
+
+        if ($this->isRawView) {
+            // In raw view, find the item by ID
+            $parts = explode('_', $uniqueKey);
+            $itemId = end($parts);
+
+            foreach ($this->rawData as $item) {
+                if ($item['id'] == $itemId) {
+                    $this->editingData = $item;
+                    break;
+                }
+            }
+        } else {
+            // In process view, use the existing code
+            $this->editingData = $this->purchaseData[$monthKey][$uniqueKey];
+        }
+
         $this->isModalOpen = true;
     }
 
@@ -184,27 +185,49 @@ class DevicePurchaseInformation extends Page
     {
         $this->statusMonth = $monthKey;
         $this->statusModel = $uniqueKey;
-        $this->selectedStatus = $this->purchaseData[$monthKey][$uniqueKey]['status'] ?? null;
+
+        if ($this->isRawView) {
+            // In raw view, find the item by ID
+            $parts = explode('_', $uniqueKey);
+            $itemId = end($parts);
+
+            foreach ($this->rawData as $item) {
+                if ($item['id'] == $itemId) {
+                    $this->updatingStatus = $item['status'] ?? null;
+                    break;
+                }
+            }
+        } else {
+            // In process view, use the existing code
+            $this->updatingStatus = $this->purchaseData[$monthKey][$uniqueKey]['status'] ?? null;
+        }
+
         $this->isStatusModalOpen = true;
     }
-    // Close status modal
+
+    // Modify the closeStatusModal method
     public function closeStatusModal()
     {
         $this->isStatusModalOpen = false;
         $this->statusMonth = null;
         $this->statusModel = null;
-        $this->selectedStatus = null;
+        $this->updatingStatus = null; // Reset the updating status
     }
 
-    // Update status
+    // Update the updateStatus method to use updatingStatus instead of selectedStatus
     public function updateStatus()
     {
         try {
             $monthKey = $this->statusMonth;
             $uniqueKey = $this->statusModel;
 
-            // Get the ID from the stored data
-            $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
+            // Get the ID
+            if ($this->isRawView) {
+                $parts = explode('_', $uniqueKey);
+                $itemId = end($parts);
+            } else {
+                $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
+            }
 
             // Find the purchase item by ID
             $item = DevicePurchaseItem::find($itemId);
@@ -214,14 +237,16 @@ class DevicePurchaseInformation extends Page
             }
 
             // Update the status
-            $item->status = $this->selectedStatus;
+            $item->status = $this->updatingStatus;
             $item->save();
 
-            // Update the local data
-            $this->purchaseData[$monthKey][$uniqueKey]['status'] = $this->selectedStatus;
+            // Update the local data if not in raw view
+            if (!$this->isRawView) {
+                $this->purchaseData[$monthKey][$uniqueKey]['status'] = $this->updatingStatus;
+            }
 
             Notification::make()
-                ->title("Status updated to: {$this->selectedStatus}")
+                ->title("Status updated to: {$this->updatingStatus}")
                 ->success()
                 ->send();
 
@@ -335,13 +360,20 @@ class DevicePurchaseInformation extends Page
     public function deleteModel($monthKey, $uniqueKey)
     {
         try {
-            // Get the ID from the stored data
-            $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
+            // Get the ID
+            if ($this->isRawView) {
+                $parts = explode('_', $uniqueKey);
+                $itemId = end($parts);
+            } else {
+                $itemId = $this->purchaseData[$monthKey][$uniqueKey]['id'];
+            }
 
             // Delete by ID
             DevicePurchaseItem::where('id', $itemId)->delete();
 
-            unset($this->purchaseData[$monthKey][$uniqueKey]);
+            if (!$this->isRawView) {
+                unset($this->purchaseData[$monthKey][$uniqueKey]);
+            }
 
             Notification::make()
                 ->title("Model deleted successfully")
@@ -358,6 +390,53 @@ class DevicePurchaseInformation extends Page
                 ->danger()
                 ->send();
         }
+    }
+
+    public function toggleViewMode()
+    {
+        $this->isRawView = !$this->isRawView;
+
+        // Load raw data if raw view is enabled
+        if ($this->isRawView) {
+            $this->loadRawData();
+        }
+    }
+
+    public function loadRawData()
+    {
+        $year = $this->selectedYear;
+
+        // Create a query for all purchase items for the selected year
+        $query = DevicePurchaseItem::where('year', $year);
+
+        // Apply status filter if not "All"
+        if ($this->selectedStatus !== 'All') {
+            $query->where('status', $this->selectedStatus);
+        }
+
+        // Get the data and convert it to an array
+        $this->rawData = $query->get()->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'year' => $item->year,
+                'month' => $item->month,
+                'model' => $item->model,
+                'qty' => $item->qty,
+                'england' => $item->england,
+                'america' => $item->america,
+                'europe' => $item->europe,
+                'australia' => $item->australia,
+                'sn_no_from' => $item->sn_no_from,
+                'sn_no_to' => $item->sn_no_to,
+                'po_no' => $item->po_no,
+                'order_no' => $item->order_no,
+                'balance_not_order' => $item->balance_not_order,
+                'rfid_card_foc' => $item->rfid_card_foc,
+                'languages' => $item->languages,
+                'features' => $item->features,
+                'status' => $item->status,
+            ];
+        })->toArray();
     }
 
     public function loadPurchaseData()
@@ -434,6 +513,10 @@ class DevicePurchaseInformation extends Page
                 'totals' => $monthTotal,
                 'models' => array_unique(array_column($this->purchaseData[$monthNum], 'model')),
             ];
+        }
+
+        if ($this->isRawView) {
+            $this->loadRawData();
         }
     }
 }

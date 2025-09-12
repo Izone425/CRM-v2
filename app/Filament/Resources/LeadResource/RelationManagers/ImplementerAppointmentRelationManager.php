@@ -102,8 +102,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return [
                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                 'SESSION 2' => 'SESSION 2 (1100 - 1200)',
-                                'SESSION 4' => 'SESSION 4 (1530 - 1630)',
-                                'SESSION 5' => 'SESSION 5 (1700 - 1800)',
+                                'SESSION 3' => 'SESSION 3 (1500 - 1600)',
+                                'SESSION 4' => 'SESSION 4 (1630 - 1730)',
                             ];
                         }
                         // Monday to Thursday sessions (dayOfWeek = 1-4)
@@ -154,8 +154,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         if ($date) {
                             $carbonDate = Carbon::parse($date);
                             if ($carbonDate->dayOfWeek === 5) { // Friday
-                                $times['SESSION 4'] = ['15:00', '16:00'];
-                                $times['SESSION 5'] = ['16:30', '17:30'];
+                                $times['SESSION 3'] = ['15:00', '16:00'];
+                                $times['SESSION 4'] = ['16:30', '17:30'];
                             }
                         }
 
@@ -1121,8 +1121,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         return [
                                             'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                             'SESSION 2' => 'SESSION 2 (1100 - 1200)',
-                                            'SESSION 4' => 'SESSION 4 (1530 - 1630)',
-                                            'SESSION 5' => 'SESSION 5 (1700 - 1800)',
+                                            'SESSION 3' => 'SESSION 3 (1500 - 1600)',
+                                            'SESSION 4' => 'SESSION 4 (1630 - 1730)',
                                         ];
                                     }
                                     // Monday to Thursday sessions (dayOfWeek = 1-4)
