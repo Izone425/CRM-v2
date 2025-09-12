@@ -98,7 +98,7 @@ class DeviceStockInformation extends Page
 
             $summaryItem = (object)[
                 'name' => $item->name,
-                'summary1' => $item->new + $item->in_stock,
+                'summary1' => $item->new + $item->in_stock + $item->burning,
                 'summary2' => $purchaseItem ? $purchaseItem->total_purchase : 0,
                 'total_summary' => ($item->new + $item->in_stock) + ($purchaseItem ? $purchaseItem->total_purchase : 0),
             ];

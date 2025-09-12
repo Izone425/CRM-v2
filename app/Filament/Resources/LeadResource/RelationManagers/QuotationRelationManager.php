@@ -447,7 +447,6 @@ class QuotationRelationManager extends RelationManager
                                     ->success()
                                     ->title('Confirmation Order Document Uploaded!')
                                     ->body('Confirmation order document for quotation ' . $quotation->quotation_reference_no . ' has been uploaded successfully!')
-                                    ->sendToDatabase($notifyUsers)
                                     ->send();
                             }
                         )

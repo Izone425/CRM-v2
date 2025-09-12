@@ -53,8 +53,8 @@ class ProjectPriorityTable extends Component implements HasForms, HasTable
 
         $query = SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
-            ->where('status_handover', '!=', 'InActive');
-
+            ->where('status_handover', '!=', 'InActive')
+            ->orderByRaw("FIELD(project_priority, 'High', 'Medium', 'Low')");
         if ($this->selectedImplementer) {
             $query->where('implementer', $this->selectedImplementer);
         }

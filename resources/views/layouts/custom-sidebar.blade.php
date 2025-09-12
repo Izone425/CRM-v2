@@ -1301,6 +1301,28 @@
                         </div>
                     </div>
 
+                    <!-- Implementer Information Section -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-information-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-ui-checks-grid"></i>
+                            </div>
+                            <span class="menu-text">Implementer - Info</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="implementer-information-submenu">
+                            <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="submenu-item">
+                                <i class="bi bi-kanban submenu-icon"></i>
+                                <span class="module-font">Project Sequence</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.policy-management') }}" class="submenu-item">
+                                <i class="bi bi-tags submenu-icon"></i>
+                                <span class="module-font">Implementer Policy</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Implementer Audit List Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-audit-list-submenu">
@@ -1312,10 +1334,6 @@
                         </div>
 
                         <div class="submenu" id="implementer-audit-list-submenu">
-                            <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="submenu-item">
-                                <i class="bi bi-kanban submenu-icon"></i>
-                                <span class="module-font">Project Sequence</span>
-                            </a>
                             <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="submenu-item">
                                 <i class="bi bi-exposure submenu-icon"></i>
                                 <span class="module-font">Request Count</span>

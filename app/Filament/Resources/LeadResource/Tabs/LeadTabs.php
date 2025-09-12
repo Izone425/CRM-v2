@@ -368,8 +368,7 @@ class LeadTabs
                                                     if ($manager) {
                                                         Notification::make()
                                                             ->title('New Lead Owner Change Request')
-                                                            ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id)
-                                                            ->sendToDatabase($manager);
+                                                            ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id);
                                                     }
 
                                                     try {

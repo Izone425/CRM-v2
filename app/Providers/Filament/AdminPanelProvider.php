@@ -147,7 +147,7 @@ class AdminPanelProvider extends PanelProvider
             // ->passwordReset()
             ->emailVerification()
             ->profile(EditProfile::class)
-            // ->databaseNotifications()
+            ->databaseNotifications()
             ->brandName('TimeTec CRM')
             ->colors([
                 'primary' => '#431fa1',

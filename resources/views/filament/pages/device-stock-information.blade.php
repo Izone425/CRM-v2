@@ -216,6 +216,13 @@
                         </div>
 
                         <div class="inventory-stat">
+                            <span class="stat-label">Burning:</span>
+                            <span class="stat-value {{ $this->getColorForQuantity($inventory->new) }}">
+                                {{ $inventory->burning }}
+                            </span>
+                        </div>
+
+                        <div class="inventory-stat">
                             <span class="stat-label">In Stock:</span>
                             <span class="stat-value {{ $this->getColorForQuantity($inventory->in_stock) }}">
                                 {{ $inventory->in_stock }}
@@ -227,7 +234,7 @@
                         <div class="inventory-stat">
                             <span class="stat-label stat-total">Total:</span>
                             <span class="font-bold stat-value highlight">
-                                {{ $inventory->new + $inventory->in_stock }}
+                                {{ $inventory->new + $inventory->in_stock + $inventory->burning}}
                             </span>
                         </div>
                     </div>

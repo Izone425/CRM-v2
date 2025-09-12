@@ -5,6 +5,7 @@ namespace App\Livewire\ImplementerDashboard;
 use App\Filament\Filters\SortFilter;
 use App\Models\CompanyDetail;
 use App\Models\HardwareHandover;
+use App\Models\ImplementerLogs;
 use App\Models\SoftwareHandover;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
@@ -280,7 +281,19 @@ class ImplementerProjectInactive extends Component implements HasForms, HasTable
                         ->modalSubmitActionLabel('Yes, Mark as Open')
                         ->action(function (SoftwareHandover $record) {
                             $record->status_handover = 'Open';
+                            $record->follow_up_date = today();
+                            $record->follow_up_counter = true;
                             $record->save();
+
+                            ImplementerLogs::create([
+                                'subject_id' => $record->id,
+                                'log_type' => 'status_change',
+                                'description' => 'Project status changed to Open',
+                                'remark' => 'Project Reactivated from InActive to Open',
+                                'foloww_up_date' => today(),
+                                'causer_id' => auth()->id(),
+                                'lead_id' => $record->lead_id,
+                            ]);
 
                             // Send notification
                             \Filament\Notifications\Notification::make()
