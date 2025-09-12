@@ -127,8 +127,11 @@ class ImplementerFollowUpTabs
                                             TextInput::make('required_attendees')
                                                 ->label('Required Attendees')
                                                 ->default(function (Lead $record = null) {
-                                                    // First, find the related SoftwareHandover record
+                                                    // Initialize emails array to store all collected emails
+                                                    $emails = [];
+
                                                     if ($record) {
+                                                        // 1. Get emails from SoftwareHandover implementation_pics
                                                         $softwareHandover = SoftwareHandover::where('lead_id', $record->id)->latest()->first();
 
                                                         if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
@@ -137,21 +140,43 @@ class ImplementerFollowUpTabs
 
                                                                 // If it's valid JSON array, extract emails
                                                                 if (is_array($contacts)) {
-                                                                    $emails = [];
                                                                     foreach ($contacts as $contact) {
                                                                         if (!empty($contact['pic_email_impl'])) {
                                                                             $emails[] = $contact['pic_email_impl'];
                                                                         }
                                                                     }
-
-                                                                    return !empty($emails) ? implode(';', $emails) : null;
                                                                 }
                                                             } catch (\Exception $e) {
                                                                 \Illuminate\Support\Facades\Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
                                                             }
                                                         }
+
+                                                        // 2. Get emails from company_detail->additional_pic
+                                                        if ($record->companyDetail && !empty($record->companyDetail->additional_pic)) {
+                                                            try {
+                                                                $additionalPics = json_decode($record->companyDetail->additional_pic, true);
+
+                                                                if (is_array($additionalPics)) {
+                                                                    foreach ($additionalPics as $pic) {
+                                                                        // Only include contacts with "Available" status
+                                                                        if (
+                                                                            !empty($pic['email']) &&
+                                                                            isset($pic['status']) &&
+                                                                            $pic['status'] === 'Available'
+                                                                        ) {
+                                                                            $emails[] = $pic['email'];
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } catch (\Exception $e) {
+                                                                \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                                            }
+                                                        }
                                                     }
-                                                    return null;
+
+                                                    // Remove duplicates and return as semicolon-separated string
+                                                    $uniqueEmails = array_unique($emails);
+                                                    return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
                                                 })
                                                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 

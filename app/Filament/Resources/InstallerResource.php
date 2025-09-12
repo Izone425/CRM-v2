@@ -95,7 +95,7 @@ class InstallerResource extends Resource
         return [
             'index' => Pages\ListInstallers::route('/'),
             'create' => Pages\CreateInstaller::route('/create'),
-            // 'edit' => Pages\EditInstaller::route('/{record}/edit'),
+            'edit' => Pages\EditInstaller::route('/{record}/edit'),
         ];
     }
 }

@@ -308,7 +308,6 @@ class LeadActions
                 Notification::make()
                     ->title('Lead Owner Assigned Successfully')
                     ->success()
-                    ->sendToDatabase($allUsers)
                     ->send();
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Notification error: ' . $e->getMessage());
@@ -2523,7 +2522,6 @@ class LeadActions
                 ->success()
                 ->title('Confirmation Order Document Uploaded!')
                 ->body('Confirmation order document for quotation ' . $quotation->quotation_reference_no . ' has been uploaded successfully!')
-                ->sendToDatabase($notifyUsers)
                 ->send();
             }
         );
@@ -2620,8 +2618,7 @@ class LeadActions
                 if ($manager) {
                     Notification::make()
                         ->title('New Lead Owner Change Request')
-                        ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id)
-                        ->sendToDatabase($manager);
+                        ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id);
                 }
 
                 try {

@@ -330,15 +330,31 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                                 $bookedSessions[] = 'SESSION 1';
                                             } else if ($appointmentStart === '11:00' || ($appointmentStart < '12:00' && $appointmentEnd > '11:00')) {
                                                 $bookedSessions[] = 'SESSION 2';
-                                            } else if ($appointmentStart === '14:00' || ($appointmentStart < '15:00' && $appointmentEnd > '14:00')) {
+                                            } else if (
+                                                // For Monday-Thursday: 2pm-3pm
+                                                ($dayOfWeek !== 5 && $appointmentStart === '14:00') ||
+                                                ($dayOfWeek !== 5 && $appointmentStart < '15:00' && $appointmentEnd > '14:00') ||
+                                                // For Friday: 3pm-4pm
+                                                ($dayOfWeek === 5 && $appointmentStart === '15:00') ||
+                                                ($dayOfWeek === 5 && $appointmentStart < '16:00' && $appointmentEnd > '15:00')
+                                            ) {
                                                 $bookedSessions[] = 'SESSION 3';
-                                            } else if (($dayOfWeek === 5 && $appointmentStart === '15:00') ||
-                                                    ($dayOfWeek !== 5 && $appointmentStart === '15:30') ||
-                                                    ($appointmentStart < ($dayOfWeek === 5 ? '16:00' : '16:30') && $appointmentEnd > ($dayOfWeek === 5 ? '15:00' : '15:30'))) {
+                                            } else if (
+                                                // For Monday-Thursday: 3:30pm-4:30pm
+                                                ($dayOfWeek !== 5 && $appointmentStart === '15:30') ||
+                                                ($dayOfWeek !== 5 && $appointmentStart < '16:30' && $appointmentEnd > '15:30') ||
+                                                // For Friday: 4:30pm-5:30pm
+                                                ($dayOfWeek === 5 && $appointmentStart === '16:30') ||
+                                                ($dayOfWeek === 5 && $appointmentStart < '17:30' && $appointmentEnd > '16:30')
+                                            ) {
                                                 $bookedSessions[] = 'SESSION 4';
-                                            } else if (($dayOfWeek === 5 && $appointmentStart === '16:30') ||
-                                                    ($dayOfWeek !== 5 && $appointmentStart === '17:00') ||
-                                                    ($appointmentStart < ($dayOfWeek === 5 ? '17:30' : '18:00') && $appointmentEnd > ($dayOfWeek === 5 ? '16:30' : '17:00'))) {
+                                            } else if (
+                                                // Only check for Session 5 on Monday-Thursday: 5pm-6pm
+                                                $dayOfWeek !== 5 && (
+                                                    $appointmentStart === '17:00' ||
+                                                    ($appointmentStart < '18:00' && $appointmentEnd > '17:00')
+                                                )
+                                            ) {
                                                 $bookedSessions[] = 'SESSION 5';
                                             }
                                         }
@@ -384,8 +400,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         if ($date) {
                                             $carbonDate = Carbon::parse($date);
                                             if ($carbonDate->dayOfWeek === 5) { // Friday
-                                                $times['SESSION 4'] = ['15:00', '16:00'];
-                                                $times['SESSION 5'] = ['16:30', '17:30'];
+                                                $times['SESSION 3'] = ['15:00', '16:00'];
+                                                $times['SESSION 4'] = ['16:30', '17:30'];
                                             }
                                         }
 
@@ -420,8 +436,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         // Adjust for Friday
                                         $selectedDate = Carbon::parse($date);
                                         if ($selectedDate->dayOfWeek === 5) { // Friday
-                                            $times['SESSION 4'] = '15:00';
-                                            $times['SESSION 5'] = '16:30';
+                                            $times['SESSION 3'] = '15:00';
+                                            $times['SESSION 4'] = '16:30';
                                         }
 
                                         return $times[$session] ?? '09:30';
@@ -449,8 +465,8 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                         // Adjust for Friday
                                         $selectedDate = Carbon::parse($date);
                                         if ($selectedDate->dayOfWeek === 5) { // Friday
-                                            $times['SESSION 4'] = '16:00';
-                                            $times['SESSION 5'] = '17:30';
+                                            $times['SESSION 3'] = '16:00';
+                                            $times['SESSION 4'] = '17:30';
                                         }
 
                                         return $times[$session] ?? '10:30';

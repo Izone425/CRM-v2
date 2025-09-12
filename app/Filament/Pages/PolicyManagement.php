@@ -83,14 +83,26 @@ class PolicyManagement extends Page
 
     public function getPolicies()
     {
-        return Policy::query()
-            ->with('pages')
+        $userRoleId = auth()->user()->role_id;
+        $userRoleIdJson = json_encode((string)$userRoleId); // Convert to JSON string format
+
+        $query = Policy::query()
+            ->with(['pages', 'category'])
             ->where('status', 'Active') // Only show Active policies
             ->when($this->search !== '', function ($query) {
                 $query->where('title', 'like', "%{$this->search}%");
-            })
-            ->orderBy('title')
-            ->get();
+            });
+
+        // Filter policies by category access rights
+        $query->whereHas('category', function ($categoryQuery) use ($userRoleId, $userRoleIdJson) {
+            $categoryQuery->where(function ($q) use ($userRoleId, $userRoleIdJson) {
+                $q->whereNull('access_right')  // Categories with no restrictions
+                ->orWhere('access_right', '[]') // Empty JSON array
+                ->orWhereRaw("JSON_CONTAINS(access_right, ?)", [$userRoleIdJson]); // Contains user's role
+            });
+        });
+
+        return $query->orderBy('title')->get();
     }
 
     protected function getViewData(): array

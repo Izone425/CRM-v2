@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PolicyCategoryResource\Pages;
 use App\Models\PolicyCategory;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -25,14 +26,22 @@ class PolicyCategoryResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Select::make('type')
-                    ->label('Category Type')
+                Forms\Components\CheckboxList::make('access_right')
+                    ->label('Access Rights')
+                    ->required()
+                    ->helperText('Select which roles can access policies in this category')
                     ->options([
-                        'BENEFIT' => 'Employee HR Benefits',
-                        'EXPENSE' => 'Expense Claims',
-                    ]),
-                Forms\Components\Textarea::make('description')
-                    ->maxLength(65535)
+                        1 => 'Lead Owner',
+                        2 => 'Salesperson',
+                        3 => 'Manager',
+                        4 => 'Implementer',
+                        5 => 'Team Lead Implementer',
+                        6 => 'Trainer',
+                        7 => 'Team Lead Trainer',
+                        8 => 'Support',
+                        9 => 'Technician',
+                    ])
+                    ->columns(3)
                     ->columnSpanFull(),
             ]);
     }
@@ -44,12 +53,60 @@ class PolicyCategoryResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'BENEFIT' => 'success',
-                        'EXPENSE' => 'warning',
-                        default => 'gray',
+                Tables\Columns\TextColumn::make('access_right')
+                    ->label('Access Rights')
+                    ->formatStateUsing(function ($state) {
+                        // Handle case when $state is null or empty
+                        if (empty($state)) {
+                            return 'All Users';
+                        }
+
+                        // Convert to array if it's a string (JSON string)
+                        if (is_string($state)) {
+                            // If the string contains brackets like ["3","2"], try to parse it as JSON
+                            if (strpos($state, '[') !== false) {
+                                try {
+                                    $state = json_decode($state, true);
+                                } catch (\Exception $e) {
+                                    return 'Invalid format';
+                                }
+                            }
+                            // If it doesn't look like JSON, maybe it's a comma-separated list
+                            else {
+                                $state = explode(',', $state);
+                            }
+                        }
+
+                        // If still not an array or is empty after conversion
+                        if (!is_array($state) || empty($state)) {
+                            return 'All Users';
+                        }
+
+                        $roleNames = [
+                            1 => 'Lead Owner',
+                            2 => 'Salesperson',
+                            3 => 'Manager',
+                            4 => 'Implementer',
+                            5 => 'Team Lead Impl',
+                            6 => 'Trainer',
+                            7 => 'Team Lead Trainer',
+                            8 => 'Support',
+                            9 => 'Technician',
+                        ];
+
+                        $roles = [];
+                        foreach ($state as $roleId) {
+                            // Convert to int for consistent comparison
+                            $roleIdInt = (int)$roleId;
+
+                            if (array_key_exists($roleIdInt, $roleNames)) {
+                                $roles[] = $roleNames[$roleIdInt];
+                            } else {
+                                $roles[] = "Role $roleId";
+                            }
+                        }
+
+                        return !empty($roles) ? implode(', ', $roles) : 'All Users';
                     }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
