@@ -551,7 +551,7 @@
                                                 <tbody>
                                                     @foreach($staffDateTimes[$staff['name']] as $dateData)
                                                         <tr class="date-item">
-                                                            <td class="py-1" style= "width: 25%">{{ $dateData['display_date'] }}</td>
+                                                            <td class="py-1" style= "width: 25%; text-align: right;">{{ $dateData['display_date'] }}</td>
                                                             <td class="py-1" style= "width: 10%">
                                                                 @php
                                                                     // Convert the display date to a DateTime object and get day name
@@ -561,7 +561,7 @@
                                                                 <span class="text-gray-600">{{ $dayName }}</span>
                                                             </td>
                                                             <td style= "width: 45%"></td>
-                                                            <td class="py-1 text-left" style= "width: 20%">
+                                                            <td class="py-1 text-right" style= "width: 20%">
                                                                 <span class="px-2 py-1 text-xs staff-number-time">{{ $dateData['formatted_time'] }}</span>
                                                             </td>
                                                         </tr>

@@ -20,6 +20,7 @@ class DevicePurchaseInformation extends Page
     protected static string $view = 'filament.pages.device-purchase-information';
 
     public $selectedYear = '';
+    public $selectedStatus = 'All'; // Add status filter default value
     public $months = [];
     public $editMode = false;
     public $expandedMonths = [];
@@ -36,24 +37,34 @@ class DevicePurchaseInformation extends Page
     public $isStatusModalOpen = false;
     public $statusMonth = null;
     public $statusModel = null;
-    public $selectedStatus = null;
 
     public $selectedMonth = null;
 
     public function mount()
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
+        $this->selectedStatus = request()->query('status', 'All');
         $this->loadPurchaseData();
         $currentMonth = (int)date('n');
 
         // Select the current month by default
         $this->selectedMonth = $currentMonth;
-
     }
 
     public function selectMonth($monthNum)
     {
         $this->selectedMonth = $monthNum;
+    }
+
+    // Define available status options
+    public function getStatusOptions(): array
+    {
+        return [
+            'All' => 'All',
+            'Completed Order' => 'Completed Order',
+            'Completed Shipping' => 'Completed Shipping',
+            'Completed Delivery' => 'Completed Delivery',
+        ];
     }
 
     protected function getHeaderActions(): array
@@ -64,11 +75,51 @@ class DevicePurchaseInformation extends Page
         foreach ($years as $year) {
             $actions[] = Action::make("year_$year")
                 ->label($year)
-                ->url(fn() => route('filament.admin.pages.device-purchase-information', ['year' => $year]))
+                ->url(fn() => route('filament.admin.pages.device-purchase-information', ['year' => $year, 'status' => $this->selectedStatus]))
                 ->color($year == $this->selectedYear ? 'primary' : 'warning');
         }
 
+        // Replace with a MultiSelect action for status filtering
+        $actions[] = Action::make('status_filter')
+            ->label('Status Filter')
+            ->icon('heroicon-o-funnel')
+            ->color('success')
+            ->form([
+                \Filament\Forms\Components\MultiSelect::make('status')
+                    ->label('Filter by Status')
+                    ->options($this->getStatusOptions())
+                    ->default([$this->selectedStatus])
+                    ->preload()
+                    ->searchable()
+                    ->required(),
+            ])
+            ->action(function (array $data) {
+                // If multiple statuses are selected, we'll need to modify our approach
+                // For now, we'll use the first selected status as our primary filter
+                if (!empty($data['status'])) {
+                    $selectedStatus = is_array($data['status']) ? reset($data['status']) : $data['status'];
+
+                    return redirect()->route('filament.admin.pages.device-purchase-information', [
+                        'year' => $this->selectedYear,
+                        'status' => $selectedStatus
+                    ]);
+                }
+
+                // Default to All if nothing selected
+                return redirect()->route('filament.admin.pages.device-purchase-information', [
+                    'year' => $this->selectedYear,
+                    'status' => 'All'
+                ]);
+            });
+
         return $actions;
+    }
+
+    // Update status filter and reload data
+    public function updateStatusFilter($status)
+    {
+        $this->selectedStatus = $status;
+        $this->loadPurchaseData();
     }
 
     public function toggleEditMode()
@@ -175,6 +226,7 @@ class DevicePurchaseInformation extends Page
                 ->send();
 
             $this->closeStatusModal();
+            $this->loadPurchaseData(); // Reload data to apply filters
 
         } catch (\Exception $e) {
             Log::error("Error updating status: " . $e->getMessage());
@@ -320,8 +372,15 @@ class DevicePurchaseInformation extends Page
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
 
-        // Get all purchase items for the selected year
-        $purchaseItems = DevicePurchaseItem::where('year', $year)->get();
+        // Get all purchase items for the selected year with status filter
+        $query = DevicePurchaseItem::where('year', $year);
+
+        // Apply status filter if not "All"
+        if ($this->selectedStatus !== 'All') {
+            $query->where('status', $this->selectedStatus);
+        }
+
+        $purchaseItems = $query->get();
 
         // Initialize data structure
         foreach ($months as $monthNum => $monthName) {
