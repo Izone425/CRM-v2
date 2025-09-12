@@ -59,6 +59,17 @@ class HrdfDebtorsTable extends Component implements HasForms, HasTable
         $this->resetTable(); // Refresh the table
     }
 
+    protected $salespersonMapping = [
+        6 => 'MUIM',
+        7 => 'YASMIN',
+        8 => 'FARHANAH',
+        9 => 'JOSHUA',
+        10 => 'AZIZ',
+        11 => 'BARI',
+        12 => 'VINCE',
+        5 => 'Salesperson',
+    ];
+
     protected $salespeople = [
         'MUIM',
         'YASMIN',
@@ -66,7 +77,8 @@ class HrdfDebtorsTable extends Component implements HasForms, HasTable
         'JOSHUA',
         'AZIZ',
         'BARI',
-        'VINCE'
+        'VINCE',
+        'Salesperson'
     ];
 
     public function render()
@@ -117,20 +129,23 @@ class HrdfDebtorsTable extends Component implements HasForms, HasTable
         } else {
             // Check if selected user is numeric (an ID)
             if (is_numeric($selectedUser)) {
-                // Get the username from the user ID
-                $username = \App\Models\User::find($selectedUser)?->name;
+                // Map the user ID to salesperson name using our mapping array
+                $salespersonName = $this->salespersonMapping[$selectedUser] ?? null;
 
-                if ($username) {
-                    $query->where('salesperson', $username);
+                if ($salespersonName) {
+                    $query->where('salesperson', $salespersonName);
                 }
             } else if (auth()->user()->role_id === 2) {
-                // Using name instead of ID
-                $query->where('salesperson', auth()->user()->name);
+                // For salesperson role, get their mapped name based on ID
+                $userId = auth()->id();
+                $salespersonName = $this->salespersonMapping[$userId] ?? auth()->user()->name;
+                $query->where('salesperson', $salespersonName);
             } else {
                 // For admin/managers, allow selection of specific salesperson by name
                 $query->where('salesperson', $selectedUser);
             }
         }
+
         return $query;
     }
 
