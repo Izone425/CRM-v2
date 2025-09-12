@@ -340,21 +340,6 @@
                 <input type="text" wire:model.live="search" placeholder="Search policies..." />
             </div>
 
-            @if($selectedPolicy)
-            <div class="policy-meta-item">
-                <span class="policy-meta-label">Access:</span>
-                <span>
-                    @if($selectedPolicy->category && !empty($selectedPolicy->category->access_right))
-                        <span class="policy-status-badge" style="background-color: #e5e7eb; color: #4b5563;">
-                            Restricted Access
-                        </span>
-                    @else
-                        <span>All Users</span>
-                    @endif
-                </span>
-            </div>
-            @endif
-
             <div class="policy-list">
                 @forelse($policies as $policy)
                     <button wire:click="selectPolicy({{ $policy->id }})"

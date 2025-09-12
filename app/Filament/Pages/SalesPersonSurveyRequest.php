@@ -487,8 +487,21 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                     ->disk('public')
                                     ->directory('survey-attachments')
                                     ->visibility('public')
-                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
-                                    ->maxSize(5120), // 5MB
+                                    ->multiple()
+                                    ->reorderable()
+                                    ->appendFiles()
+                                    ->maxFiles(5)
+                                    ->acceptedFileTypes([
+                                        'application/pdf',
+                                        'image/jpeg',
+                                        'image/png',
+                                        'application/msword',
+                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                        'application/vnd.ms-excel',
+                                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                                    ])
+                                    ->maxSize(5120) // 5MB per file
+                                    ->downloadable(),
 
                                 Hidden::make('status')
                                     ->default('New'),
