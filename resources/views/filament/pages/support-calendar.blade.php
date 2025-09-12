@@ -112,6 +112,20 @@
         .legend-text {
             font-size: 0.875rem;
         }
+
+        .assigned-cell {
+            background-color: #fecaca !important; /* Light red background */
+        }
+
+        /* Completed cell styling */
+        .completed-cell {
+            background-color: #bbf7d0 !important; /* Light green background */
+        }
+
+        /* Make sure completed takes precedence over assigned */
+        .completed-cell.assigned-cell {
+            background-color: #bbf7d0 !important;
+        }
     </style>
 
     <div class="overflow-hidden bg-white rounded-lg shadow">
@@ -148,7 +162,10 @@
                                 $week = $month['weeks'][$weekKey] ?? null;
                             @endphp
 
-                            <td class="date-cell {{ Carbon::now()->format('F') === $monthName && Carbon::now()->year == $selectedYear ? 'current-month' : '' }}">
+                            <td class="date-cell
+                                {{ Carbon::now()->format('F') === $monthName && Carbon::now()->year == $selectedYear ? 'current-month' : '' }}
+                                {{ ($editMode && $week && $week['user_id']) ? 'assigned-cell' : '' }}
+                                {{ ($week && $week['status'] === 'completed') ? 'completed-cell' : '' }}">
                                 @if ($week)
                                     <div class="flex flex-col h-full">
                                         <div class="date-number">{{ $week['dates'] }}</div>

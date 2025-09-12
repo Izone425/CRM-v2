@@ -206,6 +206,24 @@ class AdminPanelProvider extends PanelProvider
                     .multiline-tabs .fi-tabs-item {
                         margin-bottom: 0.5rem;
                     }
+
+                    /* Target all possible notification badge selectors */
+                    .fi-notification-count,
+                    button[data-notifications-badge] .fi-badge,
+                    .fi-icon-btn-badge-ctn .fi-badge,
+                    [data-notifications-badge] .fi-badge {
+                        background-color: #ef4444 !important; /* Red background */
+                        color: white !important; /* White text */
+                        border-color: #ef4444 !important; /* Matching border */
+                        --tw-ring-color: rgba(239, 68, 68, 0.3) !important;
+                    }
+
+                    /* Make sure the bell icon's notification indicator is styled */
+                    .fi-icon-btn svg + .fi-badge,
+                    .fi-icon-btn-badge-ctn .fi-badge {
+                        background-color: #ef4444 !important;
+                        color: white !important;
+                    }
                 </style>
                 HTML
             )
