@@ -176,6 +176,63 @@ class RevenueAnalysis extends Page
         return $monthlyStats;
     }
 
+    // protected function getRevenueActualSales(): array
+    // {
+    //     $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
+    //     $endOfYear = Carbon::createFromDate($this->selectedYear, 12, 31)->endOfYear();
+
+    //     // Initialize result array with zeros for each month
+    //     $salesData = array_fill(1, 12, 0);
+
+    //     // Define excluded salespeople
+    //     $excludedSalespeople = ['TTCP', 'WIRSON'];
+
+    //     // Get all invoices for the selected year (excluding credit notes)
+    //     $invoices = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
+    //         ->where(function ($query) use ($excludedSalespeople) {
+    //             // Include records where salesperson is NULL OR not in the excluded list
+    //             $query->whereNull('salesperson')
+    //                 ->orWhereNotIn('salesperson', $excludedSalespeople);
+    //         })
+    //         // Exclude credit notes (assuming invoice_no starts with 'ECN' for credit notes)
+    //         ->where('invoice_no', 'NOT LIKE', 'ECN%')
+    //         ->select(
+    //             DB::raw('MONTH(invoice_date) as month'),
+    //             DB::raw('SUM(invoice_amount) as total_amount')
+    //         )
+    //         ->groupBy('month')
+    //         ->get();
+
+    //     // Process invoice data
+    //     foreach ($invoices as $invoice) {
+    //         $month = (int) $invoice->month;
+    //         $salesData[$month] = (float) $invoice->total_amount;
+    //     }
+
+    //     // Subtract credit note amounts
+    //     $creditNotes = DB::table('credit_notes')
+    //         ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
+    //         ->where(function ($query) use ($excludedSalespeople) {
+    //             // Filter out excluded salespeople, matching the invoice filter
+    //             $query->whereNull('salesperson')
+    //                 ->orWhereNotIn('salesperson', $excludedSalespeople);
+    //         })
+    //         ->select(
+    //             DB::raw('MONTH(credit_note_date) as month'),
+    //             DB::raw('SUM(amount) as total_amount')
+    //         )
+    //         ->groupBy('month')
+    //         ->get();
+
+    //     // Subtract credit note amounts from the corresponding months
+    //     foreach ($creditNotes as $creditNote) {
+    //         $month = (int) $creditNote->month;
+    //         $salesData[$month] -= (float) $creditNote->total_amount;
+    //     }
+
+    //     return $salesData;
+    // }
+
     protected function getRevenueActualSales(): array
     {
         $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
@@ -184,50 +241,112 @@ class RevenueAnalysis extends Page
         // Initialize result array with zeros for each month
         $salesData = array_fill(1, 12, 0);
 
-        // Define excluded salespeople
+        // Get excluded salespeople from the RevenueTable
         $excludedSalespeople = ['TTCP', 'WIRSON'];
 
-        // Get all invoices for the selected year (excluding credit notes)
-        $invoices = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
-            ->where(function ($query) use ($excludedSalespeople) {
-                // Include records where salesperson is NULL OR not in the excluded list
-                $query->whereNull('salesperson')
-                    ->orWhereNotIn('salesperson', $excludedSalespeople);
-            })
-            // Exclude credit notes (assuming invoice_no starts with 'ECN' for credit notes)
-            ->where('invoice_no', 'NOT LIKE', 'ECN%')
+        // Define main salespeople (uppercase for comparison) as in RevenueTable
+        $mainSalespeople = ['MUIM', 'YASMIN', 'FARHANAH', 'JOSHUA', 'AZIZ', 'BARI', 'VINCE'];
+
+        // Get all invoices for the selected year - match the RevenueTable query exactly
+        $invoiceRevenue = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
             ->select(
+                DB::raw('UPPER(salesperson) as salesperson'),
                 DB::raw('MONTH(invoice_date) as month'),
                 DB::raw('SUM(invoice_amount) as total_amount')
             )
-            ->groupBy('month')
+            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
             ->get();
 
-        // Process invoice data
-        foreach ($invoices as $invoice) {
-            $month = (int) $invoice->month;
-            $salesData[$month] = (float) $invoice->total_amount;
-        }
-
-        // Subtract credit note amounts
-        $creditNotes = DB::table('credit_notes')
+        // Get all credit notes for the selected year - match the RevenueTable query exactly
+        $creditNoteRevenue = DB::table('credit_notes')
             ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
-            ->where(function ($query) use ($excludedSalespeople) {
-                // Filter out excluded salespeople, matching the invoice filter
-                $query->whereNull('salesperson')
-                    ->orWhereNotIn('salesperson', $excludedSalespeople);
-            })
             ->select(
+                DB::raw('UPPER(salesperson) as salesperson'),
                 DB::raw('MONTH(credit_note_date) as month'),
                 DB::raw('SUM(amount) as total_amount')
             )
-            ->groupBy('month')
+            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
             ->get();
 
-        // Subtract credit note amounts from the corresponding months
-        foreach ($creditNotes as $creditNote) {
+        // Initialize data structure like in RevenueTable
+        $data = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $data[$month] = [];
+            foreach ($mainSalespeople as $person) {
+                $data[$month][ucfirst(strtolower($person))] = 0;
+            }
+            $data[$month]['Others'] = 0;
+        }
+
+        // Process invoices exactly as in RevenueTable
+        foreach ($invoiceRevenue as $invoice) {
+            $month = (int) $invoice->month;
+            $salesperson = $invoice->salesperson;
+            $amount = (float) $invoice->total_amount;
+
+            // Skip excluded salespeople completely
+            if (in_array($salesperson, $excludedSalespeople)) {
+                continue;
+            }
+
+            // Handle main salespeople for all months
+            if (in_array($salesperson, $mainSalespeople)) {
+                $originalCase = ucfirst(strtolower($salesperson));
+                $data[$month][$originalCase] += $amount;
+            }
+            // For "Others", only process September onwards from DB
+            elseif ($month >= 9) {
+                $data[$month]['Others'] += $amount;
+            }
+        }
+
+        // Process credit notes exactly as in RevenueTable
+        foreach ($creditNoteRevenue as $creditNote) {
             $month = (int) $creditNote->month;
-            $salesData[$month] -= (float) $creditNote->total_amount;
+            $salesperson = $creditNote->salesperson;
+            $amount = (float) $creditNote->total_amount;
+
+            // Skip excluded salespeople completely
+            if (in_array($salesperson, $excludedSalespeople)) {
+                continue;
+            }
+
+            // Handle main salespeople for all months
+            if (in_array($salesperson, $mainSalespeople)) {
+                $originalCase = ucfirst(strtolower($salesperson));
+                $data[$month][$originalCase] -= $amount;
+            }
+            // For "Others", only process September onwards from DB
+            elseif ($month >= 9) {
+                $data[$month]['Others'] -= $amount;
+            }
+        }
+
+        // Hard-coded values for "Others" column (January-August of current year)
+        // Use EXACTLY the same values as in RevenueTable
+        if ($this->selectedYear == date('Y')) {
+            // Set the fixed values for "Others" column for Jan-Aug
+            $othersValues = [
+                1 => 581675.55,  // January
+                2 => 369221.61,  // February
+                3 => 432626.93,  // March
+                4 => 262396.86,  // April
+                5 => 469012.35,  // May
+                6 => 412398.51,  // June
+                7 => 347908.97,  // July
+                8 => 493526.84,  // August
+                // September to December will use DB values
+            ];
+
+            // Apply the fixed values to the "Others" column for Jan-Aug
+            foreach ($othersValues as $month => $value) {
+                $data[$month]['Others'] = $value;
+            }
+        }
+
+        // Now calculate the monthly totals, matching RevenueTable's structure
+        for ($month = 1; $month <= 12; $month++) {
+            $salesData[$month] = array_sum($data[$month]);
         }
 
         return $salesData;

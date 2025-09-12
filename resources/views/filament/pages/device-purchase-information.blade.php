@@ -457,7 +457,7 @@
             display: flex;
             flex-direction: column; /* Change from row to column */
             gap: 0.5rem;            /* Maintain the gap between buttons */
-            align-items: center;    /* Center the buttons horizontally */
+            align-items: left;    /* Center the buttons horizontally */
         }
 
         /* Make the buttons slightly smaller to fit better in a column */
@@ -595,6 +595,62 @@
             .month-pill {
                 min-width: calc(100% / 3 - 0.5rem);
             }
+        }
+
+        .status-filter-container {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .status-filter-pill {
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-filter-pill:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-filter-pill.active {
+            background-color: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .status-filter-pill.inactive {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+
+        .filter-indicator {
+            display: inline-flex;
+            align-items: center;
+            background-color: #f0fdf4;
+            border: 1px solid #dcfce7;
+            color: #16a34a;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .filter-indicator-icon {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.25rem;
         }
     </style>
 
@@ -877,7 +933,7 @@
                 <div class="month-table-container">
                     <table class="month-table">
                         <thead>
-                            <tr>
+                            {{-- <tr>
                                 <th style="width: 14%;">Model</th>
                                 <th style="width: 6%;">Qty</th>
                                 <th style="width: 9%;">Languages</th>
@@ -892,6 +948,22 @@
                                 <th style="width: 6%;">RFID Card</th>
                                 <th style="width: 12%;">Status</th>
                                 <th style="width: 10%;">Actions</th>
+                            </tr> --}}
+                            <tr>
+                                <th style="width: 14%;">Model</th>
+                                <th style="width: 6%;">Qty</th>
+                                {{-- <th style="width: 9%;">Languages</th>
+                                <th style="width: 6%;">England</th>
+                                <th style="width: 6%;">America</th>
+                                <th style="width: 6%;">Europe</th>
+                                <th style="width: 6%;">Australia</th>
+                                <th style="width: 9%;">SN No. From/To</th>
+                                <th style="width: 7%;">PO No.</th> --}}
+                                <th style="width: 20%;">Order No.</th>
+                                {{-- <th style="width: 6%;">Balance</th>
+                                <th style="width: 6%;">RFID Card</th> --}}
+                                <th style="width: 12%;">Status</th>
+                                <th style="width: 10%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -899,17 +971,17 @@
                             @foreach($purchaseData[$selectedMonth] as $uniqueKey => $data)
                             <tr>
                                 <td class="cell-model">{{ $data['model'] }}</td>
-                                <td class="cell-number">{{ $data['qty'] }}</td>
-                                <td>{{ $data['languages'] }}</td>
+                                <td class="cell-model">{{ $data['qty'] }}</td>
+                                {{-- <td>{{ $data['languages'] }}</td>
                                 <td class="cell-number">{{ $data['england'] > 0 ? $data['england'] : 'N/A' }}</td>
                                 <td class="cell-number">{{ $data['america'] > 0 ? $data['america'] : 'N/A' }}</td>
                                 <td class="cell-number">{{ $data['europe'] > 0 ? $data['europe'] : 'N/A' }}</td>
                                 <td class="cell-number">{{ $data['australia'] > 0 ? $data['australia'] : 'N/A' }}</td>
                                 <td>{{ $data['sn_no_from'] }} - {{ $data['sn_no_to'] }}</td>
-                                <td>{{ $data['po_no'] }}</td>
+                                <td>{{ $data['po_no'] }}</td> --}}
                                 <td>{{ $data['order_no'] }}</td>
-                                <td class="cell-number">{{ $data['balance_not_order'] }}</td>
-                                <td class="cell-number">{{ $data['rfid_card_foc'] }}</td>
+                                {{-- <td class="cell-number">{{ $data['balance_not_order'] }}</td>
+                                <td class="cell-number">{{ $data['rfid_card_foc'] }}</td> --}}
                                 <td>
                                     @if(!empty($data['status']))
                                         @php

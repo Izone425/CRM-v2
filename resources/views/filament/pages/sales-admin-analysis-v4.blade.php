@@ -541,7 +541,7 @@
                                                 <tbody>
                                                     @foreach($staffDateTimes[$staff['name']] as $dateData)
                                                         <tr class="date-item">
-                                                            <td class="py-1">{{ $dateData['display_date'] }}</td>
+                                                            <td class="py-1" style='text-align: right;'>{{ $dateData['display_date'] }}</td>
                                                             <td class="py-1">
                                                                 @php
                                                                     // Convert the display date to a DateTime object and get day name
