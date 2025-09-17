@@ -47,6 +47,7 @@ class RenewalData extends Model
     public static function getInvoicesForCompany($companyId)
     {
         try {
+            $today = Carbon::now()->format('Y-m-d');
             $sql = "SELECT
                 f_invoice_no,
                 f_currency,
@@ -58,11 +59,11 @@ class RenewalData extends Model
                 ANY_VALUE(f_company_name) AS f_company_name,
                 ANY_VALUE(f_company_id) AS f_company_id
             FROM crm_expiring_license
-            WHERE f_company_id = ?
+            WHERE f_company_id = ? AND f_expiry_date >= ?
             GROUP BY f_invoice_no, f_currency
             ORDER BY f_invoice_no ASC";
 
-            return DB::connection('frontenddb')->select($sql, [$companyId]);
+            return DB::connection('frontenddb')->select($sql, [$companyId, $today]);
         } catch (\Exception $e) {
             Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
             return [];
@@ -73,16 +74,17 @@ class RenewalData extends Model
     public static function getProductsForInvoice($companyId, $invoiceNo)
     {
         try {
+            $today = Carbon::now()->format('Y-m-d');
             $sql = "SELECT
                 f_currency, f_id, f_company_name, f_company_id,
                 f_name, f_invoice_no, f_total_amount, f_unit,
                 f_start_date, f_expiry_date, Created, payer,
                 payer_id, f_created_time
             FROM crm_expiring_license
-            WHERE f_company_id = ? AND f_invoice_no = ?
+            WHERE f_company_id = ? AND f_invoice_no = ? AND f_expiry_date >= ?
             ORDER BY f_expiry_date ASC";
 
-            return DB::connection('frontenddb')->select($sql, [$companyId, $invoiceNo]);
+            return DB::connection('frontenddb')->select($sql, [$companyId, $invoiceNo, $today]);
         } catch (\Exception $e) {
             Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
             return [];
@@ -111,7 +113,11 @@ class AdminRenewalProcessData extends Page implements HasTable
                 // Build the query with pre-filtered data
                 $baseQuery = RenewalData::query();
 
-                // Apply date filtering directly at the raw SQL level
+                // Only show records where expiry date has not yet passed (future or today)
+                $today = Carbon::now()->format('Y-m-d');
+                $baseQuery->whereRaw('f_expiry_date >= ?', [$today]);
+
+                // Apply additional date filtering if set
                 if (!empty($this->startDate) && !empty($this->endDate)) {
                     // Filter at the row level before aggregation
                     $baseQuery->whereRaw('f_expiry_date BETWEEN ? AND ?', [$this->startDate, $this->endDate]);
@@ -144,12 +150,26 @@ class AdminRenewalProcessData extends Page implements HasTable
                     ->multiple()
                     ->preload()
                     ->options(function () {
-                        // Get distinct product names
+                        // Get distinct product names (only for non-expired records)
+                        $today = Carbon::now()->format('Y-m-d');
                         return RenewalData::query()
+                            ->whereRaw('f_expiry_date >= ?', [$today])
                             ->distinct()
                             ->orderBy('f_name')
                             ->pluck('f_name', 'f_name')
                             ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            // Apply product filter at the row level before aggregation
+                            $subQuery = RenewalData::query()
+                                ->select('f_company_id')
+                                ->whereIn('f_name', $data['values'])
+                                ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                ->distinct();
+
+                            $query->whereIn('f_company_id', $subQuery);
+                        }
                     })
                     ->indicator('Products'),
 
@@ -166,6 +186,12 @@ class AdminRenewalProcessData extends Page implements HasTable
 
                                 $startDate = Carbon::createFromFormat('d/m/Y', trim($start))->startOfDay()->format('Y-m-d');
                                 $endDate   = Carbon::createFromFormat('d/m/Y', trim($end))->endOfDay()->format('Y-m-d');
+
+                                // Ensure start date is not in the past
+                                $today = Carbon::now()->format('Y-m-d');
+                                if ($startDate < $today) {
+                                    $startDate = $today;
+                                }
 
                                 // Apply filter at row-level BEFORE aggregation
                                 $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
@@ -214,7 +240,21 @@ class AdminRenewalProcessData extends Page implements HasTable
                     Stack::make([
                         TextColumn::make('earliest_expiry')
                             ->label('Expiry Date')
-                            ->date('Y-m-d'),
+                            ->date('Y-m-d')
+                            ->color(function ($state) {
+                                $today = Carbon::now();
+                                $expiryDate = Carbon::parse($state);
+
+                                // Color coding based on how close to expiry
+                                if ($expiryDate->isToday()) {
+                                    return 'danger'; // Expires today
+                                } elseif ($expiryDate->diffInDays($today) <= 7) {
+                                    return 'warning'; // Expires within a week
+                                } elseif ($expiryDate->diffInDays($today) <= 30) {
+                                    return 'info'; // Expires within a month
+                                }
+                                return 'gray'; // More than a month
+                            }),
 
                         TextColumn::make('total_units')
                             ->label('Units')

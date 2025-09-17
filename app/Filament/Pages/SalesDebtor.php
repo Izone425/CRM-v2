@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class SalesDebtor extends Page implements HasTable
 {
@@ -64,8 +65,12 @@ class SalesDebtor extends Page implements HasTable
     public $filterSalesperson = [];
     public $filterInvoiceType = null;
     public $filterPaymentStatus = null;
+    public $filterDebtorAging = null;
     public $filterInvoiceDateFrom = null;
     public $filterInvoiceDateUntil = null;
+    public $filterYear = null;
+    public $filterMonth = null;
+
     public function mount(): void
     {
         // Filter salespeople based on user role
@@ -146,6 +151,11 @@ class SalesDebtor extends Page implements HasTable
                 ->where('outstanding', '>', 0);
         }
 
+        // Apply debtor aging filter if set
+        if ($this->filterDebtorAging) {
+            $this->applyDebtorAgingFilter($query, $this->filterDebtorAging);
+        }
+
         // Apply date filters if set
         if ($this->filterInvoiceDateFrom) {
             $query->whereDate('invoice_date', '>=', $this->filterInvoiceDateFrom);
@@ -155,7 +165,50 @@ class SalesDebtor extends Page implements HasTable
             $query->whereDate('invoice_date', '<=', $this->filterInvoiceDateUntil);
         }
 
+        // Apply year filter if set
+        if ($this->filterYear) {
+            $query->whereYear('invoice_date', $this->filterYear);
+        }
+
+        // Apply month filter if set
+        if ($this->filterMonth) {
+            $query->whereMonth('invoice_date', $this->filterMonth);
+        }
+
         return $query;
+    }
+
+    protected function applyDebtorAgingFilter($query, $agingFilter)
+    {
+        $now = Carbon::now();
+
+        switch ($agingFilter) {
+            case 'current':
+                // Current month invoices (not overdue or overdue but less than a month)
+                $query->where(function($q) use ($now) {
+                    $q->where('aging_date', '>=', $now)
+                      ->orWhere(function($subQ) use ($now) {
+                          $subQ->where('aging_date', '<', $now)
+                               ->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) = 0', [$now]);
+                      });
+                });
+                break;
+            case '1_month':
+                $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) = 1', [$now]);
+                break;
+            case '2_months':
+                $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) = 2', [$now]);
+                break;
+            case '3_months':
+                $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) = 3', [$now]);
+                break;
+            case '4_months':
+                $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) = 4', [$now]);
+                break;
+            case '5_plus_months':
+                $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) >= 5', [$now]);
+                break;
+        }
     }
 
     public function table(Table $table): Table
@@ -167,7 +220,7 @@ class SalesDebtor extends Page implements HasTable
                 ->defaultSort('invoice_date', 'desc')
                 ->columns([
                     TextColumn::make('company_name')
-                        ->label('Company')
+                        ->label('Company Name')
                         ->searchable()
                         ->sortable()
                         ->wrap(),
@@ -178,17 +231,32 @@ class SalesDebtor extends Page implements HasTable
                         ->sortable(),
 
                     TextColumn::make('invoice_date')
-                        ->label('Date')
+                        ->label('Invoice Date')
                         ->date('d/m/Y')
                         ->sortable(),
 
+                    BadgeColumn::make('aging')
+                        ->label('Debtor Aging')
+                        ->getStateUsing(function (DebtorAging $record): string {
+                            return $this->calculateAgingText($record);
+                        })
+                        ->colors([
+                            'success' => 'Current',
+                            'info' => '1 Month',
+                            'warning' => '2 Months',
+                            'warning' => '3 Months',
+                            'danger' => '4 Months',
+                            'danger' => '5+ Months',
+                        ])
+                        ->sortable(),
+
                     TextColumn::make('salesperson')
-                        ->label('Salesperson')
+                        ->label('SalesPerson')
                         ->searchable()
                         ->sortable(),
 
                     TextColumn::make('invoice_type')
-                        ->label('Type')
+                        ->label('Invoice Type')
                         ->getStateUsing(function (DebtorAging $record): string {
                             if (strpos($record->invoice_number, 'EPIN') === 0) {
                                 return 'Product';
@@ -201,7 +269,7 @@ class SalesDebtor extends Page implements HasTable
                         ->sortable(),
 
                     BadgeColumn::make('payment_status')
-                        ->label('Payment Status')
+                        ->label('Payment Type')
                         ->getStateUsing(function (DebtorAging $record): string {
                             return $this->determinePaymentStatus($record);
                         })
@@ -218,10 +286,15 @@ class SalesDebtor extends Page implements HasTable
                                 ? $record->outstanding
                                 : ($record->outstanding * $record->exchange_rate);
                         })
-                        ->money('MYR')
+                        ->numeric(
+                            decimalPlaces: 2,
+                            decimalSeparator: '.',
+                            thousandsSeparator: ','
+                        )
                         ->alignRight(),
                 ])
                 ->filters([
+                    // Filter 1 - By SalesPerson
                     SelectFilter::make('salesperson')
                         ->options(array_combine($this->salespeople, $this->salespeople))
                         ->placeholder('All Salespeople')
@@ -240,6 +313,7 @@ class SalesDebtor extends Page implements HasTable
                             return $query->whereIn('salesperson', $data['values']);
                         }),
 
+                    // Filter 2 - By Invoice Type
                     SelectFilter::make('invoice_type')
                         ->options([
                             'hrdf' => 'HRDF',
@@ -262,6 +336,7 @@ class SalesDebtor extends Page implements HasTable
                             }
                         }),
 
+                    // Filter 3 - By Payment Status
                     SelectFilter::make('payment_status')
                         ->options([
                             'unpaid' => 'Unpaid',
@@ -285,36 +360,128 @@ class SalesDebtor extends Page implements HasTable
                             }
                         }),
 
-                    Filter::make('invoice_date')
-                        ->form([
-                            DatePicker::make('invoice_date_from')
-                                ->label('From')
-                                ->placeholder('From'),
-                            DatePicker::make('invoice_date_until')
-                                ->label('Until')
-                                ->placeholder('Until'),
+                    // Filter 4 - By Debtor Aging
+                    SelectFilter::make('debtor_aging')
+                        ->options([
+                            'current' => 'Current',
+                            '1_month' => '1 Month',
+                            '2_months' => '2 Months',
+                            '3_months' => '3 Months',
+                            '4_months' => '4 Months',
+                            '5_plus_months' => '5+ Months',
                         ])
-                        ->query(function (Builder $query, array $data): Builder {
-                            $this->filterInvoiceDateFrom = $data['invoice_date_from'] ?? null;
-                            $this->filterInvoiceDateUntil = $data['invoice_date_until'] ?? null;
+                        ->label('Debtor Aging')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterDebtorAging = null;
+                                return $query;
+                            }
 
+                            $this->filterDebtorAging = $data['value'];
                             $this->loadData(); // Refresh stats
 
-                            return $query
-                                ->when(
-                                    $data['invoice_date_from'],
-                                    fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '>=', $date),
-                                )
-                                ->when(
-                                    $data['invoice_date_until'],
-                                    fn (Builder $query, $date): Builder => $query->whereDate('invoice_date', '<=', $date),
-                                );
+                            $this->applyDebtorAgingFilter($query, $data['value']);
+                            return $query;
                         }),
-            ])
-            ->filtersFormColumns(2)
-            ->defaultPaginationPageOption(50)
-            ->paginated([50])
-            ->paginationPageOptions([50, 100]);
+
+                    // Filter 5 - By Date Range (using DateRangePicker)
+                    Filter::make('invoice_date_range')
+                        ->form([
+                            DateRangePicker::make('date_range')
+                                ->label('Invoice Date Range')
+                                ->placeholder('Select date range'),
+                        ])
+                        ->query(function (Builder $query, array $data) {
+                            if (!empty($data['date_range'])) {
+                                // Parse the date range from the "start - end" format
+                                [$start, $end] = explode(' - ', $data['date_range']);
+
+                                // Ensure valid dates
+                                $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                                $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                                // Set the filter properties for stats refresh
+                                $this->filterInvoiceDateFrom = $startDate->format('Y-m-d');
+                                $this->filterInvoiceDateUntil = $endDate->format('Y-m-d');
+
+                                $this->loadData(); // Refresh stats
+
+                                // Apply the filter
+                                $query->whereBetween('invoice_date', [$startDate, $endDate]);
+                            } else {
+                                // Clear filters when empty
+                                $this->filterInvoiceDateFrom = null;
+                                $this->filterInvoiceDateUntil = null;
+                                $this->loadData();
+                            }
+                        })
+                        ->indicateUsing(function (array $data) {
+                            if (!empty($data['date_range'])) {
+                                // Parse the date range for display
+                                [$start, $end] = explode(' - ', $data['date_range']);
+
+                                return 'Invoice Date: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
+                                    ' to ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                            }
+                            return null;
+                        }),
+
+                    // Filter 6 - By Year
+                    SelectFilter::make('year')
+                        ->options(function () {
+                            $years = [];
+                            $currentYear = date('Y');
+                            for ($i = $currentYear; $i >= $currentYear - 3; $i--) {
+                                $years[$i] = $i;
+                            }
+                            return $years;
+                        })
+                        ->label('Year')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterYear = null;
+                                return $query;
+                            }
+
+                            $this->filterYear = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            return $query->whereYear('invoice_date', $data['value']);
+                        }),
+
+                    // Filter 7 - By Month
+                    SelectFilter::make('month')
+                        ->options([
+                            1 => 'January',
+                            2 => 'February',
+                            3 => 'March',
+                            4 => 'April',
+                            5 => 'May',
+                            6 => 'June',
+                            7 => 'July',
+                            8 => 'August',
+                            9 => 'September',
+                            10 => 'October',
+                            11 => 'November',
+                            12 => 'December',
+                        ])
+                        ->label('Month')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterMonth = null;
+                                return $query;
+                            }
+
+                            $this->filterMonth = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            return $query->whereMonth('invoice_date', $data['value']);
+                        }),
+                ])
+                ->filtersFormColumns(3)
+                ->defaultPaginationPageOption(50)
+                ->paginated([50])
+                ->paginationPageOptions([50, 100]);
     }
 
     protected function getBaseQuery()
@@ -372,10 +539,9 @@ class SalesDebtor extends Page implements HasTable
         return 'Other';
     }
 
-    // Stats methods to remain unchanged
+    // Stats methods remain unchanged
     protected function getAllDebtorStats($baseQuery)
     {
-        // Existing implementation
         $query = clone $baseQuery;
 
         $totalInvoices = $query->count();
@@ -390,15 +556,13 @@ class SalesDebtor extends Page implements HasTable
         return [
             'total_invoices' => $totalInvoices,
             'total_amount' => $totalAmount,
-            'formatted_amount' => Number::currency($totalAmount, 'MYR')
+            'formatted_amount' => number_format($totalAmount, 2)
         ];
     }
 
     protected function getHrdfDebtorStats($baseQuery)
     {
-        // Existing implementation
         $query = clone $baseQuery;
-        // Use the invoice number pattern for HRDF
         $query->where('invoice_number', 'like', 'EHIN%');
 
         $totalInvoices = $query->count();
@@ -413,15 +577,13 @@ class SalesDebtor extends Page implements HasTable
         return [
             'total_invoices' => $totalInvoices,
             'total_amount' => $totalAmount,
-            'formatted_amount' => Number::currency($totalAmount, 'MYR')
+            'formatted_amount' => number_format($totalAmount, 2)
         ];
     }
 
     protected function getProductDebtorStats($baseQuery)
     {
-        // Existing implementation
         $query = clone $baseQuery;
-        // Use the invoice number pattern for Product
         $query->where('invoice_number', 'like', 'EPIN%');
 
         $totalInvoices = $query->count();
@@ -436,15 +598,13 @@ class SalesDebtor extends Page implements HasTable
         return [
             'total_invoices' => $totalInvoices,
             'total_amount' => $totalAmount,
-            'formatted_amount' => Number::currency($totalAmount, 'MYR')
+            'formatted_amount' => number_format($totalAmount, 2)
         ];
     }
 
     protected function getUnpaidDebtorStats($baseQuery)
     {
-        // Existing implementation
         $query = clone $baseQuery;
-        // Instead of filtering by payment_status column, use the raw outstanding = invoice_amount condition
         $query->whereRaw('outstanding = invoice_amount');
 
         $totalInvoices = $query->count();
@@ -459,15 +619,13 @@ class SalesDebtor extends Page implements HasTable
         return [
             'total_invoices' => $totalInvoices,
             'total_amount' => $totalAmount,
-            'formatted_amount' => Number::currency($totalAmount, 'MYR')
+            'formatted_amount' => number_format($totalAmount, 2)
         ];
     }
 
     protected function getPartialPaymentDebtorStats($baseQuery)
     {
-        // Existing implementation
         $query = clone $baseQuery;
-        // Instead of filtering by payment_status column, use the raw outstanding < invoice_amount condition
         $query->whereRaw('outstanding < invoice_amount')
             ->where('outstanding', '>', 0);
 
@@ -483,7 +641,65 @@ class SalesDebtor extends Page implements HasTable
         return [
             'total_invoices' => $totalInvoices,
             'total_amount' => $totalAmount,
-            'formatted_amount' => Number::currency($totalAmount, 'MYR')
+            'formatted_amount' => number_format($totalAmount, 2)
         ];
+    }
+
+    protected function calculateAgingText(DebtorAging $record): string
+    {
+        if (!$record->aging_date) {
+            return 'N/A';
+        }
+
+        $due = \Carbon\Carbon::parse($record->aging_date);
+        $now = \Carbon\Carbon::now();
+
+        // For current month invoices (not overdue)
+        if ($due->greaterThanOrEqualTo($now)) {
+            return 'Current';
+        }
+
+        // For overdue invoices, calculate months difference
+        $monthsDiff = $now->diffInMonths($due);
+
+        if ($monthsDiff == 0) {
+            // Still in the same month (overdue but less than a month)
+            return 'Current';
+        } elseif ($monthsDiff == 1) {
+            return '1 Month';
+        } elseif ($monthsDiff == 2) {
+            return '2 Months';
+        } elseif ($monthsDiff == 3) {
+            return '3 Months';
+        } elseif ($monthsDiff == 4) {
+            return '4 Months';
+        } else {
+            return '5+ Months';
+        }
+    }
+
+    protected function calculateAgingColor(DebtorAging $record): string
+    {
+        if (!$record->aging_date) {
+            return 'gray';
+        }
+
+        $due = \Carbon\Carbon::parse($record->aging_date);
+        $now = \Carbon\Carbon::now();
+
+        if ($due->greaterThanOrEqualTo($now)) {
+            return 'success'; // Green for current
+        }
+
+        $monthsDiff = $now->diffInMonths($due);
+
+        return match($monthsDiff) {
+            0 => 'success',     // Green
+            1 => 'info',        // Blue
+            2 => 'warning',     // Yellow
+            3 => 'warning',     // Orange
+            4 => 'danger',      // Red
+            default => 'danger' // Dark red for 5+ months
+        };
     }
 }

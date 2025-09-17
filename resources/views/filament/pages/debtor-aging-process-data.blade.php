@@ -1,5 +1,18 @@
+{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/debtor-aging-process-data.blade.php --}}
 <x-filament-panels::page>
-    <div class="flex items-center justify-between">
+    <style>
+        .fi-ta-table {
+            width: 100% !important;
+        }
+        .fi-ta-panel {
+            width: 100% !important;
+        }
+        .fi-ta-content {
+            overflow-x: auto;
+        }
+    </style>
+
+    <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">
                 Debtor Aging Process Data
@@ -16,5 +29,7 @@
         </div>
     </div>
 
-    {{ $this->table }}
+    <div class="w-full">
+        {{ $this->table }}
+    </div>
 </x-filament-panels::page>

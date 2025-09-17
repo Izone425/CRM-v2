@@ -44,18 +44,24 @@ class DevicePurchaseInformation extends Page
     public $rawData = [];
 
     public $updatingStatus = null;
+    public $selectedStatuses = ['All'];
 
     public function mount()
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
-        $this->selectedStatus = request()->query('status', 'All');
+
+        // Handle multiple statuses from query parameters
+        $statusParam = request()->query('status', 'All');
+        if (is_array($statusParam)) {
+            $this->selectedStatuses = $statusParam;
+        } else {
+            $this->selectedStatuses = $statusParam === 'All' ? ['All'] : [$statusParam];
+        }
+
         $this->loadPurchaseData();
         $currentMonth = (int)date('n');
-
-        // Select the current month by default
         $this->selectedMonth = $currentMonth;
 
-        // Load raw data if raw view is enabled
         if ($this->isRawView) {
             $this->loadRawData();
         }
@@ -70,7 +76,7 @@ class DevicePurchaseInformation extends Page
     public function getStatusOptions(): array
     {
         return [
-            'All' => 'All',
+            'All' => 'All Statuses',
             'Completed Order' => 'Completed Order',
             'Completed Shipping' => 'Completed Shipping',
             'Completed Delivery' => 'Completed Delivery',
@@ -85,13 +91,15 @@ class DevicePurchaseInformation extends Page
         foreach ($years as $year) {
             $actions[] = Action::make("year_$year")
                 ->label($year)
-                ->url(fn() => route('filament.admin.pages.device-purchase-information', ['year' => $year, 'status' => $this->selectedStatus]))
+                ->url(fn() => route('filament.admin.pages.device-purchase-information', [
+                    'year' => $year,
+                    'status' => $this->selectedStatuses
+                ]))
                 ->color($year == $this->selectedYear ? 'primary' : 'warning');
         }
 
         $actions[] = Action::make('toggle_view')
             ->label(fn() => $this->isRawView ? 'Switch to Process View' : 'Switch to Raw View')
-            // ->icon(fn() => $this->isRawView ? 'heroicon-o-view-columns' : 'heroicon-o-table')
             ->color('gray')
             ->action(function () {
                 $this->toggleViewMode();
@@ -101,10 +109,14 @@ class DevicePurchaseInformation extends Page
     }
 
     // Update status filter and reload data
-    public function updateStatusFilter($status)
+    public function updateStatusFilter($statuses)
     {
-        $this->selectedStatus = $status;
+        $this->selectedStatuses = $statuses;
         $this->loadPurchaseData();
+
+        if ($this->isRawView) {
+            $this->loadRawData();
+        }
     }
 
     public function toggleEditMode()
@@ -409,9 +421,9 @@ class DevicePurchaseInformation extends Page
         // Create a query for all purchase items for the selected year
         $query = DevicePurchaseItem::where('year', $year);
 
-        // Apply status filter if not "All"
-        if ($this->selectedStatus !== 'All') {
-            $query->where('status', $this->selectedStatus);
+        // Apply multiple status filter
+        if (!in_array('All', $this->selectedStatuses)) {
+            $query->whereIn('status', $this->selectedStatuses);
         }
 
         // Get the data and convert it to an array
@@ -454,13 +466,14 @@ class DevicePurchaseInformation extends Page
         // Get all purchase items for the selected year with status filter
         $query = DevicePurchaseItem::where('year', $year);
 
-        // Apply status filter if not "All"
-        if ($this->selectedStatus !== 'All') {
-            $query->where('status', $this->selectedStatus);
+        // Apply multiple status filter
+        if (!in_array('All', $this->selectedStatuses)) {
+            $query->whereIn('status', $this->selectedStatuses);
         }
 
         $purchaseItems = $query->get();
 
+        // ... rest of the method remains the same
         // Initialize data structure
         foreach ($months as $monthNum => $monthName) {
             $this->purchaseData[$monthNum] = [];
@@ -473,7 +486,7 @@ class DevicePurchaseInformation extends Page
                 $uniqueKey = $item->model . '_' . $item->id;
 
                 $this->purchaseData[$monthNum][$uniqueKey] = [
-                    'model' => $item->model, // Add model as a field so we can use it in the template
+                    'model' => $item->model,
                     'qty' => $item->qty,
                     'england' => $item->england,
                     'america' => $item->america,
@@ -488,7 +501,7 @@ class DevicePurchaseInformation extends Page
                     'languages' => $item->languages,
                     'features' => $item->features,
                     'status' => $item->status,
-                    'id' => $item->id, // Store the ID for future operations
+                    'id' => $item->id,
                 ];
             }
         }

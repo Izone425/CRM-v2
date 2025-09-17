@@ -219,7 +219,7 @@
                         </svg>
                     </div>
                     <div class="debtor-details">
-                        <dt class="debtor-title">Unpaid Debtor</dt>
+                        <dt class="debtor-title">UnPaid Debtor</dt>
                         <dd>
                             <div class="debtor-subtitle">Total Invoice: {{ $unpaidDebtorStats['total_invoices'] }}</div>
                             <div class="debtor-amount-label">Total Amount:</div>
