@@ -499,6 +499,8 @@
                                     Half Day AM
                                 @elseif($selectedLeaveType === 'pm')
                                     Half Day PM
+                                @elseif($selectedLeaveType === 'am_plus_pm')
+                                    AM + PM
                                 @endif
                                 <button type="button" wire:click="$set('selectedLeaveType', 'all')" class="ml-1 text-rose-500 hover:text-rose-800">
                                     <span class="sr-only">Remove filter</span>
@@ -540,6 +542,13 @@
                                             <span class="leave-label">Half PM</span>
                                         </div>
                                         <span class="leave-count">{{ $counts['half_day_pm'] }}</span>
+                                    </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot" style="background: linear-gradient(to right, #FEF9C3 50%, #FEF9C3 50%);"></div>
+                                            <span class="leave-label">AM + PM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['am_plus_pm'] ?? 0 }}</span>
                                     </div>
                                 </div>
                                 <div class="card-footer">
@@ -584,6 +593,13 @@
                                         </div>
                                         <span class="leave-count">{{ $counts['half_day_pm'] }}</span>
                                     </div>
+                                    <div class="leave-type-row">
+                                        <div class="leave-indicator">
+                                            <div class="indicator-dot" style="background: linear-gradient(to right, #FEF9C3 50%, #FEF9C3 50%);"></div>
+                                            <span class="leave-label">AM + PM</span>
+                                        </div>
+                                        <span class="leave-count">{{ $counts['am_plus_pm'] ?? 0 }}</span>
+                                    </div>
                                 </div>
                                 <div class="card-footer">
                                     <span class="total-label">Total Leave Days</span>
@@ -627,6 +643,7 @@
                 <option value="full">Full Day Leave</option>
                 <option value="am">Half Day AM</option>
                 <option value="pm">Half Day PM</option>
+                <option value="am_plus_pm">AM + PM</option>
             </select>
         </div>
         </div>
@@ -645,6 +662,8 @@
                                 Half Day AM Leave - {{ $currentMonth }}
                             @elseif($selectedLeaveType === 'pm')
                                 Half Day PM Leave - {{ $currentMonth }}
+                            @elseif($selectedLeaveType === 'am_plus_pm')
+                                AM + PM Leave - {{ $currentMonth }}
                             @endif
                         @else
                             {{ $currentMonth }}
@@ -658,6 +677,8 @@
                                 Half Day AM
                             @elseif($selectedLeaveType === 'pm')
                                 Half Day PM
+                            @elseif($selectedLeaveType === 'am_plus_pm')
+                                AM + PM
                             @endif
                         @endif
                         - {{ $currentMonth }}
@@ -779,20 +800,54 @@
                         $holidayName = $holiday['name'];
                     }
 
-                    // Check if the employee has leave on this date
-                    $userLeave = null;
-                    if (isset($leaves[$employee->id]) && isset($leaves[$employee->id][$date])) {
+                    // Initialize leave checking variables
+                    $isFullDay = false;
+                    $isHalfDayAM = false;
+                    $isHalfDayPM = false;
+                    $leaveType = '';
+                    $hasAmPmCombination = false;
+
+                    // Check if the employee has any leave on this date
+                    if (isset($leaves[$employee->id][$date])) {
                         $userLeave = $leaves[$employee->id][$date];
+
+                        // Check for AM+PM combination first
+                        if ($userLeave['session'] === 'am_plus_pm') {
+                            $hasAmPmCombination = true;
+                            $leaveType = $userLeave['leave_type'];
+                        }
+                        // Handle single session leaves
+                        elseif ($userLeave['session'] === 'full') {
+                            $isFullDay = true;
+                            $leaveType = $userLeave['leave_type'];
+                        }
+                        elseif ($userLeave['session'] === 'am') {
+                            $isHalfDayAM = true;
+                            $leaveType = $userLeave['leave_type'];
+                        }
+                        elseif ($userLeave['session'] === 'pm') {
+                            $isHalfDayPM = true;
+                            $leaveType = $userLeave['leave_type'];
+                        }
                     }
 
-                    $isFullDay = $userLeave && $userLeave['session'] === 'full';
-                    $isHalfDayAM = $userLeave && $userLeave['session'] === 'am';
-                    $isHalfDayPM = $userLeave && $userLeave['session'] === 'pm';
-                    $leaveType = $userLeave ? $userLeave['leave_type'] : '';
+                    // Debug info - you can remove this after testing
+                    if ($employee->name === 'Nur Fazuliana' && $date === '2025-09-29') {
+                        Log::info("Updated Debug for Nur Fazuliana on 2025-09-29", [
+                            'userLeave' => $leaves[$employee->id][$date] ?? 'not found',
+                            'hasAmPmCombination' => $hasAmPmCombination,
+                            'isHalfDayAM' => $isHalfDayAM,
+                            'isHalfDayPM' => $isHalfDayPM,
+                            'session' => $leaves[$employee->id][$date]['session'] ?? 'not found'
+                        ]);
+                    }
 
                     // Check if we're filtering and the employee should be shown as available
                     $showAsAvailable = $selectedLeaveType !== 'all' &&
-                                    !isset($leaves[$employee->id][$date]) &&
+                                    !$hasAmPmCombination &&
+                                    !$isFullDay &&
+                                    !$isHalfDayAM &&
+                                    !$isHalfDayPM &&
                                     !$isHoliday;
                 @endphp
 
@@ -802,6 +857,16 @@
                         <div class="leave-holiday">
                             <div class="font-medium">Public Holiday</div>
                             <div class="text-xs italic">{{ $holidayName }}</div>
+                        </div>
+                    @elseif($hasAmPmCombination)
+                        <!-- AM + PM combination -->
+                        <div class="leave-half-day-container">
+                            <div class="leave-half-am">
+                                <div class="text-xs font-medium">AM Leave</div>
+                            </div>
+                            <div class="leave-half-pm">
+                                <div class="text-xs font-medium">PM Leave</div>
+                            </div>
                         </div>
                     @elseif($isFullDay)
                         <!-- Full day leave -->

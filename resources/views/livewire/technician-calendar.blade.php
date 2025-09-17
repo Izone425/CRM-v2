@@ -1043,17 +1043,34 @@
     @foreach ($rows as $row)
         <div class="time">
             <div class="flex-container">
-                <div class="image-container">
-                    <img style="border-radius: 50%;" src="{{ $row['technicianAvatar'] }}"
-                        data-tooltip="{{ $row['technicianName'] }}" @mouseover="show($event)"
-                        @mousemove="updatePosition($event)" @mouseout="hide()">
-                </div>
+                @if($row['type'] === 'technician')
+                    <div class="image-container">
+                        <img style="border-radius: 50%;" src="{{ $row['technicianAvatar'] }}"
+                            data-tooltip="{{ $row['technicianName'] }}" @mouseover="show($event)"
+                            @mousemove="updatePosition($event)" @mouseout="hide()">
+                    </div>
+                    <div style="margin-left: 8px; font-weight: bold; font-size: 0.9rem;">
+                        {{ $row['technicianShortName'] }}
+                    </div>
+                @elseif($row['type'] === 'reseller')
+                    <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                        <img style="width: 45px; height: 45px; border-radius: 50%; margin-right: 8px;"
+                            src="{{ $row['technicianAvatar'] }}" alt="{{ $row['technicianShortName'] }}">
+                        <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
+                    </div>
+                @else
+                    <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
+                        <img style="width: 45px; height: 45px; border-radius: 50%; margin-right: 8px;"
+                            src="{{ $row['technicianAvatar'] }}" alt="{{ $row['technicianShortName'] }}">
+                        <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
+                    </div>
+                @endif
             </div>
         </div>
 
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
             <div class="day">
-                @if (isset($row['leave'][$loop->iteration]))
+                @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] !== 'pm')
                     <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
                         <div style="flex:1; text-align: center;">
                             <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
@@ -1066,8 +1083,6 @@
                                     Full Day
                                 @elseif($row['leave'][$loop->iteration]['session'] === 'am')
                                     Half AM
-                                @else
-                                    Half PM
                                 @endif
                             </div>
                         </div>
@@ -1090,39 +1105,60 @@
                                     @endif></div>
 
                                 <div class="appointment-card-info"
-                                    @click="
-                                        remarksModalOpen = true;
-                                        surveyDetailModalOpen = {{ $appointment->type === 'SITE SURVEY HANDOVER' ? 'true' : 'false' }};
-                                    "
+                                    @click="remarksModalOpen = true"
                                     style="cursor: pointer">
-                                    <div class="appointment-demo-type">
-                                        @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
-                                            {{ $appointment->type }}
-                                        @else
-                                            {{ $appointment->type }}
-                                        @endif
-                                    </div>
-                                    <div class="appointment-appointment-type">
-                                        {{ $appointment->appointment_type }} |
-                                        <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                    </div>
 
-                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                        <div class="appointment-company-name">
-                                            INTERNAL TASK
+                                    <!-- 5-line format for resellers -->
+                                    @if($row['type'] === 'combined_resellers' || $row['type'] === 'reseller')
+                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
+                                        <div class="appointment-appointment-type">
+                                            {{ $appointment->appointment_type }} |
+                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                        </div>
+                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                            @if($appointment->company_name && $appointment->company_name != "No Company")
+                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                    {{ strtoupper($appointment->company_name) }}
+                                                </a>
+                                            @else
+                                                NO COMPANY
+                                            @endif
+                                        </div>
+                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
+                                        <div class="reseller-name" style="font-weight: bold; font-size: 0.75rem; color: #666; margin-top: 2px;">
+                                            {{ isset($appointment->reseller_company) ? $appointment->reseller_company : ($appointment->technician ?? 'Unknown Reseller') }}
                                         </div>
                                     @else
-                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                {{ $appointment->company_name }}
-                                            </a>
+                                        <!-- Regular format for technicians -->
+                                        <div class="appointment-demo-type">
+                                            @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
+                                                {{ $appointment->type }}
+                                            @else
+                                                {{ $appointment->type }}
+                                            @endif
                                         </div>
+                                        <div class="appointment-appointment-type">
+                                            {{ $appointment->appointment_type }} |
+                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
+                                        </div>
+
+                                        @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
+                                            <div class="appointment-company-name">
+                                                INTERNAL TASK
+                                            </div>
+                                        @else
+                                            <div class="appointment-company-name" title="{{ $appointment->company_name }}">
+                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
+                                                    {{ strtoupper($appointment->company_name) }}
+                                                </a>
+                                            </div>
+                                        @endif
+                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
                                     @endif
-                                    <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
                                 </div>
 
-                                <!-- Remarks Modal -->
-                                <div x-show="remarksModalOpen && !surveyDetailModalOpen"
+                                <!-- Remarks Modal (same as before) -->
+                                <div x-show="remarksModalOpen"
                                     x-transition
                                     @click.outside="remarksModalOpen = false"
                                     class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
@@ -1133,6 +1169,9 @@
                                                     INTERNAL TASK - {{ $appointment->type }}
                                                 @else
                                                     {{ $appointment->company_name }} - {{ $appointment->type }}
+                                                @endif
+                                                @if($row['type'] === 'combined_resellers' || $row['type'] === 'reseller')
+                                                    <span class="ml-2 text-sm text-gray-500">({{ $appointment->technician ?? 'Reseller' }})</span>
                                                 @endif
                                             </h3>
                                             <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
@@ -1153,9 +1192,13 @@
                                                 </span>
                                             </div>
                                             <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->parent->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
-                                            @if(!isset($appointment->is_internal_task) || !$appointment->is_internal_task)
-                                                <p class="text-sm text-gray-500">Technician: {{ $row['technicianName'] }}</p>
-                                            @endif
+                                            <p class="text-sm text-gray-500">
+                                                @if($row['type'] === 'technician')
+                                                    Technician: {{ $row['technicianName'] }}
+                                                @else
+                                                    Reseller: {{ $appointment->technician ?? 'Unknown' }}
+                                                @endif
+                                            </p>
                                         </div>
 
                                         <!-- Regular Remarks Section -->
@@ -1352,12 +1395,29 @@
                             </div>
                         </template>
                     @endif
+
+                    @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
+                        <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
+                            <div style="flex:1; text-align: center;">
+                                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                                <div style="font-size: 0.8rem;font-style: italic;">
+                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                                </div>
+                                <div style="font-size: 0.8rem;">
+                                    {{ $row['leave'][$loop->iteration]['status'] }} |
+                                    @if ($row['leave'][$loop->iteration]['session'] === 'pm')
+                                        Half PM
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endforeach
     @endforeach
 
-    <!-- Reseller Row (Combined) -->
+    {{-- <!-- Reseller Row (Combined) -->
     <div class="time">
         <div class="flex-container">
             <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
@@ -1365,9 +1425,9 @@
                 Resellers
             </div>
         </div>
-    </div>
+    </div> --}}
 
-    @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
+    {{-- @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
         <div class="day">
             <div x-data="{ expanded: false }">
                 @if (count($resellerAppointments[$day] ?? []) <= 4)
@@ -1543,7 +1603,7 @@
                 @endif
             </div>
         </div>
-    @endforeach
+    @endforeach --}}
 </div>
 
 <!-- Global tooltip container -->

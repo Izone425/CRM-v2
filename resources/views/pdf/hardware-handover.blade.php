@@ -302,21 +302,36 @@
             @endphp
 
             @if($hardwareHandover->installation_type === 'courier')
-                {{-- <tr>
-                    <td class="label" width="30%">Name</td>
-                    <td width="70%">{{ $category2['pic_name'] ?? '-' }}</td>
-                </tr>
+                @php
+                    $courierAddresses = [];
+                    if (isset($category2['courier_addresses'])) {
+                        $courierAddresses = is_string($category2['courier_addresses'])
+                            ? json_decode($category2['courier_addresses'], true)
+                            : $category2['courier_addresses'];
+                    }
+
+                    if (!is_array($courierAddresses)) {
+                        $courierAddresses = [];
+                    }
+                @endphp
+
                 <tr>
-                    <td class="label">HP Number</td>
-                    <td>{{ $category2['pic_phone'] ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Email</td>
-                    <td>{{ $category2['email'] ?? '-' }}</td>
-                </tr> --}}
-                <tr>
-                    <td class="label">Courier Address</td>
-                    <td>{{ $category2['courier_address'] ?? '-' }}</td>
+                    <td class="label" width="30%">Courier Addresses</td>
+                    <td width="70%">
+                        @if(count($courierAddresses) > 0)
+                            @foreach($courierAddresses as $index => $courierData)
+                                @php
+                                    $addressText = $courierData['address'] ?? '';
+                                @endphp
+                                <div style="margin-bottom: 15px; padding: 8px; border: 1px solid #ddd; background-color: #f9f9f9;">
+                                    <strong>Courier Address {{ $index + 1 }}:</strong><br>
+                                    <div style="white-space: pre-line; font-family: monospace; font-size: 9px; margin-top: 5px;">{{ $addressText }}</div>
+                                </div>
+                            @endforeach
+                        @else
+                            <span style="font-style: italic; color: #777;">No courier addresses specified</span>
+                        @endif
+                    </td>
                 </tr>
             @elseif($hardwareHandover->installation_type === 'self_pick_up')
                 <tr>

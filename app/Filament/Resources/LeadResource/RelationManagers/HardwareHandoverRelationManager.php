@@ -253,64 +253,69 @@ class HardwareHandoverRelationManager extends RelationManager
                                 })
                                 ->searchable()
                                 ->preload(),
-                            TextArea::make('category2.courier_address')
-                                ->label('Courier Address')
-                                ->required()
-                                ->rows(2)
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                            Forms\Components\Repeater::make('category2.courier_addresses')
+                                ->label('Courier Addresses')
+                                ->schema([
+                                    TextArea::make('address')
+                                        ->label('ADDRESS:')
+                                        ->required()
+                                        ->rows(3)
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->default("ADDRESS:\nDEVICE MODEL:\nTOTAL UNIT:"),
+                                    ])
+                                ->itemLabel(function (array $state): ?string {
+                                    static $counter = 0;
+                                    $counter++;
+                                    return 'Courier Address ' . $counter;
+                                })
+                                ->addActionLabel('Add Another Address')
+                                ->maxItems(10)
+                                ->defaultItems(1)
                                 ->default(function (?HardwareHandover $record = null) {
-                                    // First check if record has category2 data already
+                                    // If editing existing record, return saved data
                                     if ($record && $record->category2) {
                                         $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
-
-                                        // If courier_address exists in the category2 data, use it
-                                        if (isset($category2['courier_address']) && !empty($category2['courier_address'])) {
-                                            return $category2['courier_address'];
+                                        if (isset($category2['courier_addresses']) && !empty($category2['courier_addresses'])) {
+                                            return $category2['courier_addresses'];
                                         }
                                     }
 
-                                    // If no record data or no courier_address in category2, use the lead's address
+                                    // Default template for new records with pre-filled address
                                     $owner = $this->getOwnerRecord();
+                                    $defaultAddress = '';
 
                                     if ($owner->companyDetail) {
-                                        // Use company details if available
-                                        $address = $owner->companyDetail->company_address1 ?? '';
-
-                                        // Add address2 if it exists
+                                        $defaultAddress = $owner->companyDetail->company_address1 ?? '';
                                         if (!empty($owner->companyDetail->company_address2)) {
-                                            $address .= ", " . $owner->companyDetail->company_address2;
+                                            $defaultAddress .= ", " . $owner->companyDetail->company_address2;
                                         }
-
-                                        // Add postcode and state
                                         if (!empty($owner->companyDetail->postcode) || !empty($owner->companyDetail->state)) {
-                                            $address .= ", " .
+                                            $defaultAddress .= ", " .
                                                 ($owner->companyDetail->postcode ?? '') . " " .
                                                 ($owner->companyDetail->state ?? '');
                                         }
-
-                                        return $address;
                                     } else {
-                                        // Fallback to lead's personal address
-                                        $address = $owner->address1 ?? '';
-
-                                        // Add address2 if it exists
+                                        $defaultAddress = $owner->address1 ?? '';
                                         if (!empty($owner->address2)) {
-                                            $address .= ", " . $owner->address2;
+                                            $defaultAddress .= ", " . $owner->address2;
                                         }
-
-                                        // Add postcode and state
                                         if (!empty($owner->postcode) || !empty($owner->state)) {
-                                            $address .= ", " .
+                                            $defaultAddress .= ", " .
                                                 ($owner->postcode ?? '') . " " .
                                                 ($owner->state ?? '');
                                         }
-
-                                        return $address;
                                     }
+
+                                    return [
+                                        [
+                                            'address' => "ADDRESS: " . strtoupper($defaultAddress) . "\nDEVICE MODEL:\nTOTAL UNIT:",
+                                        ]
+                                    ];
                                 })
-                                ->visible(fn(callable $get) => $get('installation_type') === 'courier'),
+                                ->visible(fn(callable $get) => $get('installation_type') === 'courier')
+                                ->columnSpanFull(),
                             TextArea::make('category2.pickup_address')
                                 ->label('Pickup Address')
                                 ->required()

@@ -139,13 +139,23 @@ class ProjectPriority extends Page
         // Otherwise expand it and load the companies
         $this->expandedImplementers[] = $implementer;
 
-        // Fetch companies for this implementer with the current priority
-        $companies = SoftwareHandover::where('implementer', $implementer)
-            ->where('project_priority', $this->currentPriority)
-            ->where('status_handover', '!=', 'Closed')
-            ->where('status_handover', '!=', 'InActive')
-            ->orderBy('company_name')
-            ->pluck('company_name')
+        // Fetch companies for this implementer with the current priority using join
+        $companies = SoftwareHandover::select('software_handovers.company_name', 'leads.id as lead_id')
+            ->leftJoin('leads', 'software_handovers.lead_id', '=', 'leads.id')
+            ->where('software_handovers.implementer', $implementer)
+            ->where('software_handovers.project_priority', $this->currentPriority)
+            ->where('software_handovers.status_handover', '!=', 'Closed')
+            ->where('software_handovers.status_handover', '!=', 'InActive')
+            ->whereNotNull('leads.id') // Ensure lead exists
+            ->orderBy('software_handovers.company_name')
+            ->get()
+            ->map(function ($record) {
+                return [
+                    'name' => $record->company_name,
+                    'lead_id' => $record->lead_id,
+                    'encrypted_id' => \App\Classes\Encryptor::encrypt($record->lead_id)
+                ];
+            })
             ->toArray();
 
         $this->implementerCompanies[$implementer] = $companies;

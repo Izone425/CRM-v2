@@ -43,8 +43,34 @@ class RenewalData extends Model
         return $key !== null ? (string) $key : 'record-' . uniqid();
     }
 
-    // Get products for a specific company
-    public static function getProductsForCompany($companyId)
+    // Get invoices for a specific company
+    public static function getInvoicesForCompany($companyId)
+    {
+        try {
+            $sql = "SELECT
+                f_invoice_no,
+                f_currency,
+                SUM(f_total_amount) AS invoice_total_amount,
+                SUM(f_unit) AS invoice_total_units,
+                COUNT(*) AS invoice_product_count,
+                MIN(f_expiry_date) AS invoice_earliest_expiry,
+                MAX(f_expiry_date) AS invoice_latest_expiry,
+                ANY_VALUE(f_company_name) AS f_company_name,
+                ANY_VALUE(f_company_id) AS f_company_id
+            FROM crm_expiring_license
+            WHERE f_company_id = ?
+            GROUP BY f_invoice_no, f_currency
+            ORDER BY f_invoice_no ASC";
+
+            return DB::connection('frontenddb')->select($sql, [$companyId]);
+        } catch (\Exception $e) {
+            Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Get products for a specific company and invoice
+    public static function getProductsForInvoice($companyId, $invoiceNo)
     {
         try {
             $sql = "SELECT
@@ -53,12 +79,12 @@ class RenewalData extends Model
                 f_start_date, f_expiry_date, Created, payer,
                 payer_id, f_created_time
             FROM crm_expiring_license
-            WHERE f_company_id = ?
+            WHERE f_company_id = ? AND f_invoice_no = ?
             ORDER BY f_expiry_date ASC";
 
-            return DB::connection('frontenddb')->select($sql, [$companyId]);
+            return DB::connection('frontenddb')->select($sql, [$companyId, $invoiceNo]);
         } catch (\Exception $e) {
-            Log::error("Error fetching products for company $companyId: " . $e->getMessage());
+            Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
             return [];
         }
     }
@@ -100,6 +126,7 @@ class AdminRenewalProcessData extends Page implements HasTable
                     SUM(f_total_amount) AS total_amount,
                     SUM(f_unit) AS total_units,
                     COUNT(*) AS total_products,
+                    COUNT(DISTINCT f_invoice_no) AS total_invoices,
                     MIN(f_expiry_date) AS earliest_expiry,
                     ANY_VALUE(f_created_time) AS f_created_time
                 ")
@@ -118,7 +145,7 @@ class AdminRenewalProcessData extends Page implements HasTable
                     ->preload()
                     ->options(function () {
                         // Get distinct product names
-                        return LicenseData::query()
+                        return RenewalData::query()
                             ->distinct()
                             ->orderBy('f_name')
                             ->pluck('f_name', 'f_name')
@@ -169,7 +196,7 @@ class AdminRenewalProcessData extends Page implements HasTable
 
                         TextColumn::make('total_products')
                             ->label('Products')
-                            ->formatStateUsing(fn ($state) => "{$state} products")
+                            ->formatStateUsing(fn ($state, $record) => "{$state} products in {$record->total_invoices} invoices")
                             ->color('gray'),
                     ]),
 
@@ -198,13 +225,14 @@ class AdminRenewalProcessData extends Page implements HasTable
                     ]),
                 ])->from('md'),
 
-                // Collapsible content - this will be hidden by default but can be expanded
+                // Collapsible content - shows invoices for the company
                 Panel::make([
                     TextColumn::make('f_company_id')
                         ->label('')
                         ->formatStateUsing(function ($state, $record) {
-                            return view('components.company-products', [
-                                'products' => RenewalData::getProductsForCompany($state),
+                            return view('components.company-invoices', [
+                                'invoices' => RenewalData::getInvoicesForCompany($state),
+                                'companyId' => $state,
                             ]);
                         })
                         ->html()

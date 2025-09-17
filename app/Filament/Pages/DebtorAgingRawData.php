@@ -30,16 +30,24 @@ class DebtorAgingRawData extends Page implements HasTable
 
     protected static string $view = 'filament.pages.debtor-aging-raw-data';
 
+    // NO4: Method to get the base query with default filters
+    public function getTableQuery(): Builder
+    {
+        return DebtorAging::query()
+            // NO1: Only show ARU and ARM debtor codes
+            ->where(function ($query) {
+                $query->where('debtor_code', 'like', 'ARU%')
+                      ->orWhere('debtor_code', 'like', 'ARM%');
+            })
+            // NO2: Only show amounts greater than zero
+            ->where('outstanding', '>', 0);
+    }
+
     public function getTotalOutstandingAmount(): string
     {
         try {
-            // Get the query after all filters have been applied
-            $query = $this->getTableQuery();
-
-            // If query is null, create a base query
-            if (!$query) {
-                $query = DebtorAging::query();
-            }
+            // NO4: Get the filtered query from the table
+            $query = $this->getFilteredTableQuery();
 
             // Apply the same calculation used in the table column's state callback
             $total = $query
@@ -50,7 +58,8 @@ class DebtorAgingRawData extends Page implements HasTable
                     }
 
                     if ($record->outstanding && $record->exchange_rate) {
-                        return $record->outstanding * $record->exchange_rate;
+                        // NO3: Use 4 decimal point precision for exchange rate calculation
+                        return round($record->outstanding * $record->exchange_rate, 4);
                     }
 
                     return 0;
@@ -71,7 +80,7 @@ class DebtorAgingRawData extends Page implements HasTable
         $currentDate = Carbon::now();
 
         return $table
-            ->query(DebtorAging::query())
+            ->query($this->getTableQuery()) // NO4: Use the filtered base query
             ->columns([
                 TextColumn::make('debtor_code')
                     ->label('Code')
@@ -98,6 +107,12 @@ class DebtorAgingRawData extends Page implements HasTable
                     ->label('Currency')
                     ->sortable(),
 
+                // NO3: Add exchange rate column with 4 decimal places
+                TextColumn::make('exchange_rate')
+                    ->label('Exchange Rate')
+                    ->numeric(4) // 4 decimal places
+                    ->sortable(),
+
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
                     ->searchable()
@@ -110,8 +125,8 @@ class DebtorAgingRawData extends Page implements HasTable
 
                 TextColumn::make('balance_in_rm')
                     ->label('Outstanding Amount')
-                    ->numeric(2)
-                    ->money('MYR') // Always display in MYR
+                    ->numeric(4) // Display 4 decimal places
+                    ->prefix('RM ') // Add currency prefix manually
                     ->state(function ($record) {
                         // Calculate the balance in RM by multiplying outstanding by exchange_rate
                         if ($record->currency_code === 'MYR') {
@@ -119,9 +134,9 @@ class DebtorAgingRawData extends Page implements HasTable
                             return $record->outstanding;
                         }
 
-                        // Apply exchange rate conversion
+                        // NO3: Apply exchange rate conversion with 4 decimal precision
                         if ($record->outstanding && $record->exchange_rate) {
-                            return $record->outstanding * $record->exchange_rate;
+                            return round($record->outstanding * $record->exchange_rate, 4);
                         }
 
                         return 0;
@@ -129,13 +144,13 @@ class DebtorAgingRawData extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
-                // No1: Filter by Year
+                // Filter by Year
                 Filter::make('invoice_year')
                     ->form([
                         Select::make('year')
                             ->label('Invoice Year')
                             ->options(function() {
-                                // Get all years from invoice_date, from current year back to 5 years
+                                // Get all years from invoice_date, from current year back to 2 years
                                 $currentYear = (int)date('Y');
                                 $years = [];
                                 for ($i = $currentYear; $i >= $currentYear - 2; $i--) {
@@ -151,7 +166,7 @@ class DebtorAgingRawData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No2: Filter by Month
+                // Filter by Month
                 Filter::make('invoice_month')
                     ->form([
                         Select::make('month')
@@ -178,11 +193,13 @@ class DebtorAgingRawData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No3: Filter by Salesperson
+                // Filter by Salesperson
                 SelectFilter::make('salesperson')
                     ->label('Salesperson')
                     ->options(function () {
-                        return DebtorAging::distinct()
+                        // NO4: Use base query for filter options
+                        return $this->getTableQuery()
+                            ->distinct()
                             ->whereNotNull('salesperson')
                             ->where('salesperson', '!=', '')
                             ->pluck('salesperson', 'salesperson')
@@ -191,11 +208,13 @@ class DebtorAgingRawData extends Page implements HasTable
                     ->searchable()
                     ->multiple(),
 
-                // No4: Filter by Currency
+                // Filter by Currency
                 SelectFilter::make('currency_code')
                     ->label('Currency')
                     ->options(function () {
-                        return DebtorAging::distinct()
+                        // NO4: Use base query for filter options
+                        return $this->getTableQuery()
+                            ->distinct()
                             ->whereNotNull('currency_code')
                             ->where('currency_code', '!=', '')
                             ->pluck('currency_code', 'currency_code')
@@ -203,7 +222,7 @@ class DebtorAgingRawData extends Page implements HasTable
                     })
                     ->multiple(),
 
-                // No5: Filter by Amount Range
+                // Filter by Amount Range (NO2: Already filtered for > 0, but allow further refinement)
                 Filter::make('amount_range')
                     ->form([
                         Select::make('amount_filter_type')
@@ -249,37 +268,6 @@ class DebtorAgingRawData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No6: Filter Value (Negative/Positive/All)
-                Filter::make('value_type')
-                    ->form([
-                        Radio::make('value_type')
-                            ->label('Value Type')
-                            ->options([
-                                'positive' => 'Positive Values',
-                                'negative' => 'Negative Values',
-                                'all' => 'All Values',
-                            ])
-                            ->default('all'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (isset($data['value_type'])) {
-                            if ($data['value_type'] === 'positive') {
-                                return $query->where('outstanding', '>', 0);
-                            }
-
-                            if ($data['value_type'] === 'negative') {
-                                return $query->where('outstanding', '<', 0);
-                            }
-                        }
-                        return $query;
-                    })
-                    ->indicateUsing(function (array $data): ?string {
-                        if (isset($data['value_type'])) {
-                            return 'Value Type: ' . ucfirst($data['value_type']);
-                        }
-                        return null;
-                    }),
-
                 Filter::make('company_name')
                     ->form([
                         Select::make('mode')
@@ -293,7 +281,9 @@ class DebtorAgingRawData extends Page implements HasTable
                         Select::make('companies')
                             ->label('Companies')
                             ->options(function () {
-                                return DebtorAging::distinct()
+                                // NO4: Use base query for filter options
+                                return $this->getTableQuery()
+                                    ->distinct()
                                     ->whereNotNull('company_name')
                                     ->where('company_name', '!=', '')
                                     ->pluck('company_name', 'company_name')
@@ -327,47 +317,6 @@ class DebtorAgingRawData extends Page implements HasTable
 
                         return null;
                     }),
-
-                Filter::make('stl_filter')
-                    ->form([
-                        Radio::make('stl_mode')
-                            ->label('STL Records')
-                            ->options([
-                                'include' => 'Show Only STL Records',
-                                'exclude' => 'Exclude STL Records',
-                                'all' => 'Show All Records',
-                            ])
-                            ->default('all'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (isset($data['stl_mode'])) {
-                            if ($data['stl_mode'] === 'include') {
-                                return $query->where('debtor_code', 'like', 'STL%');
-                            }
-
-                            if ($data['stl_mode'] === 'exclude') {
-                                return $query->where(function ($query) {
-                                    $query->where('debtor_code', 'not like', 'STL%')
-                                        ->orWhereNull('debtor_code');
-                                });
-                            }
-                        }
-                        return $query;
-                    })
-                    ->indicateUsing(function (array $data): ?string {
-                        if (isset($data['stl_mode']) && $data['stl_mode'] !== 'all') {
-                            return $data['stl_mode'] === 'include'
-                                ? 'Showing only STL records'
-                                : 'Excluding STL records';
-                        }
-                        return null;
-                    }),
-
-                // Only show records with outstanding amounts (optional, can be removed)
-                Filter::make('has_outstanding')
-                    ->label('Only Outstanding')
-                    ->query(fn (Builder $query): Builder => $query->where('outstanding', '!=', 0))
-                    ->default(true),
             ])
             ->filtersFormColumns(3) // Show filters in 3 columns for better spacing
             ->defaultPaginationPageOption(50)

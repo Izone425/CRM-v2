@@ -462,8 +462,28 @@
                             <!-- Company list (hidden by default) -->
                             <div class="company-list {{ $isExpanded ? 'expanded' : '' }}">
                                 @if ($isExpanded && isset($implementerCompanies[$implementer]))
-                                    @foreach ($implementerCompanies[$implementer] as $company)
-                                        <div class="company-item">{{ $company }}</div>
+                                    @foreach ($implementerCompanies[$implementer] as $companyData)
+                                        @php
+                                            $company = is_array($companyData) ? $companyData['name'] : $companyData;
+                                            $encryptedId = is_array($companyData) ? $companyData['encrypted_id'] : null;
+                                            $url = $encryptedId ? url('admin/leads/' . $encryptedId) : '#';
+                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($company, 25, '...'));
+                                        @endphp
+
+                                        <div class="company-item">
+                                            @if($encryptedId)
+                                                <a href="{{ $url }}"
+                                                target="_blank"
+                                                title="{{ $company }}"
+                                                style="color: #338cf0; text-decoration: none; display: block; width: 100%;"
+                                                onmouseover="this.style.textDecoration='underline'"
+                                                onmouseout="this.style.textDecoration='none'">
+                                                    {{ $shortened }}
+                                                </a>
+                                            @else
+                                                {{ $shortened }}
+                                            @endif
+                                        </div>
                                     @endforeach
                                 @endif
                             </div>
