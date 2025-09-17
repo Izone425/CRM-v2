@@ -331,6 +331,46 @@
             flex-grow: 1;
             min-height: 200px; /* Minimum height to push footer down */
         }
+
+        .prose.policy-body.max-w-none {
+            flex-grow: 1;
+            min-height: 200px; /* Minimum height to push footer down */
+            --tw-prose-bullets: #000000; /* Make bullets black */
+        }
+
+        /* Alternative approach - directly target the markers */
+        .policy-body ul > li::marker {
+            color: #000000 !important;
+        }
+
+        .policy-body ol > li::marker {
+            color: #000000 !important;
+        }
+
+        .policy-body table th {
+            background-color: #f3f4f6 !important;
+            color: #374151 !important;
+            font-weight: 600 !important;
+        }
+
+        /* Alternative approach for more specific targeting */
+        .prose.policy-body.max-w-none table thead th {
+            background-color: #f3f4f6 !important;
+            color: #374151 !important;
+            font-weight: 600 !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        /* Ensure table styling is consistent */
+        .policy-body table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+
+        .policy-body table td {
+            border: 1px solid #d1d5db !important;
+            padding: 0.5rem !important;
+        }
     </style>
 
     <div class="policy-container">

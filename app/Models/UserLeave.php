@@ -35,13 +35,58 @@ class UserLeave extends Model
         return UserLeave::where("user_ID",$userID)->where("date",$date)->get()->toArray();
     }
 
-    public static function getUserLeavesByDateRange($userID,$startDate,$endDate){
-        $temp = UserLeave::where("user_ID","=",$userID)->whereBetween('date',[$startDate,$endDate])->get()->toArray();
-        $newArray = [];
-        foreach($temp as &$row){
-            $newArray[$row['day_of_week']]=$row;
+    public static function getUserLeavesByDateRange($userId, $startDate, $endDate)
+    {
+        $leaves = [];
+        $leaveRecords = self::where('user_id', $userId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->whereIn('status', ['Approved', 'Pending'])
+            ->get();
+
+        // Group leaves by date
+        $leavesByDate = $leaveRecords->groupBy('date');
+
+        foreach ($leavesByDate as $date => $dayLeaves) {
+            $dayOfWeek = \Carbon\Carbon::parse($date)->dayOfWeekIso; // 1 = Monday, 5 = Friday
+
+            if ($dayOfWeek >= 1 && $dayOfWeek <= 5) { // Only weekdays
+                $hasAmLeave = $dayLeaves->where('session', 'am')->count() > 0;
+                $hasPmLeave = $dayLeaves->where('session', 'pm')->count() > 0;
+                $hasFullLeave = $dayLeaves->where('session', 'full')->count() > 0;
+
+                // Determine the effective leave type
+                if ($hasFullLeave || ($hasAmLeave && $hasPmLeave)) {
+                    $effectiveSession = 'full';
+                    $leaveType = $hasFullLeave ?
+                        $dayLeaves->where('session', 'full')->first()->leave_type :
+                        'Multiple (' . $dayLeaves->where('session', 'am')->first()->leave_type . ' AM, ' .
+                        $dayLeaves->where('session', 'pm')->first()->leave_type . ' PM)';
+                    $status = $hasFullLeave ?
+                        $dayLeaves->where('session', 'full')->first()->status :
+                        'Mixed';
+                } elseif ($hasAmLeave) {
+                    $effectiveSession = 'am';
+                    $amLeave = $dayLeaves->where('session', 'am')->first();
+                    $leaveType = $amLeave->leave_type;
+                    $status = $amLeave->status;
+                } elseif ($hasPmLeave) {
+                    $effectiveSession = 'pm';
+                    $pmLeave = $dayLeaves->where('session', 'pm')->first();
+                    $leaveType = $pmLeave->leave_type;
+                    $status = $pmLeave->status;
+                }
+
+                $leaves[$dayOfWeek] = [
+                    'session' => $effectiveSession,
+                    'leave_type' => $leaveType,
+                    'status' => $status,
+                    'date' => $date,
+                    'raw_leaves' => $dayLeaves // Keep original records for reference
+                ];
+            }
         }
-        return $newArray;
+
+        return $leaves;
     }
 
     public static function getWeeklyLeavesByDateRange($startDate,$endDate, array $selectedSalesPeople = null){
@@ -173,11 +218,30 @@ class UserLeave extends Model
                 $formattedLeaves[$key] = collect();
             }
 
-            $formattedLeaves[$key][$leave->date] = [
-                'session' => $leave->session,
-                'leave_type' => $leave->leave_type,
-                'status' => $leave->status
-            ];
+            // Check if there's already a leave entry for this date
+            if ($formattedLeaves[$key]->has($leave->date)) {
+                // If there's already an entry for this date, we need to handle multiple sessions
+                $existingLeave = $formattedLeaves[$key][$leave->date];
+
+                // If the existing session is different from the current one, we have an AM+PM combination
+                if ($existingLeave['session'] !== $leave->session) {
+                    // Create a combined entry indicating both AM and PM
+                    $formattedLeaves[$key][$leave->date] = [
+                        'session' => 'am_plus_pm', // Special indicator for AM+PM combination
+                        'leave_type' => $existingLeave['leave_type'] . ' + ' . $leave->leave_type,
+                        'status' => 'Mixed',
+                        'sessions' => [$existingLeave['session'], $leave->session], // Track individual sessions
+                        'leave_types' => [$existingLeave['leave_type'], $leave->leave_type] // Track individual types
+                    ];
+                }
+            } else {
+                // First leave entry for this date
+                $formattedLeaves[$key][$leave->date] = [
+                    'session' => $leave->session,
+                    'leave_type' => $leave->leave_type,
+                    'status' => $leave->status
+                ];
+            }
         }
 
         return $formattedLeaves;

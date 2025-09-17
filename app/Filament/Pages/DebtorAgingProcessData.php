@@ -22,6 +22,7 @@ use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Number;
 
 // Temporary model for the grouped query
 class DebtorAgingData extends Model
@@ -68,6 +69,7 @@ class DebtorAgingData extends Model
             FROM debtor_agings
             WHERE debtor_code = ?
             AND outstanding > 0
+            AND (debtor_code LIKE 'ARU%' OR debtor_code LIKE 'ARM%')
             ORDER BY due_date ASC";
 
             return DB::select($sql, [$debtorCode]);
@@ -75,6 +77,19 @@ class DebtorAgingData extends Model
             Log::error("Error fetching invoices for debtor $debtorCode: " . $e->getMessage());
             return [];
         }
+    }
+
+    // NO4: Base query method with default filters
+    public static function getBaseQuery(): Builder
+    {
+        return self::query()
+            // NO1: Only show ARU and ARM debtor codes
+            ->where(function ($query) {
+                $query->where('debtor_code', 'like', 'ARU%')
+                      ->orWhere('debtor_code', 'like', 'ARM%');
+            })
+            // NO2: Only show amounts greater than zero
+            ->where('outstanding', '>', 0);
     }
 }
 
@@ -86,8 +101,41 @@ class DebtorAgingProcessData extends Page implements HasTable
     protected static ?string $navigationLabel = 'Debtor Aging';
     protected static ?string $navigationGroup = 'Reports';
     protected static ?int $navigationSort = 10;
+    protected static ?string $title = '';
 
     protected static string $view = 'filament.pages.debtor-aging-process-data';
+
+    // NO4: Method to get total outstanding amount that respects filters
+    public function getTotalOutstandingAmount(): string
+    {
+        try {
+            // Get the filtered query from the table
+            $query = $this->getFilteredTableQuery();
+
+            // Apply the same calculation used in the table column's state callback
+            $total = $query
+                ->get()
+                ->sum(function ($record) {
+                    if ($record->currency_code === 'MYR') {
+                        return $record->total_outstanding;
+                    }
+
+                    if ($record->total_outstanding && $record->exchange_rate) {
+                        // NO3: Use 4 decimal point precision for exchange rate calculation
+                        return round($record->total_outstanding * $record->exchange_rate, 4);
+                    }
+
+                    return 0;
+                });
+
+            // Format the amount as currency
+            return Number::currency($total, 'MYR');
+        } catch (\Exception $e) {
+            // Log error and return a default value
+            Log::error('Error calculating total outstanding amount: ' . $e->getMessage());
+            return Number::currency(0, 'MYR');
+        }
+    }
 
     public function table(Table $table): Table
     {
@@ -96,8 +144,8 @@ class DebtorAgingProcessData extends Page implements HasTable
 
         return $table
             ->query(function () {
-                // Build the query with aggregation by debtor_code
-                return DebtorAgingData::query()
+                // NO4: Build the query with aggregation by debtor_code using base query
+                return DebtorAgingData::getBaseQuery()
                     ->selectRaw("
                         CAST(debtor_code AS CHAR) AS debtor_code,
                         ANY_VALUE(company_name) AS company_name,
@@ -111,7 +159,6 @@ class DebtorAgingProcessData extends Page implements HasTable
                         ANY_VALUE(salesperson) AS salesperson,
                         ANY_VALUE(support) AS support
                     ")
-                    ->where('outstanding', '>', 0)
                     ->where('debtor_code', '!=', '') // Avoid empty strings
                     ->whereNotNull('debtor_code') // Avoid nulls
                     ->groupBy('debtor_code');
@@ -128,15 +175,15 @@ class DebtorAgingProcessData extends Page implements HasTable
                     Stack::make([
                         TextColumn::make('total_outstanding')
                             ->label('Outstanding')
-                            ->numeric(2)
+                            ->numeric(4) // NO3: 4 decimal places
                             ->alignRight(),
                     ]),
 
                     Stack::make([
                         TextColumn::make('total_outstanding_rm')
                             ->label('Bal in RM')
-                            ->numeric(2)
-                            ->money('MYR')
+                            ->numeric(4) // NO3: 4 decimal places instead of 2
+                            ->prefix('RM ') // Manual currency prefix
                             ->alignRight()
                             ->state(function ($record) {
                                 // Calculate the balance in RM
@@ -144,7 +191,12 @@ class DebtorAgingProcessData extends Page implements HasTable
                                     return $record->total_outstanding;
                                 }
 
-                                return $record->total_outstanding * $record->exchange_rate;
+                                // NO3: Apply exchange rate conversion with 4 decimal precision
+                                if ($record->total_outstanding && $record->exchange_rate) {
+                                    return round($record->total_outstanding * $record->exchange_rate, 4);
+                                }
+
+                                return 0;
                             }),
                     ]),
                 ])->from('md'),
@@ -172,7 +224,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                 ])->collapsible()->collapsed(),
             ])
             ->filters([
-                // No1: Filter by Year
+                // Filter by Year
                 Filter::make('invoice_year')
                     ->form([
                         Select::make('year')
@@ -194,7 +246,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No2: Filter by Month
+                // Filter by Month
                 Filter::make('invoice_month')
                     ->form([
                         Select::make('month')
@@ -221,11 +273,12 @@ class DebtorAgingProcessData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No3: Filter by Salesperson
+                // Filter by Salesperson - NO4: Use base query for options
                 SelectFilter::make('salesperson')
                     ->label('Salesperson')
                     ->options(function () {
-                        return DebtorAgingData::distinct('salesperson')
+                        return DebtorAgingData::getBaseQuery()
+                            ->distinct()
                             ->whereNotNull('salesperson')
                             ->where('salesperson', '!=', '')
                             ->pluck('salesperson', 'salesperson')
@@ -234,11 +287,12 @@ class DebtorAgingProcessData extends Page implements HasTable
                     ->searchable()
                     ->multiple(),
 
-                // No4: Filter by Currency
+                // Filter by Currency - NO4: Use base query for options
                 SelectFilter::make('currency_code')
                     ->label('Currency')
                     ->options(function () {
-                        return DebtorAgingData::distinct('currency_code')
+                        return DebtorAgingData::getBaseQuery()
+                            ->distinct()
                             ->whereNotNull('currency_code')
                             ->where('currency_code', '!=', '')
                             ->pluck('currency_code', 'currency_code')
@@ -246,7 +300,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                     })
                     ->multiple(),
 
-                // No5: Filter by Amount Range
+                // Filter by Amount Range
                 Filter::make('amount_range')
                     ->form([
                         Select::make('amount_filter_type')
@@ -286,7 +340,6 @@ class DebtorAgingProcessData extends Page implements HasTable
 
                             if ($data['amount_filter_type'] === 'between' &&
                                 isset($data['min_amount']) && isset($data['max_amount'])) {
-                                // Use two having conditions instead of whereBetween
                                 return $query->where('outstanding', '>=', $data['min_amount'])
                                             ->where('outstanding', '<=', $data['max_amount']);
                             }
@@ -294,38 +347,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                         return $query;
                     }),
 
-                // No6: Filter Value (Negative/Positive/All)
-                Filter::make('value_type')
-                    ->form([
-                        Radio::make('value_type')
-                            ->label('Value Type')
-                            ->options([
-                                'positive' => 'Positive Values',
-                                'negative' => 'Negative Values',
-                                'all' => 'All Values',
-                            ])
-                            ->default('all'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (isset($data['value_type'])) {
-                            if ($data['value_type'] === 'positive') {
-                                return $query->having('total_outstanding', '>', 0);
-                            }
-
-                            if ($data['value_type'] === 'negative') {
-                                return $query->having('total_outstanding', '<', 0);
-                            }
-                        }
-                        return $query;
-                    })
-                    ->indicateUsing(function (array $data): ?string {
-                        if (isset($data['value_type']) && $data['value_type'] !== 'all') {
-                            return 'Value Type: ' . ucfirst($data['value_type']);
-                        }
-                        return null;
-                    }),
-
-                // No7: Filter Internal Company
+                // Filter by Company - NO4: Use base query for options
                 Filter::make('company_name')
                     ->form([
                         Select::make('mode')
@@ -339,8 +361,7 @@ class DebtorAgingProcessData extends Page implements HasTable
                         Select::make('companies')
                             ->label('Companies')
                             ->options(function () {
-                                return DebtorAgingData::query()
-                                    ->select('company_name')
+                                return DebtorAgingData::getBaseQuery()
                                     ->distinct()
                                     ->whereNotNull('company_name')
                                     ->where('company_name', '!=', '')
@@ -373,43 +394,6 @@ class DebtorAgingProcessData extends Page implements HasTable
                             return $mode . ' ' . $count . ' ' . ($count === 1 ? 'company' : 'companies');
                         }
 
-                        return null;
-                    }),
-
-                Filter::make('stl_filter')
-                    ->form([
-                        Radio::make('stl_mode')
-                            ->label('STL Records')
-                            ->options([
-                                'include' => 'Show Only STL Records',
-                                'exclude' => 'Exclude STL Records',
-                                'all' => 'Show All Records',
-                            ])
-                            ->default('all'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (isset($data['stl_mode'])) {
-                            if ($data['stl_mode'] === 'include') {
-                                // Show only STL records
-                                return $query->where('debtor_code', 'like', 'ICT%');
-                            }
-
-                            if ($data['stl_mode'] === 'exclude') {
-                                // Exclude STL records
-                                return $query->where(function ($query) {
-                                    $query->where('debtor_code', 'not like', 'ICT%')
-                                        ->orWhereNull('debtor_code');
-                                });
-                            }
-                        }
-                        return $query;
-                    })
-                    ->indicateUsing(function (array $data): ?string {
-                        if (isset($data['stl_mode']) && $data['stl_mode'] !== 'all') {
-                            return $data['stl_mode'] === 'include'
-                                ? 'Showing only STL records'
-                                : 'Excluding STL records';
-                        }
                         return null;
                     }),
             ])

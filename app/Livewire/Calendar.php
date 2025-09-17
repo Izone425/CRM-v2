@@ -142,6 +142,7 @@ class Calendar extends Component
                 'full_day' => 0,
                 'half_day_am' => 0,
                 'half_day_pm' => 0,
+                'am_plus_pm' => 0,  // Add this new counter
                 'total' => 0
             ];
 
@@ -149,6 +150,7 @@ class Calendar extends Component
                 'full_day' => 0,
                 'half_day_am' => 0,
                 'half_day_pm' => 0,
+                'am_plus_pm' => 0,  // Add this new counter
                 'total' => 0
             ];
         }
@@ -177,19 +179,27 @@ class Calendar extends Component
             // Get leaves for these employees during the week
             $deptLeaves = UserLeave::getAllLeavesForDateRange($this->startDate, $this->endDate, $employeeIds);
 
+            // Track AM+PM combinations per user per date
+            $amPmCombinations = [];
+
             // Count leaves by type
             foreach ($deptLeaves as $userId => $userLeaves) {
                 foreach ($userLeaves as $date => $leave) {
+                    // Track AM and PM leaves separately for combination detection
+                    if (!isset($amPmCombinations[$userId][$date])) {
+                        $amPmCombinations[$userId][$date] = ['am' => false, 'pm' => false];
+                    }
+
                     if ($leave['session'] === 'full') {
                         $this->leaveSummary[$department]['full_day']++;
                         $this->leaveSummary[$department]['total']++;
 
-                        // If it's the selected date, update today's summary
                         if ($date === $selectedDate) {
                             $this->todayLeaveSummary[$department]['full_day']++;
                             $this->todayLeaveSummary[$department]['total']++;
                         }
                     } else if ($leave['session'] === 'am') {
+                        $amPmCombinations[$userId][$date]['am'] = true;
                         $this->leaveSummary[$department]['half_day_am']++;
                         $this->leaveSummary[$department]['total'] += 0.5;
 
@@ -198,12 +208,26 @@ class Calendar extends Component
                             $this->todayLeaveSummary[$department]['total'] += 0.5;
                         }
                     } else if ($leave['session'] === 'pm') {
+                        $amPmCombinations[$userId][$date]['pm'] = true;
                         $this->leaveSummary[$department]['half_day_pm']++;
                         $this->leaveSummary[$department]['total'] += 0.5;
 
                         if ($date === $selectedDate) {
                             $this->todayLeaveSummary[$department]['half_day_pm']++;
                             $this->todayLeaveSummary[$department]['total'] += 0.5;
+                        }
+                    }
+                }
+            }
+
+            // Count AM+PM combinations
+            foreach ($amPmCombinations as $userId => $userDates) {
+                foreach ($userDates as $date => $sessions) {
+                    if ($sessions['am'] && $sessions['pm']) {
+                        $this->leaveSummary[$department]['am_plus_pm']++;
+
+                        if ($date === $selectedDate) {
+                            $this->todayLeaveSummary[$department]['am_plus_pm']++;
                         }
                     }
                 }
@@ -568,18 +592,52 @@ class Calendar extends Component
             // Filter leaves by type
             $filteredLeaves = [];
 
-            foreach ($allLeaves as $userId => $userLeaves) {
-                $matching = [];
+            if ($this->selectedLeaveType === 'am_plus_pm') {
+                // Special handling for AM+PM combination
+                foreach ($allLeaves as $userId => $userLeaves) {
+                    $matching = [];
+                    $datesSessions = [];
 
-                foreach ($userLeaves as $date => $leave) {
-                    if ($leave['session'] === $this->selectedLeaveType) {
-                        $matching[$date] = $leave;
+                    // Group leaves by date
+                    foreach ($userLeaves as $date => $leave) {
+                        if (!isset($datesSessions[$date])) {
+                            $datesSessions[$date] = [];
+                        }
+                        $datesSessions[$date][] = $leave['session'];
+                    }
+
+                    // Check for dates with both AM and PM
+                    foreach ($datesSessions as $date => $sessions) {
+                        if (in_array('am', $sessions) && in_array('pm', $sessions)) {
+                            // Include both AM and PM leaves for this date
+                            foreach ($userLeaves as $leaveDate => $leave) {
+                                if ($leaveDate === $date && in_array($leave['session'], ['am', 'pm'])) {
+                                    $matching[$leaveDate] = $leave;
+                                }
+                            }
+                        }
+                    }
+
+                    // Only include employees with AM+PM combinations
+                    if (!empty($matching)) {
+                        $filteredLeaves[$userId] = $matching;
                     }
                 }
+            } else {
+                // Regular filtering for other leave types
+                foreach ($allLeaves as $userId => $userLeaves) {
+                    $matching = [];
 
-                // Only include employees with matching leave types
-                if (!empty($matching)) {
-                    $filteredLeaves[$userId] = $matching;
+                    foreach ($userLeaves as $date => $leave) {
+                        if ($leave['session'] === $this->selectedLeaveType) {
+                            $matching[$date] = $leave;
+                        }
+                    }
+
+                    // Only include employees with matching leave types
+                    if (!empty($matching)) {
+                        $filteredLeaves[$userId] = $matching;
+                    }
                 }
             }
 
@@ -593,6 +651,7 @@ class Calendar extends Component
 
         return view('livewire.calendar');
     }
+
 
     public function getDepartments()
     {

@@ -1194,8 +1194,8 @@ class ImplementerCalendar extends Component
                 // Select afternoon sessions (3, 4, 5)
                 $afternoonSessions = ['SESSION 3', 'SESSION 4', 'SESSION 5'];
                 if ($dayOfWeek === 'friday') {
-                    // No SESSION 3 on Friday
-                    $afternoonSessions = ['SESSION 4', 'SESSION 5'];
+                    // For Friday, only SESSION 3 and SESSION 4 (which are the renamed sessions)
+                    $afternoonSessions = ['SESSION 3', 'SESSION 4'];
                 }
 
                 foreach ($afternoonSessions as $afternoonSession) {
@@ -1420,23 +1420,28 @@ class ImplementerCalendar extends Component
             ];
         }
 
-        // Check for leave
-        $leave = UserLeave::where('user_id', $this->bookingImplementerId)
+        // Check for leave - GET ALL leave records, not just first()
+        $leaves = UserLeave::where('user_id', $this->bookingImplementerId)
             ->where('date', $date)
-            ->where('status', 'Approved')
-            ->first();
+            ->whereIn('status', ['Approved', 'Pending'])
+            ->get(); // Changed from ->first() to ->get()
 
-        if ($leave) {
-            if ($leave->session === 'full') {
+        if ($leaves->count() > 0) {
+            $hasAmLeave = $leaves->where('session', 'am')->count() > 0;
+            $hasPmLeave = $leaves->where('session', 'pm')->count() > 0;
+            $hasFullLeave = $leaves->where('session', 'full')->count() > 0;
+
+            if ($hasFullLeave || ($hasAmLeave && $hasPmLeave)) {
+                // Full day leave (either explicit or both AM/PM)
                 return [
                     'FULL_DAY' => false,
                     'HALF_DAY_MORNING' => false,
                     'HALF_DAY_EVENING' => false
                 ];
-            } elseif ($leave->session === 'am') {
+            } elseif ($hasAmLeave) {
                 $availableDayTypes['HALF_DAY_MORNING'] = false;
                 $availableDayTypes['FULL_DAY'] = false;
-            } elseif ($leave->session === 'pm') {
+            } elseif ($hasPmLeave) {
                 $availableDayTypes['HALF_DAY_EVENING'] = false;
                 $availableDayTypes['FULL_DAY'] = false;
             }
@@ -1451,7 +1456,7 @@ class ImplementerCalendar extends Component
         // Define which sessions belong to which day type
         $morningSessionTimes = ['09:30:00', '11:00:00'];
         $eveningSessionTimes = ($dayOfWeek === 'friday')
-            ? ['15:00:00', '16:30:00']  // Friday times
+            ? ['15:00:00', '16:30:00']  // Friday times for SESSION 3 and SESSION 4
             : ['14:00:00', '15:30:00', '17:00:00'];  // Mon-Thu times
 
         // Check morning sessions (SESSION 1 and SESSION 2)
@@ -2383,11 +2388,11 @@ class ImplementerCalendar extends Component
                 'time_period' => 'am' // AM session
             ];
 
-            // Remove SESSION 3
-            unset($standardSessions['SESSION 3']);
+            // // Remove SESSION 3
+            // unset($standardSessions['SESSION 3']);
 
-            // Update SESSION 4 and 5 times for Friday
-            $standardSessions['SESSION 4'] = [
+            // Update SESSION 4 and 5 times for Friday and rename them to SESSION 3 and 4
+            $standardSessions['SESSION 3'] = [
                 'start_time' => '15:00:00',
                 'end_time' => '16:00:00',
                 'formatted_start' => '3:00 PM',
@@ -2398,7 +2403,7 @@ class ImplementerCalendar extends Component
                 'time_period' => 'pm' // PM session
             ];
 
-            $standardSessions['SESSION 5'] = [
+            $standardSessions['SESSION 4'] = [
                 'start_time' => '16:30:00',
                 'end_time' => '17:30:00',
                 'formatted_start' => '4:30 PM',
@@ -2408,6 +2413,9 @@ class ImplementerCalendar extends Component
                 'status' => 'available', // Default status
                 'time_period' => 'pm' // PM session
             ];
+
+            // Remove SESSION 5 completely for Friday
+            unset($standardSessions['SESSION 5']);
         }
 
         // If a date is provided, we can check for public holidays and leaves
@@ -2428,26 +2436,30 @@ class ImplementerCalendar extends Component
             // Check for leave applications
             $user = User::find($implementerId);
             if ($user) {
-                $leave = UserLeave::where('user_id', $implementerId)
+                $leaves = UserLeave::where('user_id', $implementerId)
                     ->where('date', $formattedDate)
-                    ->where('status', 'Approved')
-                    ->first();
+                    ->whereIn('status', ['Approved', 'Pending'])
+                    ->get(); // Changed from ->first() to ->get()
 
-                if ($leave) {
-                    if ($leave->session === 'full') {
-                        // Full day leave - all sessions unavailable
+                if ($leaves->count() > 0) {
+                    $hasAmLeave = $leaves->where('session', 'am')->count() > 0;
+                    $hasPmLeave = $leaves->where('session', 'pm')->count() > 0;
+                    $hasFullLeave = $leaves->where('session', 'full')->count() > 0;
+
+                    if ($hasFullLeave || ($hasAmLeave && $hasPmLeave)) {
+                        // Full day leave (either explicit full or both AM and PM) - all sessions unavailable
                         foreach ($standardSessions as $key => $session) {
                             $standardSessions[$key]['status'] = 'leave';
                         }
-                    } elseif ($leave->session === 'am') {
-                        // AM leave - Remove morning sessions entirely
+                    } elseif ($hasAmLeave) {
+                        // AM leave only - Remove morning sessions entirely
                         foreach ($standardSessions as $key => $session) {
                             if ($session['time_period'] === 'am') {
                                 unset($standardSessions[$key]);
                             }
                         }
-                    } elseif ($leave->session === 'pm') {
-                        // PM leave - Remove afternoon sessions entirely
+                    } elseif ($hasPmLeave) {
+                        // PM leave only - Remove afternoon sessions entirely
                         foreach ($standardSessions as $key => $session) {
                             if ($session['time_period'] === 'pm') {
                                 unset($standardSessions[$key]);

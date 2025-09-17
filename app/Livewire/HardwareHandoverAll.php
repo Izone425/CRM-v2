@@ -1939,7 +1939,72 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                     return $record ? $record->technician : null;
                                                 })
                                                 ->placeholder('Select a technician'),
-                                            ]),
+                                    ]),
+
+                                Grid::make(3)
+                                    ->schema([
+                                        TextInput::make('pic_name')
+                                            ->label('PIC Name')
+                                            ->required()
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->default(function (HardwareHandover $record) {
+                                                $lead = $record->lead;
+                                                return strtoupper(optional($lead->companyDetail)->name ?? $lead->name ?? '');
+                                            }),
+
+                                        TextInput::make('pic_phone')
+                                            ->label('PIC HP Number')
+                                            ->required()
+                                            ->tel()
+                                            ->default(function (HardwareHandover $record) {
+                                                $lead = $record->lead;
+                                                return optional($lead->companyDetail)->contact_no ?? $lead->phone ?? '';
+                                            }),
+
+                                        TextInput::make('pic_email')
+                                            ->label('PIC Email')
+                                            ->required()
+                                            ->email()
+                                            ->default(function (HardwareHandover $record) {
+                                                $lead = $record->lead;
+                                                return optional($lead->companyDetail)->email ?? $lead->email ?? '';
+                                            }),
+                                    ]),
+
+                                TextArea::make('installation_address')
+                                    ->label('Installation Address')
+                                    ->required()
+                                    ->rows(3)
+                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                    ->default(function (HardwareHandover $record) {
+                                        $lead = $record->lead;
+                                        $address = '';
+
+                                        if ($lead->companyDetail) {
+                                            $address = $lead->companyDetail->company_address1 ?? '';
+                                            if (!empty($lead->companyDetail->company_address2)) {
+                                                $address .= ", " . $lead->companyDetail->company_address2;
+                                            }
+                                            if (!empty($lead->companyDetail->postcode) || !empty($lead->companyDetail->state)) {
+                                                $address .= ", " . ($lead->companyDetail->postcode ?? '') . " " . ($lead->companyDetail->state ?? '');
+                                            }
+                                        } else {
+                                            $address = $lead->address1 ?? '';
+                                            if (!empty($lead->address2)) {
+                                                $address .= ", " . $lead->address2;
+                                            }
+                                            if (!empty($lead->postcode) || !empty($lead->state)) {
+                                                $address .= ", " . ($lead->postcode ?? '') . " " . ($lead->state ?? '');
+                                            }
+                                        }
+
+                                        return strtoupper($address);
+                                    }),
+
                                 Textarea::make('remarks')
                                     ->label('REMARKS')
                                     ->rows(3)
@@ -2103,12 +2168,13 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                     $emailContent = [
                                         'leadOwnerName' => $lead->lead_owner ?? 'TimeTec Support',
                                         'lead' => [
-                                            'lastName' => $lead->companyDetail->name ?? $lead->name,
+                                            'lastName' => $data['pic_name'] ?? (optional($lead->companyDetail)->name ?? $lead->name),
                                             'company' => $lead->companyDetail->company_name ?? $record->company_name ?? 'N/A',
                                             'technicianName' => $data['technician'] ?? 'N/A',
-                                            'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                                            'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                                            'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
+                                            'phone' => $data['pic_phone'] ?? (optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A'),
+                                            'pic' => $data['pic_name'] ?? (optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A'),
+                                            'email' => $data['pic_email'] ?? (optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A'),
+                                            'installation_address' => $data['installation_address'] ?? 'N/A',
                                             'date' => Carbon::parse($data['date'])->format('d/m/Y') ?? 'N/A',
                                             'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
                                             'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',

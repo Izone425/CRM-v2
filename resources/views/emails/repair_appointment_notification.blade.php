@@ -105,11 +105,11 @@
             <table>
                 <tr>
                     <th>Company Name</th>
-                    <td>{{ $content['lead']['company'] }}</td>
+                    <td>{{ strtoupper($content['lead']['company']) }}</td>
                 </tr>
                 <tr>
                     <th>Contact Person</th>
-                    <td>{{ $content['lead']['pic'] }}</td>
+                    <td>{{ strtoupper($content['lead']['pic']) }}</td>
                 </tr>
                 <tr>
                     <th>Contact Number</th>
@@ -118,6 +118,10 @@
                 <tr>
                     <th>Email</th>
                     <td>{{ $content['lead']['email'] }}</td>
+                </tr>
+                <tr>
+                    <th>Installation Address</th>
+                    <td>{{ strtoupper($content['lead']['installation_address'] ?? 'N/A') }}</td>
                 </tr>
                 <tr>
                     <th>Repair Type</th>
@@ -150,7 +154,7 @@
             </div>
             @endif
 
-            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact admin at 03-80709933</p>
+            <p>Please make the necessary arrangements to attend this appointment. If you have any questions or need to reschedule, please contact admin</p>
 
             <p>Thank you,<br>TimeTec CRM</p>
         </div>
