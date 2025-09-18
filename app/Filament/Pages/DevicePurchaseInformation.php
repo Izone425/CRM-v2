@@ -46,9 +46,38 @@ class DevicePurchaseInformation extends Page
     public $updatingStatus = null;
     public $selectedStatuses = ['All'];
 
+    public $filterYear = '';
+    public $filterMonth = '';
+    public $filterStatus = '';
+    public $filterModel = '';
+
+    public $showFilters = false;
+
+    public function clearAllFilters()
+    {
+        $this->selectedStatuses = ['All'];
+        $this->filterYear = '';
+        $this->filterMonth = '';
+        $this->filterStatus = '';
+        $this->filterModel = '';
+
+        if ($this->isRawView) {
+            $this->loadRawData();
+        } else {
+            $this->loadPurchaseData();
+        }
+    }
+
     public function mount()
     {
         $this->selectedYear = request()->query('year', Carbon::now()->year);
+        $this->showFilters = false; // Initialize as collapsed
+
+        // Initialize filters
+        $this->filterYear = $this->selectedYear;
+        $this->filterMonth = '';
+        $this->filterStatus = '';
+        $this->filterModel = '';
 
         // Handle multiple statuses from query parameters
         $statusParam = request()->query('status', 'All');
@@ -65,6 +94,36 @@ class DevicePurchaseInformation extends Page
         if ($this->isRawView) {
             $this->loadRawData();
         }
+    }
+
+    public function updateRawDataFilters()
+    {
+        $this->loadRawData();
+    }
+
+    public function clearRawDataFilters()
+    {
+        $this->filterYear = '';
+        $this->filterMonth = '';
+        $this->filterStatus = '';
+        $this->filterModel = '';
+        $this->loadRawData();
+    }
+
+    public function getAvailableYears()
+    {
+        return DevicePurchaseItem::distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+    }
+
+    public function getAvailableModels()
+    {
+        return DevicePurchaseItem::distinct()
+            ->orderBy('model')
+            ->pluck('model')
+            ->toArray();
     }
 
     public function selectMonth($monthNum)
@@ -179,6 +238,9 @@ class DevicePurchaseInformation extends Page
             'features' => '',
             'model' => '',
             'status' => 'Completed Order',
+            'date_completed_order' => now(),
+            'date_completed_shipping' => '',
+            'date_completed_delivery' => '',
         ];
         $this->isModalOpen = true;
     }
@@ -248,13 +310,30 @@ class DevicePurchaseInformation extends Page
                 throw new \Exception("Item not found");
             }
 
-            // Update the status
+            // Update the status and corresponding date
             $item->status = $this->updatingStatus;
+
+            // Automatically set the completion date based on status
+            switch ($this->updatingStatus) {
+                case 'Completed Order':
+                    $item->date_completed_order = now()->toDateString();
+                    break;
+                case 'Completed Shipping':
+                    $item->date_completed_shipping = now()->toDateString();
+                    break;
+                case 'Completed Delivery':
+                    $item->date_completed_delivery = now()->toDateString();
+                    break;
+            }
+
             $item->save();
 
             // Update the local data if not in raw view
             if (!$this->isRawView) {
                 $this->purchaseData[$monthKey][$uniqueKey]['status'] = $this->updatingStatus;
+                $this->purchaseData[$monthKey][$uniqueKey]['date_completed_order'] = $item->date_completed_order;
+                $this->purchaseData[$monthKey][$uniqueKey]['date_completed_shipping'] = $item->date_completed_shipping;
+                $this->purchaseData[$monthKey][$uniqueKey]['date_completed_delivery'] = $item->date_completed_delivery;
             }
 
             Notification::make()
@@ -287,41 +366,74 @@ class DevicePurchaseInformation extends Page
     public function saveModalData()
     {
         try {
+            // Validation
+            $errors = [];
+
+            if (empty($this->editingData['model'])) {
+                $errors[] = 'Model name is required';
+            }
+
+            if (empty($this->editingData['qty']) || $this->editingData['qty'] < 1) {
+                $errors[] = 'Quantity is required and must be at least 1';
+            }
+
+            if (empty($this->editingData['languages'])) {
+                $errors[] = 'Languages field is required';
+            }
+
+            if (!empty($errors)) {
+                foreach ($errors as $error) {
+                    Notification::make()
+                        ->title($error)
+                        ->warning()
+                        ->send();
+                }
+                return;
+            }
+
             $monthKey = $this->editingMonth;
 
             // Check if we're editing an existing record or creating a new one
             if ($this->editingModel) {
                 // We're editing an existing record
-                // Extract the model ID from the uniqueKey
                 $parts = explode('_', $this->editingModel);
-                $itemId = end($parts); // Get the last part which should be the ID
+                $itemId = end($parts);
 
-                // Find the existing record
                 $item = DevicePurchaseItem::find($itemId);
 
                 if (!$item) {
                     throw new \Exception("Item not found");
                 }
+
+                // Check if model name is being changed
+                $oldModel = $item->model;
+                $newModel = $this->editingData['model'];
+
+                // Update the model name
+                $item->model = $newModel;
             } else {
                 // We're creating a new record
                 $modelName = $this->editingData['model'];
 
-                // Validate model name for new entries
-                if (empty($modelName)) {
+                // Check if model already exists for this year/month combination
+                $existingItem = DevicePurchaseItem::where('year', $this->selectedYear)
+                    ->where('month', $monthKey)
+                    ->where('model', $modelName)
+                    ->first();
+
+                if ($existingItem) {
                     Notification::make()
-                        ->title('Please enter a model name')
+                        ->title("Model '{$modelName}' already exists for this month. Please choose a different model name or edit the existing entry.")
                         ->warning()
                         ->send();
                     return;
                 }
 
-                // Create a new item
                 $item = new DevicePurchaseItem();
                 $item->year = $this->selectedYear;
                 $item->month = $monthKey;
                 $item->model = $modelName;
 
-                // Generate a unique identifier to prevent duplicate key errors
                 $uniqueId = $this->selectedYear . '_' . $monthKey . '_' . $modelName . '_' . uniqid();
                 $item->device_purchase_items_year_month_model_unique = $uniqueId;
             }
@@ -331,7 +443,7 @@ class DevicePurchaseInformation extends Page
             $po_no = strtoupper($this->editingData['po_no'] ?? '');
             $order_no = strtoupper($this->editingData['order_no'] ?? '');
 
-            // Update the fields
+            // Update the remaining fields
             $item->qty = $this->editingData['qty'] ?? 0;
             $item->england = $this->editingData['england'] ?? 0;
             $item->america = $this->editingData['america'] ?? 0;
@@ -347,7 +459,11 @@ class DevicePurchaseInformation extends Page
             $item->features = $this->editingData['features'] ?? '';
             $item->status = $this->editingData['status'] ?? 'Completed Order';
 
-            // Save the item
+            // Update date fields
+            $item->date_completed_order = $this->editingData['date_completed_order'] ?: null;
+            $item->date_completed_shipping = $this->editingData['date_completed_shipping'] ?: null;
+            $item->date_completed_delivery = $this->editingData['date_completed_delivery'] ?: null;
+
             $item->save();
 
             Notification::make()
@@ -355,9 +471,13 @@ class DevicePurchaseInformation extends Page
                 ->success()
                 ->send();
 
-            // Close modal and refresh data
             $this->closeModal();
             $this->loadPurchaseData();
+
+            // Reload raw data if in raw view
+            if ($this->isRawView) {
+                $this->loadRawData();
+            }
 
         } catch (\Exception $e) {
             Log::error("Error saving purchase item: " . $e->getMessage());
@@ -416,22 +536,55 @@ class DevicePurchaseInformation extends Page
 
     public function loadRawData()
     {
-        $year = $this->selectedYear;
+        $query = DevicePurchaseItem::query();
 
-        // Create a query for all purchase items for the selected year
-        $query = DevicePurchaseItem::where('year', $year);
+        // Apply filters
+        if ($this->filterYear) {
+            $query->where('year', $this->filterYear);
+        }
 
-        // Apply multiple status filter
-        if (!in_array('All', $this->selectedStatuses)) {
+        if ($this->filterMonth) {
+            $query->where('month', $this->filterMonth);
+        }
+
+        if ($this->filterStatus) {
+            $query->where('status', $this->filterStatus);
+        }
+
+        if ($this->filterModel) {
+            $query->where('model', $this->filterModel);
+        }
+
+        // Apply status filter from main filter if no specific status filter
+        if (!$this->filterStatus && !in_array('All', $this->selectedStatuses)) {
             $query->whereIn('status', $this->selectedStatuses);
         }
 
-        // Get the data and convert it to an array
+        // Sort by year DESC, month DESC
+        $query->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->orderBy('created_at', 'desc');
+
         $this->rawData = $query->get()->map(function ($item) {
+            // Get the most recent status date
+            $statusDate = null;
+            switch ($item->status) {
+                case 'Completed Order':
+                    $statusDate = $item->date_completed_order;
+                    break;
+                case 'Completed Shipping':
+                    $statusDate = $item->date_completed_shipping;
+                    break;
+                case 'Completed Delivery':
+                    $statusDate = $item->date_completed_delivery;
+                    break;
+            }
+
             return [
                 'id' => $item->id,
                 'year' => $item->year,
                 'month' => $item->month,
+                'month_name' => date('F', mktime(0, 0, 0, $item->month, 1)),
                 'model' => $item->model,
                 'qty' => $item->qty,
                 'england' => $item->england,
@@ -447,6 +600,10 @@ class DevicePurchaseInformation extends Page
                 'languages' => $item->languages,
                 'features' => $item->features,
                 'status' => $item->status,
+                'status_date' => $statusDate,
+                'date_completed_order' => $item->date_completed_order,
+                'date_completed_shipping' => $item->date_completed_shipping,
+                'date_completed_delivery' => $item->date_completed_delivery,
             ];
         })->toArray();
     }
@@ -466,23 +623,19 @@ class DevicePurchaseInformation extends Page
         // Get all purchase items for the selected year with status filter
         $query = DevicePurchaseItem::where('year', $year);
 
-        // Apply multiple status filter
         if (!in_array('All', $this->selectedStatuses)) {
             $query->whereIn('status', $this->selectedStatuses);
         }
 
         $purchaseItems = $query->get();
 
-        // ... rest of the method remains the same
         // Initialize data structure
         foreach ($months as $monthNum => $monthName) {
             $this->purchaseData[$monthNum] = [];
 
-            // Group items by model for this month
             $monthItems = $purchaseItems->where('month', $monthNum);
 
             foreach ($monthItems as $item) {
-                // Use a unique identifier for each record (model + timestamp)
                 $uniqueKey = $item->model . '_' . $item->id;
 
                 $this->purchaseData[$monthNum][$uniqueKey] = [
@@ -501,6 +654,9 @@ class DevicePurchaseInformation extends Page
                     'languages' => $item->languages,
                     'features' => $item->features,
                     'status' => $item->status,
+                    'date_completed_order' => $item->date_completed_order,
+                    'date_completed_shipping' => $item->date_completed_shipping,
+                    'date_completed_delivery' => $item->date_completed_delivery,
                     'id' => $item->id,
                 ];
             }

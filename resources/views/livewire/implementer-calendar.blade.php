@@ -993,7 +993,7 @@
                             <!-- Dropdown List -->
                             <div x-show="open"
                                 class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
-                                style="display: none; height: 30vh">
+                                style="display: none; height: 20vh">
                                 <ul class="py-1">
                                     <!-- Select All Checkbox -->
                                     <li class="flex items-center px-3 py-2 hover:bg-gray-100">

@@ -7,14 +7,30 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-blue-600">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                 </svg>
-                Filter by Status
+                Filters
             </h3>
-            <!-- Quick Actions -->
-            <div class="flex gap-2 mt-3">
+            <!-- Filter Toggle and Quick Actions -->
+            <div class="flex items-center gap-2">
+                <!-- Filter Toggle Button -->
+                <button type="button"
+                        class="flex items-center gap-2 px-3 py-1 text-xs transition-colors border border-gray-300 rounded-full hover:bg-gray-50"
+                        wire:click="$toggle('showFilters')">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m0 0h0M7.5 6v0m7.5 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0H7.5m0 0h0" />
+                    </svg>
+                    {{ $showFilters ? 'Hide Filters' : 'Show Filters' }}
+                    @if($filterYear || $filterMonth || $filterStatus || $filterModel || !in_array('All', $selectedStatuses))
+                        <span class="inline-flex items-center justify-center w-4 h-4 text-xs text-white bg-red-500 rounded-full">
+                            {{ collect([$filterYear, $filterMonth, $filterStatus, $filterModel])->filter()->count() + (in_array('All', $selectedStatuses) ? 0 : 1) }}
+                        </span>
+                    @endif
+                </button>
+
+                <!-- Quick Actions -->
                 <button type="button"
                         class="px-3 py-1 text-xs text-blue-700 transition-colors bg-blue-100 rounded-full hover:bg-blue-200"
-                        wire:click="updateStatusFilter(['All'])">
-                    Clear All Filters
+                        wire:click="clearAllFilters">
+                    Clear All
                 </button>
                 <button type="button"
                         class="px-3 py-1 text-xs text-green-700 transition-colors bg-green-100 rounded-full hover:bg-green-200"
@@ -24,42 +40,134 @@
             </div>
         </div>
 
-        <div class="status-filter-container">
-            @foreach($this->getStatusOptions() as $statusValue => $statusLabel)
-                <div class="status-filter-pill {{ in_array($statusValue, $selectedStatuses) ? 'active' : 'inactive' }}"
-                     wire:click="updateStatusFilter({{ $statusValue === 'All' ? "['All']" :
-                        (in_array($statusValue, $selectedStatuses) ?
-                            json_encode(array_values(array_diff($selectedStatuses, [$statusValue]))) :
-                            json_encode(array_merge(array_diff($selectedStatuses, ['All']), [$statusValue]))) }})">
+        <!-- Collapsible Filter Content -->
+        @if($showFilters)
+            <div class="space-y-4 animate-fade-in">
+                <!-- Status Filter Pills -->
+                <div>
+                    <div class="status-filter-container">
+                        @foreach($this->getStatusOptions() as $statusValue => $statusLabel)
+                            <div class="status-filter-pill {{ in_array($statusValue, $selectedStatuses) ? 'active' : 'inactive' }}"
+                                wire:click="updateStatusFilter({{ $statusValue === 'All' ? "['All']" :
+                                    (in_array($statusValue, $selectedStatuses) ?
+                                        json_encode(array_values(array_diff($selectedStatuses, [$statusValue]))) :
+                                        json_encode(array_merge(array_diff($selectedStatuses, ['All']), [$statusValue]))) }})">
 
-                    @if($statusValue === 'All')
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h4.125M8.25 8.25V6.108" />
-                        </svg>
-                    @elseif($statusValue === 'Completed Order')
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                        </svg>
-                    @elseif($statusValue === 'Completed Shipping')
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                        </svg>
-                    @else
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                        </svg>
-                    @endif
+                                @if($statusValue === 'All')
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h4.125M8.25 8.25V6.108" />
+                                    </svg>
+                                @elseif($statusValue === 'Completed Order')
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                    </svg>
+                                @elseif($statusValue === 'Completed Shipping')
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                                    </svg>
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                    </svg>
+                                @endif
 
-                    {{ $statusLabel }}
+                                {{ $statusLabel }}
 
-                    @if(in_array($statusValue, $selectedStatuses))
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    @endif
+                                @if(in_array($statusValue, $selectedStatuses))
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-            @endforeach
-        </div>
+
+                @if($isRawView)
+                    <!-- Raw Data Additional Filters -->
+                    <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 class="mb-3 text-sm font-medium text-gray-700">Additional Filters</h4>
+
+                        <!-- Filter Grid -->
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <!-- Year Filter -->
+                            <div class="form-group">
+                                <label class="block mb-1 text-sm font-medium text-gray-700">Year</label>
+                                <select class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        wire:model.live="filterYear" wire:change="updateRawDataFilters">
+                                    <option value="">All Years</option>
+                                    @foreach($this->getAvailableYears() as $year)
+                                        <option value="{{ $year }}">{{ $year }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Month Filter -->
+                            <div class="form-group">
+                                <label class="block mb-1 text-sm font-medium text-gray-700">Month</label>
+                                <select class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        wire:model.live="filterMonth" wire:change="updateRawDataFilters">
+                                    <option value="">All Months</option>
+                                    @foreach(range(1, 12) as $month)
+                                        <option value="{{ $month }}">{{ date('F', mktime(0, 0, 0, $month, 1)) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Model Filter -->
+                            <div class="form-group">
+                                <label class="block mb-1 text-sm font-medium text-gray-700">Model</label>
+                                <select class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        wire:model.live="filterModel" wire:change="updateRawDataFilters">
+                                    <option value="">All Models</option>
+                                    @foreach($this->getAvailableModels() as $model)
+                                        <option value="{{ $model }}">{{ $model }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Active Filters Display -->
+                @if($filterYear || $filterMonth || $filterStatus || $filterModel || !in_array('All', $selectedStatuses))
+                    <div class="flex flex-wrap gap-2 p-3 rounded-lg bg-gray-50">
+                        <span class="text-sm font-medium text-gray-600">Active Filters:</span>
+
+                        @if(!in_array('All', $selectedStatuses))
+                            @foreach($selectedStatuses as $status)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Status: {{ $status }}
+                                    <button type="button" class="ml-1 text-green-600 hover:text-green-800"
+                                            wire:click="updateStatusFilter({{ json_encode(array_values(array_diff($selectedStatuses, [$status]))) }})">×</button>
+                                </span>
+                            @endforeach
+                        @endif
+
+                        @if($filterYear)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Year: {{ $filterYear }}
+                                <button type="button" class="ml-1 text-blue-600 hover:text-blue-800" wire:click="$set('filterYear', '')" wire:click="updateRawDataFilters">×</button>
+                            </span>
+                        @endif
+
+                        @if($filterMonth)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                Month: {{ date('F', mktime(0, 0, 0, $filterMonth, 1)) }}
+                                <button type="button" class="ml-1 text-purple-600 hover:text-purple-800" wire:click="$set('filterMonth', '')" wire:click="updateRawDataFilters">×</button>
+                            </span>
+                        @endif
+
+                        @if($filterModel)
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Model: {{ $filterModel }}
+                                <button type="button" class="ml-1 text-orange-600 hover:text-orange-800" wire:click="$set('filterModel', '')" wire:click="updateRawDataFilters">×</button>
+                            </span>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
     <style>
         /* Modern card styling */
@@ -720,6 +828,60 @@
             height: 1rem;
             margin-right: 0.25rem;
         }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Filter toggle button styling */
+        .filter-toggle-btn {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .filter-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Filter badge styling */
+        .filter-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        /* Form group spacing for filters */
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        /* Active filter indicators */
+        .active-filters {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: 1px solid #e2e8f0;
+        }
     </style>
 
     <!-- Modal for editing or creating items -->
@@ -804,7 +966,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
                             </div>
-                            Add New Model
+                            Add New Order
                         @endif
                     </h2>
                     <button type="button" class="modal-close-btn" wire:click="closeModal">
@@ -817,41 +979,37 @@
                     <form>
                         <!-- Model Information Section -->
                         <div class="form-section">
-                            <div class="form-section-title">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="form-section-icon">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
-                                </svg>
-                                Basic Information
-                            </div>
                             <div class="form-grid">
-                                @if(!$editingModel)
                                 <div class="form-group">
                                     <label class="form-label" for="model">Model Name*</label>
-                                    <select id="model" class="form-input" wire:model.defer="editingData.model">
+                                    <select id="model" class="form-input" wire:model.defer="editingData.model" required>
                                         <option value="">-- Select Model --</option>
                                         @foreach($this->getDeviceModels() as $modelName)
                                             <option value="{{ $modelName }}">{{ $modelName }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                @endif
 
                                 <div class="form-group">
-                                    <label class="form-label" for="qty">Quantity</label>
-                                    <input type="number" id="qty" class="form-input" wire:model.defer="editingData.qty">
+                                    <label class="form-label" for="qty">Quantity*</label>
+                                    <input type="number" id="qty" class="form-input" wire:model.defer="editingData.qty" required min="1">
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="languages">Languages</label>
+                                    <label class="form-label" for="order_no">Order No.</label>
+                                    <input type="text" id="order_no" class="uppercase form-input" wire:model.defer="editingData.order_no"
+                                        placeholder="Order reference number" style="text-transform: uppercase;">
+                                </div>
+
+                                {{-- <div class="form-group">
+                                    <label class="form-label" for="languages">Languages*</label>
                                     <input type="text" id="languages" class="uppercase form-input" wire:model.defer="editingData.languages"
-                                        placeholder="e.g. English, Spanish" style="text-transform: uppercase;">
-                                </div>
+                                        placeholder="e.g. ENGLISH, SPANISH" style="text-transform: uppercase;" required>
+                                </div> --}}
                             </div>
                         </div>
 
-                        <!-- Power Plug Section -->
-                        <div class="form-section">
+                        {{-- <div class="form-section">
                             <div class="form-section-title">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="form-section-icon">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -881,7 +1039,6 @@
                             </div>
                         </div>
 
-                        <!-- Serial Numbers & Orders Section -->
                         <div class="form-section" style="border-bottom: none; margin-bottom: 0;">
                             <div class="form-section-title">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="form-section-icon">
@@ -907,12 +1064,6 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="order_no">Order No.</label>
-                                    <input type="text" id="order_no" class="uppercase form-input" wire:model.defer="editingData.order_no"
-                                        placeholder="Order reference number" style="text-transform: uppercase;">
-                                </div>
-
-                                <div class="form-group">
                                     <label class="form-label" for="balance_not_order">Balance Not Order</label>
                                     <input type="number" id="balance_not_order" class="form-input" wire:model.defer="editingData.balance_not_order">
                                 </div>
@@ -922,7 +1073,7 @@
                                     <input type="number" id="rfid_card_foc" class="form-input" wire:model.defer="editingData.rfid_card_foc">
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -950,8 +1101,131 @@
         </div>
     @endif
 
-    @if(!$isRawView)
-        <!-- Replace the months row section with this implementation -->
+    <!-- Only show the selected month's data -->
+    @if($isRawView)
+        <div class="mb-4 overflow-hidden bg-white rounded-lg shadow card">
+            <!-- Results Count -->
+            <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium">{{ count($rawData) }}</span> records found
+                    @if($filterYear || $filterMonth || $filterStatus || $filterModel)
+                        <span class="text-blue-600">(filtered)</span>
+                    @endif
+                </div>
+                <button type="button" class="btn btn-success" wire:click="openCreateModal({{ date('n') }})">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Add New Order
+                </button>
+            </div>
+
+            <!-- Raw Data Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left divide-y table-auto">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Year</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Month</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Model</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Quantity</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Order Number</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Date Completed Order</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Date Completed Shipping</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Date Completed Delivery</th>
+                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($rawData as $item)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item['year'] }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['month_name'] }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item['model'] }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ number_format($item['qty']) }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['order_no'] ?: '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">
+                                @php
+                                    $statusClass = match($item['status']) {
+                                        'Completed Order' => 'status-completed-order',
+                                        'Completed Shipping' => 'status-completed-shipping',
+                                        'Completed Delivery' => 'status-completed-delivery',
+                                        default => ''
+                                    };
+                                @endphp
+                                <span class="status-badge {{ $statusClass }}">
+                                    {{ $item['status'] }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if($item['date_completed_order'])
+                                    <span class="px-2 py-1 text-blue-800 bg-blue-100 rounded-full">
+                                        {{ \Carbon\Carbon::parse($item['date_completed_order'])->format('d M Y') }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if($item['date_completed_shipping'])
+                                    <span class="px-2 py-1 rounded-full text-amber-800 bg-amber-100">
+                                        {{ \Carbon\Carbon::parse($item['date_completed_shipping'])->format('d M Y') }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if($item['date_completed_delivery'])
+                                    <span class="px-2 py-1 text-green-800 bg-green-100 rounded-full">
+                                        {{ \Carbon\Carbon::parse($item['date_completed_delivery'])->format('d M Y') }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900">
+                                <!-- Single line action buttons -->
+                                <div class="flex items-center gap-1">
+                                    <div class="action-button-wrapper">
+                                        <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </button>
+                                        <span class="action-tooltip">Update Status</span>
+                                    </div>
+
+                                    <div class="action-button-wrapper">
+                                        <button type="button" class="edit-btn" wire:click="openEditModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                            </svg>
+                                        </button>
+                                        <span class="action-tooltip">Edit</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                                <div class="flex flex-col items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-2 text-gray-400">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                    </svg>
+                                    <p class="text-lg font-medium">No records found</p>
+                                    <p class="text-sm">Try adjusting your filters or add a new order</p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @else
         <div class="mb-8 months-row-wrapper">
             <div class="months-row">
                 @foreach($months as $monthNum => $month)
@@ -996,42 +1270,20 @@
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
-                            Add New Model
+                            Add New Order
                         </button>
                     </div>
                     <div class="month-table-container">
                         <table class="month-table">
                             <thead>
-                                {{-- <tr>
-                                    <th style="width: 14%;">Model</th>
-                                    <th style="width: 6%;">Qty</th>
-                                    <th style="width: 9%;">Languages</th>
-                                    <th style="width: 6%;">England</th>
-                                    <th style="width: 6%;">America</th>
-                                    <th style="width: 6%;">Europe</th>
-                                    <th style="width: 6%;">Australia</th>
-                                    <th style="width: 9%;">SN No. From/To</th>
-                                    <th style="width: 7%;">PO No.</th>
-                                    <th style="width: 7%;">Order No.</th>
-                                    <th style="width: 6%;">Balance</th>
-                                    <th style="width: 6%;">RFID Card</th>
-                                    <th style="width: 12%;">Status</th>
-                                    <th style="width: 10%;">Actions</th>
-                                </tr> --}}
                                 <tr>
-                                    <th style="width: 14%;">Model</th>
-                                    <th style="width: 6%;">Qty</th>
-                                    {{-- <th style="width: 9%;">Languages</th>
-                                    <th style="width: 6%;">England</th>
-                                    <th style="width: 6%;">America</th>
-                                    <th style="width: 6%;">Europe</th>
-                                    <th style="width: 6%;">Australia</th>
-                                    <th style="width: 9%;">SN No. From/To</th>
-                                    <th style="width: 7%;">PO No.</th> --}}
-                                    <th style="width: 20%;">Order No.</th>
-                                    {{-- <th style="width: 6%;">Balance</th>
-                                    <th style="width: 6%;">RFID Card</th> --}}
-                                    <th style="width: 12%;">Status</th>
+                                    <th style="width: 15%;">Model</th>
+                                    <th style="width: 9%;">Quantity</th>
+                                    <th style="width: 20%;">Order Number</th>
+                                    <th style="width: 10%;">Status</th>
+                                    <th style="width: 12%;">Date<br> Completed Order</th>
+                                    <th style="width: 12%;">Date<br> Completed Shipping</th>
+                                    <th style="width: 12%;">Date<br> Completed Delivery</th>
                                     <th style="width: 10%;">Actions</th>
                                 </tr>
                             </thead>
@@ -1040,17 +1292,8 @@
                                 @foreach($purchaseData[$selectedMonth] as $uniqueKey => $data)
                                 <tr>
                                     <td class="cell-model">{{ $data['model'] }}</td>
-                                    <td class="cell-model">{{ $data['qty'] }}</td>
-                                    {{-- <td>{{ $data['languages'] }}</td>
-                                    <td class="cell-number">{{ $data['england'] > 0 ? $data['england'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['america'] > 0 ? $data['america'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['europe'] > 0 ? $data['europe'] : 'N/A' }}</td>
-                                    <td class="cell-number">{{ $data['australia'] > 0 ? $data['australia'] : 'N/A' }}</td>
-                                    <td>{{ $data['sn_no_from'] }} - {{ $data['sn_no_to'] }}</td>
-                                    <td>{{ $data['po_no'] }}</td> --}}
-                                    <td>{{ $data['order_no'] }}</td>
-                                    {{-- <td class="cell-number">{{ $data['balance_not_order'] }}</td>
-                                    <td class="cell-number">{{ $data['rfid_card_foc'] }}</td> --}}
+                                    <td class="cell-number">{{ number_format($data['qty']) }}</td>
+                                    <td>{{ $data['order_no'] ?: '-' }}</td>
                                     <td>
                                         @if(!empty($data['status']))
                                             @php
@@ -1069,6 +1312,33 @@
                                         @endif
                                     </td>
                                     <td>
+                                        @if(!empty($data['date_completed_order']))
+                                            <span class="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">
+                                                {{ \Carbon\Carbon::parse($data['date_completed_order'])->format('d M Y') }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if(!empty($data['date_completed_shipping']))
+                                            <span class="px-2 py-1 text-xs rounded-full text-amber-800 bg-amber-100">
+                                                {{ \Carbon\Carbon::parse($data['date_completed_shipping'])->format('d M Y') }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if(!empty($data['date_completed_delivery']))
+                                            <span class="px-2 py-1 text-xs text-green-800 bg-green-100 rounded-full">
+                                                {{ \Carbon\Carbon::parse($data['date_completed_delivery'])->format('d M Y') }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         <div class="action-buttons">
                                             <div class="action-button-wrapper">
                                                 <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
@@ -1078,7 +1348,6 @@
                                                 </button>
                                                 <span class="action-tooltip">Update Status</span>
                                             </div>
-
                                             <div class="action-button-wrapper">
                                                 <button type="button" class="edit-btn" wire:click="openEditModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -1086,15 +1355,6 @@
                                                     </svg>
                                                 </button>
                                                 <span class="action-tooltip">Edit</span>
-                                            </div>
-
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="delete-btn" wire:click="deleteModel({{ $selectedMonth }}, '{{ $uniqueKey }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Delete</span>
                                             </div>
                                         </div>
                                     </td>
@@ -1106,100 +1366,5 @@
                 </div>
             </div>
         @endif
-    @else
-        <div class="mb-4 overflow-hidden bg-white rounded-lg shadow card">
-            <!-- Create a basic Filament-style table for raw data -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left divide-y table-auto">
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Year</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Month</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Model</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Qty</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Languages</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Plugs (UK/US/EU/AU)</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">SN Range</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Order No.</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">PO No.</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Status</th>
-                            <th class="px-4 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($rawData as $item)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['year'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $months[$item['month']]['name'] }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $item['model'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['qty'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['languages'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">
-                                {{ $item['england'] }}/{{ $item['america'] }}/{{ $item['europe'] }}/{{ $item['australia'] }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-900">
-                                {{ $item['sn_no_from'] }} - {{ $item['sn_no_to'] }}
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['order_no'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ $item['po_no'] }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">
-                                @php
-                                    $statusClass = match($item['status']) {
-                                        'Completed Order' => 'status-completed-order',
-                                        'Completed Shipping' => 'status-completed-shipping',
-                                        'Completed Delivery' => 'status-completed-delivery',
-                                        default => ''
-                                    };
-                                @endphp
-                                <span class="status-badge {{ $statusClass }}">
-                                    {{ $item['status'] }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-900">
-                                <div class="action-buttons-raw">
-                                    <div class="action-button-wrapper">
-                                        <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                        <span class="action-tooltip">Update Status</span>
-                                    </div>
-
-                                    <div class="action-button-wrapper">
-                                        <button type="button" class="edit-btn" wire:click="openEditModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                            </svg>
-                                        </button>
-                                        <span class="action-tooltip">Edit</span>
-                                    </div>
-
-                                    <div class="action-button-wrapper">
-                                        <button type="button" class="delete-btn" wire:click="deleteModel({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                            </svg>
-                                        </button>
-                                        <span class="action-tooltip">Delete</span>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Add button for raw data view -->
-            <div class="p-4 border-t">
-                <button type="button" class="btn btn-success" wire:click="openCreateModal({{ date('n') }})">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Add New Model
-                </button>
-            </div>
-        </div>
     @endif
 </x-filament-panels::page>

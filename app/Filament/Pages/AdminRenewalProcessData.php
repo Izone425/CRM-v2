@@ -44,10 +44,17 @@ class RenewalData extends Model
     }
 
     // Get invoices for a specific company
-    public static function getInvoicesForCompany($companyId)
+    public static function getInvoicesForCompany($companyId, $startDate = null, $endDate = null)
     {
         try {
             $today = Carbon::now()->format('Y-m-d');
+
+            // If no date range provided, use default 60 days
+            if (!$startDate || !$endDate) {
+                $startDate = $today;
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
             $sql = "SELECT
                 f_invoice_no,
                 f_currency,
@@ -59,32 +66,45 @@ class RenewalData extends Model
                 ANY_VALUE(f_company_name) AS f_company_name,
                 ANY_VALUE(f_company_id) AS f_company_id
             FROM crm_expiring_license
-            WHERE f_company_id = ? AND f_expiry_date >= ?
+            WHERE f_company_id = ?
+            AND f_expiry_date >= ?
+            AND f_expiry_date <= ?
             GROUP BY f_invoice_no, f_currency
+            HAVING COUNT(*) > 0
             ORDER BY f_invoice_no ASC";
 
-            return DB::connection('frontenddb')->select($sql, [$companyId, $today]);
+            return DB::connection('frontenddb')->select($sql, [$companyId, $startDate, $endDate]);
         } catch (\Exception $e) {
             Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
             return [];
         }
     }
 
-    // Get products for a specific company and invoice
-    public static function getProductsForInvoice($companyId, $invoiceNo)
+    // Get products for a specific company and invoice within date range
+    public static function getProductsForInvoice($companyId, $invoiceNo, $startDate = null, $endDate = null)
     {
         try {
             $today = Carbon::now()->format('Y-m-d');
+
+            // If no date range provided, use default 60 days
+            if (!$startDate || !$endDate) {
+                $startDate = $today;
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
             $sql = "SELECT
                 f_currency, f_id, f_company_name, f_company_id,
                 f_name, f_invoice_no, f_total_amount, f_unit,
                 f_start_date, f_expiry_date, Created, payer,
                 payer_id, f_created_time
             FROM crm_expiring_license
-            WHERE f_company_id = ? AND f_invoice_no = ? AND f_expiry_date >= ?
+            WHERE f_company_id = ?
+            AND f_invoice_no = ?
+            AND f_expiry_date >= ?
+            AND f_expiry_date <= ?
             ORDER BY f_expiry_date ASC";
 
-            return DB::connection('frontenddb')->select($sql, [$companyId, $invoiceNo, $today]);
+            return DB::connection('frontenddb')->select($sql, [$companyId, $invoiceNo, $startDate, $endDate]);
         } catch (\Exception $e) {
             Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
             return [];
@@ -117,14 +137,7 @@ class AdminRenewalProcessData extends Page implements HasTable
                 $today = Carbon::now()->format('Y-m-d');
                 $baseQuery->whereRaw('f_expiry_date >= ?', [$today]);
 
-                // Apply additional date filtering if set
-                if (!empty($this->startDate) && !empty($this->endDate)) {
-                    // Filter at the row level before aggregation
-                    $baseQuery->whereRaw('f_expiry_date BETWEEN ? AND ?', [$this->startDate, $this->endDate]);
-                    Log::info("Applying direct filter from {$this->startDate} to {$this->endDate}");
-                }
-
-                // Now apply the aggregation
+                // Now apply the aggregation - this will only include non-expired products
                 $baseQuery->selectRaw("
                     f_company_id,
                     ANY_VALUE(f_company_name) AS f_company_name,
@@ -136,11 +149,8 @@ class AdminRenewalProcessData extends Page implements HasTable
                     MIN(f_expiry_date) AS earliest_expiry,
                     ANY_VALUE(f_created_time) AS f_created_time
                 ")
-                ->groupBy('f_company_id');
-
-                // Log the complete query
-                Log::info("SQL query: " . $baseQuery->toSql());
-                Log::info("SQL bindings: ", $baseQuery->getBindings());
+                ->groupBy('f_company_id')
+                ->havingRaw('COUNT(*) > 0'); // Ensure we only show companies with at least one non-expired product
 
                 return $baseQuery;
             })
@@ -173,14 +183,55 @@ class AdminRenewalProcessData extends Page implements HasTable
                     })
                     ->indicator('Products'),
 
+                SelectFilter::make('f_currency')
+                    ->label('Currency')
+                    ->multiple()
+                    ->preload()
+                    ->options(function () {
+                        // Get distinct currencies (only for non-expired records)
+                        $today = Carbon::now()->format('Y-m-d');
+                        return RenewalData::query()
+                            ->whereRaw('f_expiry_date >= ?', [$today])
+                            ->distinct()
+                            ->orderBy('f_currency')
+                            ->whereNotNull('f_currency')
+                            ->where('f_currency', '!=', '')
+                            ->pluck('f_currency', 'f_currency')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            // Apply currency filter at the row level before aggregation
+                            $subQuery = RenewalData::query()
+                                ->select('f_company_id')
+                                ->whereIn('f_currency', $data['values'])
+                                ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                ->distinct();
+
+                            $query->whereIn('f_company_id', $subQuery);
+                        }
+                    })
+                    ->indicator('Currency'),
+
                 Filter::make('earliest_expiry')
                     ->form([
                         DateRangePicker::make('date_range')
                             ->label('Expiry Date Range')
-                            ->placeholder('Select expiry date range'),
+                            ->placeholder('Select expiry date range')
+                            ->default(function () {
+                                // Default to next 60 days
+                                $today = Carbon::now()->format('d/m/Y');
+                                $next60Days = Carbon::now()->addDays(60)->format('d/m/Y');
+                                return $today . ' - ' . $next60Days;
+                            }),
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['date_range'])) {
+                        // If no custom date range is set, apply default 60-day filter
+                        if (empty($data['date_range'])) {
+                            $today = Carbon::now()->format('Y-m-d');
+                            $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                            $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                        } else {
                             try {
                                 [$start, $end] = explode(' - ', $data['date_range']);
 
@@ -197,6 +248,10 @@ class AdminRenewalProcessData extends Page implements HasTable
                                 $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
                             } catch (\Exception $e) {
                                 Log::error("Date filter error: " . $e->getMessage());
+                                // Fallback to 60-day default if date parsing fails
+                                $today = Carbon::now()->format('Y-m-d');
+                                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                                $query->whereBetween('f_expiry_date', [$today, $next60Days]);
                             }
                         }
                     })
@@ -209,7 +264,12 @@ class AdminRenewalProcessData extends Page implements HasTable
                                 ' → ' .
                                 Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
                         }
-                        return null;
+                        // Show default indicator
+                        return 'Expiry: ' .
+                            Carbon::now()->format('j M Y') .
+                            ' → ' .
+                            Carbon::now()->addDays(60)->format('j M Y') .
+                            ' (Default 60 days)';
                     }),
             ])
             ->columns([
@@ -218,6 +278,7 @@ class AdminRenewalProcessData extends Page implements HasTable
                         TextColumn::make('f_company_name')
                             ->label('Company')
                             ->searchable()
+                            ->formatStateUsing(fn (string $state): string => strtoupper($state))
                             ->weight('bold'),
 
                         TextColumn::make('total_products')

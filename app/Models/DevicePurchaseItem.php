@@ -27,7 +27,16 @@ class DevicePurchaseItem extends Model
         'languages',
         'features',
         'status',
+        'date_completed_order',
+        'date_completed_shipping',
+        'date_completed_delivery',
         'device_purchase_items_year_month_model_unique',
+    ];
+
+    protected $casts = [
+        'date_completed_order' => 'date',
+        'date_completed_shipping' => 'date',
+        'date_completed_delivery' => 'date',
     ];
 
     /**
