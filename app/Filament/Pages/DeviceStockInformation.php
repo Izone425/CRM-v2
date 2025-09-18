@@ -58,24 +58,43 @@ class DeviceStockInformation extends Page
 
     public function getPurchaseData()
     {
+        // Define mapping between inventory names and purchase item names
+        $nameMapping = [
+            'TC10' => 'TC10',
+            'TC20' => 'TC20',
+            'Face ID 5' => 'FACE ID5',
+            'Face ID 6' => 'FACE ID6',
+            'Beacon-WMC007-V2' => 'TIME BEACON',
+            'NFC-WMC006-Y' => 'NFC TAG',
+        ];
+
         // Get the same device models as in inventory
         $inventoryModels = $this->getInventoryData()->pluck('name')->toArray();
 
         $purchaseData = collect();
 
         foreach ($inventoryModels as $model) {
+            // Get the corresponding purchase model name
+            $purchaseModel = $nameMapping[$model] ?? $model;
+
+            // Debug: Let's see what we're querying
+            info("Querying DevicePurchaseItem for model: {$purchaseModel} (from inventory: {$model})");
+
             // Get quantities from device_purchase_items based on statuses
-            $completedOrder = DevicePurchaseItem::where('model', $model)
+            $completedOrder = DevicePurchaseItem::where('model', $purchaseModel)
                 ->where('status', 'Completed Order')
                 ->sum('qty');
 
-            $completedShipping = DevicePurchaseItem::where('model', $model)
+            $completedShipping = DevicePurchaseItem::where('model', $purchaseModel)
                 ->where('status', 'Completed Shipping')
                 ->sum('qty');
 
+            // Debug: Log the results
+            info("Found - Completed Order: {$completedOrder}, Completed Shipping: {$completedShipping}");
+
             // Create a new object with the same structure as inventory items
             $purchaseItem = (object)[
-                'name' => $model,
+                'name' => $model, // Keep the inventory name for consistency
                 'completed_order' => (int)$completedOrder,
                 'completed_shipping' => (int)$completedShipping,
                 'total_purchase' => (int)$completedOrder + (int)$completedShipping,

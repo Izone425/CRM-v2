@@ -86,6 +86,11 @@ class DebtorAgingRawData extends Page implements HasTable
         // Filter only for unpaid or partial payment debtors
         $query->where('outstanding', '>', 0);
 
+        $query->where(function($q) {
+            $q->where('debtor_code', 'like', 'ARM%')
+            ->orWhere('debtor_code', 'like', 'ARU%');
+        });
+
         // NO1: Exclude the 7 salespeople BUT keep NULL/blank salespeople
         $query->where(function($q) {
             $q->whereNotIn('salesperson', $this->excludedSalespeople)
@@ -199,6 +204,10 @@ class DebtorAgingRawData extends Page implements HasTable
         return $table
             ->query(DebtorAging::query()
                 ->where('outstanding', '>', 0)
+                ->where(function($q) {
+                    $q->where('debtor_code', 'like', 'ARM%')
+                    ->orWhere('debtor_code', 'like', 'ARU%');
+                })
                 ->where(function($q) {
                     $q->whereNotIn('salesperson', $this->excludedSalespeople)
                     ->orWhereNull('salesperson')
