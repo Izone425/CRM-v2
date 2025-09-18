@@ -126,6 +126,55 @@ class AdminRenewalProcessData extends Page implements HasTable
 
     protected static string $view = 'filament.pages.admin-renewal-process-data';
 
+    protected function getProductGroupMapping(): array
+    {
+        return [
+            // TimeTec HR Group
+            'timetec_hr' => [
+                'TimeTec TA (1 User License)',
+                'TimeTec TA (10 User License)',
+                'TimeTec Leave (1 User License)',
+                'TimeTec Leave (10 User License)',
+                'TimeTec Claim (1 User License)',
+                'TimeTec Claim (10 User License)',
+                'TimeTec Payroll (1 Payroll License)',
+                'TimeTec Payroll (10 Payroll License)',
+            ],
+            // Non-TimeTec HR Group
+            'non_timetec_hr' => [
+                'Face & QR Code (1 Device License)',
+                'FCC Terminal License',
+                'TimeTec Access (1 Door License)',
+                'TimeTec Hire Business (Unlimited Job Posts)',
+                'TimeTec Hire Startup (10 Job Posts)',
+            ],
+            // Other Division Group
+            'other_division' => [
+                'TimeTec VMS Corporate (1 Floor License)',
+                'TimeTec VMS SME (1 Location License)',
+                'TimeTec Patrol (1 Checkpoint License)',
+                'TimeTec Patrol (10 Checkpoint License)',
+                'Other',
+                'TimeTec Profile (10 User License)',
+            ],
+        ];
+    }
+
+    protected function getProductGroup(string $productName): ?string
+    {
+        $mapping = $this->getProductGroupMapping();
+
+        foreach ($mapping as $group => $products) {
+            foreach ($products as $product) {
+                if (stripos($productName, $product) !== false || $productName === $product) {
+                    return $group;
+                }
+            }
+        }
+
+        return 'other_division'; // Default to Other Division for unmapped products
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -271,6 +320,30 @@ class AdminRenewalProcessData extends Page implements HasTable
                             Carbon::now()->addDays(60)->format('j M Y') .
                             ' (Default 60 days)';
                     }),
+                SelectFilter::make('product_group')
+                    ->label('Product Group')
+                    ->options([
+                        'timetec_hr' => 'TimeTec HR',
+                        'non_timetec_hr' => 'Non-TimeTec HR',
+                        'other_division' => 'Other Division',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $mapping = $this->getProductGroupMapping();
+                            $selectedProducts = $mapping[$data['value']] ?? [];
+
+                            if (!empty($selectedProducts)) {
+                                // Since the base query already filters by date range,
+                                // we only need to filter by product names
+                                $query->where(function ($q) use ($selectedProducts) {
+                                    foreach ($selectedProducts as $product) {
+                                        $q->orWhere('f_name', 'LIKE', '%' . $product . '%');
+                                    }
+                                });
+                            }
+                        }
+                    })
+                    ->indicator('Product Group'),
             ])
             ->columns([
                 Split::make([

@@ -86,10 +86,8 @@
                 @if($isRawView)
                     <!-- Raw Data Additional Filters -->
                     <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <h4 class="mb-3 text-sm font-medium text-gray-700">Additional Filters</h4>
-
                         <!-- Filter Grid -->
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3">
                             <!-- Year Filter -->
                             <div class="form-group">
                                 <label class="block mb-1 text-sm font-medium text-gray-700">Year</label>
@@ -540,7 +538,7 @@
         }
 
         .cell-number {
-            text-align: right;
+            text-align: center;
         }
 
         .cell-model {
@@ -1278,7 +1276,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 15%;">Model</th>
-                                    <th style="width: 9%;">Quantity</th>
+                                    <th style="width: 9%; text-align: center;">Quantity</th>
                                     <th style="width: 20%;">Order Number</th>
                                     <th style="width: 10%;">Status</th>
                                     <th style="width: 12%;">Date<br> Completed Order</th>

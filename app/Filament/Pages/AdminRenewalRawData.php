@@ -45,6 +45,56 @@ class AdminRenewalRawData extends Page implements HasTable
 
     protected static string $view = 'filament.pages.admin-renewal-raw-data';
 
+    protected function getProductGroupMapping(): array
+    {
+        return [
+            // TimeTec HR Group
+            'timetec_hr' => [
+                'TimeTec TA (1 User License)',
+                'TimeTec TA (10 User License)',
+                'TimeTec Leave (1 User License)',
+                'TimeTec Leave (10 User License)',
+                'TimeTec Claim (1 User License)',
+                'TimeTec Claim (10 User License)',
+                'TimeTec Payroll (1 Payroll License)',
+                'TimeTec Payroll (10 Payroll License)',
+            ],
+            // Non-TimeTec HR Group
+            'non_timetec_hr' => [
+                'Face & QR Code (1 Device License)',
+                'FCC Terminal License',
+                'TimeTec Access (1 Door License)',
+                'TimeTec Hire Business (Unlimited Job Posts)',
+                'TimeTec Hire Startup (10 Job Posts)',
+            ],
+            // Other Division Group
+            'other_division' => [
+                'TimeTec VMS Corporate (1 Floor License)',
+                'TimeTec VMS SME (1 Location License)',
+                'TimeTec Patrol (1 Checkpoint License)',
+                'TimeTec Patrol (10 Checkpoint License)',
+                'Other',
+                'TimeTec Profile (10 User License)',
+            ],
+        ];
+    }
+
+    // ADD: Method to determine product group
+    protected function getProductGroup(string $productName): ?string
+    {
+        $mapping = $this->getProductGroupMapping();
+
+        foreach ($mapping as $group => $products) {
+            foreach ($products as $product) {
+                if (stripos($productName, $product) !== false || $productName === $product) {
+                    return $group;
+                }
+            }
+        }
+
+        return 'other_division'; // Default to Other Division for unmapped products
+    }
+
     public function table(Table $table): Table
     {
         // Get dates for default 60-day range
@@ -62,6 +112,28 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->whereBetween('f_expiry_date', [$startDate, $endDate]);
             })
             ->filters([
+                SelectFilter::make('product_group')
+                    ->label('Product Group')
+                    ->options([
+                        'timetec_hr' => 'TimeTec HR',
+                        'non_timetec_hr' => 'Non-TimeTec HR',
+                        'other_division' => 'Other Division',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $mapping = $this->getProductGroupMapping();
+                            $selectedProducts = $mapping[$data['value']] ?? [];
+
+                            if (!empty($selectedProducts)) {
+                                $query->where(function ($q) use ($selectedProducts) {
+                                    foreach ($selectedProducts as $product) {
+                                        $q->orWhere('f_name', 'LIKE', '%' . $product . '%');
+                                    }
+                                });
+                            }
+                        }
+                    })
+                    ->indicator('Product Group'),
                 SelectFilter::make('f_name')
                     ->label('Products')
                     ->multiple()

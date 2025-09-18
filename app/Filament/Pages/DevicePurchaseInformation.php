@@ -120,10 +120,27 @@ class DevicePurchaseInformation extends Page
 
     public function getAvailableModels()
     {
-        return DevicePurchaseItem::distinct()
+        // Get existing models from database
+        $dbModels = DevicePurchaseItem::distinct()
             ->orderBy('model')
             ->pluck('model')
             ->toArray();
+
+        // Define standard device models
+        $standardModels = [
+            'TC10',
+            'TC20',
+            'FACE ID5',
+            'FACE ID6',
+            'NFC Tag',
+            'Time Beacon'
+        ];
+
+        // Merge and remove duplicates, then sort
+        $allModels = array_unique(array_merge($standardModels, $dbModels));
+        sort($allModels);
+
+        return $allModels;
     }
 
     public function selectMonth($monthNum)

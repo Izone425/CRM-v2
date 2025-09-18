@@ -58,6 +58,7 @@ use App\Filament\Pages\SalespersonAppointment;
 use App\Filament\Pages\SalespersonAuditList;
 use App\Filament\Pages\SalespersonCalendarV1;
 use App\Filament\Pages\SalespersonCalendarV2;
+use App\Filament\Pages\SalespersonCalendarV3;
 use App\Filament\Pages\SalespersonLeadSequence;
 use App\Filament\Pages\SalesPersonSurveyRequest;
 use App\Filament\Pages\SalesTargetAnalysis;
@@ -265,6 +266,7 @@ class AdminPanelProvider extends PanelProvider
                 // Pages\Dashboard::class,
                 SalespersonCalendarV1::class,
                 SalespersonCalendarV2::class,
+                SalespersonCalendarV3::class,
                 MonthlyCalendar::class,
                 TechnicianCalendar::class,
                 DemoRanking::class,
