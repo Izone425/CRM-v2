@@ -113,6 +113,39 @@ class AdminRenewalRawData extends Page implements HasTable
                         return null;
                     })
                     ->default(true), // Automatically apply this filter by default
+
+                // FILTER 4: PRODUCT NAME
+                SelectFilter::make('f_name')
+                    ->label('Product Name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->options(function () {
+                        // Get distinct product names
+                        return LicenseData::query()
+                            ->distinct()
+                            ->orderBy('f_name')
+                            ->pluck('f_name', 'f_name')
+                            ->toArray();
+                    })
+                    ->indicator('Product'),
+
+
+                SelectFilter::make('f_currency')
+                    ->label('Currency')
+                    ->multiple()
+                    ->preload()
+                    ->options(function () {
+                        // Get distinct currencies
+                        return LicenseData::query()
+                            ->distinct()
+                            ->orderBy('f_currency')
+                            ->whereNotNull('f_currency')
+                            ->where('f_currency', '!=', '')
+                            ->pluck('f_currency', 'f_currency')
+                            ->toArray();
+                    })
+                    ->indicator('Currency'),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -161,12 +194,12 @@ class AdminRenewalRawData extends Page implements HasTable
                     ->sortable(),
 
                 TextColumn::make('f_invoice_no')
-                    ->label('Invoice No')
+                    ->label('PI Number')
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('f_created_time')
-                    ->label('Invoice Date') // NO6: Renamed "Created" to "Invoice Date"
+                    ->label('PI date') // NO6: Renamed "Created" to "Invoice Date"
                     ->date('Y-m-d') // NO6: Remove the timing
                     ->alignCenter() // NO6: Align Centre
                     ->sortable(),
