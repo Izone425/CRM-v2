@@ -396,125 +396,21 @@
 </style>
 
 @php
-    // Project Status Counts
-    $allProjects = app(\App\Livewire\ImplementerDashboard\ImplementerProjectAll::class)
-        ->getAllSoftwareHandover()
+    // Admin Renewal Follow Up Counts - Replace the existing follow-up counts
+    $followUpToday = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpToday::class)
+        ->getTodayRenewals()
         ->count();
 
-    $openProjects = app(\App\Livewire\ImplementerDashboard\ImplementerProjectOpen::class)
-        ->getAllSoftwareHandover()
+    $followUpOverdue = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdue::class)
+        ->getOverdueRenewals()
         ->count();
 
-    $closedProjects = app(\App\Livewire\ImplementerDashboard\ImplementerProjectClosed::class)
-        ->getAllSoftwareHandover()
+    $followUpFuture = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcoming::class)
+        ->getIncomingRenewals()
         ->count();
 
-    $delayProjects = app(\App\Livewire\ImplementerDashboard\ImplementerProjectDelay::class)
-        ->getAllSoftwareHandover()
-        ->count();
-
-    $inactiveProjects = app(\App\Livewire\ImplementerDashboard\ImplementerProjectInactive::class)
-        ->getAllSoftwareHandover()
-        ->count();
-
-    // License Certification Counts
-    $pendingLicenseCount = app(\App\Livewire\ImplementerDashboard\ImplementerLicense::class)
-        ->getOverdueSoftwareHandovers()
-        ->count();
-
-    $completedLicenseCount = app(\App\Livewire\ImplementerDashboard\ImplementerLicenseCompleted::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    // Data Migration Counts
-    $pendingMigrationCount = app(\App\Livewire\ImplementerDashboard\ImplementerMigration::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $completedMigrationCount = app(\App\Livewire\ImplementerDashboard\ImplementerMigrationCompleted::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    // Project Follow Up Counts
-    $followUpToday = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpToday::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUpOverdue = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpOverdue::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUpFuture = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpFuture::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $sessionsToday = app(\App\Livewire\ImplementerDashboard\SessionToday::class)
-        ->getAppointments()
-        ->count();
-
-    $sessionsTomorrow = app(\App\Livewire\ImplementerDashboard\SessionTomorrow::class)
-        ->getAppointments()
-        ->count();
-
-    $followUpNone = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpNone::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUp1 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpOne::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUp2 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpTwo::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUp3 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpThree::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    $followUp4 = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpFour::class)
-        ->getOverdueHardwareHandovers()
-        ->count();
-
-    // Ticketing System Counts
-    $internalTicketsToday = 0; // Replace with actual count
-    $internalTicketsOverdue = 0; // Replace with actual count
-    $externalTicketsToday = 0; // Replace with actual count
-    $externalTicketsOverdue = 0;
-
-    // New Request Counts
-    $customizationPending = 0; // Example count
-    $customizationCompleted = 0;
-    $enhancementPending = 0;
-    $enhancementCompleted = 0;
-
-    // Calculate totals for main categories
-    $projectStatusTotal = $allProjects;
-    $licenseTotal = $pendingLicenseCount + $pendingMigrationCount;
-    $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
-    $followUpTotal = $followUpToday + $followUpOverdue;
-    $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
-    $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
-    $sessionsTotal = $sessionsToday + $sessionsTomorrow;
-
-    $pendingRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestPendingApproval::class)
-        ->getImplementerPendingRequests()
-        ->count();
-
-    $approvedRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestApproved::class)
-        ->getImplementerPendingRequests()
-        ->count();
-
-    $rejectedRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestRejected::class)
-        ->getImplementerPendingRequests()
-        ->count();
-
-    $cancelledRequestCount = app(\App\Livewire\ImplementerDashboard\ImplementerRequestCancelled::class)
-        ->getImplementerPendingRequests()
-        ->count();
-
-    $implementerRequestTotal = $pendingRequestCount;
-    $noRespondProjects = $followUpNone + $followUp1 + $followUp2 + $followUp3 + $followUp4;
+    // Calculate total for follow-up category
+    $followUpTotal = $followUpToday + $followUpOverdue + $followUpFuture;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -550,47 +446,7 @@
     <div class="dashboard-layout" wire:poll.300s>
         <!-- Left sidebar with main category groups -->
         <div class="group-column">
-            <!-- NO1 - PROJECT STATUS -->
-            <div class="group-box group-project-status"
-                :class="{'selected': selectedGroup === 'project-status'}"
-                @click="setSelectedGroup('project-status')">
-                <div class="group-info">
-                    <div class="group-title">Project Status</div>
-                </div>
-                <div class="group-count">{{ $projectStatusTotal }}</div>
-            </div>
-
-            <!-- NO7 - DEMO SESSION -->
-            <div class="group-box group-new-request"
-                :class="{'selected': selectedGroup === 'new-request'}"
-                @click="setSelectedGroup('appointment')">
-                <div class="group-info">
-                    <div class="group-title">Session</div>
-                </div>
-                <div class="group-count">{{ $sessionsTotal }}</div>
-            </div>
-
-            <!-- NO2 - LICENSE CERTIFICATION -->
-            <div class="group-box group-license"
-                :class="{'selected': selectedGroup === 'license'}"
-                @click="setSelectedGroup('license')">
-                <div class="group-info">
-                    <div class="group-title">Pending Task</div>
-                </div>
-                <div class="group-count">{{ $licenseTotal }}</div>
-            </div>
-
-            <!-- NO3 - IMPLEMENTER REQUEST -->
-            <div class="group-box group-implementer-request"
-                :class="{'selected': selectedGroup === 'implementer-request'}"
-                @click="setSelectedGroup('implementer-request')">
-                <div class="group-info">
-                    <div class="group-title">Implementer Request</div>
-                </div>
-                <div class="group-count">{{ $implementerRequestTotal }}</div>
-            </div>
-
-            <!-- NO4 - PROJECT FOLLOW UP -->
+            <!-- ADMIN RENEWAL FOLLOW UP -->
             <div class="group-box group-follow-up"
                 :class="{'selected': selectedGroup === 'follow-up'}"
                 @click="setSelectedGroup('follow-up')">
@@ -599,188 +455,12 @@
                 </div>
                 <div class="group-count">{{ $followUpTotal }}</div>
             </div>
-
-            <!-- NO5 - PROJECT FOLLOW UP -->
-            <div class="group-box group-no-respond"
-                :class="{'selected': selectedGroup === 'no-respond'}"
-                @click="setSelectedGroup('no-respond')">
-                <div class="group-info">
-                    <div class="group-title">Follow Up Count</div>
-                </div>
-                <div class="group-count">{{ $noRespondProjects }}</div>
-            </div>
-
-            {{-- <!-- NO5 - TICKETING SYSTEM -->
-            <div class="group-box group-ticketing"
-                :class="{'selected': selectedGroup === 'ticketing'}"
-                @click="setSelectedGroup('ticketing')">
-                <div class="group-info">
-                    <div class="group-title">Ticketing System</div>
-                </div>
-                <div class="group-count">{{ $ticketingTotal }}</div>
-            </div> --}}
-
-            {{-- <!-- NO6 - NEW REQUEST -->
-            <div class="group-box group-new-request"
-                :class="{'selected': selectedGroup === 'new-request'}"
-                @click="setSelectedGroup('new-request')">
-                <div class="group-info">
-                    <div class="group-title">New Request</div>
-                </div>
-                <div class="group-count">{{ $requestTotal }}</div>
-            </div> --}}
         </div>
 
         <!-- Right content column -->
         <div class="content-column">
-            <!-- PROJECT STATUS Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'project-status'" x-transition>
-                <div class="stat-box status-all"
-                    :class="{'selected': selectedStat === 'status-all'}"
-                    @click="setSelectedStat('status-all')">
-                    <div class="stat-info">
-                        <div class="stat-label">All Projects</div>
-                    </div>
-                    <div class="stat-count">{{ $allProjects }}</div>
-                </div>
 
-                <div class="stat-box status-closed"
-                    :class="{'selected': selectedStat === 'status-closed'}"
-                    @click="setSelectedStat('status-closed')">
-                    <div class="stat-info">
-                        <div class="stat-label">Closed</div>
-                    </div>
-                    <div class="stat-count">{{ $closedProjects }}</div>
-                </div>
-
-                <div class="stat-box status-open"
-                    :class="{'selected': selectedStat === 'status-open'}"
-                    @click="setSelectedStat('status-open')">
-                    <div class="stat-info">
-                        <div class="stat-label">Open</div>
-                    </div>
-                    <div class="stat-count">{{ $openProjects }}</div>
-                </div>
-
-                <div class="stat-box status-delay"
-                    :class="{'selected': selectedStat === 'status-delay'}"
-                    @click="setSelectedStat('status-delay')">
-                    <div class="stat-info">
-                        <div class="stat-label">Delay</div>
-                    </div>
-                    <div class="stat-count">{{ $delayProjects }}</div>
-                </div>
-
-                <div class="stat-box status-inactive"
-                    :class="{'selected': selectedStat === 'status-inactive'}"
-                    @click="setSelectedStat('status-inactive')">
-                    <div class="stat-info">
-                        <div class="stat-label">Inactive</div>
-                    </div>
-                    <div class="stat-count">{{ $inactiveProjects }}</div>
-                </div>
-            </div>
-
-            <!-- Appointment Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'appointment'" x-transition>
-                <div class="stat-box customization-pending"
-                    :class="{'selected': selectedStat === 'sessions-today'}"
-                    @click="setSelectedStat('sessions-today')">
-                    <div class="stat-info">
-                        <div class="stat-label">Sessions Today</div>
-                    </div>
-                    <div class="stat-count">{{ $sessionsToday }}</div>
-                </div>
-
-                <div class="stat-box customization-completed"
-                    :class="{'selected': selectedStat === 'sessions-tomorrow'}"
-                    @click="setSelectedStat('sessions-tomorrow')">
-                    <div class="stat-info">
-                        <div class="stat-label">Sessions Tomorrow</div>
-                    </div>
-                    <div class="stat-count">{{ $sessionsTomorrow }}</div>
-                </div>
-            </div>
-
-            <!-- LICENSE CERTIFICATION Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'license'" x-transition>
-                <div class="stat-box license-pending"
-                    :class="{'selected': selectedStat === 'license-pending'}"
-                    @click="setSelectedStat('license-pending')">
-                    <div class="stat-info">
-                        <div class="stat-label">License Certificate | Pending</div>
-                    </div>
-                    <div class="stat-count">{{ $pendingLicenseCount }}</div>
-                </div>
-
-                <div class="stat-box license-completed"
-                    :class="{'selected': selectedStat === 'license-completed'}"
-                    @click="setSelectedStat('license-completed')">
-                    <div class="stat-info">
-                        <div class="stat-label">License Certificate | Completed</div>
-                    </div>
-                    <div class="stat-count">{{ $completedLicenseCount }}</div>
-                </div>
-
-                <div class="stat-box migration-pending"
-                    :class="{'selected': selectedStat === 'migration-pending'}"
-                    @click="setSelectedStat('migration-pending')">
-                    <div class="stat-info">
-                        <div class="stat-label">Data Migration | Pending</div>
-                    </div>
-                    <div class="stat-count">{{ $pendingMigrationCount }}</div>
-                </div>
-
-                <div class="stat-box migration-completed"
-                    :class="{'selected': selectedStat === 'migration-completed'}"
-                    @click="setSelectedStat('migration-completed')">
-                    <div class="stat-info">
-                        <div class="stat-label">Data Migration | Completed</div>
-                    </div>
-                    <div class="stat-count">{{ $completedMigrationCount }}</div>
-                </div>
-            </div>
-
-            <!-- IMPLEMENTER REQUEST Sub-tabs -->
-            <div class="category-container" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));" x-show="selectedGroup === 'implementer-request'" x-transition>
-                <div class="stat-box request-pending"
-                    :class="{'selected': selectedStat === 'request-pending'}"
-                    @click="setSelectedStat('request-pending')">
-                    <div class="stat-info">
-                        <div class="stat-label">Pending Approval</div>
-                    </div>
-                    <div class="stat-count">{{ $pendingRequestCount }}</div>
-                </div>
-
-                <div class="stat-box request-approved"
-                    :class="{'selected': selectedStat === 'request-approved'}"
-                    @click="setSelectedStat('request-approved')">
-                    <div class="stat-info">
-                        <div class="stat-label">Approved</div>
-                    </div>
-                    <div class="stat-count">{{ $approvedRequestCount }}</div>
-                </div>
-
-                <div class="stat-box request-rejected"
-                    :class="{'selected': selectedStat === 'request-rejected'}"
-                    @click="setSelectedStat('request-rejected')">
-                    <div class="stat-info">
-                        <div class="stat-label">Rejected</div>
-                    </div>
-                    <div class="stat-count">{{ $rejectedRequestCount }}</div>
-                </div>
-
-                <div class="stat-box request-cancelled"
-                    :class="{'selected': selectedStat === 'request-cancelled'}"
-                    @click="setSelectedStat('request-cancelled')">
-                    <div class="stat-info">
-                        <div class="stat-label">Cancelled</div>
-                    </div>
-                    <div class="stat-count">{{ $cancelledRequestCount }}</div>
-                </div>
-            </div>
-
-            <!-- PROJECT FOLLOW UP Sub-tabs -->
+            <!-- ADMIN RENEWAL FOLLOW UP Sub-tabs -->
             <div class="category-container" x-show="selectedGroup === 'follow-up'" x-transition>
                 <div class="stat-box follow-up-today"
                     :class="{'selected': selectedStat === 'follow-up-today'}"
@@ -800,139 +480,13 @@
                     <div class="stat-count">{{ $followUpOverdue }}</div>
                 </div>
 
-                <div class="stat-box follow-up-overdue"
+                <div class="stat-box follow-up-future"
                     :class="{'selected': selectedStat === 'follow-up-future'}"
                     @click="setSelectedStat('follow-up-future')">
                     <div class="stat-info">
                         <div class="stat-label">Next Follow Up</div>
                     </div>
                     <div class="stat-count">{{ $followUpFuture }}</div>
-                </div>
-            </div>
-
-            <!-- TICKETING SYSTEM Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'ticketing'" x-transition>
-                <div class="stat-box ticketing-today"
-                    :class="{'selected': selectedStat === 'internal-today'}"
-                    @click="setSelectedStat('internal-today')">
-                    <div class="stat-info">
-                        <div class="stat-label">Internal Today</div>
-                    </div>
-                    <div class="stat-count">{{ $internalTicketsToday ?? 0 }}</div>
-                </div>
-
-                <div class="stat-box ticketing-overdue"
-                    :class="{'selected': selectedStat === 'internal-overdue'}"
-                    @click="setSelectedStat('internal-overdue')">
-                    <div class="stat-info">
-                        <div class="stat-label">Internal Overdue</div>
-                    </div>
-                    <div class="stat-count">{{ $internalTicketsOverdue ?? 0 }}</div>
-                </div>
-
-                <div class="stat-box ticketing-today"
-                    :class="{'selected': selectedStat === 'external-today'}"
-                    @click="setSelectedStat('external-today')">
-                    <div class="stat-info">
-                        <div class="stat-label">External Today</div>
-                    </div>
-                    <div class="stat-count">{{ $externalTicketsToday ?? 0 }}</div>
-                </div>
-
-                <div class="stat-box ticketing-overdue"
-                    :class="{'selected': selectedStat === 'external-overdue'}"
-                    @click="setSelectedStat('external-overdue')">
-                    <div class="stat-info">
-                        <div class="stat-label">External Overdue</div>
-                    </div>
-                    <div class="stat-count">{{ $externalTicketsOverdue ?? 0 }}</div>
-                </div>
-            </div>
-
-            <!-- NEW REQUEST Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'new-request'" x-transition>
-                <div class="stat-box customization-pending"
-                    :class="{'selected': selectedStat === 'customization-pending'}"
-                    @click="setSelectedStat('customization-pending')">
-                    <div class="stat-info">
-                        <div class="stat-label">Customization | Pending</div>
-                    </div>
-                    <div class="stat-count">{{ $customizationPending }}</div>
-                </div>
-
-                <div class="stat-box customization-completed"
-                    :class="{'selected': selectedStat === 'customization-completed'}"
-                    @click="setSelectedStat('customization-completed')">
-                    <div class="stat-info">
-                        <div class="stat-label">Customization | Completed</div>
-                    </div>
-                    <div class="stat-count">{{ $customizationCompleted }}</div>
-                </div>
-
-                <div class="stat-box enhancement-pending"
-                    :class="{'selected': selectedStat === 'enhancement-pending'}"
-                    @click="setSelectedStat('enhancement-pending')">
-                    <div class="stat-info">
-                        <div class="stat-label">Enhancement | Pending</div>
-                    </div>
-                    <div class="stat-count">{{ $enhancementPending }}</div>
-                </div>
-
-                <div class="stat-box enhancement-completed"
-                    :class="{'selected': selectedStat === 'enhancement-completed'}"
-                    @click="setSelectedStat('enhancement-completed')">
-                    <div class="stat-info">
-                        <div class="stat-label">Enhancement | Completed</div>
-                    </div>
-                    <div class="stat-count">{{ $enhancementCompleted }}</div>
-                </div>
-            </div>
-
-            <!--PROJECT FOLLOW UP Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'no-respond'" x-transition>
-                <div class="stat-box follow-up-none"
-                    :class="{'selected': selectedStat === 'follow-up-none'}"
-                    @click="setSelectedStat('follow-up-none')">
-                    <div class="stat-info">
-                        <div class="stat-label">None</div>
-                    </div>
-                    <div class="stat-count">{{ $followUpNone }}</div>
-                </div>
-
-                <div class="stat-box follow-up-1"
-                    :class="{'selected': selectedStat === 'follow-up-1'}"
-                    @click="setSelectedStat('follow-up-1')">
-                    <div class="stat-info">
-                        <div class="stat-label">Follow-up 1</div>
-                    </div>
-                    <div class="stat-count">{{ $followUp1 }}</div>
-                </div>
-
-                <div class="stat-box follow-up-2"
-                    :class="{'selected': selectedStat === 'follow-up-2'}"
-                    @click="setSelectedStat('follow-up-2')">
-                    <div class="stat-info">
-                        <div class="stat-label">Follow-up 2</div>
-                    </div>
-                    <div class="stat-count">{{ $followUp2 }}</div>
-                </div>
-
-                <div class="stat-box follow-up-3"
-                    :class="{'selected': selectedStat === 'follow-up-3'}"
-                    @click="setSelectedStat('follow-up-3')">
-                    <div class="stat-info">
-                        <div class="stat-label">Follow-up 3</div>
-                    </div>
-                    <div class="stat-count">{{ $followUp3 }}</div>
-                </div>
-
-                <div class="stat-box follow-up-4"
-                    :class="{'selected': selectedStat === 'follow-up-4'}"
-                    @click="setSelectedStat('follow-up-4')">
-                    <div class="stat-info">
-                        <div class="stat-label">Follow-up 4</div>
-                    </div>
-                    <div class="stat-count">{{ $followUp4 }}</div>
                 </div>
             </div>
 
@@ -944,92 +498,7 @@
                     <p x-text="selectedGroup === null ? 'Click on any of the category boxes to see options' : 'Click on any of the subcategory boxes to display the corresponding information'"></p>
                 </div>
 
-                <!-- Content panels for each table -->
-                <!-- PROJECT STATUS Tables -->
-                <div x-show="selectedStat === 'status-all'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-project-all />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'status-open'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-project-open />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'status-closed'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-project-closed />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'status-delay'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-project-delay />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'status-inactive'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-project-inactive />
-                    </div>
-                </div>
-
-                <!-- Sessions Today Table -->
-                <div x-show="selectedStat === 'sessions-today'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.session-today />
-                    </div>
-                </div>
-                <!-- Sessions Tomorrow Table -->
-                <div x-show="selectedStat === 'sessions-tomorrow'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.session-tomorrow />
-                    </div>
-                </div>
-
-                <!-- LICENSE CERTIFICATION Tables -->
-                <div x-show="selectedStat === 'license-pending'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-license />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'license-completed'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-license-completed />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'migration-pending'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-migration />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'migration-completed'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-migration-completed />
-                    </div>
-                </div>
-
-                <!-- IMPLEMENTER REQUEST Tables -->
-                <div x-show="selectedStat === 'request-pending'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-request-pending-approval />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'request-approved'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-request-approved />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'request-rejected'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-request-rejected />
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'request-cancelled'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.implementer-request-cancelled />
-                    </div>
-                </div>
-
-                <!-- PROJECT FOLLOW UP Tables -->
+                <!-- ADMIN RENEWAL FOLLOW UP Tables -->
                 <div x-show="selectedStat === 'follow-up-today'" x-transition>
                     <div class="p-4">
                         <livewire:admin-renewal-dashboard.ar-follow-up-today />
@@ -1045,81 +514,6 @@
                         <livewire:admin-renewal-dashboard.ar-follow-up-upcoming />
                     </div>
                 </div>
-
-                <!-- TICKETING SYSTEM Tables -->
-                <div x-show="selectedStat === 'internal-today'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:implementer-dashboard.internal-tickets-today /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'internal-overdue'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:implementer-dashboard.internal-tickets-overdue /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'external-today'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:implementer-dashboard.external-tickets-today /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'external-overdue'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:implementer-dashboard.external-tickets-overdue /> --}}
-                    </div>
-                </div>
-
-                <!-- NEW REQUEST Tables -->
-                <div x-show="selectedStat === 'customization-pending'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:customization-pending-table /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'customization-completed'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:customization-completed-table /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'enhancement-pending'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:enhancement-pending-table /> --}}
-                    </div>
-                </div>
-                <div x-show="selectedStat === 'enhancement-completed'" x-transition>
-                    <div class="p-4">
-                        {{-- <livewire:enhancement-completed-table /> --}}
-                    </div>
-                </div>
-
-                <!-- PROJECT FOLLOW UP Tables -->
-                <div x-show="selectedStat === 'follow-up-none'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.project-follow-up-none />
-                    </div>
-                </div>
-
-                <div x-show="selectedStat === 'follow-up-1'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.project-follow-up-one />
-                    </div>
-                </div>
-
-                <div x-show="selectedStat === 'follow-up-2'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.project-follow-up-two />
-                    </div>
-                </div>
-
-                <div x-show="selectedStat === 'follow-up-3'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.project-follow-up-three />
-                    </div>
-                </div>
-
-                <div x-show="selectedStat === 'follow-up-4'" x-transition>
-                    <div class="p-4">
-                        <livewire:implementer-dashboard.project-follow-up-four />
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1127,19 +521,19 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Function to reset the implementer component
-        window.resetImplementer = function() {
+        // Function to reset the admin renewal component
+        window.resetAdminRenewal = function() {
             const container = document.getElementById('implementer-container');
             if (container && container.__x) {
                 container.__x.$data.selectedGroup = null;
                 container.__x.$data.selectedStat = null;
-                console.log('Implementer dashboard reset via global function');
+                console.log('Admin renewal dashboard reset via global function');
             }
         };
 
         // Listen for our custom reset event
-        window.addEventListener('reset-implementer-dashboard', function() {
-            window.resetImplementer();
+        window.addEventListener('reset-admin-renewal-dashboard', function() {
+            window.resetAdminRenewal();
         });
     });
 </script>

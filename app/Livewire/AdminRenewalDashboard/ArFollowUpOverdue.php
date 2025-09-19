@@ -81,21 +81,21 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
-        if ($this->selectedUser === 'all-admin-renewal') {
-            // Show all admin renewals
-        } elseif (is_numeric($this->selectedUser)) {
-            $user = User::find($this->selectedUser);
+        // if ($this->selectedUser === 'all-admin-renewal') {
+        //     // Show all admin renewals
+        // } elseif (is_numeric($this->selectedUser)) {
+        //     $user = User::find($this->selectedUser);
 
-            if ($user && $user->role_id === 3) {
-                $query->where('admin_renewal', $user->name);
-            }
-        } else {
-            $currentUser = auth()->user();
+        //     if ($user && $user->role_id === 3) {
+        //         $query->where('admin_renewal', $user->name);
+        //     }
+        // } else {
+        //     $currentUser = auth()->user();
 
-            if ($currentUser->role_id === 3) {
-                $query->where('admin_renewal', $currentUser->name);
-            }
-        }
+        //     if ($currentUser->role_id === 3) {
+        //         $query->where('admin_renewal', $currentUser->name);
+        //     }
+        // }
 
         return $query;
     }

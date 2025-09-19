@@ -1330,14 +1330,22 @@ class ImplementerActions
                 'follow_up_date' => now()->format('Y-m-d'), // Today
             ]);
 
+            // Cancel all scheduled emails related to this software handover
+            $cancelledEmailsCount = self::cancelScheduledEmails($record);
+
             // Update the SoftwareHandover record to indicate follow-up is done
             $record->update([
                 'follow_up_date' => now()->format('Y-m-d'), // Today
-                'follow_up_counter' => true, // Stop future follow-ups
+                'follow_up_counter' => false, // Stop future follow-ups (changed from true to false)
             ]);
 
+            $message = 'Follow-up process stopped successfully';
+            if ($cancelledEmailsCount > 0) {
+                $message .= " and {$cancelledEmailsCount} scheduled email(s) were cancelled";
+            }
+
             Notification::make()
-                ->title('Follow-up process stopped successfully')
+                ->title($message)
                 ->success()
                 ->send();
 
@@ -1351,6 +1359,64 @@ class ImplementerActions
                 ->send();
 
             return null;
+        }
+    }
+
+    /**
+     * Cancel all scheduled emails related to a software handover
+     *
+     * @param SoftwareHandover $record
+     * @return int Number of cancelled emails
+     */
+    private static function cancelScheduledEmails(SoftwareHandover $record): int
+    {
+        try {
+            // Find all implementer logs related to this software handover
+            $implementerLogIds = ImplementerLogs::where('subject_id', $record->id)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($implementerLogIds)) {
+                return 0;
+            }
+
+            // Cancel scheduled emails that contain any of these implementer log IDs
+            $cancelledCount = 0;
+            $scheduledEmails = DB::table('scheduled_emails')
+                ->where('status', 'New')
+                ->whereNotNull('scheduled_date')
+                ->whereDate('scheduled_date', '>=', now())
+                ->get();
+
+            foreach ($scheduledEmails as $scheduledEmail) {
+                try {
+                    $emailData = json_decode($scheduledEmail->email_data, true);
+
+                    // Check if this scheduled email is related to our software handover
+                    if (isset($emailData['implementer_log_id']) &&
+                        in_array($emailData['implementer_log_id'], $implementerLogIds)) {
+
+                        // Cancel the scheduled email
+                        DB::table('scheduled_emails')
+                            ->where('id', $scheduledEmail->id)
+                            ->update([
+                                'status' => 'Stop',
+                                'updated_at' => now(),
+                            ]);
+
+                        $cancelledCount++;
+
+                        Log::info("Cancelled scheduled email for implementer log ID: {$emailData['implementer_log_id']}");
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error processing scheduled email ID {$scheduledEmail->id}: " . $e->getMessage());
+                }
+            }
+
+            return $cancelledCount;
+        } catch (\Exception $e) {
+            Log::error('Error cancelling scheduled emails: ' . $e->getMessage());
+            return 0;
         }
     }
 }
