@@ -161,30 +161,20 @@ class RenewalDataUsd extends Model
     public static function getRenewalForecastStats($startDate = null, $endDate = null)
     {
         try {
-            $today = Carbon::now()->format('Y-m-d');
+            // Create an instance of the main class to access the methods
+            $adminClass = new AdminRenewalProcessDataUsd();
 
-            if (!$startDate || !$endDate) {
-                $startDate = $today;
-                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
-            }
+            // Get stats from existing methods
+            $newStats = $adminClass->getNewStats($startDate, $endDate);
+            $pendingConfirmationStats = $adminClass->getPendingConfirmationStats($startDate, $endDate);
+            $pendingPaymentStats = $adminClass->getPendingPaymentStats($startDate, $endDate);
 
-            $query = DB::connection('frontenddb')->table('crm_expiring_license')
-                ->select([
-                    DB::raw('COUNT(DISTINCT f_company_id) as total_companies'),
-                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
-                    DB::raw('SUM(f_total_amount) as total_amount')
-                ])
-                ->where('f_expiry_date', '>=', $startDate)
-                ->where('f_expiry_date', '<=', $endDate)
-                ->where('f_currency', 'USD');
-
-            // Apply product exclusions
-            foreach (self::$excludedProducts as $excludedProduct) {
-                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
-            }
-
-            $result = $query->first();
-            return $result ? (array) $result : ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+            // Add them together
+            return [
+                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
+                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
+                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount']
+            ];
         } catch (\Exception $e) {
             Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
@@ -202,7 +192,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     protected static ?string $navigationGroup = 'Administration';
     protected static ?int $navigationSort = 51;
 
-    protected static string $view = 'filament.pages.admin-renewal-process-data-usd';
+    protected static string $view = 'filament.pages.admin-renewal-process-data-myr';
 
     public $completedRenewalStats;
     public $renewalForecastStats;
@@ -214,6 +204,55 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     public function mount(): void
     {
         $this->loadData();
+    }
+
+    protected function getProductGroupMapping(): array
+    {
+        return [
+            // TimeTec HR Group
+            'timetec_hr' => [
+                'TimeTec TA (1 User License)',
+                'TimeTec TA (10 User License)',
+                'TimeTec Leave (1 User License)',
+                'TimeTec Leave (10 User License)',
+                'TimeTec Claim (1 User License)',
+                'TimeTec Claim (10 User License)',
+                'TimeTec Payroll (1 Payroll License)',
+                'TimeTec Payroll (10 Payroll License)',
+            ],
+            // Non-TimeTec HR Group
+            'non_timetec_hr' => [
+                'Face & QR Code (1 Device License)',
+                'FCC Terminal License',
+                'TimeTec Access (1 Door License)',
+                'TimeTec Hire Business (Unlimited Job Posts)',
+                'TimeTec Hire Startup (10 Job Posts)',
+            ],
+            // Other Division Group
+            'other_division' => [
+                'TimeTec VMS Corporate (1 Floor License)',
+                'TimeTec VMS SME (1 Location License)',
+                'TimeTec Patrol (1 Checkpoint License)',
+                'TimeTec Patrol (10 Checkpoint License)',
+                'Other',
+                'TimeTec Profile (10 User License)',
+            ],
+        ];
+    }
+
+    protected function getProductGroup(string $productName): ?string
+    {
+        $mapping = $this->getProductGroupMapping();
+
+        foreach ($mapping as $group => $products) {
+            foreach ($products as $product) {
+                if (stripos($productName, $product) !== false || $productName === $product) {
+                    return $group;
+                }
+            }
+        }
+
+        return 'other_division'; // Default to Other Division for unmapped products
     }
 
     public function refreshStats()
@@ -546,10 +585,13 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     public static function getRenewalForecastStats($startDate = null, $endDate = null)
     {
         try {
+            // Create an instance to access the methods
+            $instance = new self();
+
             // Get stats from existing methods
-            $newStats = (new self())->getNewStats($startDate, $endDate);
-            $pendingConfirmationStats = (new self())->getPendingConfirmationStats($startDate, $endDate);
-            $pendingPaymentStats = (new self())->getPendingPaymentStats($startDate, $endDate);
+            $newStats = $instance->getNewStats($startDate, $endDate);
+            $pendingConfirmationStats = $instance->getPendingConfirmationStats($startDate, $endDate);
+            $pendingPaymentStats = $instance->getPendingPaymentStats($startDate, $endDate);
 
             // Add them together
             return [
@@ -561,55 +603,6 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
-    }
-
-    protected function getProductGroupMapping(): array
-    {
-        return [
-            // TimeTec HR Group
-            'timetec_hr' => [
-                'TimeTec TA (1 User License)',
-                'TimeTec TA (10 User License)',
-                'TimeTec Leave (1 User License)',
-                'TimeTec Leave (10 User License)',
-                'TimeTec Claim (1 User License)',
-                'TimeTec Claim (10 User License)',
-                'TimeTec Payroll (1 Payroll License)',
-                'TimeTec Payroll (10 Payroll License)',
-            ],
-            // Non-TimeTec HR Group
-            'non_timetec_hr' => [
-                'Face & QR Code (1 Device License)',
-                'FCC Terminal License',
-                'TimeTec Access (1 Door License)',
-                'TimeTec Hire Business (Unlimited Job Posts)',
-                'TimeTec Hire Startup (10 Job Posts)',
-            ],
-            // Other Division Group
-            'other_division' => [
-                'TimeTec VMS Corporate (1 Floor License)',
-                'TimeTec VMS SME (1 Location License)',
-                'TimeTec Patrol (1 Checkpoint License)',
-                'TimeTec Patrol (10 Checkpoint License)',
-                'Other',
-                'TimeTec Profile (10 User License)',
-            ],
-        ];
-    }
-
-    protected function getProductGroup(string $productName): ?string
-    {
-        $mapping = $this->getProductGroupMapping();
-
-        foreach ($mapping as $group => $products) {
-            foreach ($products as $product) {
-                if (stripos($productName, $product) !== false || $productName === $product) {
-                    return $group;
-                }
-            }
-        }
-
-        return 'other_division'; // Default to Other Division for unmapped products
     }
 
     public function table(Table $table): Table
@@ -1130,8 +1123,19 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
-                            ->color('success')
+                            ->color('danger')
                             ->icon('heroicon-o-building-office')
+                            ->tooltip(function ($state, $record) {
+                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+
+                                if (!$reseller) {
+                                    return null;
+                                }
+
+                                $tooltipText = "{$reseller->reseller_name}";
+
+                                return new HtmlString($tooltipText);
+                            })
                             ->visible(function ($state, $record) {
                                 $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
                                 return $reseller !== null;
@@ -1173,7 +1177,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->formatStateUsing(function ($state, $record) {
                             $reseller = RenewalDataUsd::getResellerForCompany($state);
 
-                            return view('components.company-invoices-usd', [
+                            return view('components.company-invoices-myr', [
                                 'invoices' => RenewalDataUsd::getInvoicesForCompany($state),
                                 'companyId' => $state,
                                 'resellerName' => $reseller ? $reseller->reseller_name : null,
@@ -1184,6 +1188,74 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('view_lead_details')
+                        ->label('View Lead Details')
+                        ->icon('heroicon-o-eye')
+                        ->color('info')
+                        ->url(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            if ($renewal && $renewal->lead_id) {
+                                return route('filament.admin.resources.leads.view', [
+                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                                ]);
+                            }
+
+                            return null;
+                        })
+                        ->openUrlInNewTab()
+                        ->visible(function ($record) {
+                            // Only show if mapping is completed and lead_id exists
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->lead_id;
+                        }),
+
+                    Action::make('assign_to_me')
+                        ->label('Assign to Me')
+                        ->icon('heroicon-o-user')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Renewal to Me')
+                        ->modalDescription(fn ($record) => "Are you sure you want to assign the renewal for {$record->f_company_name} to yourself?")
+                        ->modalSubmitActionLabel('Yes, Assign to Me')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            // Only show after mapping is completed AND no one is assigned yet
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->admin_renewal === null;
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Update or create renewal record with current user
+                                Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'admin_renewal' => auth()->user()->name,
+                                        'company_name' => $record->f_company_name,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Assignment Successful')
+                                    ->body("Renewal for {$record->f_company_name} has been assigned to you.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error assigning renewal: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Assignment Failed')
+                                    ->body('There was an error assigning the renewal. Please try again.')
+                                    ->send();
+                            }
+                        }),
+
                     Action::make('assign_to_admin')
                         ->label('Assign to Admin Renewal')
                         ->icon('heroicon-o-user')
@@ -1267,7 +1339,6 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ->preload()
                                 ->options(function () {
                                     return Lead::with('companyDetail')
-                                        ->where('lead_status', 'Closed')
                                         ->get()
                                         ->mapWithKeys(function ($lead) {
                                             $companyName = $lead->companyDetail
@@ -1285,10 +1356,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ->placeholder('Select a closed lead to map')
                                 ->visible(fn ($get) => $get('mapping_type') === 'after_handover')
                                 ->required(fn ($get) => $get('mapping_type') === 'after_handover')
-                                ->helperText('Only leads with "Closed" status are available for mapping')
                                 ->getSearchResultsUsing(function (string $search) {
                                     return Lead::with('companyDetail')
-                                        ->where('lead_status', 'Closed')
                                         ->where(function ($query) use ($search) {
                                             $query->where('id', 'like', "%{$search}%")
                                                 ->orWhereHas('companyDetail', function ($q) use ($search) {
@@ -1444,6 +1513,15 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->action(function ($record, array $data) {
                             return $this->handleMappingAction($record, $data);
                         })
+                        ->visible(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            if (!$renewal) {
+                                return true;
+                            }
+
+                            return $renewal->mapping_status !== 'completed_mapping';
+                        })
                         ->modalWidth('5xl')
                         ->modalHeading(fn ($record) => 'Mapping Action - ' . $record->f_company_name),
                     Action::make('completed_follow_up')
@@ -1582,7 +1660,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     Action::make('request_invoice')
                         ->label('Request Invoice')
                         ->icon('heroicon-o-document-text')
-                        ->color('warning')
+                        ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Request Invoice')
                         ->modalDescription('Are you sure you want to request an invoice? This will change the renewal progress to "Pending Payment".')
@@ -1649,7 +1727,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     Action::make('claim_via_hrdf')
                         ->label('Claim via HRDF')
                         ->icon('heroicon-o-building-library')
-                        ->color('info')
+                        ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Claim via HRDF')
                         ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
@@ -1712,67 +1790,225 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
                             }
                         }),
-                    Action::make('view_lead_details')
-                        ->label('View Lead Details')
-                        ->icon('heroicon-o-eye')
-                        ->color('info')
-                        ->url(function ($record) {
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                            if ($renewal && $renewal->lead_id) {
-                                return route('filament.admin.resources.leads.view', [
-                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
-                                ]);
-                            }
-
-                            return null;
-                        })
-                        ->openUrlInNewTab()
-                        ->visible(function ($record) {
-                            // Only show if mapping is completed and lead_id exists
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                            return $renewal &&
-                                $renewal->mapping_status === 'completed_mapping' &&
-                                $renewal->lead_id;
-                        }),
-
-                    Action::make('view_reseller')
-                        ->label('View Reseller')
-                        ->icon('heroicon-o-building-office')
-                        ->color('blue')
-                        ->modalHeading('Reseller Information')
-                        ->modalContent(function ($record) {
-                            $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
-
-                            if (!$reseller) {
-                                return view('components.simple-modal-content', [
-                                    'title' => 'No Reseller',
-                                    'content' => 'This company does not have a reseller assigned.',
-                                    'icon' => 'heroicon-o-x-circle',
-                                    'color' => 'gray'
-                                ]);
-                            }
-
-                            return view('components.simple-modal-content', [
-                                'title' => 'Reseller Details',
-                                'content' => [
-                                    'Reseller Name' => $reseller->reseller_name,
-                                    'Rate' => $reseller->f_rate ? $reseller->f_rate . '%' : 'Not specified',
-                                ],
-                                'icon' => 'heroicon-o-building-office',
-                                'color' => 'blue'
-                            ]);
-                        })
-                        ->modalCancelActionLabel('Close')
-                        ->modalSubmitAction(false)
-                        ->visible(function ($record) {
-                            $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
-                            return $reseller !== null;
-                        }),
-
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->color('primary')
+            ])
+            ->bulkActions([
+                \Filament\Tables\Actions\BulkActionGroup::make([
+                    \Filament\Tables\Actions\BulkAction::make('batch_onhold_mapping')
+                        ->label('Batch Update OnHold Mapping')
+                        ->icon('heroicon-o-pause-circle')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Batch Update OnHold Mapping')
+                        ->modalDescription('Are you sure you want to set the selected renewals to OnHold Mapping status? This will also assign them to "AUTO RENEWAL".')
+                        ->modalSubmitActionLabel('Yes, Update to OnHold')
+                        ->modalCancelActionLabel('Cancel')
+                        ->action(function ($records) {
+                            $successCount = 0;
+                            $errorCount = 0;
+                            $updatedCompanies = [];
+
+                            foreach ($records as $record) {
+                                try {
+                                    // Update or create renewal record with onhold mapping status
+                                    Renewal::updateOrCreate(
+                                        ['f_company_id' => $record->f_company_id],
+                                        [
+                                            'company_name' => $record->f_company_name,
+                                            'mapping_status' => 'onhold_mapping',
+                                            'admin_renewal' => 'AUTO RENEWAL',
+                                            'updated_at' => now(),
+                                        ]
+                                    );
+
+                                    $successCount++;
+                                    $updatedCompanies[] = $record->f_company_name;
+
+                                } catch (\Exception $e) {
+                                    Log::error("Error updating OnHold mapping for company {$record->f_company_id}: " . $e->getMessage());
+                                    $errorCount++;
+                                }
+                            }
+
+                            if ($successCount > 0) {
+                                Notification::make()
+                                    ->success()
+                                    ->title('Batch Update Successful')
+                                    ->body("Successfully updated {$successCount} renewal(s) to OnHold Mapping status." .
+                                        ($errorCount > 0 ? " {$errorCount} failed to update." : ""))
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Batch Update Failed')
+                                    ->body('No renewals were updated. Please try again.')
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+
+                    \Filament\Tables\Actions\BulkAction::make('batch_assign_admin')
+                        ->label('Batch Assign Admin Renewal')
+                        ->icon('heroicon-o-user-group')
+                        ->color('info')
+                        ->form([
+                            Select::make('admin_renewal')
+                                ->label('Select Admin Renewal')
+                                ->options([
+                                    'Fatimah Nurnabilah' => 'Fatimah Nurnabilah',
+                                    'AUTO RENEWAL' => 'AUTO RENEWAL',
+                                ])
+                                ->required()
+                                ->placeholder('Select an admin to assign')
+                                ->helperText('All selected renewals will be assigned to the chosen admin.')
+                        ])
+                        ->action(function ($records, array $data) {
+                            $successCount = 0;
+                            $errorCount = 0;
+                            $skippedCount = 0;
+                            $selectedAdmin = $data['admin_renewal'];
+
+                            foreach ($records as $record) {
+                                try {
+                                    // Check if renewal exists and mapping status
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                    if ($renewal && $renewal->mapping_status === 'completed_mapping') {
+                                        // Update existing renewal record
+                                        $renewal->update([
+                                            'admin_renewal' => $selectedAdmin,
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                    } elseif (!$renewal) {
+                                        // Create new renewal record with completed mapping (for assignment)
+                                        Renewal::create([
+                                            'f_company_id' => $record->f_company_id,
+                                            'company_name' => $record->f_company_name,
+                                            'mapping_status' => 'completed_mapping',
+                                            'admin_renewal' => $selectedAdmin,
+                                            'created_at' => now(),
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                    } else {
+                                        // Skip records with incomplete mapping
+                                        $skippedCount++;
+                                    }
+
+                                } catch (\Exception $e) {
+                                    Log::error("Error batch assigning admin for company {$record->f_company_id}: " . $e->getMessage());
+                                    $errorCount++;
+                                }
+                            }
+
+                            if ($successCount > 0) {
+                                $message = "Successfully assigned {$successCount} renewal(s) to {$selectedAdmin}.";
+                                if ($skippedCount > 0) {
+                                    $message .= " {$skippedCount} were skipped (mapping not completed).";
+                                }
+                                if ($errorCount > 0) {
+                                    $message .= " {$errorCount} failed due to errors.";
+                                }
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Batch Assignment Successful')
+                                    ->body($message)
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('No Assignments Made')
+                                    ->body("No renewals were assigned. {$skippedCount} were skipped and {$errorCount} had errors.")
+                                    ->send();
+                            }
+                        })
+                        ->modalHeading('Batch Assign Admin Renewal')
+                        ->modalDescription('Select an admin to assign to all selected renewal records.')
+                        ->modalSubmitActionLabel('Assign Selected')
+                        ->modalCancelActionLabel('Cancel')
+                        ->deselectRecordsAfterCompletion(),
+
+                    \Filament\Tables\Actions\BulkAction::make('batch_assign_to_me')
+                        ->label('Batch Assign to Me')
+                        ->icon('heroicon-o-user')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Batch Assign to Me')
+                        ->modalDescription('Are you sure you want to assign all selected renewals to yourself?')
+                        ->modalSubmitActionLabel('Yes, Assign to Me')
+                        ->modalCancelActionLabel('Cancel')
+                        ->action(function ($records) {
+                            $successCount = 0;
+                            $errorCount = 0;
+                            $skippedCount = 0;
+                            $currentUserName = auth()->user()->name;
+
+                            foreach ($records as $record) {
+                                try {
+                                    // Check if renewal exists
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                    if ($renewal && $renewal->mapping_status === 'completed_mapping' && $renewal->admin_renewal === null) {
+                                        // Update existing renewal record
+                                        $renewal->update([
+                                            'admin_renewal' => $currentUserName,
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                    } elseif (!$renewal) {
+                                        // Create new renewal record
+                                        Renewal::create([
+                                            'f_company_id' => $record->f_company_id,
+                                            'company_name' => $record->f_company_name,
+                                            'mapping_status' => 'completed_mapping',
+                                            'admin_renewal' => $currentUserName,
+                                            'created_at' => now(),
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                    } else {
+                                        // Skip records that don't meet criteria
+                                        $skippedCount++;
+                                    }
+
+                                } catch (\Exception $e) {
+                                    Log::error("Error batch assigning to self for company {$record->f_company_id}: " . $e->getMessage());
+                                    $errorCount++;
+                                }
+                            }
+
+                            if ($successCount > 0) {
+                                $message = "Successfully assigned {$successCount} renewal(s) to yourself.";
+                                if ($skippedCount > 0) {
+                                    $message .= " {$skippedCount} were skipped (already assigned or other conditions).";
+                                }
+                                if ($errorCount > 0) {
+                                    $message .= " {$errorCount} failed due to errors.";
+                                }
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Batch Assignment Successful')
+                                    ->body($message)
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('No Assignments Made')
+                                    ->body("No renewals were assigned. {$skippedCount} were skipped and {$errorCount} had errors.")
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                ]),
             ])
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50])
@@ -1800,10 +2036,6 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'company_name' => strtoupper(trim($data['company_name'])),
                         'lead_id' => $nextLeadId
                     ]);
-
-                    // Get lead source ID
-                    $leadSource = LeadSource::where('lead_code', $data['lead_code'])->first();
-                    $leadSourceId = $leadSource ? $leadSource->id : 1;
 
                     // Convert country code to country name (like in CreateLead)
                     $countryName = $this->convertCountryCodeToName($data['country']);
