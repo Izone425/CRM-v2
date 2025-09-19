@@ -1,0 +1,1748 @@
+<?php
+namespace App\Filament\Pages;
+
+use App\Models\ActivityLog;
+use App\Models\CompanyDetail;
+use App\Models\Lead;
+use App\Models\LeadSource;
+use App\Models\Renewal;
+use Carbon\Carbon;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\Layout\Panel;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Support\HtmlString;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
+
+// Create a temporary model for the renewal data
+class RenewalDataUsd extends Model
+{
+    protected $connection = 'frontenddb';
+    protected $table = 'crm_expiring_license';
+    protected $primaryKey = 'f_company_id';
+    public $timestamps = false;
+
+    // Define excluded products in one place
+    public static $excludedProducts = [
+        'TimeTec VMS Corporate (1 Floor License)',
+        'TimeTec VMS SME (1 Location License)',
+        'TimeTec Patrol (1 Checkpoint License)',
+        'TimeTec Patrol (10 Checkpoint License)',
+        'Other',
+        'TimeTec Profile (10 User License)',
+    ];
+
+    public function getKey()
+    {
+        $key = $this->getAttribute($this->getKeyName());
+        return $key !== null ? (string) $key : 'record-' . uniqid();
+    }
+
+    // Helper method to apply product exclusions to query
+    public static function applyProductExclusions($query)
+    {
+        foreach (self::$excludedProducts as $excludedProduct) {
+            $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+        }
+        return $query;
+    }
+
+    // Get reseller information for a company
+    public static function getResellerForCompany($companyId)
+    {
+        try {
+            return DB::connection('frontenddb')->table('crm_reseller_link')
+                ->select('reseller_name', 'f_rate')
+                ->where('f_id', $companyId)
+                ->first();
+        } catch (\Exception $e) {
+            Log::error("Error fetching reseller for company $companyId: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    // Get invoices for a specific company
+    public static function getInvoicesForCompany($companyId, $startDate = null, $endDate = null)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            if (!$startDate || !$endDate) {
+                $startDate = $today;
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_invoice_no',
+                    'f_currency',
+                    DB::raw('SUM(f_total_amount) AS invoice_total_amount'),
+                    DB::raw('SUM(f_unit) AS invoice_total_units'),
+                    DB::raw('COUNT(*) AS invoice_product_count'),
+                    DB::raw('MIN(f_expiry_date) AS invoice_earliest_expiry'),
+                    DB::raw('MAX(f_expiry_date) AS invoice_latest_expiry'),
+                    DB::raw('ANY_VALUE(f_company_name) AS f_company_name'),
+                    DB::raw('ANY_VALUE(f_company_id) AS f_company_id')
+                ])
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD');
+
+            // Apply product exclusions
+            foreach (self::$excludedProducts as $excludedProduct) {
+                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+            }
+
+            return $query->groupBy('f_invoice_no', 'f_currency')
+                        ->having(DB::raw('COUNT(*)'), '>', 0)
+                        ->orderBy('f_invoice_no', 'ASC')
+                        ->get()
+                        ->toArray();
+        } catch (\Exception $e) {
+            Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Get products for a specific company and invoice within date range
+    public static function getProductsForInvoice($companyId, $invoiceNo, $startDate = null, $endDate = null)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            if (!$startDate || !$endDate) {
+                $startDate = $today;
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_currency', 'f_id', 'f_company_name', 'f_company_id',
+                    'f_name', 'f_invoice_no', 'f_total_amount', 'f_unit',
+                    'f_start_date', 'f_expiry_date', 'Created', 'payer',
+                    'payer_id', 'f_created_time'
+                ])
+                ->where('f_company_id', $companyId)
+                ->where('f_invoice_no', $invoiceNo)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD');
+
+            // Apply product exclusions
+            foreach (self::$excludedProducts as $excludedProduct) {
+                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+            }
+
+            return $query->orderBy('f_expiry_date', 'ASC')
+                        ->get()
+                        ->toArray();
+        } catch (\Exception $e) {
+            Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Get summary statistics for renewal forecast
+    public static function getRenewalForecastStats($startDate = null, $endDate = null)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            if (!$startDate || !$endDate) {
+                $startDate = $today;
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    DB::raw('COUNT(DISTINCT f_company_id) as total_companies'),
+                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
+                    DB::raw('SUM(f_total_amount) as total_amount')
+                ])
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD');
+
+            // Apply product exclusions
+            foreach (self::$excludedProducts as $excludedProduct) {
+                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+            }
+
+            $result = $query->first();
+            return $result ? (array) $result : ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        } catch (\Exception $e) {
+            Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+}
+
+class AdminRenewalProcessDataUsd extends Page implements HasTable
+{
+    use InteractsWithTable;
+
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationLabel = 'Renewal Process Data (USD)';
+    protected static ?string $navigationGroup = 'Administration';
+    protected static ?int $navigationSort = 51;
+
+    protected static string $view = 'filament.pages.admin-renewal-process-data-usd';
+
+    public $completedRenewalStats;
+    public $renewalForecastStats;
+    public $newStats;
+    public $pendingConfirmationStats;
+    public $pendingPaymentStats;
+    public $shouldRefreshStats = false;
+
+    public function mount(): void
+    {
+        $this->loadData();
+    }
+
+    public function refreshStats()
+    {
+        $this->loadData();
+
+        Notification::make()
+            ->success()
+            ->title('Dashboard Refreshed')
+            ->body('Statistics have been updated to reflect current filters.')
+            ->send();
+    }
+
+    protected function loadData($startDate = null, $endDate = null): void
+    {
+        // Get current filters (if any) or use defaults
+        if (!$startDate || !$endDate) {
+            $today = Carbon::now()->format('Y-m-d');
+            $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+            $startDate = $today;
+            $endDate = $next60Days;
+        }
+
+        // Load data for each box with date filtering
+        $this->completedRenewalStats = $this->getCompletedRenewalStats($startDate, $endDate);
+        $this->renewalForecastStats = $this->getRenewalForecastStats($startDate, $endDate);
+        $this->newStats = $this->getNewStats($startDate, $endDate);
+        $this->pendingConfirmationStats = $this->getPendingConfirmationStats($startDate, $endDate);
+        $this->pendingPaymentStats = $this->getPendingPaymentStats($startDate, $endDate);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('refresh_stats')
+                ->label('')
+                ->icon('heroicon-o-arrow-path')
+                ->color('primary')
+                ->action('refreshStats')
+                ->tooltip('Refresh dashboard statistics to reflect current filters'),
+        ];
+    }
+
+    protected function getNewStats($startDate = null, $endDate = null)
+    {
+        try {
+            // Get companies with new renewal status
+            $newRenewalCompanyIds = Renewal::where('renewal_progress', 'new')
+                ->pluck('f_company_id')
+                ->toArray();
+
+            if (empty($newRenewalCompanyIds)) {
+                return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+            }
+
+            // Use provided dates or defaults
+            if (!$startDate || !$endDate) {
+                $startDate = Carbon::now()->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_company_id',
+                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
+                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                ])
+                ->whereIn('f_company_id', $newRenewalCompanyIds)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD')
+                ->groupBy('f_company_id');
+
+            // Apply product exclusions
+            RenewalDataUsd::applyProductExclusions($query);
+
+            $companies = $query->get();
+
+            $totalCompanies = $companies->count();
+            $totalInvoices = $companies->sum('total_invoices');
+            $totalAmount = 0;
+
+            // Calculate amount with reseller rates
+            foreach ($companies as $company) {
+                $reseller = RenewalDataUsd::getResellerForCompany($company->f_company_id);
+
+                if ($reseller && $reseller->f_rate) {
+                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    $totalAmount += $calculatedAmount;
+                } else {
+                    $totalAmount += $company->raw_total_amount;
+                }
+            }
+
+            return [
+                'total_companies' => $totalCompanies,
+                'total_invoices' => $totalInvoices,
+                'total_amount' => $totalAmount
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Error fetching new renewal stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+
+    protected function getPendingConfirmationStats($startDate = null, $endDate = null)
+    {
+        try {
+            // Get companies with pending confirmation status
+            $pendingConfirmationCompanyIds = Renewal::where('renewal_progress', 'pending_confirmation')
+                ->pluck('f_company_id')
+                ->toArray();
+
+            if (empty($pendingConfirmationCompanyIds)) {
+                return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+            }
+
+            // Use provided dates or defaults
+            if (!$startDate || !$endDate) {
+                $startDate = Carbon::now()->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_company_id',
+                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
+                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                ])
+                ->whereIn('f_company_id', $pendingConfirmationCompanyIds)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD')
+                ->groupBy('f_company_id');
+
+            // Apply product exclusions
+            RenewalDataUsd::applyProductExclusions($query);
+
+            $companies = $query->get();
+
+            $totalCompanies = $companies->count();
+            $totalInvoices = $companies->sum('total_invoices');
+            $totalAmount = 0;
+
+            // Calculate amount with reseller rates
+            foreach ($companies as $company) {
+                $reseller = RenewalDataUsd::getResellerForCompany($company->f_company_id);
+
+                if ($reseller && $reseller->f_rate) {
+                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    $totalAmount += $calculatedAmount;
+                } else {
+                    $totalAmount += $company->raw_total_amount;
+                }
+            }
+
+            return [
+                'total_companies' => $totalCompanies,
+                'total_invoices' => $totalInvoices,
+                'total_amount' => $totalAmount
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Error fetching pending confirmation stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+
+    protected function getPendingPaymentStats($startDate = null, $endDate = null)
+    {
+        try {
+            // Get companies with pending payment status
+            $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
+                ->pluck('f_company_id')
+                ->toArray();
+
+            if (empty($pendingPaymentCompanyIds)) {
+                return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+            }
+
+            // Use provided dates or defaults
+            if (!$startDate || !$endDate) {
+                $startDate = Carbon::now()->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_company_id',
+                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
+                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                ])
+                ->whereIn('f_company_id', $pendingPaymentCompanyIds)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD')
+                ->groupBy('f_company_id');
+
+            // Apply product exclusions
+            RenewalDataUsd::applyProductExclusions($query);
+
+            $companies = $query->get();
+
+            $totalCompanies = $companies->count();
+            $totalInvoices = $companies->sum('total_invoices');
+            $totalAmount = 0;
+
+            // Calculate amount with reseller rates
+            foreach ($companies as $company) {
+                $reseller = RenewalDataUsd::getResellerForCompany($company->f_company_id);
+
+                if ($reseller && $reseller->f_rate) {
+                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    $totalAmount += $calculatedAmount;
+                } else {
+                    $totalAmount += $company->raw_total_amount;
+                }
+            }
+
+            return [
+                'total_companies' => $totalCompanies,
+                'total_invoices' => $totalInvoices,
+                'total_amount' => $totalAmount
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Error fetching pending payment stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+
+    // Also update getCompletedRenewalStats and getRenewalForecastStats to follow the same pattern
+    protected function getCompletedRenewalStats($startDate = null, $endDate = null)
+    {
+        try {
+            // Get companies with completed renewal status
+            $completedRenewalCompanyIds = Renewal::where('renewal_progress', 'completed_renewal')
+                ->pluck('f_company_id')
+                ->toArray();
+
+            if (empty($completedRenewalCompanyIds)) {
+                return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+            }
+
+            // Use provided dates or defaults
+            if (!$startDate || !$endDate) {
+                $startDate = Carbon::now()->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+            }
+
+            $query = DB::connection('frontenddb')->table('crm_expiring_license')
+                ->select([
+                    'f_company_id',
+                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
+                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                ])
+                ->whereIn('f_company_id', $completedRenewalCompanyIds)
+                ->where('f_expiry_date', '>=', $startDate)
+                ->where('f_expiry_date', '<=', $endDate)
+                ->where('f_currency', 'USD')
+                ->groupBy('f_company_id');
+
+            // Apply product exclusions
+            RenewalDataUsd::applyProductExclusions($query);
+
+            $companies = $query->get();
+
+            $totalCompanies = $companies->count();
+            $totalInvoices = $companies->sum('total_invoices');
+            $totalAmount = 0;
+
+            // Calculate amount with reseller rates
+            foreach ($companies as $company) {
+                $reseller = RenewalDataUsd::getResellerForCompany($company->f_company_id);
+
+                if ($reseller && $reseller->f_rate) {
+                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    $totalAmount += $calculatedAmount;
+                } else {
+                    $totalAmount += $company->raw_total_amount;
+                }
+            }
+
+            return [
+                'total_companies' => $totalCompanies,
+                'total_invoices' => $totalInvoices,
+                'total_amount' => $totalAmount
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Error fetching completed renewal stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+
+    public static function getRenewalForecastStats($startDate = null, $endDate = null)
+    {
+        try {
+            // Get stats from existing methods
+            $newStats = (new self())->getNewStats($startDate, $endDate);
+            $pendingConfirmationStats = (new self())->getPendingConfirmationStats($startDate, $endDate);
+            $pendingPaymentStats = (new self())->getPendingPaymentStats($startDate, $endDate);
+
+            // Add them together
+            return [
+                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
+                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
+                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount']
+            ];
+        } catch (\Exception $e) {
+            Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
+            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
+        }
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(function () {
+                $baseQuery = RenewalDataUsd::query();
+
+                // Only show records where expiry date has not yet passed
+                $today = Carbon::now()->format('Y-m-d');
+                $baseQuery->whereRaw('f_expiry_date >= ?', [$today]);
+
+                // Only show USD currency
+                $baseQuery->where('f_currency', '=', 'USD');
+
+                // Apply product exclusions using the helper method
+                RenewalDataUsd::applyProductExclusions($baseQuery);
+
+                // Apply aggregation
+                $baseQuery->selectRaw("
+                    f_company_id,
+                    ANY_VALUE(f_company_name) AS f_company_name,
+                    ANY_VALUE(f_currency) AS f_currency,
+                    SUM(f_total_amount) AS total_amount,
+                    SUM(f_unit) AS total_units,
+                    COUNT(*) AS total_products,
+                    COUNT(DISTINCT f_invoice_no) AS total_invoices,
+                    MIN(f_expiry_date) AS earliest_expiry,
+                    ANY_VALUE(f_created_time) AS f_created_time
+                ")
+                ->groupBy('f_company_id')
+                ->havingRaw('COUNT(*) > 0');
+
+                return $baseQuery;
+            })
+            ->filters([
+                SelectFilter::make('f_name')
+                    ->label('Products')
+                    ->multiple()
+                    ->preload()
+                    ->options(function () {
+                        $today = Carbon::now()->format('Y-m-d');
+                        $query = RenewalDataUsd::query()
+                            ->whereRaw('f_expiry_date >= ?', [$today])
+                            ->where('f_currency', '=', 'USD');
+
+                        // Apply product exclusions
+                        RenewalDataUsd::applyProductExclusions($query);
+
+                        return $query->distinct()
+                            ->orderBy('f_name')
+                            ->pluck('f_name', 'f_name')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            $subQuery = RenewalDataUsd::query()
+                                ->select('f_company_id')
+                                ->whereIn('f_name', $data['values'])
+                                ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                ->where('f_currency', '=', 'USD');
+
+                            // Apply product exclusions
+                            RenewalDataUsd::applyProductExclusions($subQuery);
+
+                            $subQuery->distinct();
+
+                            $query->whereIn('f_company_id', $subQuery);
+                        }
+                    })
+                    ->indicator('Products'),
+
+                Filter::make('earliest_expiry')
+                    ->form([
+                        DateRangePicker::make('date_range')
+                            ->label('Expiry Date Range')
+                            ->placeholder('Select expiry date range')
+                            ->default(function () {
+                                $today = Carbon::now()->format('d/m/Y');
+                                $next60Days = Carbon::now()->addDays(60)->format('d/m/Y');
+                                return $today . ' - ' . $next60Days;
+                            }),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['date_range'])) {
+                            $today = Carbon::now()->format('Y-m-d');
+                            $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                            $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                        } else {
+                            try {
+                                [$start, $end] = explode(' - ', $data['date_range']);
+                                $startDate = Carbon::createFromFormat('d/m/Y', trim($start))->startOfDay()->format('Y-m-d');
+                                $endDate = Carbon::createFromFormat('d/m/Y', trim($end))->endOfDay()->format('Y-m-d');
+
+                                $today = Carbon::now()->format('Y-m-d');
+                                if ($startDate < $today) {
+                                    $startDate = $today;
+                                }
+
+                                $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
+
+                                // Reload data when filter changes
+                                $this->renewalForecastStats = RenewalDataUsd::getRenewalForecastStats($startDate, $endDate);
+                            } catch (\Exception $e) {
+                                Log::error("Date filter error: " . $e->getMessage());
+                                $today = Carbon::now()->format('Y-m-d');
+                                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                                $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                            }
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['date_range'])) {
+                            [$start, $end] = explode(' - ', $data['date_range']);
+                            return 'Expiry: ' .
+                                Carbon::createFromFormat('d/m/Y', trim($start))->format('j M Y') .
+                                ' → ' .
+                                Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
+                        }
+                        return 'Expiry: ' .
+                            Carbon::now()->format('j M Y') .
+                            ' → ' .
+                            Carbon::now()->addDays(60)->format('j M Y') .
+                            ' (Default 60 days)';
+                    }),
+                SelectFilter::make('renewal_progress')
+                    ->label('Renewal Progress')
+                    ->options([
+                        'new' => 'New',
+                        'pending_confirmation' => 'Pending Confirmation',
+                        'pending_payment' => 'Pending Payment',
+                        'completed_renewal' => 'Completed Renewal',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            // Get company IDs with the selected renewal progress
+                            $companyIds = Renewal::where('renewal_progress', $data['value'])
+                                ->pluck('f_company_id')
+                                ->toArray();
+
+                            if (!empty($companyIds)) {
+                                $query->whereIn('f_company_id', $companyIds);
+                            } else {
+                                // If no companies found with this progress, return empty result
+                                $query->where('f_company_id', -1);
+                            }
+                        }
+                    })
+                    ->indicator('Renewal Progress'),
+
+                SelectFilter::make('mapping_status')
+                    ->label('Mapping Status')
+                    ->options([
+                        'pending_mapping' => 'Pending Mapping',
+                        'completed_mapping' => 'Completed Mapping',
+                        'onhold_mapping' => 'OnHold Mapping',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            if ($data['value'] === 'pending_mapping') {
+                                // For pending mapping, include companies that either:
+                                // 1. Don't have a renewal record, OR
+                                // 2. Have mapping_status as 'pending_mapping' or NULL
+                                $renewalCompanyIds = Renewal::whereNotNull('mapping_status')
+                                    ->where('mapping_status', '!=', 'pending_mapping')
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($renewalCompanyIds)) {
+                                    $query->whereNotIn('f_company_id', $renewalCompanyIds);
+                                }
+                            } else {
+                                // For completed or onhold mapping
+                                $companyIds = Renewal::where('mapping_status', $data['value'])
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($companyIds)) {
+                                    $query->whereIn('f_company_id', $companyIds);
+                                } else {
+                                    // If no companies found with this status, return empty result
+                                    $query->where('f_company_id', -1);
+                                }
+                            }
+                        }
+                    })
+                    ->indicator('Mapping Status'),
+
+                SelectFilter::make('admin_renewal')
+                    ->label('Admin Renewal')
+                    ->options(function () {
+                        // Get all unique admin_renewal values from the database
+                        $adminRenewals = Renewal::whereNotNull('admin_renewal')
+                            ->distinct()
+                            ->pluck('admin_renewal')
+                            ->sort()
+                            ->mapWithKeys(function ($name) {
+                                return [$name => $name];
+                            })
+                            ->toArray();
+
+                        // Add the "Unassigned" option
+                        return ['unassigned' => 'Unassigned'] + $adminRenewals;
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            if ($data['value'] === 'unassigned') {
+                                // For unassigned, include companies that either:
+                                // 1. Don't have a renewal record, OR
+                                // 2. Have admin_renewal as NULL
+                                $assignedCompanyIds = Renewal::whereNotNull('admin_renewal')
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($assignedCompanyIds)) {
+                                    $query->whereNotIn('f_company_id', $assignedCompanyIds);
+                                }
+                            } else {
+                                // For specific admin assignments
+                                $companyIds = Renewal::where('admin_renewal', $data['value'])
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($companyIds)) {
+                                    $query->whereIn('f_company_id', $companyIds);
+                                } else {
+                                    // If no companies found with this admin, return empty result
+                                    $query->where('f_company_id', -1);
+                                }
+                            }
+                        }
+                    })
+                    ->indicator('Admin Renewal'),
+            ])
+            ->columns([
+                Split::make([
+                    Stack::make([
+                        TextColumn::make('f_company_name')
+                            ->label('Company')
+                            ->searchable()
+                            ->formatStateUsing(fn (string $state): string => strtoupper($state))
+                            ->weight('bold'),
+
+                        TextColumn::make('total_products')
+                            ->label('Products')
+                            ->formatStateUsing(fn ($state, $record) => "{$state} products in {$record->total_invoices} invoices")
+                            ->color('gray'),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('total_amount')
+                            ->label('Amount')
+                            ->formatStateUsing(function ($state, $record) {
+                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+
+                                if ($reseller && $reseller->f_rate) {
+                                    $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
+                                    return number_format($calculatedAmount, 2);
+                                }
+
+                                // If no reseller or no f_rate, return original amount
+                                return number_format($state, 2);
+                            }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Mapping Status')
+                            ->formatStateUsing(function ($state) {
+                                $renewal = Renewal::where('f_company_id', $state)->first();
+
+                                if (!$renewal) {
+                                    return 'Pending Mapping';
+                                }
+
+                                return match($renewal->mapping_status) {
+                                    'pending_mapping' => 'Pending Mapping',
+                                    'completed_mapping' => 'Completed Mapping',
+                                    'onhold_mapping' => 'OnHold Mapping',
+                                    default => 'Pending Mapping'
+                                };
+                            })
+                            ->badge()
+                            ->color(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if (!$renewal) {
+                                    return 'warning'; // Yellow for pending
+                                }
+
+                                return match($renewal->mapping_status) {
+                                    'pending_mapping' => 'warning',    // Yellow
+                                    'completed_mapping' => 'success',  // Green
+                                    'onhold_mapping' => 'danger',      // Red
+                                    default => 'warning'
+                                };
+                            })
+                            ->icon(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if (!$renewal) {
+                                    return 'heroicon-o-clock';
+                                }
+
+                                return match($renewal->mapping_status) {
+                                    'pending_mapping' => 'heroicon-o-clock',
+                                    'completed_mapping' => 'heroicon-o-check-circle',
+                                    'onhold_mapping' => 'heroicon-o-pause-circle',
+                                    default => 'heroicon-o-clock'
+                                };
+                            }),
+
+                        TextColumn::make('f_company_id')
+                            ->label('Lead Reference')
+                            ->formatStateUsing(function ($state) {
+                                $renewal = Renewal::where('f_company_id', $state)->first();
+
+                                if ($renewal && $renewal->lead_id) {
+                                    $lead = Lead::with('companyDetail')->find($renewal->lead_id);
+
+                                    if ($lead && $lead->companyDetail) {
+                                        return $lead->companyDetail->company_name;
+                                    } else {
+                                        return 'Lead ID: ' . str_pad($renewal->lead_id, 5, '0', STR_PAD_LEFT);
+                                    }
+                                }
+
+                                return '';
+                            })
+                            ->color('info')
+                            ->size('sm')
+                            ->url(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if ($renewal && $renewal->lead_id) {
+                                    return route('filament.admin.resources.leads.view', [
+                                        'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                                    ]);
+                                }
+
+                                return null;
+                            })
+                            ->openUrlInNewTab(),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Admin Renewal')
+                            ->formatStateUsing(function ($state) {
+                                $renewal = Renewal::where('f_company_id', $state)->first();
+
+                                if ($renewal && $renewal->admin_renewal) {
+                                    return $renewal->admin_renewal;
+                                }
+
+                                return 'Unassigned';
+                            })
+                            ->color(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if ($renewal && $renewal->admin_renewal) {
+                                    return 'success'; // Green for assigned
+                                }
+
+                                return 'gray'; // Gray for unassigned
+                            })
+                            ->icon(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if ($renewal && $renewal->admin_renewal) {
+                                    return 'heroicon-o-user';
+                                }
+
+                                return null;
+                            })
+                            ->visible(function ($state, $record) {
+                                // Only show if mapping is completed
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                                return $renewal;
+                            }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Reseller')
+                            ->formatStateUsing(function ($state) {
+                                $reseller = RenewalDataUsd::getResellerForCompany($state);
+                                return $reseller ? $reseller->reseller_name : '';
+                            })
+                            ->color('blue')
+                            ->size('sm')
+                            ->icon('heroicon-o-building-office'),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Renewal Progress')
+                            ->formatStateUsing(function ($state) {
+                                $renewal = Renewal::where('f_company_id', $state)->first();
+
+                                if (!$renewal || !$renewal->renewal_progress) {
+                                    return '';
+                                }
+
+                                return match($renewal->renewal_progress) {
+                                    'new' => 'New',
+                                    'pending_confirmation' => 'Pending Confirmation',
+                                    'pending_payment' => 'Pending Payment',
+                                    'completed_renewal' => 'Completed Renewal',
+                                    default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
+                                };
+                            })
+                            ->badge()
+                            ->color(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if (!$renewal || !$renewal->renewal_progress) {
+                                    return 'gray';
+                                }
+
+                                return match($renewal->renewal_progress) {
+                                    'new' => 'info',                    // Blue
+                                    'pending_confirmation' => 'warning', // Yellow
+                                    'pending_payment' => 'danger',      // Red
+                                    'completed_renewal' => 'success',           // Green
+                                    default => 'gray'
+                                };
+                            })
+                            ->icon(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if (!$renewal || !$renewal->renewal_progress) {
+                                    return null;
+                                }
+
+                                return match($renewal->renewal_progress) {
+                                    'new' => 'heroicon-o-star',
+                                    'pending_confirmation' => 'heroicon-o-clock',
+                                    'pending_payment' => 'heroicon-o-credit-card',
+                                    'completed_renewal' => 'heroicon-o-check-circle',
+                                    default => 'heroicon-o-question-mark-circle'
+                                };
+                            })
+                            ->visible(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                                return $renewal;
+                            }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('earliest_expiry')
+                            ->label('Expiry Date')
+                            ->date('Y-m-d')
+                            ->color(function ($state) {
+                                $today = Carbon::now();
+                                $expiryDate = Carbon::parse($state);
+
+                                // Color coding based on how close to expiry
+                                if ($expiryDate->isToday()) {
+                                    return 'danger'; // Expires today
+                                } elseif ($expiryDate->diffInDays($today) <= 7) {
+                                    return 'warning'; // Expires within a week
+                                } elseif ($expiryDate->diffInDays($today) <= 30) {
+                                    return 'info'; // Expires within a month
+                                }
+                                return 'gray'; // More than a month
+                            }),
+
+                        TextColumn::make('total_units')
+                            ->label('Units')
+                            ->numeric()
+                            ->prefix('Total: ')
+                            ->color('gray')
+                            ->size('sm'),
+                    ]),
+                ])->from('sm'),
+
+                // Collapsible content - shows invoices for the company
+                Panel::make([
+                    TextColumn::make('f_company_id')
+                        ->label('')
+                        ->formatStateUsing(function ($state, $record) {
+                            $reseller = RenewalDataUsd::getResellerForCompany($state);
+
+                            return view('components.company-invoices-usd', [
+                                'invoices' => RenewalDataUsd::getInvoicesForCompany($state),
+                                'companyId' => $state,
+                                'resellerName' => $reseller ? $reseller->reseller_name : null,
+                            ]);
+                        })
+                        ->html()
+                ])->collapsible()->collapsed(),
+            ])
+            ->actions([
+                ActionGroup::make([
+                    Action::make('assign_to_me')
+                        ->label('Assign to Me')
+                        ->icon('heroicon-o-user')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Renewal to Me')
+                        ->modalDescription(fn ($record) => "Are you sure you want to assign the renewal for {$record->f_company_name} to yourself?")
+                        ->modalSubmitActionLabel('Yes, Assign to Me')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            // Only show after mapping is completed AND no one is assigned yet
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->admin_renewal === null;
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Update or create renewal record with current user
+                                Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'admin_renewal' => auth()->user()->name,
+                                        'company_name' => $record->f_company_name,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Assignment Successful')
+                                    ->body("Renewal for {$record->f_company_name} has been assigned to you.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error assigning renewal: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Assignment Failed')
+                                    ->body('There was an error assigning the renewal. Please try again.')
+                                    ->send();
+                            }
+                        }),
+
+                    Action::make('mapping_action')
+                        ->label('Mapping')
+                        ->icon('heroicon-o-link')
+                        ->color('warning')
+                        ->fillForm(function ($record) {
+                            return [
+                                'company_name' => $record->f_company_name,
+                                'lead_source' => 'Existing Customer (Migration)',
+                                'products' => ['hr'], // This matches the 'hr' key from CreateLead
+                                'country' => 'Malaysia',
+                            ];
+                        })
+                        ->form([
+                            Select::make('mapping_type')
+                                ->label('Mapping Type')
+                                ->options([
+                                    'before_handover' => 'Before Software Handover',
+                                    'after_handover' => 'After Software Handover',
+                                    'onhold' => 'OnHold Mapping'
+                                ])
+                                ->required()
+                                ->reactive(),
+
+                            // Show Lead ID field for after handover
+                            Select::make('lead_id')
+                                ->label('Select Lead')
+                                ->searchable()
+                                ->preload()
+                                ->options(function () {
+                                    return Lead::with('companyDetail')
+                                        ->where('lead_status', 'Closed')
+                                        ->get()
+                                        ->mapWithKeys(function ($lead) {
+                                            $companyName = $lead->companyDetail
+                                                ? $lead->companyDetail->company_name
+                                                : 'Unknown Company';
+
+                                            $leadIdFormatted = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
+
+                                            return [
+                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}"
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->placeholder('Select a closed lead to map')
+                                ->visible(fn ($get) => $get('mapping_type') === 'after_handover')
+                                ->required(fn ($get) => $get('mapping_type') === 'after_handover')
+                                ->helperText('Only leads with "Closed" status are available for mapping')
+                                ->getSearchResultsUsing(function (string $search) {
+                                    return Lead::with('companyDetail')
+                                        ->where('lead_status', 'Closed')
+                                        ->where(function ($query) use ($search) {
+                                            $query->where('id', 'like', "%{$search}%")
+                                                ->orWhereHas('companyDetail', function ($q) use ($search) {
+                                                    $q->where('company_name', 'like', "%{$search}%");
+                                                });
+                                        })
+                                        ->get()
+                                        ->mapWithKeys(function ($lead) {
+                                            $companyName = $lead->companyDetail
+                                                ? $lead->companyDetail->company_name
+                                                : 'Unknown Company';
+
+                                            $leadIdFormatted = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
+
+                                            return [
+                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}"
+                                            ];
+                                        })
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value) {
+                                    $lead = Lead::with('companyDetail')->find($value);
+
+                                    if (!$lead) {
+                                        return "Lead not found";
+                                    }
+
+                                    $companyName = $lead->companyDetail
+                                        ? $lead->companyDetail->company_name
+                                        : 'Unknown Company';
+
+                                    $leadIdFormatted = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
+
+                                    return "Lead {$leadIdFormatted} - {$companyName}";
+                                }),
+
+                            // Show Create Lead form for before handover - following CreateLead.php exactly
+                            Grid::make(2)
+                                ->schema([
+                                    TextInput::make('company_name')
+                                        ->label('Company Name')
+                                        ->required()
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    TextInput::make('name')
+                                        ->label('Name')
+                                        ->required()
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    TextInput::make('email')
+                                        ->label('Work Email Address')
+                                        ->email()
+                                        ->required()
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    PhoneInput::make('phone')
+                                        ->label('Phone Number')
+                                        ->required()
+                                        ->suffixAction(
+                                            \Filament\Forms\Components\Actions\Action::make('searchPhone')
+                                                ->label('Verify')
+                                                ->icon('heroicon-o-magnifying-glass')
+                                                ->color('primary')
+                                                ->action(function ($state, $set, $livewire) {
+                                                    if (empty($state)) {
+                                                        $set('phone_helper_text', "Please enter a phone number to verify");
+                                                        return;
+                                                    }
+
+                                                    // Show loading state
+                                                    $set('phone_search_loading', true);
+
+                                                    // Use sleep for visual effect
+                                                    usleep(800000); // 0.8 second delay
+
+                                                    // Remove the "+" symbol from the phone number for searching
+                                                    $searchPhone = ltrim($state, '+');
+
+                                                    // Check if phone already exists in the Lead table
+                                                    $existingLeadsWithPhone = \App\Models\Lead::where('phone', $searchPhone)->get();
+
+                                                    // If exists, set helper text with found lead details
+                                                    if ($existingLeadsWithPhone->isNotEmpty()) {
+                                                        $duplicateInfo = $existingLeadsWithPhone->map(function($lead) {
+                                                            $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
+                                                            return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+                                                        })->implode("\n");
+
+                                                        // Store as plain string with HTML markup
+                                                        $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                                                    } else {
+                                                        // Store as plain string with HTML markup
+                                                        $set('phone_helper_text', '<span style="color:green;">✓ Phone number is unique</span>');
+                                                    }
+
+                                                    // Reset loading state
+                                                    $set('phone_search_loading', false);
+                                                })
+                                        )
+                                        ->helperText(function (callable $get) {
+                                            if ($get('phone_search_loading')) {
+                                                return "Verifying phone number...";
+                                            }
+
+                                            // Get the helper text which is now stored as a string with HTML markup
+                                            $helperText = $get('phone_helper_text');
+
+                                            // Convert it to HtmlString only when rendering, not when storing
+                                            return $helperText ? new HtmlString($helperText) : null;
+                                        })
+                                        ->dehydrateStateUsing(function ($state) {
+                                            // Remove the "+" symbol from the phone number
+                                            return ltrim($state, '+');
+                                        })
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    Select::make('company_size')
+                                        ->label('Company Size')
+                                        ->options([
+                                            '1-24' => '1 - 24',
+                                            '25-99' => '25 - 99',
+                                            '100-500' => '100 - 500',
+                                            '501 and Above' => '501 and Above',
+                                        ])
+                                        ->required()
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    Select::make('country')
+                                        ->label('Country')
+                                        ->searchable()
+                                        ->required()
+                                        ->default('MYS')
+                                        ->options(function () {
+                                            $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                                            if (file_exists($filePath)) {
+                                                $countriesContent = file_get_contents($filePath);
+                                                $countries = json_decode($countriesContent, true);
+
+                                                return collect($countries)->mapWithKeys(function ($country) {
+                                                    return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                                                })->toArray();
+                                            }
+
+                                            return [];
+                                        })
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    Select::make('lead_code')
+                                        ->label('Lead Source')
+                                        ->options(function () {
+                                            return [
+                                                'Existing Customer (Migration)' => 'Existing Customer (Migration)',
+                                            ];
+                                        })
+                                        ->default('Existing Customer (Migration)')
+                                        ->searchable()
+                                        ->required()
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+
+                                    Select::make('products')
+                                        ->label('Products')
+                                        ->multiple()
+                                        ->options([
+                                            'hr' => 'HR (Attendance, Leave, Claim, Payroll, Hire, Profile)',
+                                        ])
+                                        ->required()
+                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+                                ])
+                                ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            return $this->handleMappingAction($record, $data);
+                        })
+                        ->modalWidth('5xl')
+                        ->modalHeading(fn ($record) => 'Mapping Action - ' . $record->f_company_name),
+                    Action::make('completed_follow_up')
+                        ->label('Completed Follow Up')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Mark Follow Up as Completed')
+                        ->modalDescription('Are you sure you want to mark this follow up as completed? This will change the renewal progress to "Pending Confirmation".')
+                        ->modalSubmitActionLabel('Yes, Mark as Completed')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->admin_renewal !== null &&
+                                $renewal->renewal_progress === 'new';
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Get the existing renewal record to preserve current progress_history
+                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                // Get current progress_history or initialize as empty array
+                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                                    ? json_decode($existingRenewal->progress_history, true)
+                                    : [];
+
+                                // Add new log entry
+                                $newLogEntry = [
+                                    'timestamp' => now()->toISOString(),
+                                    'action' => 'follow_up_completed',
+                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                                    'new_status' => 'pending_confirmation',
+                                    'performed_by' => auth()->user()->name,
+                                    'performed_by_id' => auth()->user()->id,
+                                    'description' => 'Follow up marked as completed - Status changed to Pending Confirmation',
+                                    'company_name' => $record->f_company_name,
+                                    'f_company_id' => $record->f_company_id,
+                                ];
+
+                                // Add the new entry to progress history
+                                $progressHistory[] = $newLogEntry;
+
+                                // Update or create renewal record with pending_confirmation status and updated progress_history
+                                $renewal = Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'renewal_progress' => 'pending_confirmation',
+                                        'progress_history' => json_encode($progressHistory),
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Follow Up Completed')
+                                    ->body("Follow up has been marked as completed. Renewal progress updated to 'Pending Confirmation'.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error updating follow up status: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('There was an error updating the follow up status. Please try again.')
+                                    ->send();
+                            }
+                        }),
+                    Action::make('completed_payment')
+                        ->label('Completed Payment')
+                        ->icon('heroicon-o-credit-card')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Mark Payment as Completed')
+                        ->modalDescription('Are you sure you want to mark payment as completed? This will change the renewal progress to "Completed Renewal".')
+                        ->modalSubmitActionLabel('Yes, Mark as Completed')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Get the existing renewal record to preserve current progress_history
+                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                // Get current progress_history or initialize as empty array
+                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                                    ? json_decode($existingRenewal->progress_history, true)
+                                    : [];
+
+                                // Add new log entry
+                                $newLogEntry = [
+                                    'timestamp' => now()->toISOString(),
+                                    'action' => 'payment_completed',
+                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                                    'new_status' => 'completed_renewal',
+                                    'performed_by' => auth()->user()->name,
+                                    'performed_by_id' => auth()->user()->id,
+                                    'description' => 'Payment marked as completed - Renewal process completed',
+                                    'company_name' => $record->f_company_name,
+                                    'f_company_id' => $record->f_company_id,
+                                ];
+
+                                // Add the new entry to progress history
+                                $progressHistory[] = $newLogEntry;
+
+                                // Update renewal record
+                                $renewal = Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'renewal_progress' => 'completed_renewal',
+                                        'progress_history' => json_encode($progressHistory),
+                                        'payment_completed_at' => now(),
+                                        'payment_completed_by' => auth()->user()->id,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Payment Completed')
+                                    ->body("Payment has been marked as completed. Renewal process is now complete.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error updating payment status: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('There was an error updating the payment status. Please try again.')
+                                    ->send();
+                            }
+                        }),
+
+                    Action::make('request_invoice')
+                        ->label('Request Invoice')
+                        ->icon('heroicon-o-document-text')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Request Invoice')
+                        ->modalDescription('Are you sure you want to request an invoice? This will change the renewal progress to "Pending Payment".')
+                        ->modalSubmitActionLabel('Yes, Request Invoice')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Get the existing renewal record to preserve current progress_history
+                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                // Get current progress_history or initialize as empty array
+                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                                    ? json_decode($existingRenewal->progress_history, true)
+                                    : [];
+
+                                // Add new log entry
+                                $newLogEntry = [
+                                    'timestamp' => now()->toISOString(),
+                                    'action' => 'invoice_requested',
+                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                                    'new_status' => 'pending_payment',
+                                    'performed_by' => auth()->user()->name,
+                                    'performed_by_id' => auth()->user()->id,
+                                    'description' => 'Invoice requested - Status changed to Pending Payment',
+                                    'company_name' => $record->f_company_name,
+                                    'f_company_id' => $record->f_company_id,
+                                ];
+
+                                // Add the new entry to progress history
+                                $progressHistory[] = $newLogEntry;
+
+                                // Update renewal record
+                                $renewal = Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'renewal_progress' => 'pending_payment',
+                                        'progress_history' => json_encode($progressHistory),
+                                        'invoice_requested_at' => now(),
+                                        'invoice_requested_by' => auth()->user()->id,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Invoice Requested')
+                                    ->body("Invoice has been requested. Renewal progress updated to 'Pending Payment'.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error requesting invoice: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('There was an error requesting the invoice. Please try again.')
+                                    ->send();
+                            }
+                        }),
+
+                    Action::make('claim_via_hrdf')
+                        ->label('Claim via HRDF')
+                        ->icon('heroicon-o-building-library')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Claim via HRDF')
+                        ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
+                        ->modalSubmitActionLabel('Yes, Process HRDF Claim')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Get the existing renewal record to preserve current progress_history
+                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                // Get current progress_history or initialize as empty array
+                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                                    ? json_decode($existingRenewal->progress_history, true)
+                                    : [];
+
+                                // Add new log entry
+                                $newLogEntry = [
+                                    'timestamp' => now()->toISOString(),
+                                    'action' => 'hrdf_claim_initiated',
+                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                                    'new_status' => 'pending_payment',
+                                    'performed_by' => auth()->user()->name,
+                                    'performed_by_id' => auth()->user()->id,
+                                    'description' => 'HRDF claim initiated - Status changed to Pending Payment',
+                                    'company_name' => $record->f_company_name,
+                                    'f_company_id' => $record->f_company_id,
+                                ];
+
+                                // Add the new entry to progress history
+                                $progressHistory[] = $newLogEntry;
+
+                                // Update renewal record
+                                $renewal = Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'renewal_progress' => 'pending_payment',
+                                        'progress_history' => json_encode($progressHistory),
+                                        'hrdf_claim_initiated_at' => now(),
+                                        'hrdf_claim_initiated_by' => auth()->user()->id,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('HRDF Claim Initiated')
+                                    ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error initiating HRDF claim: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('There was an error initiating the HRDF claim. Please try again.')
+                                    ->send();
+                            }
+                        }),
+                ])
+                ->icon('heroicon-m-ellipsis-vertical')
+                ->color('primary')
+            ])
+            ->defaultPaginationPageOption(50)
+            ->paginated([10, 25, 50])
+            ->paginationPageOptions([10, 25, 50, 100])
+            ->persistFiltersInSession()
+            ->persistSortInSession()
+            ->defaultSort('earliest_expiry', 'asc');
+    }
+
+    protected function handleMappingAction($record, array $data)
+    {
+        $mappingType = $data['mapping_type'];
+
+        switch ($mappingType) {
+            case 'before_handover':
+                try {
+                    // Follow the exact same pattern as CreateLead.php
+
+                    // Get the latest lead ID to determine the next one
+                    $latestLeadId = Lead::max('id') ?? 0;
+                    $nextLeadId = $latestLeadId + 1;
+
+                    // Create CompanyDetail first (like in CreateLead)
+                    $companyDetail = CompanyDetail::create([
+                        'company_name' => strtoupper(trim($data['company_name'])),
+                        'lead_id' => $nextLeadId
+                    ]);
+
+                    // Get lead source ID
+                    $leadSource = LeadSource::where('lead_code', $data['lead_code'])->first();
+                    $leadSourceId = $leadSource ? $leadSource->id : 1;
+
+                    // Convert country code to country name (like in CreateLead)
+                    $countryName = $this->convertCountryCodeToName($data['country']);
+
+                    // Remove + from phone number (like in CreateLead)
+                    $phoneNumber = ltrim($data['phone'], '+');
+
+                    // Create Lead
+                    $lead = Lead::create([
+                        'company_name' => $companyDetail->id, // Store CompanyDetail ID
+                        'name' => strtoupper($data['name']),
+                        'email' => $data['email'],
+                        'phone' => $phoneNumber,
+                        'company_size' => $data['company_size'],
+                        'country' => $countryName,
+                        'lead_code' => $data['lead_code'],
+                        'products' => $data['products'], // This will be stored as JSON
+                        'status' => 'new',
+                        'f_company_id' => $record->f_company_id, // Link to renewal data
+                    ]);
+
+                    // First ActivityLog update - for renewal mapping
+                    $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                        ->orderByDesc('created_at')
+                        ->first();
+
+                    // Update the activity log description
+                    if ($latestActivityLog) {
+                        $latestActivityLog->update([
+                            'description' => 'New lead created for renewal mapping',
+                            'causer_id' => auth()->user()->id,
+                        ]);
+                    }
+
+                    if (auth()->user()->role_id === 1 || auth()->user()->role_id === 3) {
+                        sleep(1);
+                        $lead->update([
+                            'lead_owner' => auth()->user()->name,
+                            'categories' => 'Inactive',
+                            'stage' => null,
+                            'lead_status' => 'Closed',
+                            'pickup_date' => now(),
+                            'closing_date' => now(),
+                        ]);
+
+                        // Second ActivityLog update - for assignment and closure
+                        $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                            ->orderByDesc('id')
+                            ->first();
+
+                        if ($latestActivityLog) {
+                            $latestActivityLog->update([
+                                'subject_id' => $lead->id,
+                                'description' => 'Lead assigned to ' . auth()->user()->name . ' and Mark as Closed',
+                            ]);
+                        }
+                    }
+
+                    // Create or update renewal record
+                    Renewal::updateOrCreate(
+                        ['f_company_id' => $record->f_company_id],
+                        [
+                            'lead_id' => $lead->id,
+                            'company_name' => $data['company_name'],
+                            'mapping_status' => 'completed_mapping',
+                        ]
+                    );
+
+                    Notification::make()
+                        ->success()
+                        ->title('Lead Created Successfully')
+                        ->body("New lead created with ID: {$lead->lead_code} and mapped to renewal.")
+                        ->actions([
+                            \Filament\Notifications\Actions\Action::make('view_lead')
+                                ->label('View Lead')
+                                ->url(route('filament.admin.resources.leads.view', ['record' => \App\Classes\Encryptor::encrypt($lead->id)]))
+                                ->openUrlInNewTab()
+                        ])
+                        ->send();
+
+                } catch (\Exception $e) {
+                    Log::error("Error creating lead: " . $e->getMessage());
+
+                    Notification::make()
+                        ->danger()
+                        ->title('Error Creating Lead')
+                        ->body('There was an error creating the lead. Please try again.')
+                        ->send();
+                }
+                break;
+
+            case 'after_handover':
+                $leadId = $data['lead_id'];
+
+                Renewal::updateOrCreate(
+                    ['f_company_id' => $record->f_company_id],
+                    [
+                        'lead_id' => $leadId,
+                        'company_name' => $record->f_company_name,
+                        'mapping_status' => 'completed_mapping',
+                    ]
+                );
+
+                Notification::make()
+                    ->success()
+                    ->title('Mapping Completed')
+                    ->body("Successfully mapped to Lead ID: {$leadId}")
+                    ->send();
+                break;
+
+            case 'onhold':
+                Renewal::updateOrCreate(
+                    ['f_company_id' => $record->f_company_id],
+                    [
+                        'company_name' => $record->f_company_name,
+                        'mapping_status' => 'onhold_mapping',
+                    ]
+                );
+
+                Notification::make()
+                    ->info()
+                    ->title('Mapping On Hold')
+                    ->body('Renewal mapping has been placed on hold.')
+                    ->send();
+                break;
+        }
+    }
+
+    // Helper method to convert country code to name (like in CreateLead)
+    protected function convertCountryCodeToName($countryCode)
+    {
+        $filePath = storage_path('app/public/json/CountryCodes.json');
+
+        if (file_exists($filePath)) {
+            $countriesContent = file_get_contents($filePath);
+            $countries = json_decode($countriesContent, true);
+
+            foreach ($countries as $country) {
+                if ($country['Code'] === $countryCode) {
+                    return ucfirst(strtolower($country['Country']));
+                }
+            }
+        }
+
+        return $countryCode; // Fallback
+    }
+}

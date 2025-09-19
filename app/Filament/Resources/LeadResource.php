@@ -33,6 +33,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\CommercialItemTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
 use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
@@ -211,6 +212,11 @@ class LeadResource extends Resource
         //     $tabs[] = Tabs\Tab::make('Other Form')
         //         ->schema(OtherFormTabs::getSchema());
         // }
+
+        if (in_array('ar_follow_up', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('AR Follow Up')
+                ->schema(ARFollowUpTabs::getSchema());
+        }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Prospect Follow Up')

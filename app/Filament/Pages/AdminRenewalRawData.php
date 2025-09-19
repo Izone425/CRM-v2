@@ -134,26 +134,14 @@ class AdminRenewalRawData extends Page implements HasTable
                         }
                     })
                     ->indicator('Product Group'),
-                SelectFilter::make('f_name')
-                    ->label('Products')
-                    ->multiple()
-                    ->preload()
-                    ->options(function () {
-                        // Get distinct product names
-                        return LicenseData::query()
-                            ->distinct()
-                            ->orderBy('f_name')
-                            ->pluck('f_name', 'f_name')
-                            ->toArray();
-                    })
-                    ->indicator('Products'),
+
 
                 Filter::make('expiry_date_range')
                     ->form([
                         DateRangePicker::make('date_range')
                             ->label('Expiry Date Range')
                             ->placeholder('Select expiry date range')
-                            ->default($defaultDateRange), // Set default 60-day range
+                            ->default($defaultDateRange),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['date_range'])) {
@@ -163,10 +151,8 @@ class AdminRenewalRawData extends Page implements HasTable
                                 $startDate = Carbon::createFromFormat('d/m/Y', trim($start))->startOfDay()->format('Y-m-d');
                                 $endDate = Carbon::createFromFormat('d/m/Y', trim($end))->endOfDay()->format('Y-m-d');
 
-                                // Simple direct filtering on the date column
                                 $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
 
-                                // Log the filter
                                 Log::info("Filtering expiry dates between: {$startDate} and {$endDate}");
                             } catch (\Exception $e) {
                                 Log::error("Date filter error: " . $e->getMessage());
@@ -184,31 +170,13 @@ class AdminRenewalRawData extends Page implements HasTable
                         }
                         return null;
                     })
-                    ->default(true), // Automatically apply this filter by default
-
-                // FILTER 4: PRODUCT NAME
-                SelectFilter::make('f_name')
-                    ->label('Product Name')
-                    ->multiple()
-                    ->preload()
-                    ->searchable()
-                    ->options(function () {
-                        // Get distinct product names
-                        return LicenseData::query()
-                            ->distinct()
-                            ->orderBy('f_name')
-                            ->pluck('f_name', 'f_name')
-                            ->toArray();
-                    })
-                    ->indicator('Product'),
-
+                    ->default(true),
 
                 SelectFilter::make('f_currency')
                     ->label('Currency')
                     ->multiple()
                     ->preload()
                     ->options(function () {
-                        // Get distinct currencies
                         return LicenseData::query()
                             ->distinct()
                             ->orderBy('f_currency')
@@ -218,7 +186,46 @@ class AdminRenewalRawData extends Page implements HasTable
                             ->toArray();
                     })
                     ->indicator('Currency'),
+
+                Filter::make('f_name')
+                    ->label('Products')
+                    ->columnSpan(4) // This makes it span all 4 columns
+                    ->form([
+                        \Filament\Forms\Components\CheckboxList::make('products')
+                            ->label('Select Products')
+                            ->options(function () {
+                                return LicenseData::query()
+                                    ->distinct()
+                                    ->orderBy('f_name')
+                                    ->pluck('f_name', 'f_name')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->columns(6) // Increase columns since we have more space
+                            ->columnSpanFull()
+                            ->gridDirection('row')
+                            ->extraAttributes([
+                                'style' => 'max-height: 300px; overflow-y: auto;'
+                            ])
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['products'])) {
+                            $query->whereIn('f_name', $data['products']);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['products'])) {
+                            $count = count($data['products']);
+                            if ($count === 1) {
+                                return "Product: " . $data['products'][0];
+                            }
+                            return "Products: {$count} selected";
+                        }
+                        return null;
+                    }),
             ])
+            ->filtersFormColumns(4)
             ->columns([
                 TextColumn::make('id')
                     ->label('NO.')

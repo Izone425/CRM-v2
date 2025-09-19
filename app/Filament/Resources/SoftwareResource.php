@@ -156,6 +156,7 @@ class SoftwareResource extends Resource
                                     ->schema([
                                         DatePicker::make('webinar_training')
                                             ->label('Online Webinar Training')
+                                            ->disabled()
                                             ->native(false)
                                             ->displayFormat('d M Y'),
 
@@ -170,10 +171,7 @@ class SoftwareResource extends Resource
                                                     $set('status_handover', 'Closed');
                                                 }
                                             })
-                                            ->disabled(function () {
-                                                // Disable this field if the user has role_id 2 (salesperson)
-                                                return auth()->user()->role_id === 2;
-                                            })
+                                            ->disabled()
                                             ->dehydrated(function () {
                                                 // Even if disabled, we still want to save any existing value
                                                 // This ensures the field value is still submitted when the form is saved
@@ -194,7 +192,7 @@ class SoftwareResource extends Resource
                                             ->toArray();
                                     })
                                     ->required()
-                                    ->disabled(fn() => auth()->user()->role_id !== 3)
+                                    ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
                                     ->default(function (SoftwareHandover $record) {
                                         // First try to use existing implementer_id if record exists
                                         if ($record && $record->implementer) {
@@ -358,7 +356,7 @@ class SoftwareResource extends Resource
                                 TextInput::make('payroll_code')
                                     ->label('Payroll Code')
                                     ->maxLength(50)
-                                    ->disabled(fn() => auth()->user()->role_id !== 3)
+                                    ->disabled()
                                     ->dehydrated(true),
                             ]),
                         // Section::make('Handover Status')
@@ -1171,9 +1169,9 @@ class SoftwareResource extends Resource
     {
         return [
             'index' => Pages\ListSoftwareHandovers::route('/project-list'),
-            'view' => Pages\ViewSoftwareHandover::route('/{record}'),
+            // 'view' => Pages\ViewSoftwareHandover::route('/{record}'),
             // 'create' => Pages\CreateSoftwareHandover::route('/create'),
-            // 'edit' => Pages\EditSoftwareHandover::route('/{record}/edit'),
+            'edit' => Pages\EditSoftwareHandover::route('/{record}/edit'),
         ];
     }
 

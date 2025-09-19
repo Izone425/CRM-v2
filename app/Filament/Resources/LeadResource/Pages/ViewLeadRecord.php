@@ -178,6 +178,7 @@ class ViewLeadRecord extends ViewRecord
                         $roleOptions = [
                             'lead_owner' => 'Lead Owner View',
                             'admin_repair' => 'Admin Repair View',
+                            'admin_renewal' => 'Admin Renewal View',
                             'salesperson' => 'Salesperson View',
                             'implementer' => 'Implementer View',
                             'technician' => 'Technician View',
@@ -235,6 +236,9 @@ class ViewLeadRecord extends ViewRecord
                             break;
                         case 'admin_repair':
                             $tabs = ['company', 'quotation', 'repair_appointment'];
+                            break;
+                         case 'admin_renewal':
+                            $tabs = ['company', 'ar_follow_up'];
                             break;
                         case 'technician':
                             $tabs = ['company', 'quotation', 'repair_appointment'];

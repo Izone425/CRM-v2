@@ -78,6 +78,10 @@ class SalesPendingKickOff extends Component implements HasForms, HasTable
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
         $query->whereNull('kick_off_meeting');
+        $query->where(function ($q) {
+            $q->whereIn('id', [420, 520, 531, 539]) //4 Company included
+                ->orWhere('id', '>=', 540);
+        });
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {

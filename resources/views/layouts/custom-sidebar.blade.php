@@ -1324,26 +1324,28 @@
                     </div>
 
                     <!-- Implementer Audit List Section -->
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-audit-list-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-ui-checks-grid"></i>
+                    @if(auth()->user()->hasRouteAccess('filament.admin.pages.implementer-request-count'))
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-audit-list-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-ui-checks-grid"></i>
+                                </div>
+                                <span class="menu-text">Implementer - Audit List</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
                             </div>
-                            <span class="menu-text">Implementer - Audit List</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
 
-                        <div class="submenu" id="implementer-audit-list-submenu">
-                            <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="submenu-item">
-                                <i class="bi bi-exposure submenu-icon"></i>
-                                <span class="module-font">Request Count</span>
-                            </a>
-                            <a href="{{ route('filament.admin.pages.implementer-request-list') }}" class="submenu-item">
-                                <i class="bi bi-list-check submenu-icon"></i>
-                                <span class="module-font">Request List</span>
-                            </a>
+                            <div class="submenu" id="implementer-audit-list-submenu">
+                                <a href="{{ route('filament.admin.pages.implementer-request-count') }}" class="submenu-item">
+                                    <i class="bi bi-exposure submenu-icon"></i>
+                                    <span class="module-font">Request Count</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.implementer-request-list') }}" class="submenu-item">
+                                    <i class="bi bi-list-check submenu-icon"></i>
+                                    <span class="module-font">Request List</span>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    @endif
 
                     @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
                         <!-- Follow Up Template Section -->

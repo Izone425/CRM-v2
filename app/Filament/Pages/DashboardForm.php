@@ -100,7 +100,7 @@ class DashboardForm extends Page
             'Training',
             'Finance',
             'HRDF',
-            'Renewal',
+            'AdminRenewal',
             'General',
             'Credit Controller',
             'Trainer',
