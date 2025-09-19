@@ -37,32 +37,58 @@
     <div class="container" style="clear:both;">&nbsp;
         <div class="row">
             <div class="col-4 pull-left">
-                <span style="font-weight: bold;">{{ Str::upper($quotation->lead->companyDetail->company_name) }}</span><br />
-                <span>
+                @php
+                    // Use the correct company details based on whether a subsidiary is selected
+                    $companyDetails = $quotation->subsidiary_id
+                        ? $quotation->subsidiary
+                        : $quotation->lead->companyDetail;
+                @endphp
+
+                @if ($companyDetails)
+                    <span style="font-weight: bold;">
+                        {{ Str::upper($companyDetails->company_name) }}
+                    </span><br />
+
                     @php
                         $address = "";
-                        if (strlen(trim($quotation->lead->companyDetail->company_address1)) > 0) {
-                            $address .= Str::upper(trim($quotation->lead->companyDetail->company_address1)).'<br />';
-                        }
-                        if (strlen(trim($quotation->lead->companyDetail->company_address2)) > 0) {
-                            $address .= Str::upper(trim($quotation->lead->companyDetail->company_address2)).'<br />';
-                        }
-                        if (strlen(trim($quotation->lead->companyDetail->postcode)) > 0) {
-                            $address .= trim($quotation->lead->companyDetail->postcode);
-                        }
-                        $address .= " ".Str::upper(trim($quotation->lead->companyDetail->state)) . '<br />';
-                        if ($quotation->lead->country <> 'Malaysia') {
-                            $address .= trim($quotation->lead->country);
+
+                        if (strlen(trim($companyDetails->company_address1 ?? '')) > 0) {
+                            $address .= Str::upper(trim($companyDetails->company_address1)).'<br />';
                         }
 
+                        if (strlen(trim($companyDetails->company_address2 ?? '')) > 0) {
+                            $address .= Str::upper(trim($companyDetails->company_address2)).'<br />';
+                        }
+
+                        if (strlen(trim($companyDetails->postcode ?? '')) > 0) {
+                            $address .= trim($companyDetails->postcode);
+                        }
+
+                        $address .= " " . Str::upper(trim($companyDetails->state ?? '')) . '<br />';
+
+                        if (($companyDetails->country ?? '') !== 'Malaysia') {
+                            $address .= trim($companyDetails->country);
+                        }
                     @endphp
-                    {!! $address !!}
-                </span>
-                <br>
 
-                <span><span style="font-weight:bold;" >Attention: </span>{{ optional($quotation->lead->companyDetail)->name ?? $quotation->lead->name }}</span><br />
-                <span><span style="font-weight:bold;">Tel: </span>{{ optional($quotation->lead->companyDetail)->contact_no ?? $quotation->lead->phone }}</span><br />
-                <span><span style="font-weight:bold;" >Email: </span>{{ optional($quotation->lead->companyDetail)->email ?? $quotation->lead->email }}</span><br />
+                    {!! $address !!}<br />
+                    <br>
+
+                    <span>
+                        <span style="font-weight:bold;">Attention: </span>
+                        {{ $companyDetails->name ?? $quotation->lead->name }}
+                    </span><br />
+
+                    <span>
+                        <span style="font-weight:bold;">Tel: </span>
+                        {{ $companyDetails->contact_no ?? $quotation->lead->phone }}
+                    </span><br />
+
+                    <span>
+                        <span style="font-weight:bold;">Email: </span>
+                        {{ $companyDetails->email ?? $quotation->lead->email }}
+                    </span><br />
+                @endif
             </div>
             <div class="col-4 pull-right">
                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />
@@ -181,32 +207,58 @@
     <div class="container" style="clear:both;">&nbsp;
         <div class="row">
             <div class="col-4 pull-left">
-                <span style="font-weight: bold;">{{ Str::upper($quotation->lead->companyDetail->company_name) }}</span><br />
-                <span>
+                @php
+                    // Use the correct company details based on whether a subsidiary is selected
+                    $companyDetails = $quotation->subsidiary_id
+                        ? $quotation->subsidiary
+                        : $quotation->lead->companyDetail;
+                @endphp
+
+                @if ($companyDetails)
+                    <span style="font-weight: bold;">
+                        {{ Str::upper($companyDetails->company_name) }}
+                    </span><br />
+
                     @php
                         $address = "";
-                        if (strlen(trim($quotation->lead->companyDetail->company_address1)) > 0) {
-                            $address .= Str::upper(trim($quotation->lead->companyDetail->company_address1)).'<br />';
-                        }
-                        if (strlen(trim($quotation->lead->companyDetail->company_address2)) > 0) {
-                            $address .= Str::upper(trim($quotation->lead->companyDetail->company_address2)).'<br />';
-                        }
-                        if (strlen(trim($quotation->lead->companyDetail->postcode)) > 0) {
-                            $address .= trim($quotation->lead->companyDetail->postcode);
-                        }
-                        $address .= " ".Str::upper(trim($quotation->lead->companyDetail->state)) . '<br />';
-                        if ($quotation->lead->country <> 'Malaysia') {
-                            $address .= trim($quotation->lead->country);
+
+                        if (strlen(trim($companyDetails->company_address1 ?? '')) > 0) {
+                            $address .= Str::upper(trim($companyDetails->company_address1)).'<br />';
                         }
 
+                        if (strlen(trim($companyDetails->company_address2 ?? '')) > 0) {
+                            $address .= Str::upper(trim($companyDetails->company_address2)).'<br />';
+                        }
+
+                        if (strlen(trim($companyDetails->postcode ?? '')) > 0) {
+                            $address .= trim($companyDetails->postcode);
+                        }
+
+                        $address .= " " . Str::upper(trim($companyDetails->state ?? '')) . '<br />';
+
+                        if (($companyDetails->country ?? '') !== 'Malaysia') {
+                            $address .= trim($companyDetails->country);
+                        }
                     @endphp
-                    {!! $address !!}
-                </span>
-                <br>
 
-                <span><span style="font-weight:bold;" >Attention: </span>{{ optional($quotation->lead->companyDetail)->name ?? $quotation->lead->name }}</span><br />
-                <span><span style="font-weight:bold;">Tel: </span>{{ optional($quotation->lead->companyDetail)->contact_no ?? $quotation->lead->phone }}</span><br />
-                <span><span style="font-weight:bold;" >Email: </span>{{ optional($quotation->lead->companyDetail)->email ?? $quotation->lead->email }}</span><br />
+                    {!! $address !!}<br />
+                    <br>
+
+                    <span>
+                        <span style="font-weight:bold;">Attention: </span>
+                        {{ $companyDetails->name ?? $quotation->lead->name }}
+                    </span><br />
+
+                    <span>
+                        <span style="font-weight:bold;">Tel: </span>
+                        {{ $companyDetails->contact_no ?? $quotation->lead->phone }}
+                    </span><br />
+
+                    <span>
+                        <span style="font-weight:bold;">Email: </span>
+                        {{ $companyDetails->email ?? $quotation->lead->email }}
+                    </span><br />
+                @endif
             </div>
             <div class="col-4 pull-right">
                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->quotation_reference_no }}</span><br />

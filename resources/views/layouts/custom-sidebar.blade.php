@@ -1164,6 +1164,12 @@
                             <a href="{{ route('filament.admin.pages.admin-renewal-process-data') }}" class="submenu-item">
                                 <span class="module-font">Process Data</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.admin-renewal-process-data-myr') }}" class="submenu-item">
+                                <span class="module-font">Process Data - MYR</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.admin-renewal-process-data-usd') }}" class="submenu-item">
+                                <span class="module-font">Process Data - USD</span>
+                            </a>
                         </div>
                     </div>
 

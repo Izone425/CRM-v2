@@ -235,7 +235,7 @@
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $completedRenewalStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">Total Invoice: {{ $completedRenewalStats['total_invoices'] }}</div>
-                            <div class="renewal-amount green">{{ number_format($completedRenewalStats['total_amount'], 2) }}</div>
+                            <div class="renewal-amount green">RM {{ number_format($completedRenewalStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>
@@ -256,7 +256,7 @@
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $renewalForecastStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">Total Invoice: {{ $renewalForecastStats['total_invoices'] }}</div>
-                            <div class="renewal-amount blue">{{ number_format($renewalForecastStats['total_amount'], 2) }}</div>
+                            <div class="renewal-amount blue">RM {{ number_format($renewalForecastStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>
@@ -277,7 +277,7 @@
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $newStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">Total Invoice: {{ $newStats['total_invoices'] }}</div>
-                            <div class="renewal-amount purple">{{ number_format($newStats['total_amount'], 2) }}</div>
+                            <div class="renewal-amount purple">RM {{ number_format($newStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>
@@ -298,7 +298,7 @@
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $pendingConfirmationStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">Total Invoice: {{ $pendingConfirmationStats['total_invoices'] }}</div>
-                            <div class="renewal-amount orange">{{ number_format($pendingConfirmationStats['total_amount'], 2) }}</div>
+                            <div class="renewal-amount orange">RM {{ number_format($pendingConfirmationStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>
@@ -319,7 +319,7 @@
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $pendingPaymentStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">Total Invoice: {{ $pendingPaymentStats['total_invoices'] }}</div>
-                            <div class="renewal-amount red">{{ number_format($pendingPaymentStats['total_amount'], 2) }}</div>
+                            <div class="renewal-amount red">RM {{ number_format($pendingPaymentStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>
