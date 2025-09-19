@@ -91,8 +91,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -191,14 +191,14 @@
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('Renewal')"
+                                        wire:click="toggleDashboard('AdminRenewal')"
                                         style="
                                             display: block;
                                             width: 100%;
                                             padding: 10px 16px;
                                             text-align: left;
                                             border: none;
-                                            background: {{ $currentDashboard === 'Renewal' ? '#f3f3f3' : 'white' }};
+                                            background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
                                             font-size: 14px;
                                         "
@@ -572,8 +572,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -672,14 +672,14 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('Renewal')"
+                                                wire:click="toggleDashboard('AdminRenewal')"
                                                 style="
                                                     display: block;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'Renewal' ? '#f3f3f3' : 'white' }};
+                                                    background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
                                                     cursor: pointer;
                                                     font-size: 14px;
                                                 "
@@ -786,8 +786,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -886,14 +886,14 @@
                                         </button>
 
                                         <button
-                                            wire:click="toggleDashboard('Renewal')"
+                                            wire:click="toggleDashboard('AdminRenewal')"
                                             style="
                                                 display: block;
                                                 width: 100%;
                                                 padding: 10px 16px;
                                                 text-align: left;
                                                 border: none;
-                                                background: {{ $currentDashboard === 'Renewal' ? '#f3f3f3' : 'white' }};
+                                                background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
                                                 cursor: pointer;
                                                 font-size: 14px;
                                             "
@@ -962,6 +962,8 @@
                             @include('filament.pages.hardwarehandover')
                         @elseif ($currentDashboard === 'AdminRepair')
                             @include('filament.pages.adminrepair')
+                        @elseif ($currentDashboard === 'AdminRenewal')
+                            @include('filament.pages.adminrenewal')
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'Debtor')

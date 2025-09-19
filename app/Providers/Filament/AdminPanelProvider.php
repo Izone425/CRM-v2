@@ -2,7 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\AdminDebtorProcessDataMyr;
+use App\Filament\Pages\AdminDebtorProcessDataUsd;
 use App\Filament\Pages\AdminRenewalProcessData;
+use App\Filament\Pages\AdminRenewalProcessDataMyr;
+use App\Filament\Pages\AdminRenewalProcessDataUsd;
 use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\Auth\EditProfile;
@@ -266,7 +270,7 @@ class AdminPanelProvider extends PanelProvider
                 // Pages\Dashboard::class,
                 SalespersonCalendarV1::class,
                 SalespersonCalendarV2::class,
-                SalespersonCalendarV3::class,
+                // SalespersonCalendarV3::class,
                 MonthlyCalendar::class,
                 TechnicianCalendar::class,
                 DemoRanking::class,
@@ -322,6 +326,8 @@ class AdminPanelProvider extends PanelProvider
                 DevicePurchaseInformation::class,
                 SalesDebtor::class,
                 InvoiceSummary::class,
+                AdminRenewalProcessDataMyr::class,
+                AdminRenewalProcessDataUsd::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -187,6 +187,11 @@ class Lead extends Model
         return $this->hasMany(ImplementerLogs::class, 'lead_id', 'id');
     }
 
+    public function adminRenewalLogs(): HasMany
+    {
+        return $this->hasMany(AdminRenewalLogs::class, 'lead_id', 'id');
+    }
+
     public function demoAppointment(): HasMany
     {
         return $this->hasMany(Appointment::class, 'lead_id', 'id');
@@ -280,6 +285,11 @@ class Lead extends Model
     public function reseller(): HasOne
     {
         return $this->hasOne(Reseller::class);
+    }
+
+    public function renewals(): HasMany
+    {
+        return $this->hasMany(Renewal::class);
     }
 
     public function subsidiaries()
