@@ -156,30 +156,6 @@ class RenewalDataMyr extends Model
             return collect(); // Return empty collection instead of empty array
         }
     }
-
-    // Get summary statistics for renewal forecast
-    public static function getRenewalForecastStats($startDate = null, $endDate = null)
-    {
-        try {
-            // Create an instance of the main class to access the methods
-            $adminClass = new AdminRenewalProcessDataMyr();
-
-            // Get stats from existing methods
-            $newStats = $adminClass->getNewStats($startDate, $endDate);
-            $pendingConfirmationStats = $adminClass->getPendingConfirmationStats($startDate, $endDate);
-            $pendingPaymentStats = $adminClass->getPendingPaymentStats($startDate, $endDate);
-
-            // Add them together
-            return [
-                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
-                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
-                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount']
-            ];
-        } catch (\Exception $e) {
-            Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
-            return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
-        }
-    }
 }
 
 class AdminRenewalProcessDataMyr extends Page implements HasTable
@@ -344,14 +320,15 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $totalInvoices = $invoices->count();
             $totalAmount = 0;
 
-            // Calculate amount with reseller rates
             foreach ($companies as $company) {
                 $reseller = RenewalDataMyr::getResellerForCompany($company['f_company_id']);
 
                 if ($reseller && $reseller->f_rate) {
                     // With reseller: apply reseller rate + 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
-                    $totalAmount += $calculatedAmount;
+                    // Subtract the reseller commission
+                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                    $totalAmount += $finalAmount;
                 } else {
                     // No reseller: only deduct 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
@@ -422,7 +399,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 if ($reseller && $reseller->f_rate) {
                     // With reseller: apply reseller rate + 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
-                    $totalAmount += $calculatedAmount;
+                    // Subtract the reseller commission
+                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                    $totalAmount += $finalAmount;
                 } else {
                     // No reseller: only deduct 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
@@ -492,7 +471,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 if ($reseller && $reseller->f_rate) {
                     // With reseller: apply reseller rate + 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
-                    $totalAmount += $calculatedAmount;
+                    // Subtract the reseller commission
+                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                    $totalAmount += $finalAmount;
                 } else {
                     // No reseller: only deduct 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
@@ -562,7 +543,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 if ($reseller && $reseller->f_rate) {
                     // With reseller: apply reseller rate + 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
-                    $totalAmount += $calculatedAmount;
+                    // Subtract the reseller commission
+                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                    $totalAmount += $finalAmount;
                 } else {
                     // No reseller: only deduct 8%
                     $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
@@ -738,9 +721,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 }
 
                                 $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
-
-                                // Reload data when filter changes
-                                $this->renewalForecastStats = RenewalDataMyr::getRenewalForecastStats($startDate, $endDate);
                             } catch (\Exception $e) {
                                 Log::error("Date filter error: " . $e->getMessage());
                                 $today = Carbon::now()->format('Y-m-d');
@@ -935,7 +915,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 if ($reseller && $reseller->f_rate) {
                                     // With reseller: apply reseller rate + 8%
                                     $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
-                                    return number_format($calculatedAmount, 2);
+                                    // Subtract the reseller commission
+                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    return number_format($finalAmount, 2);
                                 } else {
                                     // No reseller: only deduct 8%
                                     $calculatedAmount = ($state * 100) / (100 + 8);

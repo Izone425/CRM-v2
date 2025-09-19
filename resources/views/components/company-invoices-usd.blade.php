@@ -47,9 +47,11 @@
                                 if ($reseller && $reseller->f_rate) {
                                     // With reseller: apply reseller rate + 8%
                                     $calculatedAmount = ($product->f_total_amount * 100) / ($reseller->f_rate + 8);
+                                    // Subtract the reseller commission
+                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
                                 } else {
                                     // No reseller: only deduct 8%
-                                    $calculatedAmount = ($product->f_total_amount * 100) / (100 + 8);
+                                    $finalAmount = ($product->f_total_amount * 100) / (100 + 8);
                                 }
                             @endphp
 
@@ -57,7 +59,7 @@
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $invoice->f_invoice_no ?? 'N/A' }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $product->f_name }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $product->f_unit }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-900">{{ number_format($calculatedAmount, 2) }} {{ $product->f_currency }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ number_format($finalAmount, 2) }} {{ $product->f_currency }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-500">{{ \Carbon\Carbon::parse($product->f_start_date)->format('Y-m-d') }}</td>
                                 <td class="px-4 py-3 text-sm
                                     @if(\Carbon\Carbon::parse($product->f_expiry_date)->isToday())
