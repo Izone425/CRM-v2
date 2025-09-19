@@ -93,7 +93,7 @@ class RenewalDataMyr extends Model
                 ->select([
                     'f_invoice_no',
                     'f_currency',
-                    DB::raw('SUM(f_total_amount) AS invoice_total_amount'),
+                    DB::raw('MAX(f_total_amount) AS invoice_total_amount'),
                     DB::raw('SUM(f_unit) AS invoice_total_units'),
                     DB::raw('COUNT(*) AS invoice_product_count'),
                     DB::raw('MIN(f_expiry_date) AS invoice_earliest_expiry'),
@@ -114,15 +114,13 @@ class RenewalDataMyr extends Model
             return $query->groupBy('f_invoice_no', 'f_currency')
                         ->having(DB::raw('COUNT(*)'), '>', 0)
                         ->orderBy('f_invoice_no', 'ASC')
-                        ->get()
-                        ->toArray();
+                        ->get(); // Remove ->toArray() to keep as objects
         } catch (\Exception $e) {
             Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
-            return [];
+            return collect(); // Return empty collection instead of empty array
         }
     }
 
-    // Get products for a specific company and invoice within date range
     public static function getProductsForInvoice($companyId, $invoiceNo, $startDate = null, $endDate = null)
     {
         try {
@@ -152,11 +150,10 @@ class RenewalDataMyr extends Model
             }
 
             return $query->orderBy('f_expiry_date', 'ASC')
-                        ->get()
-                        ->toArray();
+                        ->get(); // Remove ->toArray() to keep as objects
         } catch (\Exception $e) {
             Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
-            return [];
+            return collect(); // Return empty collection instead of empty array
         }
     }
 
@@ -200,6 +197,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $title = 'Renewal Process Data (MYR)';
     protected static ?string $navigationLabel = 'Renewal Process Data (MYR)';
     protected static ?string $navigationGroup = 'Administration';
     protected static ?int $navigationSort = 51;
@@ -280,33 +278,45 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
                 ->select([
                     'f_company_id',
-                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
-                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                    'f_invoice_no',
+                    DB::raw('MAX(f_total_amount) as invoice_amount') // Use MAX instead of SUM for same invoice
                 ])
                 ->whereIn('f_company_id', $newRenewalCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
                 ->where('f_expiry_date', '<=', $endDate)
                 ->where('f_currency', 'MYR')
-                ->groupBy('f_company_id');
+                ->groupBy('f_company_id', 'f_invoice_no'); // Group by both company and invoice
 
             // Apply product exclusions
             RenewalDataMyr::applyProductExclusions($query);
 
-            $companies = $query->get();
+            $invoices = $query->get();
+
+            // Group by company and sum invoice amounts
+            $companies = $invoices->groupBy('f_company_id')->map(function ($companyInvoices) {
+                return [
+                    'f_company_id' => $companyInvoices->first()->f_company_id,
+                    'total_invoices' => $companyInvoices->count(),
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                ];
+            });
 
             $totalCompanies = $companies->count();
-            $totalInvoices = $companies->sum('total_invoices');
+            $totalInvoices = $invoices->count();
             $totalAmount = 0;
 
             // Calculate amount with reseller rates
             foreach ($companies as $company) {
-                $reseller = RenewalDataMyr::getResellerForCompany($company->f_company_id);
+                $reseller = RenewalDataMyr::getResellerForCompany($company['f_company_id']);
 
                 if ($reseller && $reseller->f_rate) {
-                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    // With reseller: apply reseller rate + 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
                     $totalAmount += $calculatedAmount;
                 } else {
-                    $totalAmount += $company->raw_total_amount;
+                    // No reseller: only deduct 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
+                    $totalAmount += $calculatedAmount;
                 }
             }
 
@@ -322,10 +332,10 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
         }
     }
 
+    // Apply the same pattern to other stats methods
     protected function getPendingConfirmationStats($startDate = null, $endDate = null)
     {
         try {
-            // Get companies with pending confirmation status
             $pendingConfirmationCompanyIds = Renewal::where('renewal_progress', 'pending_confirmation')
                 ->pluck('f_company_id')
                 ->toArray();
@@ -334,7 +344,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            // Use provided dates or defaults
             if (!$startDate || !$endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
@@ -343,33 +352,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
                 ->select([
                     'f_company_id',
-                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
-                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                    'f_invoice_no',
+                    DB::raw('MAX(f_total_amount) as invoice_amount')
                 ])
                 ->whereIn('f_company_id', $pendingConfirmationCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
                 ->where('f_expiry_date', '<=', $endDate)
                 ->where('f_currency', 'MYR')
-                ->groupBy('f_company_id');
+                ->groupBy('f_company_id', 'f_invoice_no');
 
-            // Apply product exclusions
             RenewalDataMyr::applyProductExclusions($query);
 
-            $companies = $query->get();
+            $invoices = $query->get();
+
+            $companies = $invoices->groupBy('f_company_id')->map(function ($companyInvoices) {
+                return [
+                    'f_company_id' => $companyInvoices->first()->f_company_id,
+                    'total_invoices' => $companyInvoices->count(),
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                ];
+            });
 
             $totalCompanies = $companies->count();
-            $totalInvoices = $companies->sum('total_invoices');
+            $totalInvoices = $invoices->count();
             $totalAmount = 0;
 
-            // Calculate amount with reseller rates
             foreach ($companies as $company) {
-                $reseller = RenewalDataMyr::getResellerForCompany($company->f_company_id);
+                $reseller = RenewalDataMyr::getResellerForCompany($company['f_company_id']);
 
                 if ($reseller && $reseller->f_rate) {
-                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    // With reseller: apply reseller rate + 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
                     $totalAmount += $calculatedAmount;
                 } else {
-                    $totalAmount += $company->raw_total_amount;
+                    // No reseller: only deduct 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
+                    $totalAmount += $calculatedAmount;
                 }
             }
 
@@ -388,7 +406,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
     protected function getPendingPaymentStats($startDate = null, $endDate = null)
     {
         try {
-            // Get companies with pending payment status
             $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
                 ->pluck('f_company_id')
                 ->toArray();
@@ -397,7 +414,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            // Use provided dates or defaults
             if (!$startDate || !$endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
@@ -406,33 +422,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
                 ->select([
                     'f_company_id',
-                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
-                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                    'f_invoice_no',
+                    DB::raw('MAX(f_total_amount) as invoice_amount')
                 ])
                 ->whereIn('f_company_id', $pendingPaymentCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
                 ->where('f_expiry_date', '<=', $endDate)
                 ->where('f_currency', 'MYR')
-                ->groupBy('f_company_id');
+                ->groupBy('f_company_id', 'f_invoice_no');
 
-            // Apply product exclusions
             RenewalDataMyr::applyProductExclusions($query);
 
-            $companies = $query->get();
+            $invoices = $query->get();
+
+            $companies = $invoices->groupBy('f_company_id')->map(function ($companyInvoices) {
+                return [
+                    'f_company_id' => $companyInvoices->first()->f_company_id,
+                    'total_invoices' => $companyInvoices->count(),
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                ];
+            });
 
             $totalCompanies = $companies->count();
-            $totalInvoices = $companies->sum('total_invoices');
+            $totalInvoices = $invoices->count();
             $totalAmount = 0;
 
-            // Calculate amount with reseller rates
             foreach ($companies as $company) {
-                $reseller = RenewalDataMyr::getResellerForCompany($company->f_company_id);
+                $reseller = RenewalDataMyr::getResellerForCompany($company['f_company_id']);
 
                 if ($reseller && $reseller->f_rate) {
-                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    // With reseller: apply reseller rate + 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
                     $totalAmount += $calculatedAmount;
                 } else {
-                    $totalAmount += $company->raw_total_amount;
+                    // No reseller: only deduct 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
+                    $totalAmount += $calculatedAmount;
                 }
             }
 
@@ -448,11 +473,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
         }
     }
 
-    // Also update getCompletedRenewalStats and getRenewalForecastStats to follow the same pattern
     protected function getCompletedRenewalStats($startDate = null, $endDate = null)
     {
         try {
-            // Get companies with completed renewal status
             $completedRenewalCompanyIds = Renewal::where('renewal_progress', 'completed_renewal')
                 ->pluck('f_company_id')
                 ->toArray();
@@ -461,7 +484,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            // Use provided dates or defaults
             if (!$startDate || !$endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
@@ -470,33 +492,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
                 ->select([
                     'f_company_id',
-                    DB::raw('COUNT(DISTINCT f_invoice_no) as total_invoices'),
-                    DB::raw('SUM(f_total_amount) as raw_total_amount')
+                    'f_invoice_no',
+                    DB::raw('MAX(f_total_amount) as invoice_amount')
                 ])
                 ->whereIn('f_company_id', $completedRenewalCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
                 ->where('f_expiry_date', '<=', $endDate)
                 ->where('f_currency', 'MYR')
-                ->groupBy('f_company_id');
+                ->groupBy('f_company_id', 'f_invoice_no');
 
-            // Apply product exclusions
             RenewalDataMyr::applyProductExclusions($query);
 
-            $companies = $query->get();
+            $invoices = $query->get();
+
+            $companies = $invoices->groupBy('f_company_id')->map(function ($companyInvoices) {
+                return [
+                    'f_company_id' => $companyInvoices->first()->f_company_id,
+                    'total_invoices' => $companyInvoices->count(),
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                ];
+            });
 
             $totalCompanies = $companies->count();
-            $totalInvoices = $companies->sum('total_invoices');
+            $totalInvoices = $invoices->count();
             $totalAmount = 0;
 
-            // Calculate amount with reseller rates
             foreach ($companies as $company) {
-                $reseller = RenewalDataMyr::getResellerForCompany($company->f_company_id);
+                $reseller = RenewalDataMyr::getResellerForCompany($company['f_company_id']);
 
                 if ($reseller && $reseller->f_rate) {
-                    $calculatedAmount = ($company->raw_total_amount * 100) / ($reseller->f_rate + 8);
+                    // With reseller: apply reseller rate + 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / ($reseller->f_rate + 8);
                     $totalAmount += $calculatedAmount;
                 } else {
-                    $totalAmount += $company->raw_total_amount;
+                    // No reseller: only deduct 8%
+                    $calculatedAmount = ($company['raw_total_amount'] * 100) / (100 + 8);
+                    $totalAmount += $calculatedAmount;
                 }
             }
 
@@ -548,12 +579,12 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 // Apply product exclusions using the helper method
                 RenewalDataMyr::applyProductExclusions($baseQuery);
 
-                // Apply aggregation
+                // Apply aggregation - GROUP BY invoice to avoid duplicate amounts
                 $baseQuery->selectRaw("
                     f_company_id,
                     ANY_VALUE(f_company_name) AS f_company_name,
                     ANY_VALUE(f_currency) AS f_currency,
-                    SUM(f_total_amount) AS total_amount,
+                    SUM(DISTINCT f_total_amount) AS total_amount,
                     SUM(f_unit) AS total_units,
                     COUNT(*) AS total_products,
                     COUNT(DISTINCT f_invoice_no) AS total_invoices,
@@ -773,25 +804,28 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             ->formatStateUsing(fn (string $state): string => strtoupper($state))
                             ->weight('bold'),
 
-                        TextColumn::make('total_products')
-                            ->label('Products')
-                            ->formatStateUsing(fn ($state, $record) => "{$state} products in {$record->total_invoices} invoices")
-                            ->color('gray'),
+                        // TextColumn::make('total_products')
+                        //     ->label('Products')
+                        //     ->formatStateUsing(fn ($state, $record) => "{$state} products in {$record->total_invoices} invoices")
+                        //     ->color('gray'),
                     ]),
 
                     Stack::make([
                         TextColumn::make('total_amount')
                             ->label('Amount')
+                            ->alignRight()
                             ->formatStateUsing(function ($state, $record) {
                                 $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
 
                                 if ($reseller && $reseller->f_rate) {
+                                    // With reseller: apply reseller rate + 8%
                                     $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
                                     return number_format($calculatedAmount, 2);
+                                } else {
+                                    // No reseller: only deduct 8%
+                                    $calculatedAmount = ($state * 100) / (100 + 8);
+                                    return number_format($calculatedAmount, 2);
                                 }
-
-                                // If no reseller or no f_rate, return original amount
-                                return number_format($state, 2);
                             }),
                     ]),
 
@@ -842,37 +876,91 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 };
                             }),
 
-                        TextColumn::make('f_company_id')
-                            ->label('Lead Reference')
-                            ->formatStateUsing(function ($state) {
-                                $renewal = Renewal::where('f_company_id', $state)->first();
+                        Stack::make([
+                            TextColumn::make('f_company_id')
+                                ->label('Renewal Progress')
+                                ->formatStateUsing(function ($state) {
+                                    $renewal = Renewal::where('f_company_id', $state)->first();
 
-                                if ($renewal && $renewal->lead_id) {
-                                    $lead = Lead::with('companyDetail')->find($renewal->lead_id);
-
-                                    if ($lead && $lead->companyDetail) {
-                                        return $lead->companyDetail->company_name;
-                                    } else {
-                                        return 'Lead ID: ' . str_pad($renewal->lead_id, 5, '0', STR_PAD_LEFT);
+                                    if (!$renewal || !$renewal->renewal_progress) {
+                                        return '';
                                     }
-                                }
 
-                                return '';
-                            })
-                            ->color('info')
-                            ->size('sm')
-                            ->url(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                                    return match($renewal->renewal_progress) {
+                                        'new' => 'New',
+                                        'pending_confirmation' => 'Pending Confirmation',
+                                        'pending_payment' => 'Pending Payment',
+                                        'completed_renewal' => 'Completed Renewal',
+                                        default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
+                                    };
+                                })
+                                ->badge()
+                                ->color(function ($state, $record) {
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                                if ($renewal && $renewal->lead_id) {
-                                    return route('filament.admin.resources.leads.view', [
-                                        'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
-                                    ]);
-                                }
+                                    if (!$renewal || !$renewal->renewal_progress) {
+                                        return 'gray';
+                                    }
 
-                                return null;
-                            })
-                            ->openUrlInNewTab(),
+                                    return match($renewal->renewal_progress) {
+                                        'new' => 'info',                    // Blue
+                                        'pending_confirmation' => 'warning', // Yellow
+                                        'pending_payment' => 'danger',      // Red
+                                        'completed_renewal' => 'success',           // Green
+                                        default => 'gray'
+                                    };
+                                })
+                                ->icon(function ($state, $record) {
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                    if (!$renewal || !$renewal->renewal_progress) {
+                                        return null;
+                                    }
+
+                                    return match($renewal->renewal_progress) {
+                                        'new' => 'heroicon-o-star',
+                                        'pending_confirmation' => 'heroicon-o-clock',
+                                        'pending_payment' => 'heroicon-o-credit-card',
+                                        'completed_renewal' => 'heroicon-o-check-circle',
+                                        default => 'heroicon-o-question-mark-circle'
+                                    };
+                                })
+                                ->visible(function ($state, $record) {
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                                    return $renewal;
+                                }),
+                        ]),
+                        // TextColumn::make('f_company_id')
+                        //     ->label('Lead Reference')
+                        //     ->formatStateUsing(function ($state) {
+                        //         $renewal = Renewal::where('f_company_id', $state)->first();
+
+                        //         if ($renewal && $renewal->lead_id) {
+                        //             $lead = Lead::with('companyDetail')->find($renewal->lead_id);
+
+                        //             if ($lead && $lead->companyDetail) {
+                        //                 return $lead->companyDetail->company_name;
+                        //             } else {
+                        //                 return 'Lead ID: ' . str_pad($renewal->lead_id, 5, '0', STR_PAD_LEFT);
+                        //             }
+                        //         }
+
+                        //         return '';
+                        //     })
+                        //     ->color('info')
+                        //     ->size('sm')
+                        //     ->url(function ($state, $record) {
+                        //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                        //         if ($renewal && $renewal->lead_id) {
+                        //             return route('filament.admin.resources.leads.view', [
+                        //                 'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                        //             ]);
+                        //         }
+
+                        //         return null;
+                        //     })
+                        //     ->openUrlInNewTab(),
                     ]),
 
                     Stack::make([
@@ -917,65 +1005,14 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             ->label('Reseller')
                             ->formatStateUsing(function ($state) {
                                 $reseller = RenewalDataMyr::getResellerForCompany($state);
-                                return $reseller ? $reseller->reseller_name : '';
-                            })
-                            ->color('blue')
-                            ->size('sm')
-                            ->icon('heroicon-o-building-office'),
-                    ]),
-
-                    Stack::make([
-                        TextColumn::make('f_company_id')
-                            ->label('Renewal Progress')
-                            ->formatStateUsing(function ($state) {
-                                $renewal = Renewal::where('f_company_id', $state)->first();
-
-                                if (!$renewal || !$renewal->renewal_progress) {
-                                    return '';
-                                }
-
-                                return match($renewal->renewal_progress) {
-                                    'new' => 'New',
-                                    'pending_confirmation' => 'Pending Confirmation',
-                                    'pending_payment' => 'Pending Payment',
-                                    'completed_renewal' => 'Completed Renewal',
-                                    default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
-                                };
+                                return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
-                            ->color(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                if (!$renewal || !$renewal->renewal_progress) {
-                                    return 'gray';
-                                }
-
-                                return match($renewal->renewal_progress) {
-                                    'new' => 'info',                    // Blue
-                                    'pending_confirmation' => 'warning', // Yellow
-                                    'pending_payment' => 'danger',      // Red
-                                    'completed_renewal' => 'success',           // Green
-                                    default => 'gray'
-                                };
-                            })
-                            ->icon(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                if (!$renewal || !$renewal->renewal_progress) {
-                                    return null;
-                                }
-
-                                return match($renewal->renewal_progress) {
-                                    'new' => 'heroicon-o-star',
-                                    'pending_confirmation' => 'heroicon-o-clock',
-                                    'pending_payment' => 'heroicon-o-credit-card',
-                                    'completed_renewal' => 'heroicon-o-check-circle',
-                                    default => 'heroicon-o-question-mark-circle'
-                                };
-                            })
+                            ->color('success')
+                            ->icon('heroicon-o-building-office')
                             ->visible(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                                return $renewal;
+                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+                                return $reseller !== null;
                             }),
                     ]),
 
@@ -998,12 +1035,12 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 return 'gray'; // More than a month
                             }),
 
-                        TextColumn::make('total_units')
-                            ->label('Units')
-                            ->numeric()
-                            ->prefix('Total: ')
-                            ->color('gray')
-                            ->size('sm'),
+                        // TextColumn::make('total_units')
+                        //     ->label('Units')
+                        //     ->numeric()
+                        //     ->prefix('Total: ')
+                        //     ->color('gray')
+                        //     ->size('sm'),
                     ]),
                 ])->from('sm'),
 
@@ -1025,29 +1062,26 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('assign_to_me')
-                        ->label('Assign to Me')
+                    Action::make('assign_to_admin')
+                        ->label('Assign to Admin Renewal')
                         ->icon('heroicon-o-user')
                         ->color('info')
-                        ->requiresConfirmation()
-                        ->modalHeading('Assign Renewal to Me')
-                        ->modalDescription(fn ($record) => "Are you sure you want to assign the renewal for {$record->f_company_name} to yourself?")
-                        ->modalSubmitActionLabel('Yes, Assign to Me')
-                        ->modalCancelActionLabel('Cancel')
-                        ->visible(function ($record) {
-                            // Only show after mapping is completed AND no one is assigned yet
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                            return $renewal &&
-                                $renewal->mapping_status === 'completed_mapping' &&
-                                $renewal->admin_renewal === null;
-                        })
-                        ->action(function ($record) {
+                        ->form([
+                            Select::make('admin_renewal')
+                                ->label('Select Admin Renewal')
+                                ->options([
+                                    'NO1/Fatimah Nurnabilah' => 'NO1/Fatimah Nurnabilah',
+                                ])
+                                ->required()
+                                ->placeholder('Select an admin')
+                        ])
+                        ->action(function ($record, array $data) {
                             try {
-                                // Update or create renewal record with current user
+                                // Update or create renewal record with selected admin
                                 Renewal::updateOrCreate(
                                     ['f_company_id' => $record->f_company_id],
                                     [
-                                        'admin_renewal' => auth()->user()->name,
+                                        'admin_renewal' => $data['admin_renewal'],
                                         'company_name' => $record->f_company_name,
                                     ]
                                 );
@@ -1055,7 +1089,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 Notification::make()
                                     ->success()
                                     ->title('Assignment Successful')
-                                    ->body("Renewal for {$record->f_company_name} has been assigned to you.")
+                                    ->body("Renewal for {$record->f_company_name} has been assigned to {$data['admin_renewal']}.")
                                     ->send();
 
                             } catch (\Exception $e) {
@@ -1067,7 +1101,19 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     ->body('There was an error assigning the renewal. Please try again.')
                                     ->send();
                             }
+                        })
+                        ->modalHeading('Assign to Admin Renewal')
+                        ->modalDescription(fn ($record) => "Select an admin to assign the renewal for {$record->f_company_name}.")
+                        ->modalSubmitActionLabel('Assign')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            // Only show after mapping is completed AND no one is assigned yet
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->admin_renewal === null;
                         }),
+
 
                     Action::make('mapping_action')
                         ->label('Mapping')
@@ -1269,27 +1315,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                             return [];
                                         })
-                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
-
-                                    Select::make('lead_code')
-                                        ->label('Lead Source')
-                                        ->options(function () {
-                                            return [
-                                                'Existing Customer (Migration)' => 'Existing Customer (Migration)',
-                                            ];
-                                        })
-                                        ->default('Existing Customer (Migration)')
-                                        ->searchable()
-                                        ->required()
-                                        ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
-
-                                    Select::make('products')
-                                        ->label('Products')
-                                        ->multiple()
-                                        ->options([
-                                            'hr' => 'HR (Attendance, Leave, Claim, Payroll, Hire, Profile)',
-                                        ])
-                                        ->required()
                                         ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
                                 ])
                                 ->visible(fn ($get) => $get('mapping_type') === 'before_handover'),
@@ -1565,6 +1590,64 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     ->send();
                             }
                         }),
+                    Action::make('view_lead_details')
+                        ->label('View Lead Details')
+                        ->icon('heroicon-o-eye')
+                        ->color('info')
+                        ->url(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            if ($renewal && $renewal->lead_id) {
+                                return route('filament.admin.resources.leads.view', [
+                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                                ]);
+                            }
+
+                            return null;
+                        })
+                        ->openUrlInNewTab()
+                        ->visible(function ($record) {
+                            // Only show if mapping is completed and lead_id exists
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->lead_id;
+                        }),
+
+                    Action::make('view_reseller')
+                        ->label('View Reseller')
+                        ->icon('heroicon-o-building-office')
+                        ->color('blue')
+                        ->modalHeading('Reseller Information')
+                        ->modalContent(function ($record) {
+                            $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+
+                            if (!$reseller) {
+                                return view('components.simple-modal-content', [
+                                    'title' => 'No Reseller',
+                                    'content' => 'This company does not have a reseller assigned.',
+                                    'icon' => 'heroicon-o-x-circle',
+                                    'color' => 'gray'
+                                ]);
+                            }
+
+                            return view('components.simple-modal-content', [
+                                'title' => 'Reseller Details',
+                                'content' => [
+                                    'Reseller Name' => $reseller->reseller_name,
+                                    'Rate' => $reseller->f_rate ? $reseller->f_rate . '%' : 'Not specified',
+                                ],
+                                'icon' => 'heroicon-o-building-office',
+                                'color' => 'blue'
+                            ]);
+                        })
+                        ->modalCancelActionLabel('Close')
+                        ->modalSubmitAction(false)
+                        ->visible(function ($record) {
+                            $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+                            return $reseller !== null;
+                        }),
+
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->color('primary')
@@ -1614,8 +1697,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         'phone' => $phoneNumber,
                         'company_size' => $data['company_size'],
                         'country' => $countryName,
-                        'lead_code' => $data['lead_code'],
-                        'products' => $data['products'], // This will be stored as JSON
+                        'lead_code' => 'Existing Customer (Migration)',
+                        'products' => 'hr', // This will be stored as JSON
                         'status' => 'new',
                         'f_company_id' => $record->f_company_id, // Link to renewal data
                     ]);
@@ -1715,6 +1798,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     [
                         'company_name' => $record->f_company_name,
                         'mapping_status' => 'onhold_mapping',
+                        'admin_renewal' => 'AUTO RENEWAL'
                     ]
                 );
 
