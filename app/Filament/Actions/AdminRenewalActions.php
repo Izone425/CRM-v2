@@ -5,6 +5,7 @@ namespace App\Filament\Actions;
 use App\Models\AdminRenewalLogs;
 use App\Models\Renewal;
 use App\Models\EmailTemplate;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -45,17 +46,30 @@ class AdminRenewalActions
                             ->minDate(now()->subDay())
                             ->required(),
 
-                        Select::make('manual_follow_up_count')
-                            ->label('Follow Up Count')
-                            ->required()
-                            ->options([
-                                0 => '0',
-                                1 => '1',
-                                2 => '2',
-                                3 => '3',
-                                4 => '4',
-                            ])
-                            ->default(1),
+                        TextInput::make('earliest_expiry_display')
+                            ->label('License Expiry')
+                            ->disabled()
+                            ->default(function ($record) {
+                                // Get renewal record for this lead
+                                $renewal = Renewal::where('lead_id', $record->lead_id)->first();
+                                if (!$renewal || !$renewal->f_company_id) {
+                                    return 'Not Available';
+                                }
+
+                                // Get earliest expiry date for this company
+                                $earliestExpiry = self::getEarliestExpiryDate($renewal->f_company_id);
+
+                                if ($earliestExpiry) {
+                                    $expiryDate = Carbon::parse($earliestExpiry);
+                                    return $expiryDate->format('d M Y');
+                                }
+
+                                return 'Not Available';
+                            })
+                            ->dehydrated(false)
+                            ->extraInputAttributes([
+                                'style' => 'font-weight: 600; color: #374151;'
+                            ]),
 
                         Toggle::make('send_email')
                             ->label('Send Email?')
@@ -82,8 +96,49 @@ class AdminRenewalActions
                     ->schema([
                         TextInput::make('required_attendees')
                             ->label('Required Attendees')
-                            ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+                            ->default(function ($record) {
+                                // Initialize emails array to store all collected emails
+                                $emails = [];
 
+                                // $record is a Renewal object, so we need to access the lead through the relationship
+                                $lead = $record->lead;
+
+                                if ($lead) {
+                                    $emails[] = $lead->email;
+
+                                    // 1. Get email from companyDetail->email (primary company email)
+                                    if ($lead->companyDetail && !empty($lead->companyDetail->email)) {
+                                        $emails[] = $lead->companyDetail->email;
+                                    }
+
+                                    // 2. Get emails from company_detail->additional_pic
+                                    if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                        try {
+                                            $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                            if (is_array($additionalPics)) {
+                                                foreach ($additionalPics as $pic) {
+                                                    // Only include contacts with "Available" status
+                                                    if (
+                                                        !empty($pic['email']) &&
+                                                        isset($pic['status']) &&
+                                                        $pic['status'] === 'Available'
+                                                    ) {
+                                                        $emails[] = $pic['email'];
+                                                    }
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                        }
+                                    }
+                                }
+
+                                // Remove duplicates and return as semicolon-separated string
+                                $uniqueEmails = array_unique($emails);
+                                return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                            })
+                            ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
                         Select::make('email_template')
                             ->label('Email Template')
                             ->options(function () {
@@ -158,18 +213,6 @@ class AdminRenewalActions
             ->modalHeading('Add New Follow-up');
     }
 
-    public static function stopAdminRenewalFollowUp(): Action
-    {
-        return Action::make('stop_follow_up')
-            ->label('Stop Follow-up')
-            ->color('danger')
-            ->icon('heroicon-o-stop')
-            ->requiresConfirmation()
-            ->modalHeading('Stop Follow-up')
-            ->modalDescription('Are you sure you want to stop the follow-up for this renewal?')
-            ->modalSubmitActionLabel('Yes, Stop Follow-up');
-    }
-
     public static function processFollowUpWithEmail(Renewal $record, array $data): void
     {
         if (!$record) {
@@ -184,7 +227,6 @@ class AdminRenewalActions
         $record->update([
             'follow_up_date' => $data['follow_up_date'],
             'follow_up_counter' => true,
-            'manual_follow_up_count' => $data['manual_follow_up_count'],
         ]);
 
         // Create description for the follow-up
@@ -199,19 +241,213 @@ class AdminRenewalActions
             'subject_id' => $record->id,
             'follow_up_date' => $data['follow_up_date'],
             'follow_up_counter' => true,
-            'manual_follow_up_count' => $data['manual_follow_up_count'],
         ]);
 
         // Handle email sending if enabled
         if (isset($data['send_email']) && $data['send_email']) {
-            // Email sending logic similar to ARFollowUpTabs
-            // ... (implement email logic)
+            try {
+                $recipientStr = $data['required_attendees'] ?? '';
+
+                if (!empty($recipientStr)) {
+                    $subject = $data['email_subject'];
+                    $content = $data['email_content'];
+
+                    // Add signature to email content
+                    if (isset($data['admin_name']) && !empty($data['admin_name'])) {
+                        $signature = "Regards,<br>";
+                        $signature .= "{$data['admin_name']}<br>";
+                        $signature .= "{$data['admin_designation']}<br>";
+                        $signature .= "{$data['admin_company']}<br>";
+                        $signature .= "Phone: {$data['admin_phone']}<br>";
+
+                        if (!empty($data['admin_email'])) {
+                            $signature .= "Email: {$data['admin_email']}<br>";
+                        }
+
+                        $content .= $signature;
+                    }
+
+                    // Replace placeholders with actual data
+                    $lead = $record->lead;
+                    $placeholders = [
+                        '{customer_name}' => $lead->contact_name ?? '',
+                        '{company_name}' => $record->company_name ?? $lead->companyDetail->company_name,
+                        '{admin_name}' => $data['admin_name'] ?? auth()->user()->name ?? '',
+                        '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
+                    ];
+
+                    $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
+                    $subject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
+
+                    // Collect valid email addresses
+                    $validRecipients = [];
+                    foreach (explode(';', $recipientStr) as $recipient) {
+                        $recipient = trim($recipient);
+                        if (filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                            $validRecipients[] = $recipient;
+                        }
+                    }
+
+                    if (!empty($validRecipients)) {
+                        $authUser = auth()->user();
+                        $senderEmail = $data['admin_email'] ?? $authUser->email;
+                        $senderName = $data['admin_name'] ?? $authUser->name;
+                        $schedulerType = $data['scheduler_type'] ?? 'instant';
+
+                        $template = EmailTemplate::find($data['email_template']);
+                        $templateName = $template ? $template->name : 'Custom Email';
+
+                        $emailData = [
+                            'content' => $content,
+                            'subject' => $subject,
+                            'recipients' => $validRecipients,
+                            'sender_email' => $senderEmail,
+                            'sender_name' => $senderName,
+                            'lead_id' => $record->lead_id,
+                            'admin_renewal_log_id' => $adminRenewalLog->id,
+                            'template_name' => $templateName,
+                            'scheduler_type' => $schedulerType,
+                        ];
+
+                        // Handle different scheduler types
+                        if ($schedulerType === 'instant' || $schedulerType === 'both') {
+                            self::sendEmail($emailData);
+                            Notification::make()
+                                ->title('Email sent immediately to ' . count($validRecipients) . ' recipient(s)')
+                                ->success()
+                                ->send();
+                        }
+
+                        if ($schedulerType === 'scheduled' || $schedulerType === 'both') {
+                            $scheduledDate = date('Y-m-d 08:00:00', strtotime($data['follow_up_date']));
+
+                            DB::table('scheduled_emails')->insert([
+                                'email_data' => json_encode($emailData),
+                                'scheduled_date' => $scheduledDate,
+                                'status' => 'New',
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+
+                            Notification::make()
+                                ->title('Email scheduled for ' . date('d M Y \a\t 8:00 AM', strtotime($scheduledDate)))
+                                ->success()
+                                ->send();
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error sending follow-up email: ' . $e->getMessage());
+                Notification::make()
+                    ->title('Error sending email')
+                    ->body($e->getMessage())
+                    ->danger()
+                    ->send();
+            }
         }
 
         Notification::make()
             ->title('Follow-up added successfully')
             ->success()
             ->send();
+    }
+
+    private static function sendEmail(array $emailData): void
+    {
+        try {
+            $adminRenewalLog = AdminRenewalLogs::find($emailData['admin_renewal_log_id']);
+            if (!$adminRenewalLog) {
+                Log::error("Admin renewal log not found for ID: {$emailData['admin_renewal_log_id']}");
+                return;
+            }
+
+            $renewal = Renewal::find($adminRenewalLog->subject_id);
+            if (!$renewal) {
+                Log::error("Renewal not found for subject_id: {$adminRenewalLog->subject_id}");
+                return;
+            }
+
+            $ccRecipients = [];
+
+            // Add admin renewal to CC
+            if ($renewal->admin_renewal) {
+                $adminUser = \App\Models\User::where('name', $renewal->admin_renewal)->first();
+                if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email']) {
+                    $ccRecipients[] = $adminUser->email;
+                }
+            }
+
+            // Add salesperson to CC
+            $lead = $renewal->lead;
+            if ($lead && $lead->salesperson) {
+                $salesperson = \App\Models\User::find($lead->salesperson);
+                if ($salesperson && $salesperson->email &&
+                    $salesperson->email !== $emailData['sender_email'] &&
+                    !in_array($salesperson->email, $ccRecipients)) {
+                    $ccRecipients[] = $salesperson->email;
+                }
+            }
+
+            Mail::html($emailData['content'], function ($message) use ($emailData, $ccRecipients) {
+                $message->to($emailData['recipients'])
+                    ->subject($emailData['subject'])
+                    ->from($emailData['sender_email'], $emailData['sender_name']);
+
+                if (!empty($ccRecipients)) {
+                    $message->cc($ccRecipients);
+                }
+
+                $message->bcc($emailData['sender_email']);
+            });
+
+            Log::info('Admin renewal follow-up email sent successfully', [
+                'to' => $emailData['recipients'],
+                'cc' => $ccRecipients,
+                'subject' => $emailData['subject'],
+                'admin_renewal_log_id' => $emailData['admin_renewal_log_id'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in sendEmail method: ' . $e->getMessage());
+        }
+    }
+
+    protected static function getEarliestExpiryDate($companyId)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            $earliestExpiry = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $today)
+                ->where('f_currency', 'MYR')
+                ->whereNotIn('f_name', [
+                    'TimeTec VMS Corporate (1 Floor License)',
+                    'TimeTec VMS SME (1 Location License)',
+                    'TimeTec Patrol (1 Checkpoint License)',
+                    'TimeTec Patrol (10 Checkpoint License)',
+                    'Other',
+                    'TimeTec Profile (10 User License)',
+                ])
+                ->min('f_expiry_date');
+
+            return $earliestExpiry;
+        } catch (\Exception $e) {
+            Log::error("Error fetching earliest expiry date for company {$companyId}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public static function stopAdminRenewalFollowUp(): Action
+    {
+        return Action::make('stop_follow_up')
+            ->label('Stop Follow-up')
+            ->color('danger')
+            ->icon('heroicon-o-stop')
+            ->requiresConfirmation()
+            ->modalHeading('Stop Follow-up')
+            ->modalDescription('Are you sure you want to stop the follow-up for this renewal?')
+            ->modalSubmitActionLabel('Yes, Stop Follow-up');
     }
 
     public static function processStopFollowUp(Renewal $record): ?AdminRenewalLogs
