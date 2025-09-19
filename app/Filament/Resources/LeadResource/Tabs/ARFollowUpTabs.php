@@ -9,6 +9,7 @@ use App\Models\AdminRenewalLogs;
 use App\Models\SoftwareHandover;
 use App\Models\Renewal;
 use App\Models\EmailTemplate;
+use Carbon\Carbon;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -61,6 +62,44 @@ class ARFollowUpTabs
                 ->schema([
                     Section::make('Admin Renewal Follow Up')
                         ->icon('heroicon-o-clipboard-document-check')
+                        ->description(function ($record) {
+                            // Get renewal record for this lead
+                            $renewal = Renewal::where('lead_id', $record->id)->first();
+
+                            if (!$renewal || !$renewal->f_company_id) {
+                                return null;
+                            }
+
+                            // Get earliest expiry date for this company
+                            $earliestExpiry = self::getEarliestExpiryDate($renewal->f_company_id);
+
+                            if ($earliestExpiry) {
+                                $expiryDate = Carbon::parse($earliestExpiry);
+                                $today = Carbon::now();
+
+                                // Calculate days until expiry
+                                $daysUntilExpiry = $today->diffInDays($expiryDate, false);
+
+                                // Format the message with color coding based on urgency
+                                if ($daysUntilExpiry < 0) {
+                                    $urgency = '🔴 EXPIRED';
+                                    $message = "License expired " . abs($daysUntilExpiry) . " days ago";
+                                } elseif ($daysUntilExpiry <= 7) {
+                                    $urgency = '🟠 URGENT';
+                                    $message = "License expires in {$daysUntilExpiry} days";
+                                } elseif ($daysUntilExpiry <= 30) {
+                                    $urgency = '🟡 SOON';
+                                    $message = "License expires in {$daysUntilExpiry} days";
+                                } else {
+                                    $urgency = '🟢 NORMAL';
+                                    $message = "License expires in {$daysUntilExpiry} days";
+                                }
+
+                                return "{$urgency} Earliest License Expiry: {$expiryDate->format('d M Y')} ({$message})";
+                            }
+
+                            return null;
+                        })
                         ->headerActions([
                             Action::make('add_follow_up')
                                 ->label('Add Follow-up')
@@ -87,17 +126,33 @@ class ARFollowUpTabs
                                                 ->minDate(now()->subDay())
                                                 ->required(),
 
-                                            Select::make('manual_follow_up_count')
-                                                ->label('Follow Up Count')
-                                                ->required()
-                                                ->options([
-                                                    0 => '0',
-                                                    1 => '1',
-                                                    2 => '2',
-                                                    3 => '3',
-                                                    4 => '4',
-                                                ])
-                                                ->default(1),
+                                            TextInput::make('earliest_expiry_display')
+                                                ->label('License Expiry')
+                                                ->disabled()
+                                                ->default(function ($record) {
+                                                    // Get renewal record for this lead
+                                                    $renewal = Renewal::where('lead_id', $record->id)->first();
+
+                                                    if (!$renewal || !$renewal->f_company_id) {
+                                                        return 'Not Available';
+                                                    }
+
+                                                    // Get earliest expiry date for this company
+                                                    $earliestExpiry = self::getEarliestExpiryDate($renewal->f_company_id);
+
+                                                    if ($earliestExpiry) {
+                                                        $expiryDate = Carbon::parse($earliestExpiry);
+                                                        $today = Carbon::now();
+
+                                                        return $expiryDate->format('d M Y');
+                                                    }
+
+                                                    return 'Not Available';
+                                                })
+                                                ->dehydrated(false) // Don't include this field in form submission
+                                                ->extraInputAttributes([
+                                                    'style' => 'font-weight: 600; color: #374151;'
+                                                ]),
 
                                             Toggle::make('send_email')
                                                 ->label('Send Email?')
@@ -278,7 +333,6 @@ class ARFollowUpTabs
                                     $renewal->update([
                                         'follow_up_date' => $data['follow_up_date'],
                                         'follow_up_counter' => true,
-                                        'manual_follow_up_count' => $data['manual_follow_up_count'],
                                     ]);
 
                                     // Create description for the follow-up
@@ -293,7 +347,6 @@ class ARFollowUpTabs
                                         'subject_id' => $renewal->id,
                                         'follow_up_date' => $data['follow_up_date'],
                                         'follow_up_counter' => true,
-                                        'manual_follow_up_count' => $data['manual_follow_up_count'],
                                     ]);
 
                                     if (isset($data['send_email']) && $data['send_email']) {
@@ -369,14 +422,6 @@ class ARFollowUpTabs
                                                     if ($schedulerType === 'instant' || $schedulerType === 'both') {
                                                         // Send email immediately
                                                         self::sendEmail($emailData);
-
-                                                        DB::table('scheduled_emails')->insert([
-                                                            'email_data' => json_encode($emailData),
-                                                            'scheduled_date' => null,
-                                                            'status' => 'Done',
-                                                            'created_at' => now(),
-                                                            'updated_at' => now(),
-                                                        ]);
 
                                                         Notification::make()
                                                             ->title('Email sent immediately to ' . count($validRecipients) . ' recipient(s)')
@@ -522,6 +567,33 @@ class ARFollowUpTabs
                 'trace' => $e->getTraceAsString(),
                 'data' => $emailData
             ]);
+        }
+    }
+
+    protected static function getEarliestExpiryDate($companyId)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            $earliestExpiry = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $today)
+                ->where('f_currency', 'MYR') // You can modify this or make it dynamic
+                ->whereNotIn('f_name', [
+                    'TimeTec VMS Corporate (1 Floor License)',
+                    'TimeTec VMS SME (1 Location License)',
+                    'TimeTec Patrol (1 Checkpoint License)',
+                    'TimeTec Patrol (10 Checkpoint License)',
+                    'Other',
+                    'TimeTec Profile (10 User License)',
+                ])
+                ->min('f_expiry_date');
+
+            return $earliestExpiry;
+        } catch (\Exception $e) {
+            Log::error("Error fetching earliest expiry date for company {$companyId}: " . $e->getMessage());
+            return null;
         }
     }
 }

@@ -604,6 +604,15 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 // Apply product exclusions using the helper method
                 RenewalDataMyr::applyProductExclusions($baseQuery);
 
+                // Exclude terminated renewals from the main view
+                $terminatedCompanyIds = Renewal::where('renewal_progress', 'terminated')
+                    ->pluck('f_company_id')
+                    ->toArray();
+
+                if (!empty($terminatedCompanyIds)) {
+                    $baseQuery->whereNotIn('f_company_id', $terminatedCompanyIds);
+                }
+
                 // Apply aggregation - GROUP BY invoice to avoid duplicate amounts
                 $baseQuery->selectRaw("
                     f_company_id,
@@ -1583,7 +1592,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         ->modalCancelActionLabel('Cancel')
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                            return $renewal && ($renewal->renewal_progress === 'pending_confirmation' || $renewal->renewal_progress === 'pending_payment');
                         })
                         ->action(function ($record) {
                             try {
@@ -1772,6 +1781,72 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     ->send();
                             }
                         }),
+
+                    // Action::make('termination')
+                    //     ->label('Termination')
+                    //     ->icon('heroicon-o-x-circle')
+                    //     ->color('danger')
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Terminate Renewal')
+                    //     ->modalDescription(fn ($record) => "Are you sure you want to terminate the renewal for {$record->f_company_name}? This action will mark the renewal as terminated and remove it from the active renewal list.")
+                    //     ->modalSubmitActionLabel('Yes, Terminate')
+                    //     ->modalCancelActionLabel('Cancel')
+                    //     ->visible(function ($record) {
+                    //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                    //         // Show termination button for any status except already terminated
+                    //         return $renewal && $renewal->renewal_progress !== 'terminated';
+                    //     })
+                    //     ->action(function ($record) {
+                    //         try {
+                    //             // Get the existing renewal record to preserve current progress_history
+                    //             $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                    //             // Get current progress_history or initialize as empty array
+                    //             $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                    //                 ? json_decode($existingRenewal->progress_history, true)
+                    //                 : [];
+
+                    //             // Add new log entry
+                    //             $newLogEntry = [
+                    //                 'timestamp' => now()->toISOString(),
+                    //                 'action' => 'renewal_terminated',
+                    //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                    //                 'new_status' => 'terminated',
+                    //                 'performed_by' => auth()->user()->name,
+                    //                 'performed_by_id' => auth()->user()->id,
+                    //                 'description' => 'Renewal terminated - Removed from active renewal process',
+                    //                 'company_name' => $record->f_company_name,
+                    //                 'f_company_id' => $record->f_company_id,
+                    //             ];
+
+                    //             // Add the new entry to progress history
+                    //             $progressHistory[] = $newLogEntry;
+
+                    //             // Update renewal record
+                    //             $renewal = Renewal::updateOrCreate(
+                    //                 ['f_company_id' => $record->f_company_id],
+                    //                 [
+                    //                     'renewal_progress' => 'terminated',
+                    //                     'progress_history' => json_encode($progressHistory),
+                    //                 ]
+                    //             );
+
+                    //             Notification::make()
+                    //                 ->success()
+                    //                 ->title('Renewal Terminated')
+                    //                 ->body("Renewal for {$record->f_company_name} has been terminated and removed from active renewals.")
+                    //                 ->send();
+
+                    //         } catch (\Exception $e) {
+                    //             Log::error("Error terminating renewal: " . $e->getMessage());
+
+                    //             Notification::make()
+                    //                 ->danger()
+                    //                 ->title('Error')
+                    //                 ->body('There was an error terminating the renewal. Please try again.')
+                    //                 ->send();
+                    //         }
+                    //     }),
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->color('primary')
@@ -1784,7 +1859,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         ->color('warning')
                         ->requiresConfirmation()
                         ->modalHeading('Batch Update OnHold Mapping')
-                        ->modalDescription('Are you sure you want to set the selected renewals to OnHold Mapping status? This will also assign them to "AUTO RENEWAL".')
+                        ->modalDescription('Are you sure you want to set the selected renewals to OnHold Mapping status? This will also assign them to "Auto Renewal".')
                         ->modalSubmitActionLabel('Yes, Update to OnHold')
                         ->modalCancelActionLabel('Cancel')
                         ->action(function ($records) {
@@ -1800,7 +1875,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                         [
                                             'company_name' => $record->f_company_name,
                                             'mapping_status' => 'onhold_mapping',
-                                            'admin_renewal' => 'AUTO RENEWAL',
+                                            'admin_renewal' => 'Auto Renewal',
                                             'updated_at' => now(),
                                         ]
                                     );
@@ -1840,7 +1915,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 ->label('Select Admin Renewal')
                                 ->options([
                                     'Fatimah Nurnabilah' => 'Fatimah Nurnabilah',
-                                    'AUTO RENEWAL' => 'AUTO RENEWAL',
                                 ])
                                 ->required()
                                 ->placeholder('Select an admin to assign')
@@ -1871,6 +1945,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                             'f_company_id' => $record->f_company_id,
                                             'company_name' => $record->f_company_name,
                                             'mapping_status' => 'completed_mapping',
+                                            'follow_up_date' => now(),
+                                            'follow_up_counter' => true,
                                             'admin_renewal' => $selectedAdmin,
                                             'created_at' => now(),
                                             'updated_at' => now(),
@@ -1950,6 +2026,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                             'f_company_id' => $record->f_company_id,
                                             'company_name' => $record->f_company_name,
                                             'mapping_status' => 'completed_mapping',
+                                            'follow_up_date' => now(),
+                                            'follow_up_counter' => true,
                                             'admin_renewal' => $currentUserName,
                                             'created_at' => now(),
                                             'updated_at' => now(),
@@ -2083,6 +2161,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             'lead_id' => $lead->id,
                             'company_name' => $data['company_name'],
                             'mapping_status' => 'completed_mapping',
+                            'follow_up_date' => now(),
+                            'follow_up_counter' => true,
                         ]
                     );
 
@@ -2118,6 +2198,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         'lead_id' => $leadId,
                         'company_name' => $record->f_company_name,
                         'mapping_status' => 'completed_mapping',
+                        'follow_up_date' => now(),
+                        'follow_up_counter' => true,
                     ]
                 );
 
@@ -2134,7 +2216,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     [
                         'company_name' => $record->f_company_name,
                         'mapping_status' => 'onhold_mapping',
-                        'admin_renewal' => 'AUTO RENEWAL'
+                        'renewal_progress' => 'completed_renewal',
+                        'admin_renewal' => 'Auto Renewal'
                     ]
                 );
 

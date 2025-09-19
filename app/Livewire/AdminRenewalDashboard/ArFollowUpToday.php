@@ -78,24 +78,25 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
         $query = Renewal::query()
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
+            ->where('mapping_status', 'completed_mapping')
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
-        if ($this->selectedUser === 'all-admin-renewal') {
-            // Show all admin renewals
-        } elseif (is_numeric($this->selectedUser)) {
-            $user = User::find($this->selectedUser);
+        // if ($this->selectedUser === 'all-admin-renewal') {
+        //     // Show all admin renewals
+        // } elseif (is_numeric($this->selectedUser)) {
+        //     $user = User::find($this->selectedUser);
 
-            if ($user && $user->role_id === 3) {
-                $query->where('admin_renewal', $user->name);
-            }
-        } else {
-            $currentUser = auth()->user();
+        //     if ($user && $user->role_id === 3) {
+        //         $query->where('admin_renewal', $user->name);
+        //     }
+        // } else {
+        //     $currentUser = auth()->user();
 
-            if ($currentUser->role_id === 3) {
-                $query->where('admin_renewal', $currentUser->name);
-            }
-        }
+        //     if ($currentUser->role_id === 3) {
+        //         $query->where('admin_renewal', $currentUser->name);
+        //     }
+        // }
 
         return $query;
     }
@@ -120,39 +121,9 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
 
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
-                    ->options(function () {
-                        return User::where('role_id', 2)
-                            ->whereNot('id', 15)
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->placeholder('All Salesperson')
-                    ->multiple(),
-
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->formatStateUsing(function ($state, Renewal $record) {
-                        return 'AR_' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                    })
-                    ->color('primary')
-                    ->weight('bold'),
-
-                TextColumn::make('lead.salesperson_name')
-                    ->label('Salesperson')
-                    ->formatStateUsing(function ($state, Renewal $record) {
-                        if ($record->lead && $record->lead->salesperson) {
-                            $salesperson = User::find($record->lead->salesperson);
-                            return $salesperson ? $salesperson->name : 'Unknown';
-                        }
-                        return 'N/A';
-                    })
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
                 TextColumn::make('admin_renewal')
                     ->label('Admin Renewal')
                     ->visible(fn(): bool => auth()->user()->role_id !== 3),

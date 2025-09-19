@@ -214,25 +214,111 @@ class AdminRenewalActions
             ->send();
     }
 
-    public static function processStopFollowUp(Renewal $record): void
+    public static function processStopFollowUp(Renewal $record): ?AdminRenewalLogs
     {
-        $record->update([
-            'follow_up_counter' => false,
-            'follow_up_date' => null,
-        ]);
+        if (!$record) {
+            Notification::make()
+                ->title('Error: Renewal record not found')
+                ->danger()
+                ->send();
+            return null;
+        }
 
-        // Log the stop action
-        AdminRenewalLogs::create([
-            'lead_id' => $record->lead_id,
-            'description' => 'Admin Renewal Follow Up Stopped By ' . auth()->user()->name,
-            'causer_id' => auth()->id(),
-            'remark' => 'FOLLOW UP STOPPED',
-            'subject_id' => $record->id,
-        ]);
+        try {
+            // Create description for the final follow-up
+            $followUpDescription = 'Admin Renewal Stop Follow Up By ' . auth()->user()->name;
 
-        Notification::make()
-            ->title('Follow-up stopped successfully')
-            ->success()
-            ->send();
+            // Create a new admin_renewal_logs entry with reference to Renewal
+            $adminRenewalLog = AdminRenewalLogs::create([
+                'lead_id' => $record->lead_id,
+                'description' => $followUpDescription,
+                'causer_id' => auth()->id(),
+                'remark' => 'Admin Renewal Stop the Follow Up Features',
+                'subject_id' => $record->id,
+                'follow_up_date' => now()->format('Y-m-d'), // Today
+            ]);
+
+            // Cancel all scheduled emails related to this renewal
+            $cancelledEmailsCount = self::cancelScheduledEmailsForRenewal($record);
+
+            // Update the Renewal record to indicate follow-up is done
+            $record->update([
+                'follow_up_date' => now()->format('Y-m-d'), // Today
+                'follow_up_counter' => false, // Stop future follow-ups
+            ]);
+
+            $message = 'Admin renewal follow-up process stopped successfully';
+            if ($cancelledEmailsCount > 0) {
+                $message .= " and {$cancelledEmailsCount} scheduled email(s) were cancelled";
+            }
+
+            Notification::make()
+                ->title($message)
+                ->success()
+                ->send();
+
+            return $adminRenewalLog;
+        } catch (\Exception $e) {
+            Log::error('Error stopping admin renewal follow-up: ' . $e->getMessage());
+            Notification::make()
+                ->title('Error stopping follow-up')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return null;
+        }
+    }
+
+    private static function cancelScheduledEmailsForRenewal(Renewal $record): int
+    {
+        try {
+            // Find all admin renewal logs related to this renewal
+            $adminRenewalLogIds = AdminRenewalLogs::where('subject_id', $record->id)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($adminRenewalLogIds)) {
+                return 0;
+            }
+
+            // Cancel scheduled emails that contain any of these admin renewal log IDs
+            $cancelledCount = 0;
+            $scheduledEmails = DB::table('scheduled_emails')
+                ->where('status', 'New')
+                ->whereNotNull('scheduled_date')
+                ->whereDate('scheduled_date', '>=', now())
+                ->get();
+
+            foreach ($scheduledEmails as $scheduledEmail) {
+                try {
+                    $emailData = json_decode($scheduledEmail->email_data, true);
+
+                    // Check if this scheduled email is related to our renewal
+                    if (isset($emailData['admin_renewal_log_id']) &&
+                        in_array($emailData['admin_renewal_log_id'], $adminRenewalLogIds)) {
+
+                        // Cancel the scheduled email
+                        DB::table('scheduled_emails')
+                            ->where('id', $scheduledEmail->id)
+                            ->update([
+                                'status' => 'Stop',
+                                'updated_at' => now(),
+                            ]);
+
+                        $cancelledCount++;
+
+                        Log::info("Cancelled scheduled email for admin renewal log ID: {$emailData['admin_renewal_log_id']}");
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error processing scheduled email ID {$scheduledEmail->id}: " . $e->getMessage());
+                }
+            }
+
+            return $cancelledCount;
+        } catch (\Exception $e) {
+            Log::error('Error cancelling scheduled emails for renewal: ' . $e->getMessage());
+            return 0;
+        }
     }
 }
