@@ -216,6 +216,55 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
         $this->loadData();
     }
 
+    protected function getProductGroupMapping(): array
+    {
+        return [
+            // TimeTec HR Group
+            'timetec_hr' => [
+                'TimeTec TA (1 User License)',
+                'TimeTec TA (10 User License)',
+                'TimeTec Leave (1 User License)',
+                'TimeTec Leave (10 User License)',
+                'TimeTec Claim (1 User License)',
+                'TimeTec Claim (10 User License)',
+                'TimeTec Payroll (1 Payroll License)',
+                'TimeTec Payroll (10 Payroll License)',
+            ],
+            // Non-TimeTec HR Group
+            'non_timetec_hr' => [
+                'Face & QR Code (1 Device License)',
+                'FCC Terminal License',
+                'TimeTec Access (1 Door License)',
+                'TimeTec Hire Business (Unlimited Job Posts)',
+                'TimeTec Hire Startup (10 Job Posts)',
+            ],
+            // Other Division Group
+            'other_division' => [
+                'TimeTec VMS Corporate (1 Floor License)',
+                'TimeTec VMS SME (1 Location License)',
+                'TimeTec Patrol (1 Checkpoint License)',
+                'TimeTec Patrol (10 Checkpoint License)',
+                'Other',
+                'TimeTec Profile (10 User License)',
+            ],
+        ];
+    }
+
+    protected function getProductGroup(string $productName): ?string
+    {
+        $mapping = $this->getProductGroupMapping();
+
+        foreach ($mapping as $group => $products) {
+            foreach ($products as $product) {
+                if (stripos($productName, $product) !== false || $productName === $product) {
+                    return $group;
+                }
+            }
+        }
+
+        return 'other_division'; // Default to Other Division for unmapped products
+    }
+
     public function refreshStats()
     {
         $this->loadData();
@@ -633,6 +682,41 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     })
                     ->indicator('Products'),
 
+                SelectFilter::make('product_group')
+                    ->label('Product Group')
+                    ->options([
+                        'timetec_hr' => 'TimeTec HR',
+                        'non_timetec_hr' => 'Non-TimeTec HR',
+                        'other_division' => 'Other Division',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $mapping = $this->getProductGroupMapping();
+                            $selectedProducts = $mapping[$data['value']] ?? [];
+
+                            if (!empty($selectedProducts)) {
+                                // Get company IDs that have products in the selected group
+                                $subQuery = RenewalDataMyr::query()
+                                    ->select('f_company_id')
+                                    ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                    ->where('f_currency', '=', 'MYR')
+                                    ->where(function ($q) use ($selectedProducts) {
+                                        foreach ($selectedProducts as $product) {
+                                            $q->orWhere('f_name', 'LIKE', '%' . $product . '%');
+                                        }
+                                    });
+
+                                // Apply product exclusions to subquery
+                                RenewalDataMyr::applyProductExclusions($subQuery);
+
+                                $subQuery->distinct();
+
+                                $query->whereIn('f_company_id', $subQuery);
+                            }
+                        }
+                    })
+                    ->indicator('Product Group'),
+
                 Filter::make('earliest_expiry')
                     ->form([
                         DateRangePicker::make('date_range')
@@ -794,7 +878,45 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         }
                     })
                     ->indicator('Admin Renewal'),
+
+                SelectFilter::make('reseller_status')
+                    ->label('Reseller Status')
+                    ->options([
+                        'with_reseller' => 'With Reseller',
+                        'without_reseller' => 'Without Reseller',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            if ($data['value'] === 'with_reseller') {
+                                // Get company IDs that have resellers
+                                $resellerCompanyIds = DB::connection('frontenddb')
+                                    ->table('crm_reseller_link')
+                                    ->pluck('f_id')
+                                    ->toArray();
+
+                                if (!empty($resellerCompanyIds)) {
+                                    $query->whereIn('f_company_id', $resellerCompanyIds);
+                                } else {
+                                    // If no resellers found, return empty result
+                                    $query->where('f_company_id', -1);
+                                }
+                            } elseif ($data['value'] === 'without_reseller') {
+                                // Get company IDs that don't have resellers
+                                $resellerCompanyIds = DB::connection('frontenddb')
+                                    ->table('crm_reseller_link')
+                                    ->pluck('f_id')
+                                    ->toArray();
+
+                                if (!empty($resellerCompanyIds)) {
+                                    $query->whereNotIn('f_company_id', $resellerCompanyIds);
+                                }
+                                // If no resellers exist at all, all companies are without resellers (no additional filter needed)
+                            }
+                        }
+                    })
+                    ->indicator('Reseller Status'),
             ])
+            ->filtersFormColumns(3)
             ->columns([
                 Split::make([
                     Stack::make([
@@ -1008,8 +1130,25 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
-                            ->color('success')
+                            ->color('danger')
                             ->icon('heroicon-o-building-office')
+                            ->tooltip(function ($state, $record) {
+                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+
+                                if (!$reseller) {
+                                    return null;
+                                }
+
+                                $tooltipText = "Reseller: {$reseller->reseller_name}";
+
+                                if ($reseller->f_rate) {
+                                    $tooltipText .= "\nRate: {$reseller->f_rate}%";
+                                } else {
+                                    $tooltipText .= "\nRate: Not specified";
+                                }
+
+                                return $tooltipText;
+                            })
                             ->visible(function ($state, $record) {
                                 $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
                                 return $reseller !== null;
@@ -1062,6 +1201,74 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             ])
             ->actions([
                 ActionGroup::make([
+                    Action::make('view_lead_details')
+                        ->label('View Lead Details')
+                        ->icon('heroicon-o-eye')
+                        ->color('info')
+                        ->url(function ($record) {
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            if ($renewal && $renewal->lead_id) {
+                                return route('filament.admin.resources.leads.view', [
+                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                                ]);
+                            }
+
+                            return null;
+                        })
+                        ->openUrlInNewTab()
+                        ->visible(function ($record) {
+                            // Only show if mapping is completed and lead_id exists
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->lead_id;
+                        }),
+
+                    Action::make('assign_to_me')
+                        ->label('Assign to Me')
+                        ->icon('heroicon-o-user')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Assign Renewal to Me')
+                        ->modalDescription(fn ($record) => "Are you sure you want to assign the renewal for {$record->f_company_name} to yourself?")
+                        ->modalSubmitActionLabel('Yes, Assign to Me')
+                        ->modalCancelActionLabel('Cancel')
+                        ->visible(function ($record) {
+                            // Only show after mapping is completed AND no one is assigned yet
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            return $renewal &&
+                                $renewal->mapping_status === 'completed_mapping' &&
+                                $renewal->admin_renewal === null;
+                        })
+                        ->action(function ($record) {
+                            try {
+                                // Update or create renewal record with current user
+                                Renewal::updateOrCreate(
+                                    ['f_company_id' => $record->f_company_id],
+                                    [
+                                        'admin_renewal' => auth()->user()->name,
+                                        'company_name' => $record->f_company_name,
+                                    ]
+                                );
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Assignment Successful')
+                                    ->body("Renewal for {$record->f_company_name} has been assigned to you.")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error assigning renewal: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Assignment Failed')
+                                    ->body('There was an error assigning the renewal. Please try again.')
+                                    ->send();
+                            }
+                        }),
+
                     Action::make('assign_to_admin')
                         ->label('Assign to Admin Renewal')
                         ->icon('heroicon-o-user')
@@ -1070,7 +1277,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             Select::make('admin_renewal')
                                 ->label('Select Admin Renewal')
                                 ->options([
-                                    'NO1/Fatimah Nurnabilah' => 'NO1/Fatimah Nurnabilah',
+                                    'Fatimah Nurnabilah' => 'Fatimah Nurnabilah',
                                 ])
                                 ->required()
                                 ->placeholder('Select an admin')
@@ -1145,7 +1352,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 ->preload()
                                 ->options(function () {
                                     return Lead::with('companyDetail')
-                                        ->where('lead_status', 'Closed')
                                         ->get()
                                         ->mapWithKeys(function ($lead) {
                                             $companyName = $lead->companyDetail
@@ -1163,10 +1369,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 ->placeholder('Select a closed lead to map')
                                 ->visible(fn ($get) => $get('mapping_type') === 'after_handover')
                                 ->required(fn ($get) => $get('mapping_type') === 'after_handover')
-                                ->helperText('Only leads with "Closed" status are available for mapping')
                                 ->getSearchResultsUsing(function (string $search) {
                                     return Lead::with('companyDetail')
-                                        ->where('lead_status', 'Closed')
                                         ->where(function ($query) use ($search) {
                                             $query->where('id', 'like', "%{$search}%")
                                                 ->orWhereHas('companyDetail', function ($q) use ($search) {
@@ -1322,6 +1526,16 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         ->action(function ($record, array $data) {
                             return $this->handleMappingAction($record, $data);
                         })
+                        ->visible(function ($record) {
+                            // Only show mapping action when mapping status is NOT completed_mapping
+                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            if (!$renewal) {
+                                return true; // Show for records without renewal entry (pending mapping)
+                            }
+
+                            return false;
+                        })
                         ->modalWidth('5xl')
                         ->modalHeading(fn ($record) => 'Mapping Action - ' . $record->f_company_name),
                     Action::make('completed_follow_up')
@@ -1460,7 +1674,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     Action::make('request_invoice')
                         ->label('Request Invoice')
                         ->icon('heroicon-o-document-text')
-                        ->color('warning')
+                        ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Request Invoice')
                         ->modalDescription('Are you sure you want to request an invoice? This will change the renewal progress to "Pending Payment".')
@@ -1527,7 +1741,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     Action::make('claim_via_hrdf')
                         ->label('Claim via HRDF')
                         ->icon('heroicon-o-building-library')
-                        ->color('info')
+                        ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Claim via HRDF')
                         ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
@@ -1590,64 +1804,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     ->send();
                             }
                         }),
-                    Action::make('view_lead_details')
-                        ->label('View Lead Details')
-                        ->icon('heroicon-o-eye')
-                        ->color('info')
-                        ->url(function ($record) {
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                            if ($renewal && $renewal->lead_id) {
-                                return route('filament.admin.resources.leads.view', [
-                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
-                                ]);
-                            }
-
-                            return null;
-                        })
-                        ->openUrlInNewTab()
-                        ->visible(function ($record) {
-                            // Only show if mapping is completed and lead_id exists
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                            return $renewal &&
-                                $renewal->mapping_status === 'completed_mapping' &&
-                                $renewal->lead_id;
-                        }),
-
-                    Action::make('view_reseller')
-                        ->label('View Reseller')
-                        ->icon('heroicon-o-building-office')
-                        ->color('blue')
-                        ->modalHeading('Reseller Information')
-                        ->modalContent(function ($record) {
-                            $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
-
-                            if (!$reseller) {
-                                return view('components.simple-modal-content', [
-                                    'title' => 'No Reseller',
-                                    'content' => 'This company does not have a reseller assigned.',
-                                    'icon' => 'heroicon-o-x-circle',
-                                    'color' => 'gray'
-                                ]);
-                            }
-
-                            return view('components.simple-modal-content', [
-                                'title' => 'Reseller Details',
-                                'content' => [
-                                    'Reseller Name' => $reseller->reseller_name,
-                                    'Rate' => $reseller->f_rate ? $reseller->f_rate . '%' : 'Not specified',
-                                ],
-                                'icon' => 'heroicon-o-building-office',
-                                'color' => 'blue'
-                            ]);
-                        })
-                        ->modalCancelActionLabel('Close')
-                        ->modalSubmitAction(false)
-                        ->visible(function ($record) {
-                            $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
-                            return $reseller !== null;
-                        }),
-
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->color('primary')
