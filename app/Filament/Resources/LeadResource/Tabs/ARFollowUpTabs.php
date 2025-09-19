@@ -185,7 +185,14 @@ class ARFollowUpTabs
                                                     $emails = [];
 
                                                     if ($record) {
-                                                        // Get emails from company_detail->additional_pic
+                                                        $emails[] = $record->email;
+
+                                                        // 1. Get email from companyDetail->email (primary company email)
+                                                        if ($record->companyDetail && !empty($record->companyDetail->email)) {
+                                                            $emails[] = $record->companyDetail->email;
+                                                        }
+
+                                                        // 2. Get emails from company_detail->additional_pic
                                                         if ($record->companyDetail && !empty($record->companyDetail->additional_pic)) {
                                                             try {
                                                                 $additionalPics = json_decode($record->companyDetail->additional_pic, true);
