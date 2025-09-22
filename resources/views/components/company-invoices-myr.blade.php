@@ -45,10 +45,15 @@
                             @php
                                 // Calculate the amount with reseller rate for each product
                                 if ($reseller && $reseller->f_rate) {
-                                    // With reseller: apply reseller rate + 8%
-                                    $calculatedAmount = ($product->f_total_amount * 100) / ($reseller->f_rate + 8);
-                                    // Subtract the reseller commission
-                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    // With reseller: reverse calculate to get base amount before 8% SST and reseller commission
+                                    $amountDue       = $product->f_total_amount;  // Final amount after commission
+                                    $sstRate         = 0.08;     // 8%
+                                    $commissionRate  = $reseller->f_rate/100;     // 30%
+
+                                    // Subtotal formula
+                                    $subTotal = $amountDue / ((1 + $sstRate) - $commissionRate);
+
+                                    $finalAmount = $subTotal - ($subTotal * $commissionRate);
                                 } else {
                                     // No reseller: only deduct 8%
                                     $finalAmount = ($product->f_total_amount * 100) / (100 + 8);

@@ -922,11 +922,17 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
 
                                 if ($reseller && $reseller->f_rate) {
-                                    // With reseller: apply reseller rate + 8%
-                                    $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
-                                    // Subtract the reseller commission
-                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
-                                    return number_format($finalAmount, 2);
+                                    // With reseller: reverse calculate to get base amount before 8% SST and reseller commission
+                                    $amountDue       = $state;  // Final amount after commission
+                                    $sstRate         = 0.08;     // 8%
+                                    $commissionRate  = $reseller->f_rate/100;     // 30%
+
+                                    // Subtotal formula
+                                    $subTotal = $amountDue / ((1 + $sstRate) - $commissionRate);
+
+                                    $calculatedAmount = $subTotal - ($subTotal * $commissionRate);
+
+                                    return number_format($calculatedAmount, 2);
                                 } else {
                                     // No reseller: only deduct 8%
                                     $calculatedAmount = ($state * 100) / (100 + 8);
