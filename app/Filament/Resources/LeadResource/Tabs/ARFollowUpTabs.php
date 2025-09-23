@@ -95,7 +95,7 @@ class ARFollowUpTabs
                                     $message = "License expires in {$daysUntilExpiry} days";
                                 }
 
-                                return "{$urgency} Earliest License Expiry: {$expiryDate->format('d M Y')} ({$message})";
+                                return new \Illuminate\Support\HtmlString("<span>{$urgency} Earliest <span style='color: red; font-weight: bold;'>License Expiry: {$expiryDate->format('d M Y')} ({$message})</span></span>");
                             }
 
                             return null;
