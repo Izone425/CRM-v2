@@ -45,13 +45,15 @@
                             @php
                                 // Calculate the amount with reseller rate for each product
                                 if ($reseller && $reseller->f_rate) {
-                                    // With reseller: apply reseller rate + 8%
-                                    $calculatedAmount = ($product->f_total_amount * 100) / ($reseller->f_rate + 8);
-                                    // Subtract the reseller commission
-                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    // // With reseller: apply reseller rate + 8%
+                                    // $calculatedAmount = ($product->f_total_amount * 100) / ($reseller->f_rate + 8);
+                                    // // Subtract the reseller commission
+                                    // $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    $finalAmount = $product->f_total_amount; // Amount is already calculated in the query
                                 } else {
                                     // No reseller: only deduct 8%
-                                    $finalAmount = ($product->f_total_amount * 100) / (100 + 8);
+                                    // $finalAmount = ($product->f_total_amount * 100) / (100 + 8);
+                                    $finalAmount = $product->f_total_amount;
                                 }
                             @endphp
 
