@@ -34,6 +34,10 @@ use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelatio
 use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARDetailsTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARQuotationTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARProformaInvoiceTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARNotesTabs;
 use App\Filament\Resources\LeadResource\Tabs\CommercialItemTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
 use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
@@ -213,9 +217,31 @@ class LeadResource extends Resource
         //         ->schema(OtherFormTabs::getSchema());
         // }
 
-        if (in_array('ar_follow_up', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('AR Follow Up')
+        if (in_array('ar_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Details')
+                ->schema(ARDetailsTabs::getSchema());
+        }
+
+        if (in_array('ar_license', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal License')
                 ->schema(ARFollowUpTabs::getSchema());
+        }
+
+        if (in_array('ar_quotation', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Quotation')
+                ->schema(ARQuotationTabs::getSchema());
+        }
+        if (in_array('ar_proforma_invoice', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Proforma Invoice')
+                ->schema(ARProformaInvoiceTabs::getSchema());
+        }
+        if (in_array('ar_follow_up', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Follow Up')
+                ->schema(ARFollowUpTabs::getSchema());
+        }
+        if (in_array('ar_notes', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Notes')
+                ->schema(ARNotesTabs::getSchema());
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {

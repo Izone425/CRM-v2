@@ -753,6 +753,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             ' (Default 60 days)';
                     }),
                 SelectFilter::make('renewal_progress')
+                    ->multiple()
                     ->label('Renewal Progress')
                     ->options([
                         'new' => 'New',
@@ -761,9 +762,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         'completed_renewal' => 'Completed Renewal',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (!empty($data['values'])) {
                             // Get company IDs with the selected renewal progress
-                            $companyIds = Renewal::where('renewal_progress', $data['value'])
+                            $companyIds = Renewal::whereIn('renewal_progress', $data['values'])
                                 ->pluck('f_company_id')
                                 ->toArray();
 
@@ -778,6 +779,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     ->indicator('Renewal Progress'),
 
                 SelectFilter::make('mapping_status')
+                    ->multiple()
                     ->label('Mapping Status')
                     ->options([
                         'pending_mapping' => 'Pending Mapping',
@@ -785,31 +787,32 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         'onhold_mapping' => 'OnHold Mapping',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
-                            if ($data['value'] === 'pending_mapping') {
+                        if (!empty($data['values'])) {
+                            if (in_array('pending_mapping', $data['values'])) {
                                 // For pending mapping, include companies that either:
                                 // 1. Don't have a renewal record, OR
                                 // 2. Have mapping_status as 'pending_mapping' or NULL
                                 $renewalCompanyIds = Renewal::whereNotNull('mapping_status')
-                                    ->where('mapping_status', '!=', 'pending_mapping')
+                                    ->whereNotIn('mapping_status', $data['values'])
                                     ->pluck('f_company_id')
                                     ->toArray();
 
                                 if (!empty($renewalCompanyIds)) {
                                     $query->whereNotIn('f_company_id', $renewalCompanyIds);
                                 }
+
+
+
                             } else {
                                 // For completed or onhold mapping
-                                $companyIds = Renewal::where('mapping_status', $data['value'])
+                                $companyIds = Renewal::whereIn('mapping_status', $data['values'])
                                     ->pluck('f_company_id')
                                     ->toArray();
 
-                                if (!empty($companyIds)) {
+                             
                                     $query->whereIn('f_company_id', $companyIds);
-                                } else {
-                                    // If no companies found with this status, return empty result
-                                    $query->where('f_company_id', -1);
-                                }
+
+                                
                             }
                         }
                     })
