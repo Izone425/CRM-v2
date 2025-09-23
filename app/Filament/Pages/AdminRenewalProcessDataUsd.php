@@ -922,14 +922,15 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
 
                                 if ($reseller && $reseller->f_rate) {
-                                    // With reseller: apply reseller rate + 8%
-                                    $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
-                                    // Subtract the reseller commission
-                                    $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    // // With reseller: apply reseller rate + 8%
+                                    // $calculatedAmount = ($state * 100) / ($reseller->f_rate + 8);
+                                    // // Subtract the reseller commission
+                                    // $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
+                                    $finalAmount = $state; // Amount is already calculated in the query
                                     return number_format($finalAmount, 2);
                                 } else {
                                     // No reseller: only deduct 8%
-                                    $calculatedAmount = ($state * 100) / (100 + 8);
+                                    $calculatedAmount = $state;
                                     return number_format($calculatedAmount, 2);
                                 }
                             }),
