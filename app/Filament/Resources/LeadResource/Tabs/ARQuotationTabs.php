@@ -33,8 +33,7 @@ class ARQuotationTabs
                         ])
                 ]),
             \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class
-                ->parameters(['type' => 'AR']),
+                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
             ),
         ];
     }
