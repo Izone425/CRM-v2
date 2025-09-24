@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\ImplementerNote;
+use App\Models\RenewalNote;
 use App\Models\SoftwareHandover;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Grid;
@@ -35,13 +36,11 @@ class ARNotesTabs
             return true;
         }
 
-        // Get the software handover for this lead
-        $swHandover = SoftwareHandover::where('lead_id', $record->id)
-            ->orderBy('created_at', 'desc')
-            ->first();
+        // Get the renewal record for this lead
+        $renewal = Renewal::where('lead_id', $record->id)->first();
 
-        // Check if the current user is the assigned implementer
-        if ($swHandover && $swHandover->implementer === $user->name) {
+        // Check if the current user is the assigned admin_renewal
+        if ($renewal && $renewal->admin_renewal === $user->name) {
             return true;
         }
 
@@ -54,7 +53,7 @@ class ARNotesTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Implementer Notes')
+                    Section::make('Renewal Notes')
                         ->icon('heroicon-o-document-text')
                         ->headerActions([
                             Action::make('add_note')
@@ -88,8 +87,8 @@ class ARNotesTabs
                                 ->modalHeading('Add New Note')
                                 ->modalWidth('3xl')
                                 ->action(function (Lead $record, array $data) {
-                                    // Create a new implementer note
-                                    ImplementerNote::create([
+                                    // Create a new renewal note
+                                    RenewalNote::create([
                                         'lead_id' => $record->id,
                                         'user_id' => auth()->id(),
                                         'content' => $data['notes'],
@@ -104,7 +103,7 @@ class ARNotesTabs
                         ->schema([
                             Card::make()
                                 ->schema([
-                                    View::make('components.implementer-note-history')
+                                    View::make('components.renewal-note-history')
                                         ->extraAttributes(['class' => 'p-0']),
                                 ])
                                 ->columnSpanFull(),

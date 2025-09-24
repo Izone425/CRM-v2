@@ -292,6 +292,12 @@ class Lead extends Model
         return $this->hasMany(Renewal::class);
     }
 
+    public function renewalNotes()
+    {
+        return $this->hasMany(RenewalNote::class);
+    }
+
+
     public function subsidiaries()
     {
         return $this->hasMany(Subsidiary::class);
