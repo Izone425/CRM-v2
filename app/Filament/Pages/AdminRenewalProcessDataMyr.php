@@ -1137,6 +1137,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     Stack::make([
                         TextColumn::make('f_company_id')
                             ->label('Admin Renewal')
+                            ->badge()
                             ->formatStateUsing(function ($state) {
                                 $renewal = Renewal::where('f_company_id', $state)->first();
 
@@ -1196,7 +1197,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                 return $reseller !== null;
                             }),
-                    ]),
+                    ])
+                        ->space(1),
 
                 ])->from('sm'),
 
