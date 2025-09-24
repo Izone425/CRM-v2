@@ -62,6 +62,7 @@ class ARDetailsTabs
                         ->schema([
                             // Display saved new PICs in a card view
                             View::make('components.new-pic-cards')
+                            ->viewData(["type" => "renewal"]),
                         ])
                         ->headerActions([
                             Action::make('add_new_pic')

@@ -140,21 +140,28 @@
 @endphp
 
 <div class="pics-container">
-    @if(empty($pics))
+    @if (empty($pics))
         <div class="empty-state">
-            <p class="empty-message">No additional PICs added by implementer yet.</p>
+            <p class="empty-message">
+                @if (isset($type) && $type === 'renewal')
+                    No additional PICs added yet.
+                @else
+                    No additional PICs added by implementer yet.
+                @endif
+            </p>
         </div>
     @else
         <div class="pics-grid">
-            @foreach($pics as $pic)
-                <div class="pic-card" style="{{ (isset($pic['status']) && $pic['status'] == 'Resign') ? 'background-color: #fee2e2;' : 'background-color: #d1fae5;' }}">
+            @foreach ($pics as $pic)
+                <div class="pic-card"
+                    style="{{ isset($pic['status']) && $pic['status'] == 'Resign' ? 'background-color: #fee2e2;' : 'background-color: #d1fae5;' }}">
                     <div class="pic-card-inner">
                         <div class="pic-card-header">
                             <h3 class="pic-name">
                                 {{ $pic['name'] ?? 'N/A' }}
                             </h3>
                             <div>
-                                @if(isset($pic['status']) && $pic['status'] == 'Resign')
+                                @if (isset($pic['status']) && $pic['status'] == 'Resign')
                                     <span class="badge resign-badge">
                                         Resign
                                     </span>
